@@ -300,6 +300,19 @@ We welcome contributions! Please see our contributing guidelines.
 - [GitHub Issues](https://github.com/your-org/togglebox/issues) - Bug reports and feature requests
 - [Documentation](/.claude/claude-md-refs/) - Detailed guides and references
 
+## Cloud-Only Features
+
+The following features are available exclusively in [ToggleBox Cloud](https://togglebox.dev):
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-Tenancy** | Isolated workspaces with subdomain-based routing |
+| **Team Membership** | Multi-user tenants with role-based access (admin/developer/viewer) |
+| **Team Invitations** | Email-based invitation system with secure tokens |
+| **Stripe Billing** | Subscription management with tiered pricing |
+| **Usage Limits** | Plan-based limits on platforms, configs, and API requests |
+| **SSO** | Enterprise single sign-on integration |
+
 ## Related Projects
 
 - **[ToggleBox Cloud](https://togglebox.dev)** - Official managed SaaS with multi-tenancy, team collaboration, and enterprise features
