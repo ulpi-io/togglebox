@@ -1,0 +1,86 @@
+# Netlify configuration for Remote Config Service
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  # Build command
+  command = "pnpm build"
+
+  # Directory containing the built functions
+  functions = "dist"
+
+  # Publish directory (not used for functions-only deployment)
+  publish = "dist"
+
+  # Base directory (optional)
+  # base = "apps/api"
+
+[build.environment]
+  # Node version
+  NODE_VERSION = "20"
+
+  # Enable pnpm
+  NPM_FLAGS = "--prefer-offline --no-audit"
+
+[functions]
+  # Directory containing function files
+  directory = "dist"
+
+  # Node bundler (esbuild for faster builds)
+  node_bundler = "esbuild"
+
+  # Include node_modules in function bundle
+  included_files = ["node_modules/**"]
+
+# Redirect all API requests to the Netlify Function
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/netlify/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/netlify/health"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/"
+  to = "/.netlify/functions/netlify/"
+  status = 200
+  force = true
+
+# Headers for API responses
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+# Environment-specific configuration
+
+# Production environment
+[context.production]
+  [context.production.environment]
+    NODE_ENV = "production"
+    # DB_TYPE, DATABASE_URL, and secrets should be set in Netlify UI
+
+# Deploy preview environment (for PRs)
+[context.deploy-preview]
+  [context.deploy-preview.environment]
+    NODE_ENV = "staging"
+
+# Branch deploy environment
+[context.branch-deploy]
+  [context.branch-deploy.environment]
+    NODE_ENV = "development"
+
+# Local development
+[dev]
+  command = "pnpm dev"
+  port = 3000
+  publish = "dist"
+  targetPort = 8888
+  autoLaunch = false

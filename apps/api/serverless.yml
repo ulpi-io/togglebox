@@ -1,0 +1,140 @@
+service: togglebox-config-service
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  memorySize: 512
+  timeout: 30
+  
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    DYNAMODB_TABLE: ${self:service}-configurations-${self:provider.stage}
+    AWS_REGION: ${self:provider.region}
+    LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
+    CORS_ORIGIN: ${env:CORS_ORIGIN, '*'}
+    ENABLE_AUTHENTICATION: ${env:ENABLE_AUTHENTICATION, 'true'}
+    
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}/index/*"
+        - Effect: Allow
+          Action:
+            - cloudfront:CreateInvalidation
+            - cloudfront:GetInvalidation
+            - cloudfront:ListInvalidations
+          Resource: "*"
+
+functions:
+  # Public API - internet accessible (read-only endpoints)
+  publicApi:
+    handler: dist/lambda.lambdaHandler
+    events:
+      - http:
+          path: /api/v1/platforms
+          method: GET
+          cors: true
+      - http:
+          path: /api/v1/platforms/{proxy+}
+          method: GET
+          cors: true
+      - http:
+          path: /health
+          method: GET
+          cors: false
+      - http:
+          path: /
+          method: GET
+          cors: false
+
+  # Internal API - restricted to AWS account/VPC only (write operations)
+  internalApi:
+    handler: dist/lambda.lambdaHandler
+    events:
+      - http:
+          path: /api/v1/internal/{proxy+}
+          method: ANY
+          cors: false
+
+resources:
+  Resources:
+    # API Gateway Resource Policy - Restrict internal API to AWS account only
+    InternalApiGatewayRestApi:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        Policy:
+          Version: '2012-10-17'
+          Statement:
+            # Allow access only from within AWS account
+            - Effect: Allow
+              Principal: '*'
+              Action: 'execute-api:Invoke'
+              Resource: 'execute-api:/*'
+              Condition:
+                StringEquals:
+                  'aws:PrincipalAccount': '#{AWS::AccountId}'
+            # Deny all other access
+            - Effect: Deny
+              Principal: '*'
+              Action: 'execute-api:Invoke'
+              Resource: 'execute-api:/*'
+              Condition:
+                StringNotEquals:
+                  'aws:PrincipalAccount': '#{AWS::AccountId}'
+
+    ConfigurationsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+        BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+plugins:
+  - serverless-offline
+  - serverless-plugin-typescript
+
+custom:
+  serverless-offline:
+    httpPort: 3000
+    host: 0.0.0.0

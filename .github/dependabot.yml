@@ -1,0 +1,56 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "your-team"
+    assignees:
+      - "your-team"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      # Group TypeScript-related updates
+      typescript:
+        patterns:
+          - "typescript"
+          - "@types/*"
+      # Group testing-related updates
+      testing:
+        patterns:
+          - "jest"
+          - "@jest/*"
+          - "ts-jest"
+      # Group Prisma-related updates
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+      # Group Next.js-related updates
+      nextjs:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+      # Group AWS SDK updates
+      aws:
+        patterns:
+          - "aws-sdk"
+          - "@aws-sdk/*"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(actions)"

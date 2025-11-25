@@ -1,0 +1,34 @@
+{
+  "name": "@togglebox/database",
+  "version": "0.1.0",
+  "description": "ToggleBox multi-database layer (MySQL, MongoDB, SQLite, DynamoDB)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "schema:generate": "node scripts/generate-schema.js",
+    "prisma:generate": "npm run schema:generate && prisma generate",
+    "prisma:migrate": "npm run schema:generate && prisma migrate dev",
+    "prisma:deploy": "npm run schema:generate && prisma migrate deploy"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.705.0",
+    "@aws-sdk/lib-dynamodb": "^3.705.0",
+    "@prisma/client": "^5.7.0",
+    "@togglebox/core": "workspace:*",
+    "@togglebox/shared": "workspace:*",
+    "mongoose": "^8.0.3",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251121.0",
+    "@types/uuid": "^9.0.7",
+    "prisma": "^5.7.0",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DynamoDB table for ToggleBox Remote Config with proper GSI for stable version queries
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: production
+    Description: Environment name (dev, staging, production)
+    AllowedValues:
+      - dev
+      - staging
+      - production
+
+  BillingMode:
+    Type: String
+    Default: PAY_PER_REQUEST
+    Description: Billing mode for DynamoDB table
+    AllowedValues:
+      - PAY_PER_REQUEST
+      - PROVISIONED
+
+  ReadCapacityUnits:
+    Type: Number
+    Default: 5
+    Description: Read capacity units (only used if BillingMode is PROVISIONED)
+
+  WriteCapacityUnits:
+    Type: Number
+    Default: 5
+    Description: Write capacity units (only used if BillingMode is PROVISIONED)
+
+Conditions:
+  IsProvisioned: !Equals [!Ref BillingMode, PROVISIONED]
+
+Resources:
+  ConfigurationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${EnvironmentName}-togglebox-configurations'
+      BillingMode: !Ref BillingMode
+
+      # Partition Key (PK) and Sort Key (SK)
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        # GSI attributes for stable version queries
+        - AttributeName: GSI_PK
+          AttributeType: S
+        - AttributeName: GSI_SK
+          AttributeType: S
+
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+
+      # Provisioned throughput (only used if BillingMode is PROVISIONED)
+      ProvisionedThroughput:
+        !If
+          - IsProvisioned
+          - ReadCapacityUnits: !Ref ReadCapacityUnits
+            WriteCapacityUnits: !Ref WriteCapacityUnits
+          - !Ref AWS::NoValue
+
+      # Global Secondary Index for stable version queries
+      GlobalSecondaryIndexes:
+        - IndexName: StableVersionIndex
+          KeySchema:
+            - AttributeName: GSI_PK
+              KeyType: HASH
+            - AttributeName: GSI_SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            !If
+              - IsProvisioned
+              - ReadCapacityUnits: !Ref ReadCapacityUnits
+                WriteCapacityUnits: !Ref WriteCapacityUnits
+              - !Ref AWS::NoValue
+
+      # Point-in-time recovery for production
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If
+          - !Equals [!Ref EnvironmentName, production]
+          - true
+          - false
+
+      # Server-side encryption
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+
+      # TTL configuration (optional - not currently used)
+      # TimeToLiveSpecification:
+      #   Enabled: true
+      #   AttributeName: ttl
+
+      # Tags
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Application
+          Value: ToggleBox
+        - Key: ManagedBy
+          Value: CloudFormation
+
+Outputs:
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref ConfigurationsTable
+    Export:
+      Name: !Sub '${EnvironmentName}-togglebox-table-name'
+
+  TableArn:
+    Description: DynamoDB table ARN
+    Value: !GetAtt ConfigurationsTable.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-togglebox-table-arn'
+
+  StableVersionIndexName:
+    Description: Global Secondary Index name for stable version queries
+    Value: StableVersionIndex
+    Export:
+      Name: !Sub '${EnvironmentName}-togglebox-gsi-name'

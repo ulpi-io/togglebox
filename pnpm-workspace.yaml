@@ -1,0 +1,16 @@
+packages:
+  # Core packages
+  - 'packages/core'
+  - 'packages/database'
+  - 'packages/shared'
+  - 'packages/auth'
+  - 'packages/cache'
+
+  # Client SDKs
+  - 'packages/sdk-js'
+  - 'packages/sdk-nextjs'
+  - 'packages/sdk-expo'
+
+  # Applications
+  - 'apps/api'
+  - 'apps/admin'

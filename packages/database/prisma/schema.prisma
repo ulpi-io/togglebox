@@ -1,0 +1,150 @@
+// Prisma schema for SQL database support
+// Supports: MySQL, PostgreSQL, SQLite
+
+// The provider must be set to: mysql, postgresql, or sqlite
+// MongoDB uses Mongoose (separate adapter)
+// Cloudflare D1 uses custom adapter (separate adapter)
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client-database"
+}
+
+datasource db {
+  provider = "sqlite"  // Change to: mysql, postgresql, or sqlite
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// PLATFORM MODEL
+// ============================================================================
+
+/// Represents a top-level application or service
+model Platform {
+  // Primary key
+  id String @id @default(uuid())
+
+  // Fields
+  name        String  @unique
+  description String?
+  createdAt   String // ISO-8601 timestamp stored as string for compatibility
+
+  // Relations
+  environments Environment[]
+  versions     ConfigVersion[]
+  featureFlags FeatureFlag[]
+
+  @@map("platforms")
+}
+
+// ============================================================================
+// ENVIRONMENT MODEL
+// ============================================================================
+
+/// Represents a deployment environment within a platform
+model Environment {
+  // Composite primary key
+  platform    String
+  environment String
+
+  // Foreign key to Platform
+  platformId  String
+
+  // Fields
+  description String?
+  createdAt   String // ISO-8601 timestamp
+
+  // Relations
+  platformRef  Platform        @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  versions     ConfigVersion[]
+  featureFlags FeatureFlag[]
+
+  @@id([platform, environment])
+  @@index([platformId])
+  @@map("environments")
+}
+
+// ============================================================================
+// CONFIG VERSION MODEL
+// ============================================================================
+
+/// Represents an immutable versioned configuration
+model ConfigVersion {
+  // Composite primary key
+  platform         String
+  environment      String
+  versionTimestamp String // ISO-8601 timestamp, serves as version identifier
+
+  // Foreign key to Platform
+  platformId  String
+
+  // Fields
+  versionLabel String?  // Optional user-friendly label (e.g., "v1.0.0")
+  isStable     Boolean  @default(false)
+  config       String // JSON stored as text for cross-database compatibility
+  createdBy    String // Email of creator
+  createdAt    String // ISO-8601 timestamp (same as versionTimestamp)
+
+  // Relations
+  platformRef    Platform    @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  environmentRef Environment @relation(fields: [platform, environment], references: [platform, environment], onDelete: Cascade)
+
+  @@id([platform, environment, versionTimestamp])
+  @@index([platform, environment, isStable]) // For getLatestStableVersion queries
+  @@index([platformId])
+  @@map("config_versions")
+}
+
+// ============================================================================
+// FEATURE FLAG MODEL
+// ============================================================================
+
+/// Represents a mutable feature flag
+model FeatureFlag {
+  // Composite primary key
+  platform    String
+  environment String
+  flagName    String
+
+  // Foreign key to Platform
+  platformId  String
+
+  // Basic fields
+  enabled     Boolean  @default(false)
+  description String?
+  createdBy   String // Email of creator
+  createdAt   String // ISO-8601 timestamp
+  updatedAt   String? // ISO-8601 timestamp
+
+  // Phased rollout fields (stored as JSON strings for cross-database compatibility)
+  rolloutType       String @default("simple") // simple, percentage, or targeted
+  rolloutPercentage Int? // 0-100
+  targetUserIds     String @default("[]") // JSON array as text
+  excludeUserIds    String @default("[]") // JSON array as text
+  targetCountries   String @default("[]") // JSON array as text
+  targetLanguages   String @default("[]") // JSON array as text
+
+  // Relations
+  platformRef    Platform    @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  environmentRef Environment @relation(fields: [platform, environment], references: [platform, environment], onDelete: Cascade)
+
+  @@id([platform, environment, flagName])
+  @@index([platform, environment]) // For listFeatureFlags queries
+  @@index([platformId])
+  @@map("feature_flags")
+}
+
+// ============================================================================
+// USAGE MODEL
+// ============================================================================
+
+/// Tracks API request usage per tenant (multi-tenant cloud deployments)
+model Usage {
+  // Primary key
+  tenantId String @id
+
+  // Usage metrics
+  apiRequests Int    @default(0)
+  lastUpdated String // ISO-8601 timestamp
+
+  @@map("usage")
+}

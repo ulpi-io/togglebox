@@ -1,0 +1,169 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "togglebox"
+main = "dist/worker.js"
+compatibility_date = "2025-01-20"
+compatibility_flags = ["nodejs_compat"]
+
+# Account and deployment settings
+# account_id = "your-cloudflare-account-id"
+# workers_dev = true  # Deploy to workers.dev subdomain for testing
+
+# ============================================================================
+# D1 DATABASE BINDING
+# ============================================================================
+
+[[d1_databases]]
+binding = "DB"  # Available as env.DB in worker
+database_name = "remote-config-db"
+database_id = ""  # Fill in after creating D1 database
+
+# To create D1 database:
+# wrangler d1 create remote-config-db
+# Then copy the database_id from output and paste above
+
+# To initialize the schema:
+# wrangler d1 execute remote-config-db --file=../../packages/database/d1/schema.sql
+
+# For local development:
+# wrangler d1 execute remote-config-db --local --file=../../packages/database/d1/schema.sql
+
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# ============================================================================
+
+[vars]
+NODE_ENV = "production"
+CORS_ORIGIN = "*"
+DB_TYPE = "d1"
+ENABLE_AUTHENTICATION = "true"  # Auth enabled by default
+
+# ============================================================================
+# SECRETS (Sensitive values - set via wrangler secret put)
+# ============================================================================
+
+# Set secrets using wrangler CLI:
+# wrangler secret put JWT_SECRET
+# wrangler secret put API_KEY_SECRET
+
+# Secrets available in env but not visible in wrangler.toml
+# - JWT_SECRET
+# - API_KEY_SECRET
+
+# ============================================================================
+# KV NAMESPACES (Optional - for caching)
+# ============================================================================
+
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "your-kv-namespace-id"
+
+# To create KV namespace:
+# wrangler kv:namespace create "CACHE"
+
+# ============================================================================
+# SCHEDULED EVENTS (Optional - for cron jobs)
+# ============================================================================
+
+# [triggers]
+# crons = ["0 0 * * *"]  # Run daily at midnight UTC
+
+# ============================================================================
+# ROUTES (Optional - for custom domains)
+# ============================================================================
+
+# [[routes]]
+# pattern = "api.mumzworld.com/*"
+# zone_name = "mumzworld.com"
+
+# ============================================================================
+# OBSERVABILITY
+# ============================================================================
+
+[observability]
+enabled = true
+
+# ============================================================================
+# BUILD CONFIGURATION
+# ============================================================================
+
+[build]
+command = "pnpm build"
+
+[build.upload]
+format = "service-worker"
+
+# ============================================================================
+# LIMITS
+# ============================================================================
+
+# CPU time limit per request (default: 50ms, max: 30s for paid plans)
+# cpu_ms = 50
+
+# Memory limit (default: 128MB)
+# limits = { cpu_ms = 50 }
+
+# ============================================================================
+# ENVIRONMENTS (dev, staging, production)
+# ============================================================================
+
+# Development environment
+[env.dev]
+name = "togglebox-dev"
+vars = { NODE_ENV = "development", CORS_ORIGIN = "*" }
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "remote-config-db-dev"
+database_id = ""  # Different database for dev
+
+# Staging environment
+[env.staging]
+name = "togglebox-staging"
+vars = { NODE_ENV = "staging", CORS_ORIGIN = "*" }
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "remote-config-db-staging"
+database_id = ""  # Different database for staging
+
+# Production environment
+[env.production]
+name = "togglebox-production"
+vars = { NODE_ENV = "production", CORS_ORIGIN = "*" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "remote-config-db-production"
+database_id = ""  # Different database for production
+
+# ============================================================================
+# DEPLOYMENT COMMANDS
+# ============================================================================
+
+# Development:
+# wrangler dev                           # Local development server
+# wrangler dev --remote                  # Test against live D1 database
+
+# Deploy:
+# wrangler deploy                        # Deploy to production
+# wrangler deploy --env dev              # Deploy to dev environment
+# wrangler deploy --env staging          # Deploy to staging environment
+
+# Database management:
+# wrangler d1 execute DB --command="SELECT * FROM platforms"
+# wrangler d1 execute DB --file=./migration.sql
+# wrangler d1 info DB                    # Show database info
+# wrangler d1 list                       # List all D1 databases
+
+# Secrets management:
+# wrangler secret put JWT_SECRET
+# wrangler secret list
+# wrangler secret delete JWT_SECRET
+
+# Logs:
+# wrangler tail                          # Stream logs in real-time
+# wrangler tail --env production         # Stream production logs
+
+# Testing:
+# curl https://togglebox.workers.dev/health
+# curl https://togglebox.workers.dev/api/v1/platforms

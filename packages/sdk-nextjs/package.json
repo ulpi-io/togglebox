@@ -1,0 +1,30 @@
+{
+  "name": "@togglebox/sdk-nextjs",
+  "version": "0.1.0",
+  "description": "Next.js SDK for remote config service",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@togglebox/core": "workspace:*",
+    "@togglebox/sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "next": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "typescript": "^5.7.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
