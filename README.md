@@ -10,34 +10,23 @@ Self-host it anywhere or use our [hosted version](https://togglebox.dev) for a f
 
 ---
 
-## What You Can Do
+## Core Features
 
 ### Remote Configs
 
-Manage application configuration without redeploying. Push JSON configurations to your apps instantly.
-
-- Version-controlled configurations
-- Environment-specific settings (dev, staging, production)
-- Platform-specific configs (web, mobile, API)
-- Instant updates without app store releases
+Update your app's settings without redeploying. Change themes, API endpoints, copy, or any JSON configuration instantly.
 
 ### Feature Flags
 
-Control feature rollouts with precision. Turn features on or off without touching code.
-
-- Boolean and multivariate flags
-- Percentage-based rollouts
-- User targeting and segmentation
-- Kill switches for instant rollback
+Ship code when you're ready, release when you want. Control who sees what with targeting rules and percentage rollouts.
 
 ### Experiments
 
-Run A/B tests and experiments to make data-driven decisions.
+Run A/B tests to make decisions with data. Split traffic between variants and track which performs better.
 
-- Variant allocation with consistent bucketing
-- Traffic splitting
-- Experiment analytics integration
-- Statistical significance tracking
+### Analytics
+
+Track flag evaluations, experiment exposures, and configuration fetches. Know what's happening in your apps.
 
 ---
 
@@ -159,6 +148,21 @@ import { ToggleBoxProvider, useConfig } from '@togglebox/sdk-expo';
 const config = useConfig();
 ```
 
+### Example Apps
+
+See the SDKs in action:
+
+- **[example-nextjs](./apps/example-nextjs)** - Next.js app showing remote configs, feature flags, and experiments
+- **[example-expo](./apps/example-expo)** - React Native/Expo app with offline support
+
+```bash
+# Run the Next.js example
+pnpm dev:example-nextjs
+
+# Run the Expo example
+pnpm dev:example-expo
+```
+
 ---
 
 ## Deployment
@@ -235,6 +239,7 @@ togglebox/
 │   ├── flags/            # Feature flag logic
 │   ├── experiments/      # Experimentation logic
 │   ├── configs/          # Remote config logic
+│   ├── stats/            # Analytics and tracking
 │   ├── sdk-js/           # JavaScript SDK
 │   ├── sdk-nextjs/       # Next.js SDK
 │   └── sdk-expo/         # Expo SDK
