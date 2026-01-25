@@ -1,43 +1,58 @@
-# ToggleBox - Open Source Remote Configuration & Feature Flags
+# ToggleBox
 
-**Self-hosted remote configuration and feature flag management for modern applications.**
+**Open source remote configuration, feature flags, and experimentation platform.**
+
+Self-host it anywhere or use our [hosted version](https://togglebox.dev) for a fully managed experience.
 
 [![License: ELv2](https://img.shields.io/badge/License-ELv2-blue.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-8.x-orange.svg)](https://pnpm.io/)
 
-## Features
+---
 
-- **Multi-Database Support**: DynamoDB, MySQL, PostgreSQL, MongoDB, SQLite, Cloudflare D1
-- **Multi-Platform Deployment**: AWS Lambda, Cloudflare Workers, Docker, Netlify
-- **Remote Configuration**: Version-controlled JSON configurations per platform/environment
-- **Feature Flags**: Dynamic feature toggles with percentage-based rollouts
-- **Client SDKs**: JavaScript, Next.js, Expo/React Native
-- **Type-Safe**: Full TypeScript support across all packages
-- **Multi-Provider Caching**: CloudFront, Cloudflare, or disabled - with automatic cache invalidation
-- **Admin Dashboard**: Web-based management interface (Next.js 15)
-- **Optional Authentication**: JWT + API key authentication (disabled by default)
+## The Three Pillars
 
-## Repository Structure
+### Remote Configs
 
-This is a **pnpm monorepo** containing all open-source packages and applications:
+Manage application configuration without redeploying. Push JSON configurations to your apps instantly.
 
-```
-togglebox/
-├── apps/
-│   ├── api/              # Express.js API server (multi-platform)
-│   └── admin/            # Admin dashboard (Next.js 15)
-├── packages/
-│   ├── core/             # Core business logic and types
-│   ├── database/         # Multi-database abstraction layer
-│   ├── cache/            # Multi-provider cache abstraction
-│   ├── auth/             # Authentication module (optional)
-│   ├── shared/           # Shared utilities and middleware
-│   ├── sdk-js/           # JavaScript SDK
-│   ├── sdk-nextjs/       # Next.js SDK with React hooks
-│   └── sdk-expo/         # Expo/React Native SDK
-└── infrastructure/       # CloudFormation/Terraform templates
-```
+- Version-controlled configurations
+- Environment-specific settings (dev, staging, production)
+- Platform-specific configs (web, mobile, API)
+- Instant updates without app store releases
+
+### Feature Flags
+
+Control feature rollouts with precision. Turn features on or off without touching code.
+
+- Boolean and multivariate flags
+- Percentage-based rollouts
+- User targeting and segmentation
+- Kill switches for instant rollback
+
+### Experiments
+
+Run A/B tests and experiments to make data-driven decisions.
+
+- Variant allocation with consistent bucketing
+- Traffic splitting
+- Experiment analytics integration
+- Statistical significance tracking
+
+---
+
+## Why ToggleBox?
+
+| Feature | ToggleBox |
+|---------|-----------|
+| **Self-Hostable** | Deploy on your infrastructure with full control |
+| **Multi-Database** | DynamoDB, PostgreSQL, MySQL, MongoDB, SQLite, Cloudflare D1 |
+| **Multi-Platform** | AWS Lambda, Cloudflare Workers, Docker, Netlify |
+| **Type-Safe SDKs** | JavaScript, Next.js, Expo/React Native |
+| **Open Source** | Inspect the code, contribute, customize |
+| **Hosted Option** | [ToggleBox Cloud](https://togglebox.dev) for zero maintenance |
+
+---
 
 ## Quick Start
 
@@ -50,70 +65,101 @@ togglebox/
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/togglebox.git
+git clone https://github.com/togglebox/togglebox.git
 cd togglebox
 
 # Install dependencies
 pnpm install
 
-# Build all packages
+# Build packages
 pnpm build:packages
 
-# Set up environment
+# Configure environment
 cp apps/api/.env.example apps/api/.env
-# Edit .env with your database configuration
 
-# Start API development server
+# Start the API
 pnpm dev:api
 
-# In another terminal, start admin dashboard
+# Start the admin dashboard (in another terminal)
 pnpm dev:admin
 ```
 
-### Database Setup
+The API runs at `http://localhost:3000` and the admin dashboard at `http://localhost:3001`.
 
-Choose your database backend by setting `DB_TYPE`:
+---
 
-```bash
-# SQLite (default, for local development)
-DB_TYPE=sqlite
+## SDKs
 
-# MySQL
-DB_TYPE=mysql
-DATABASE_URL=mysql://user:pass@localhost:3306/togglebox
-
-# PostgreSQL
-DB_TYPE=postgresql
-DATABASE_URL=postgresql://user:pass@localhost:5432/togglebox
-
-# DynamoDB (for AWS Lambda)
-DB_TYPE=dynamodb
-DYNAMODB_TABLE=togglebox
-AWS_REGION=us-east-1
-
-# MongoDB
-DB_TYPE=mongodb
-MONGODB_URI=mongodb://localhost:27017/togglebox
-```
-
-For SQL databases, generate and run migrations:
+### JavaScript SDK
 
 ```bash
-cd packages/database
-pnpm schema:generate
-pnpm prisma:migrate
+npm install @togglebox/sdk-js
 ```
 
-### Authentication (Optional)
+```javascript
+import { ToggleBox } from '@togglebox/sdk-js';
 
-Authentication is **disabled by default** for easier development. Enable for production:
+const client = new ToggleBox({
+  apiUrl: 'https://your-api.com',
+  platform: 'web',
+  environment: 'production',
+});
+
+await client.initialize();
+
+// Remote config
+const theme = client.getConfig('theme');
+
+// Feature flag
+if (client.isEnabled('dark-mode')) {
+  enableDarkMode();
+}
+
+// Experiment
+const variant = client.getVariant('checkout-experiment');
+```
+
+### Next.js SDK
 
 ```bash
-# In your .env file
-ENABLE_AUTHENTICATION=true
-JWT_SECRET=$(openssl rand -hex 32)
-API_KEY_SECRET=$(openssl rand -hex 32)
+npm install @togglebox/sdk-nextjs
 ```
+
+```tsx
+import { ToggleBoxProvider, useFeatureFlag, useExperiment } from '@togglebox/sdk-nextjs';
+
+// Wrap your app
+<ToggleBoxProvider
+  apiUrl="https://your-api.com"
+  platform="web"
+  environment="production"
+>
+  <App />
+</ToggleBoxProvider>
+
+// Use in components
+function PricingPage() {
+  const showNewPricing = useFeatureFlag('new-pricing');
+  const { variant } = useExperiment('pricing-test');
+
+  return showNewPricing ? <NewPricing variant={variant} /> : <OldPricing />;
+}
+```
+
+### Expo/React Native SDK
+
+```bash
+npm install @togglebox/sdk-expo
+```
+
+```tsx
+import { ToggleBoxProvider, useConfig } from '@togglebox/sdk-expo';
+
+// Same React hooks API with offline support and AsyncStorage caching
+const config = useConfig();
+```
+
+---
 
 ## Deployment
 
@@ -125,198 +171,129 @@ npm install -g serverless
 serverless deploy --stage production
 ```
 
+Best with DynamoDB for serverless-native performance.
+
 ### Cloudflare Workers
 
 ```bash
 cd apps/api
 npm install -g wrangler
-wrangler login
 wrangler deploy
 ```
+
+Use with Cloudflare D1 for edge-first deployment.
 
 ### Docker
 
 ```bash
-docker build -t togglebox-api .
-docker run -p 3000:3000 togglebox-api
+docker build -t togglebox .
+docker run -p 3000:3000 togglebox
 ```
 
-### Netlify Functions
+Works with any database backend.
+
+### Self-Hosted
+
+Deploy on any Node.js environment with your preferred database.
+
+---
+
+## Database Support
+
+| Database | Best For |
+|----------|----------|
+| **DynamoDB** | AWS Lambda, serverless |
+| **Cloudflare D1** | Cloudflare Workers, edge |
+| **PostgreSQL** | Self-hosted, full SQL |
+| **MySQL** | Self-hosted, enterprise |
+| **MongoDB** | Document-oriented workloads |
+| **SQLite** | Local development, testing |
+
+Configure via `DB_TYPE` environment variable:
 
 ```bash
-cd apps/api
-netlify deploy --prod
+DB_TYPE=postgresql
+DATABASE_URL=postgresql://user:pass@localhost:5432/togglebox
 ```
 
-## Using the SDKs
+---
 
-### JavaScript SDK
-
-```bash
-npm install @togglebox/sdk-js
-```
-
-```javascript
-import { RemoteConfig } from '@togglebox/sdk-js';
-
-const config = new RemoteConfig({
-  apiUrl: 'https://your-api.com',
-  platform: 'web',
-  environment: 'production',
-});
-
-await config.initialize();
-const theme = config.get('theme');
-const isDarkMode = config.isFeatureEnabled('dark-mode');
-```
-
-### Next.js SDK
-
-```bash
-npm install @togglebox/sdk-nextjs
-```
-
-```tsx
-import { RemoteConfigProvider, useRemoteConfig, useFeatureFlag } from '@togglebox/sdk-nextjs';
-
-// In app layout
-export default function Layout({ children }) {
-  return (
-    <RemoteConfigProvider
-      apiUrl="https://your-api.com"
-      platform="web"
-      environment="production"
-    >
-      {children}
-    </RemoteConfigProvider>
-  );
-}
-
-// In components
-function MyComponent() {
-  const { config, isLoading } = useRemoteConfig();
-  const isDarkMode = useFeatureFlag('dark-mode');
-
-  if (isLoading) return <Loading />;
-  return <div className={isDarkMode ? 'dark' : 'light'}>{config?.theme}</div>;
-}
-```
-
-### Expo/React Native SDK
-
-```bash
-npm install @togglebox/sdk-expo
-```
-
-```tsx
-import { RemoteConfigProvider, useRemoteConfig } from '@togglebox/sdk-expo';
-
-// Same API as Next.js SDK with offline support
-```
-
-## API Endpoints
-
-### Public (Read-only)
+## Repository Structure
 
 ```
-GET /api/v1/platforms/{platform}/environments/{env}/versions/latest
-GET /api/v1/platforms/{platform}/environments/{env}/versions/latest/stable
-GET /api/v1/platforms/{platform}/environments/{env}/flags
-GET /api/v1/platforms/{platform}/environments/{env}/flags/{flagKey}
+togglebox/
+├── apps/
+│   ├── api/              # Express.js API (multi-platform)
+│   ├── admin/            # Admin dashboard (Next.js)
+│   ├── example-nextjs/   # Next.js example app
+│   └── example-expo/     # Expo example app
+├── packages/
+│   ├── core/             # Core business logic
+│   ├── database/         # Multi-database abstraction
+│   ├── cache/            # Cache providers (CloudFront, Cloudflare)
+│   ├── auth/             # Authentication (optional)
+│   ├── flags/            # Feature flag logic
+│   ├── experiments/      # Experimentation logic
+│   ├── configs/          # Remote config logic
+│   ├── sdk-js/           # JavaScript SDK
+│   ├── sdk-nextjs/       # Next.js SDK
+│   └── sdk-expo/         # Expo SDK
+└── infrastructure/       # IaC templates
 ```
 
-### Internal (Write operations)
+---
 
-```
-POST   /api/v1/internal/platforms
-POST   /api/v1/internal/platforms/{platform}/environments
-POST   /api/v1/internal/platforms/{platform}/environments/{env}/versions
-PATCH  /api/v1/internal/platforms/{platform}/environments/{env}/flags/{flagKey}/toggle
-DELETE /api/v1/internal/platforms/{platform}
-```
+## Hosted Version
 
-## Development
+Don't want to manage infrastructure? [ToggleBox Cloud](https://togglebox.dev) gives you:
 
-```bash
-# Start API with hot reload
-pnpm dev:api
+- **Zero maintenance** - We handle hosting, scaling, and updates
+- **Team collaboration** - Multi-user workspaces with roles
+- **Enterprise features** - SSO, audit logs, advanced analytics
+- **Guaranteed uptime** - SLA-backed reliability
 
-# Start admin dashboard
-pnpm dev:admin
+[Get started free](https://togglebox.dev) - No credit card required.
 
-# Build all packages
-pnpm build:packages
-
-# Build everything
-pnpm build
-
-# Run tests
-pnpm test
-
-# Lint and format
-pnpm lint:fix
-pnpm format
-```
-
-## Documentation
-
-- [Architecture](/.claude/claude-md-refs/architecture.md) - Architecture decisions and patterns
-- [Project Commands](/.claude/claude-md-refs/project-commands.md) - Development workflows
-- [Conventions](/.claude/claude-md-refs/conventions.md) - Code standards
-- [Multi-Database Setup](/packages/database/PRISMA-MULTI-DB.md) - Database configuration
-- [API Documentation](/apps/api/openapi.yaml) - OpenAPI specification
+---
 
 ## License
 
 **Elastic License 2.0 (ELv2)**
 
-You can use, modify, and distribute this software for any purpose **except** providing it as a hosted/managed service to third parties.
-
-### What You Can Do
-- Self-host for your own organization
-- Modify and customize
-- Use commercially within your company
-- Build products on top of it
+- Use, modify, and self-host for your organization
+- Build products and services on top of it
 - Distribute modified versions
 
-### What You Cannot Do
-- Offer ToggleBox as a managed SaaS service to third parties
-- Compete with official ToggleBox Cloud offering
-
-For a managed SaaS version, see [ToggleBox Cloud](https://togglebox.dev).
-
-## Contributing
-
-We welcome contributions! Please see our contributing guidelines.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## Support
-
-- [GitHub Issues](https://github.com/your-org/togglebox/issues) - Bug reports and feature requests
-- [Documentation](/.claude/claude-md-refs/) - Detailed guides and references
-
-## Cloud-Only Features
-
-The following features are available exclusively in [ToggleBox Cloud](https://togglebox.dev):
-
-| Feature | Description |
-|---------|-------------|
-| **Multi-Tenancy** | Isolated workspaces with subdomain-based routing |
-| **Team Membership** | Multi-user tenants with role-based access (admin/developer/viewer) |
-| **Team Invitations** | Email-based invitation system with secure tokens |
-| **Stripe Billing** | Subscription management with tiered pricing |
-| **Usage Limits** | Plan-based limits on platforms, configs, and API requests |
-| **SSO** | Enterprise single sign-on integration |
-
-## Related Projects
-
-- **[ToggleBox Cloud](https://togglebox.dev)** - Official managed SaaS with multi-tenancy, team collaboration, and enterprise features
+**Limitation:** Cannot offer ToggleBox as a hosted service to third parties.
 
 ---
 
-Built with TypeScript, Express.js, Next.js, and pnpm workspaces.
+## Contributing
+
+Contributions welcome! See our [contributing guide](./CONTRIBUTING.md).
+
+```bash
+# Fork and clone
+git clone https://github.com/your-username/togglebox.git
+
+# Create a branch
+git checkout -b feature/your-feature
+
+# Make changes and test
+pnpm test
+pnpm lint
+
+# Submit a PR
+```
+
+---
+
+## Links
+
+- [Documentation](/.claude/claude-md-refs/)
+- [ToggleBox Cloud](https://togglebox.dev)
+- [GitHub Issues](https://github.com/togglebox/togglebox/issues)
+
+---
+
+Built with TypeScript, Express.js, Next.js, and pnpm.
