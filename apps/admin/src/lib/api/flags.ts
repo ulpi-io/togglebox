@@ -2,44 +2,6 @@ import { browserApiClient } from './browser-client';
 import type { Flag, FlagTargeting } from './types';
 
 /**
- * Transform flat targeting fields into proper targeting structure.
- * Converts simple country/language arrays into the backend's nested format.
- */
-function buildTargeting(
-  targetCountries?: string[],
-  targetLanguages?: string[]
-): FlagTargeting | undefined {
-  // If no targeting specified, return undefined to use defaults
-  if (!targetCountries?.length && !targetLanguages?.length) {
-    return undefined;
-  }
-
-  const targeting: FlagTargeting = {
-    countries: [],
-    forceIncludeUsers: [],
-    forceExcludeUsers: [],
-  };
-
-  // Convert flat country list to country targets
-  // Countries get serveValue 'A' (primary value when matched)
-  if (targetCountries?.length) {
-    targeting.countries = targetCountries.map((country) => ({
-      country,
-      serveValue: 'A' as const,
-      // Add languages if targeting specific languages within countries
-      languages: targetLanguages?.length
-        ? targetLanguages.map((language) => ({
-            language,
-            serveValue: 'A' as const,
-          }))
-        : undefined,
-    }));
-  }
-
-  return targeting;
-}
-
-/**
  * Get all active flags for an environment.
  * Three-Tier Architecture - Tier 2: Feature Flags
  */
@@ -81,10 +43,6 @@ export async function getFlagVersionsApi(
 /**
  * Create a new flag (first version).
  * Tier 2: 2-value model with country/language targeting.
- */
-/**
- * Create a new flag (first version).
- * Tier 2: 2-value model with country/language targeting.
  *
  * Note: For percentage-based rollouts, use Experiments (Tier 3) instead.
  */
@@ -99,15 +57,37 @@ export async function createFlagApi(
     flagType?: 'boolean' | 'string' | 'number';
     valueA?: boolean | string | number;
     valueB?: boolean | string | number;
-    targetCountries?: string[];
-    targetLanguages?: string[];
+    targeting?: {
+      countries?: { country: string; languages?: { language: string }[] }[];
+      forceIncludeUsers?: string[];
+      forceExcludeUsers?: string[];
+    };
   }
 ): Promise<Flag> {
-  // Transform flat targeting fields to proper structure
-  const targeting = buildTargeting(data.targetCountries, data.targetLanguages);
+  // Convert targeting to FlagTargeting format
+  let targeting: FlagTargeting | undefined;
 
-  // Build the payload matching backend schema
-  // Note: createdBy is extracted from JWT token by the backend
+  if (data.targeting) {
+    targeting = {
+      countries: data.targeting.countries?.map(c => ({
+        country: c.country,
+        serveValue: 'A' as const,
+        languages: c.languages?.map(l => ({
+          language: l.language,
+          serveValue: 'A' as const,
+        })),
+      })) || [],
+      forceIncludeUsers: data.targeting.forceIncludeUsers || [],
+      forceExcludeUsers: data.targeting.forceExcludeUsers || [],
+    };
+    // Clean up empty targeting
+    if (targeting.countries?.length === 0 &&
+        targeting.forceIncludeUsers?.length === 0 &&
+        targeting.forceExcludeUsers?.length === 0) {
+      targeting = undefined;
+    }
+  }
+
   const payload: Record<string, unknown> = {
     flagKey: data.flagKey,
     name: data.name,
@@ -118,7 +98,6 @@ export async function createFlagApi(
     valueB: data.valueB,
   };
 
-  // Only include targeting if we have targeting rules
   if (targeting) {
     payload.targeting = targeting;
   }
@@ -147,15 +126,37 @@ export async function updateFlagApi(
     enabled?: boolean;
     valueA?: boolean | string | number;
     valueB?: boolean | string | number;
-    targetCountries?: string[];
-    targetLanguages?: string[];
+    targeting?: {
+      countries?: { country: string; languages?: { language: string }[] }[];
+      forceIncludeUsers?: string[];
+      forceExcludeUsers?: string[];
+    };
   }
 ): Promise<Flag> {
-  // Transform flat targeting fields to proper structure
-  const targeting = buildTargeting(data.targetCountries, data.targetLanguages);
+  // Convert targeting to FlagTargeting format
+  let targeting: FlagTargeting | undefined;
 
-  // Build the payload matching backend schema
-  // Note: createdBy is extracted from JWT token by the backend
+  if (data.targeting) {
+    targeting = {
+      countries: data.targeting.countries?.map(c => ({
+        country: c.country,
+        serveValue: 'A' as const,
+        languages: c.languages?.map(l => ({
+          language: l.language,
+          serveValue: 'A' as const,
+        })),
+      })) || [],
+      forceIncludeUsers: data.targeting.forceIncludeUsers || [],
+      forceExcludeUsers: data.targeting.forceExcludeUsers || [],
+    };
+    // Clean up empty targeting
+    if (targeting.countries?.length === 0 &&
+        targeting.forceIncludeUsers?.length === 0 &&
+        targeting.forceExcludeUsers?.length === 0) {
+      targeting = undefined;
+    }
+  }
+
   const payload: Record<string, unknown> = {
     name: data.name,
     description: data.description,
@@ -164,7 +165,6 @@ export async function updateFlagApi(
     valueB: data.valueB,
   };
 
-  // Only include targeting if we have targeting rules
   if (targeting) {
     payload.targeting = targeting;
   }

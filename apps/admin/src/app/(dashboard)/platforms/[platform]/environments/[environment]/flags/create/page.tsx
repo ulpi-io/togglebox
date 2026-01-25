@@ -78,9 +78,12 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
   const [valueA, setValueA] = useState<string>('true');
   const [valueB, setValueB] = useState<string>('false');
 
-  // Targeting
-  const [targetCountries, setTargetCountries] = useState('');
-  const [targetLanguages, setTargetLanguages] = useState('');
+  // Targeting - Country/Language Pairs
+  const [countryLanguagePairs, setCountryLanguagePairs] = useState<
+    { country: string; languages: string }[]
+  >([]);
+  const [forceIncludeUsers, setForceIncludeUsers] = useState('');
+  const [forceExcludeUsers, setForceExcludeUsers] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +98,24 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
       default:
         return raw;
     }
+  }
+
+  // Country/Language pair management
+  function addCountryLanguagePair() {
+    setCountryLanguagePairs([...countryLanguagePairs, { country: '', languages: '' }]);
+  }
+
+  function updateCountryLanguagePair(
+    index: number,
+    update: Partial<{ country: string; languages: string }>
+  ) {
+    const updated = [...countryLanguagePairs];
+    updated[index] = { ...updated[index], ...update };
+    setCountryLanguagePairs(updated);
+  }
+
+  function removeCountryLanguagePair(index: number) {
+    setCountryLanguagePairs(countryLanguagePairs.filter((_, i) => i !== index));
   }
 
   // Handle flag type change - reset values to sensible defaults
@@ -134,6 +155,39 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
     }
 
     try {
+      // Build targeting object like experiments
+      const targeting: {
+        countries?: { country: string; languages?: { language: string }[] }[];
+        forceIncludeUsers?: string[];
+        forceExcludeUsers?: string[];
+      } = {};
+
+      const validPairs = countryLanguagePairs.filter(p => p.country.trim());
+      if (validPairs.length > 0) {
+        targeting.countries = validPairs.map(pair => ({
+          country: pair.country.trim().toUpperCase(),
+          languages: pair.languages.trim()
+            ? pair.languages.split(',').map(l => ({ language: l.trim().toLowerCase() }))
+            : undefined,
+        }));
+      }
+
+      const includeUsers = forceIncludeUsers
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const excludeUsers = forceExcludeUsers
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      if (includeUsers.length > 0) {
+        targeting.forceIncludeUsers = includeUsers;
+      }
+      if (excludeUsers.length > 0) {
+        targeting.forceExcludeUsers = excludeUsers;
+      }
+
       await createFlagApi(platform, environment, {
         flagKey: flagKey.trim(),
         name: name.trim(),
@@ -142,12 +196,7 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
         flagType,
         valueA: parseValue(valueA, flagType),
         valueB: parseValue(valueB, flagType),
-        targetCountries: targetCountries
-          ? targetCountries.split(',').map((s) => s.trim()).filter(Boolean)
-          : undefined,
-        targetLanguages: targetLanguages
-          ? targetLanguages.split(',').map((s) => s.trim()).filter(Boolean)
-          : undefined,
+        targeting: Object.keys(targeting).length > 0 ? targeting : undefined,
       });
 
       router.push(`/platforms/${platform}/environments/${environment}/flags`);
@@ -349,29 +398,93 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
           <CardHeader>
             <CardTitle>Targeting (Optional)</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Country/Language Pairs */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">Country/Language Targeting</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addCountryLanguagePair}
+                  disabled={isLoading}
+                >
+                  + Add Country
+                </Button>
+              </div>
+
+              {countryLanguagePairs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No country targeting configured. Flag will apply to all users.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {countryLanguagePairs.map((pair, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                      <div className="flex-1 grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Country Code</Label>
+                          <Input
+                            value={pair.country}
+                            onChange={(e) => updateCountryLanguagePair(index, { country: e.target.value })}
+                            placeholder="e.g., AE"
+                            disabled={isLoading}
+                            className="uppercase"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Languages (comma-separated)</Label>
+                          <Input
+                            value={pair.languages}
+                            onChange={(e) => updateCountryLanguagePair(index, { languages: e.target.value })}
+                            placeholder="e.g., en, ar"
+                            disabled={isLoading}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeCountryLanguagePair(index)}
+                        disabled={isLoading}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground">
+                    Each country can have multiple languages. Leave languages empty for all languages in that country.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Force Include/Exclude Users */}
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="targetCountries">Target Countries</Label>
+                <Label htmlFor="forceIncludeUsers">Force Include Users</Label>
                 <Input
-                  id="targetCountries"
-                  value={targetCountries}
-                  onChange={(e) => setTargetCountries(e.target.value)}
-                  placeholder="US, UK, CA"
+                  id="forceIncludeUsers"
+                  value={forceIncludeUsers}
+                  onChange={(e) => setForceIncludeUsers(e.target.value)}
+                  placeholder="user123, user456"
                   disabled={isLoading}
                 />
-                <p className="text-xs text-muted-foreground">ISO country codes, comma-separated</p>
+                <p className="text-xs text-muted-foreground">User IDs always included (comma-separated)</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="targetLanguages">Target Languages</Label>
+                <Label htmlFor="forceExcludeUsers">Force Exclude Users</Label>
                 <Input
-                  id="targetLanguages"
-                  value={targetLanguages}
-                  onChange={(e) => setTargetLanguages(e.target.value)}
-                  placeholder="en, es, fr"
+                  id="forceExcludeUsers"
+                  value={forceExcludeUsers}
+                  onChange={(e) => setForceExcludeUsers(e.target.value)}
+                  placeholder="user789, user012"
                   disabled={isLoading}
                 />
-                <p className="text-xs text-muted-foreground">ISO language codes, comma-separated</p>
+                <p className="text-xs text-muted-foreground">User IDs always excluded (comma-separated)</p>
               </div>
             </div>
           </CardContent>
