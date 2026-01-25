@@ -10,7 +10,7 @@ Self-host it anywhere or use our [hosted version](https://togglebox.dev) for a f
 
 ---
 
-## The Three Pillars
+## What You Can Do
 
 ### Remote Configs
 
