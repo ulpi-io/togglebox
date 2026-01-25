@@ -6,7 +6,7 @@
  * Uses DynamoDB sparse index pattern for efficient stable version queries.
  */
 
-import { Version } from '@togglebox/core';
+import { Version } from '@togglebox/configs';
 import {
   IConfigRepository,
   OffsetPaginationParams,
@@ -30,9 +30,9 @@ export class DynamoDBConfigRepository implements IConfigRepository {
   async getVersion(
     platform: string,
     environment: string,
-    versionTimestamp: string
+    versionLabel: string
   ): Promise<Version | null> {
-    return configService.getVersion(platform, environment, versionTimestamp);
+    return configService.getVersion(platform, environment, versionLabel);
   }
 
   async getLatestStableVersion(platform: string, environment: string): Promise<Version | null> {
@@ -53,8 +53,16 @@ export class DynamoDBConfigRepository implements IConfigRepository {
   async deleteVersion(
     platform: string,
     environment: string,
-    versionTimestamp: string
+    versionLabel: string
   ): Promise<boolean> {
-    return configService.deleteVersion(platform, environment, versionTimestamp);
+    return configService.deleteVersion(platform, environment, versionLabel);
+  }
+
+  async markVersionStable(
+    platform: string,
+    environment: string,
+    versionLabel: string
+  ): Promise<Version | null> {
+    return configService.markVersionStable(platform, environment, versionLabel);
   }
 }

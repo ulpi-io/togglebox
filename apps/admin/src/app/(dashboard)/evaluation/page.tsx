@@ -1,27 +1,121 @@
 'use client';
 
-import { useState } from 'react';
-import { evaluateFlagAction } from '@/actions/evaluation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { evaluateFlagApi } from '@/lib/api/evaluation';
+import { getPlatformsApi, getEnvironmentsApi } from '@/lib/api/platforms';
+import { getFlagsApi } from '@/lib/api/flags';
+import {
+  Alert,
+  Badge,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Button,
+  Select,
+} from '@togglebox/ui';
+import type { Platform, Environment, Flag, FlagEvaluationResult } from '@/lib/api/types';
 
+/**
+ * Evaluation Page - Three-Tier Architecture Tier 2
+ * Test flag evaluation with 2-value model (variant A/B).
+ */
 export default function EvaluationPage() {
+  // Selection states
   const [platform, setPlatform] = useState('');
   const [environment, setEnvironment] = useState('');
-  const [flagName, setFlagName] = useState('');
+  const [flagKey, setFlagKey] = useState('');
   const [userId, setUserId] = useState('');
   const [country, setCountry] = useState('');
   const [language, setLanguage] = useState('');
 
-  const [result, setResult] = useState<any>(null);
+  // Data states
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
+  const [flags, setFlags] = useState<Flag[]>([]);
+
+  // Loading states
+  const [isLoadingPlatforms, setIsLoadingPlatforms] = useState(true);
+  const [isLoadingEnvironments, setIsLoadingEnvironments] = useState(false);
+  const [isLoadingFlags, setIsLoadingFlags] = useState(false);
+
+  const [result, setResult] = useState<FlagEvaluationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
+  // Load platforms on mount
+  useEffect(() => {
+    async function loadPlatforms() {
+      try {
+        const data = await getPlatformsApi();
+        setPlatforms(data);
+      } catch (err) {
+        console.error('Failed to load platforms:', err);
+      } finally {
+        setIsLoadingPlatforms(false);
+      }
+    }
+    loadPlatforms();
+  }, []);
+
+  // Load environments when platform changes
+  useEffect(() => {
+    if (!platform) {
+      setEnvironments([]);
+      setEnvironment('');
+      setFlags([]);
+      setFlagKey('');
+      return;
+    }
+
+    async function loadEnvironments() {
+      setIsLoadingEnvironments(true);
+      try {
+        const data = await getEnvironmentsApi(platform);
+        setEnvironments(data);
+        setEnvironment('');
+        setFlags([]);
+        setFlagKey('');
+      } catch (err) {
+        console.error('Failed to load environments:', err);
+        setEnvironments([]);
+      } finally {
+        setIsLoadingEnvironments(false);
+      }
+    }
+    loadEnvironments();
+  }, [platform]);
+
+  // Load flags when environment changes
+  useEffect(() => {
+    if (!platform || !environment) {
+      setFlags([]);
+      setFlagKey('');
+      return;
+    }
+
+    async function loadFlags() {
+      setIsLoadingFlags(true);
+      try {
+        const data = await getFlagsApi(platform, environment);
+        setFlags(data);
+        setFlagKey('');
+      } catch (err) {
+        console.error('Failed to load flags:', err);
+        setFlags([]);
+      } finally {
+        setIsLoadingFlags(false);
+      }
+    }
+    loadFlags();
+  }, [platform, environment]);
+
   async function handleEvaluate() {
-    if (!platform || !environment || !flagName) {
-      setError('Platform, environment, and flag name are required');
+    if (!platform || !environment || !flagKey) {
+      setError('Platform, environment, and flag key are required');
       return;
     }
 
@@ -30,19 +124,14 @@ export default function EvaluationPage() {
     setResult(null);
 
     try {
-      const response = await evaluateFlagAction(platform, environment, flagName, {
+      const response = await evaluateFlagApi(platform, environment, flagKey, {
         userId: userId || undefined,
         country: country || undefined,
         language: language || undefined,
       });
-
-      if (response.success) {
-        setResult(response.data);
-      } else {
-        setError(response.error || 'Failed to evaluate feature flag');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to evaluate feature flag');
+      setResult(response);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to evaluate flag');
     } finally {
       setIsEvaluating(false);
     }
@@ -53,7 +142,7 @@ export default function EvaluationPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-black mb-2">Flag Evaluation Tester</h1>
         <p className="text-muted-foreground">
-          Test how feature flags evaluate for specific user contexts
+          Test how flags evaluate for specific user contexts (2-value model)
         </p>
       </div>
 
@@ -62,43 +151,77 @@ export default function EvaluationPage() {
         <Card>
           <CardHeader>
             <CardTitle>Evaluation Context</CardTitle>
-            <CardDescription>Enter the context to test flag evaluation</CardDescription>
+            <CardDescription>Select the context to test flag evaluation</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="platform">Platform *</Label>
-              <Input
+              <Select
                 id="platform"
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
-                placeholder="e.g., web, mobile"
-                disabled={isEvaluating}
-              />
+                disabled={isEvaluating || isLoadingPlatforms}
+              >
+                <option value="">
+                  {isLoadingPlatforms ? 'Loading platforms...' : 'Select a platform'}
+                </option>
+                {platforms.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="environment">Environment *</Label>
-              <Input
+              <Select
                 id="environment"
                 value={environment}
                 onChange={(e) => setEnvironment(e.target.value)}
-                placeholder="e.g., production, staging"
-                disabled={isEvaluating}
-              />
+                disabled={isEvaluating || !platform || isLoadingEnvironments}
+              >
+                <option value="">
+                  {!platform
+                    ? 'Select a platform first'
+                    : isLoadingEnvironments
+                      ? 'Loading environments...'
+                      : 'Select an environment'}
+                </option>
+                {environments.map((e) => (
+                  <option key={e.environment} value={e.environment}>
+                    {e.environment}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="flagName">Flag Name *</Label>
-              <Input
-                id="flagName"
-                value={flagName}
-                onChange={(e) => setFlagName(e.target.value)}
-                placeholder="e.g., new_checkout_flow"
-                disabled={isEvaluating}
-              />
+              <Label htmlFor="flagKey">Flag Key *</Label>
+              <Select
+                id="flagKey"
+                value={flagKey}
+                onChange={(e) => setFlagKey(e.target.value)}
+                disabled={isEvaluating || !environment || isLoadingFlags}
+              >
+                <option value="">
+                  {!environment
+                    ? 'Select an environment first'
+                    : isLoadingFlags
+                      ? 'Loading flags...'
+                      : flags.length === 0
+                        ? 'No flags available'
+                        : 'Select a flag'}
+                </option>
+                {flags.map((f) => (
+                  <option key={f.flagKey} value={f.flagKey}>
+                    {f.flagKey}
+                  </option>
+                ))}
+              </Select>
             </div>
 
-            <div className="border-t-2 border-black pt-4 mt-4">
+            <div className="border-t border-black/10 pt-4 mt-4">
               <p className="text-sm font-bold mb-3">User Context (optional)</p>
 
               <div className="space-y-2">
@@ -135,7 +258,11 @@ export default function EvaluationPage() {
               </div>
             </div>
 
-            <Button onClick={handleEvaluate} disabled={isEvaluating} className="w-full mt-4">
+            <Button
+              onClick={handleEvaluate}
+              disabled={isEvaluating || !platform || !environment || !flagKey}
+              className="w-full mt-4"
+            >
               {isEvaluating ? 'Evaluating...' : 'Evaluate Flag'}
             </Button>
           </CardContent>
@@ -145,33 +272,49 @@ export default function EvaluationPage() {
         <Card>
           <CardHeader>
             <CardTitle>Evaluation Result</CardTitle>
-            <CardDescription>The result of the flag evaluation</CardDescription>
+            <CardDescription>The result of the flag evaluation (2-value model)</CardDescription>
           </CardHeader>
           <CardContent>
             {!result && !error && (
               <div className="text-center py-12 text-muted-foreground">
-                Enter evaluation context and click "Evaluate Flag" to see results
+                Select evaluation context and click &quot;Evaluate Flag&quot; to see results
               </div>
             )}
 
             {error && (
-              <div className="border-2 border-destructive p-4">
-                <div className="text-sm font-bold text-destructive mb-2">Error</div>
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
+              <Alert variant="destructive">
+                {error}
+              </Alert>
             )}
 
             {result && (
               <div className="space-y-4">
-                <div className="border-2 border-black p-4">
+                <div className="border border-black/20 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="text-2xl font-black">{result.flagName}</div>
-                    <div
-                      className={`px-4 py-2 text-lg font-black ${
-                        result.enabled ? 'bg-black text-white' : 'bg-gray-200 text-gray-600'
-                      }`}
+                    <div className="text-2xl font-black">{result.flagKey}</div>
+                    <Badge
+                      variant={result.enabled ? 'default' : 'secondary'}
+                      size="lg"
+                      className="text-lg font-black"
                     >
                       {result.enabled ? 'ENABLED' : 'DISABLED'}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <div className="text-sm font-bold mb-1">Variant</div>
+                      <div className={`px-3 py-2 text-center font-black rounded border ${
+                        result.variant === 'A' ? 'bg-info/10 border-info/50' : 'bg-success/10 border-success/50'
+                      }`}>
+                        {result.variant}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold mb-1">Value</div>
+                      <div className="px-3 py-2 bg-muted border border-black/10 rounded font-mono">
+                        {JSON.stringify(result.value)}
+                      </div>
                     </div>
                   </div>
 
@@ -183,12 +326,12 @@ export default function EvaluationPage() {
 
                 <div className="text-xs text-muted-foreground">
                   <div className="font-bold mb-2">Evaluated Context:</div>
-                  <pre className="p-3 bg-gray-50 border-2 border-black font-mono">
+                  <pre className="p-3 bg-muted border border-black/10 rounded font-mono">
                     {JSON.stringify(
                       {
                         platform,
                         environment,
-                        flagName,
+                        flagKey,
                         ...(userId && { userId }),
                         ...(country && { country }),
                         ...(language && { language }),

@@ -12,7 +12,7 @@ yarn add @togglebox/sdk
 pnpm add @togglebox/sdk
 ```
 
-## Usage
+## Quick Start
 
 ### Open Source Self-Hosted
 
@@ -27,15 +27,9 @@ const client = new ToggleBoxClient({
 
 // Get configuration
 const config = await client.getConfig()
-console.log(config)
 
-// Get feature flags
-const flags = await client.getFeatureFlags()
-console.log(flags)
-
-// Check if flag is enabled
+// Check feature flag
 const isEnabled = await client.isEnabled('new-dashboard')
-console.log(isEnabled)
 ```
 
 ### Cloud Multi-Tenant
@@ -48,11 +42,79 @@ const client = new ToggleBoxClient({
   environment: 'production',
   tenantSubdomain: 'acme', // Connects to https://acme.togglebox.io
 })
+```
 
-// Same API as above
+## Configs vs Feature Flags
+
+ToggleBox provides two complementary systems for controlling your application:
+
+### Configs: Static Application Settings
+
+Configs are **versioned, immutable snapshots** of application settings. Use them for:
+- API endpoints and service URLs
+- UI themes and branding
+- Default values and limits
+- Environment-specific settings
+
+```typescript
+// Fetch the latest stable configuration
 const config = await client.getConfig()
-const flags = await client.getFeatureFlags()
-const isEnabled = await client.isEnabled('new-dashboard')
+
+// Access your settings
+const apiBaseUrl = config.apiBaseUrl              // 'https://api.example.com'
+const theme = config.theme                         // { primaryColor: '#007AFF', ... }
+const maxUploadSize = config.limits.maxUploadSize // 10485760
+const features = config.enabledFeatures           // ['search', 'export', 'notifications']
+```
+
+### Feature Flags: Dynamic On/Off Switches
+
+Feature flags are **mutable state** with targeting rules. Use them for:
+- Gradual rollouts (1% → 10% → 50% → 100%)
+- A/B testing
+- User-specific features (beta users, premium plans)
+- Kill switches for quick rollbacks
+
+```typescript
+// Simple boolean check
+const showNewDashboard = await client.isEnabled('new-dashboard')
+
+// With user context for targeted rollouts
+const hasPremiumFeatures = await client.isEnabled('premium-features', {
+  userId: user.id,
+  userEmail: user.email,
+  country: user.country,
+  plan: user.subscription.plan,
+})
+
+// Get detailed evaluation result
+const result = await client.evaluateFlag('premium-features', { userId: user.id })
+console.log(result)
+// { enabled: true, reason: 'user in target list' }
+// { enabled: false, reason: 'percentage rollout: 25%' }
+```
+
+## Version-Specific Configs
+
+Fetch specific config versions for rollback scenarios or pinned deployments:
+
+```typescript
+// Fetch the latest stable version (default)
+const stableConfig = await client.getConfig()
+
+// Fetch a specific version
+const v1Config = await client.getConfigVersion('1.2.3')
+
+// Fetch the absolute latest (may be unstable)
+const latestConfig = await client.getConfigVersion('latest')
+
+// Pin client to always fetch a specific version
+const client = new ToggleBoxClient({
+  platform: 'mobile',
+  environment: 'production',
+  tenantSubdomain: 'acme',
+  configVersion: '2.0.0', // All getConfig() calls fetch this version
+})
 ```
 
 ## Configuration Options
@@ -77,6 +139,14 @@ interface ClientOptions {
    * Example: 'acme' → https://acme.togglebox.io
    */
   tenantSubdomain?: string
+
+  /**
+   * Config version to fetch (default: 'stable')
+   * - 'stable': Latest stable version
+   * - 'latest': Latest version (may be unstable)
+   * - '1.2.3': Specific version label
+   */
+  configVersion?: string
 
   /** Cache configuration */
   cache?: {
@@ -141,11 +211,12 @@ client.on('error', (error) => {
 // Simple boolean check
 const isEnabled = await client.isEnabled('new-dashboard')
 
-// With evaluation context
+// With evaluation context for targeting
 const isEnabled = await client.isEnabled('premium-features', {
   userId: '123',
   userEmail: 'user@example.com',
-  customAttribute: 'value',
+  country: 'US',
+  plan: 'enterprise',
 })
 
 // Set global context (applied to all evaluations)
@@ -158,6 +229,10 @@ client.setContext({
 const isEnabled = await client.isEnabled('feature', {
   customAttribute: 'value', // Merged with global context
 })
+
+// Get all flags as a simple map
+const allFlags = await client.getAllFlags({ userId: '123' })
+// { 'new-dashboard': true, 'dark-mode': false, 'beta-features': true }
 ```
 
 ### Manual Refresh
@@ -176,21 +251,78 @@ client.destroy()
 
 ## API Methods
 
-- `getConfig()` - Get latest stable configuration
-- `getFeatureFlags()` - Get all feature flags
-- `isEnabled(flagName, context?)` - Check if a flag is enabled
-- `setContext(context)` - Set global evaluation context
-- `refresh()` - Force refresh config and flags
-- `on(event, callback)` - Listen for events ('update', 'error')
-- `off(event, callback)` - Remove event listener
-- `destroy()` - Stop polling and cleanup
+| Method | Description |
+|--------|-------------|
+| `getConfig()` | Get configuration using configured version (default: stable) |
+| `getConfigVersion(version)` | Get a specific config version |
+| `getFeatureFlags()` | Get all feature flags |
+| `isEnabled(flagName, context?)` | Check if a flag is enabled |
+| `evaluateFlag(flagName, context?)` | Get detailed evaluation result |
+| `getAllFlags(context?)` | Get all flags as key-value map |
+| `setContext(context)` | Set global evaluation context |
+| `getContext()` | Get current global context |
+| `refresh()` | Force refresh config and flags |
+| `on(event, callback)` | Listen for events ('update', 'error') |
+| `off(event, callback)` | Remove event listener |
+| `destroy()` | Stop polling and cleanup |
+
+## Real-World Examples
+
+### Feature Rollout with Percentage
+
+```typescript
+// In ToggleBox dashboard, create flag 'new-checkout' with:
+// - rolloutType: 'percentage'
+// - rolloutPercentage: 25
+
+// In your code:
+const showNewCheckout = await client.isEnabled('new-checkout', {
+  userId: user.id, // Used for consistent hashing
+})
+
+if (showNewCheckout) {
+  renderNewCheckout()
+} else {
+  renderLegacyCheckout()
+}
+```
+
+### Targeted Feature for Beta Users
+
+```typescript
+// Flag 'beta-features' with targetUserIds: ['user-123', 'user-456']
+const hasBetaAccess = await client.isEnabled('beta-features', {
+  userId: user.id,
+})
+```
+
+### Environment-Specific Configuration
+
+```typescript
+// Different clients for different environments
+const prodClient = new ToggleBoxClient({
+  platform: 'web',
+  environment: 'production',
+  tenantSubdomain: 'acme',
+})
+
+const stagingClient = new ToggleBoxClient({
+  platform: 'web',
+  environment: 'staging',
+  tenantSubdomain: 'acme',
+})
+
+// Each fetches environment-specific config and flags
+const prodConfig = await prodClient.getConfig()
+const stagingConfig = await stagingClient.getConfig()
+```
 
 ## TypeScript
 
 This SDK is written in TypeScript and includes full type definitions.
 
 ```typescript
-import type { Config, FeatureFlag, EvaluationContext } from '@togglebox/core'
+import type { Config, FeatureFlag, EvaluationContext, EvaluationResult } from '@togglebox/core'
 import type { ClientOptions } from '@togglebox/sdk'
 ```
 

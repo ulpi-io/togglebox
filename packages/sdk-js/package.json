@@ -13,7 +13,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@togglebox/core": "workspace:*"
+    "@togglebox/configs": "workspace:*",
+    "@togglebox/core": "workspace:*",
+    "@togglebox/experiments": "workspace:*",
+    "@togglebox/flags": "workspace:*",
+    "@togglebox/stats": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

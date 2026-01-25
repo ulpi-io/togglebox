@@ -8,6 +8,7 @@
     "dist"
   ],
   "scripts": {
+    "prebuild": "prisma generate",
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
@@ -20,7 +21,11 @@
     "@aws-sdk/client-dynamodb": "^3.705.0",
     "@aws-sdk/lib-dynamodb": "^3.705.0",
     "@prisma/client": "^5.7.0",
+    "@togglebox/configs": "workspace:*",
     "@togglebox/core": "workspace:*",
+    "@togglebox/flags": "workspace:*",
+    "@togglebox/experiments": "workspace:*",
+    "@togglebox/stats": "workspace:*",
     "@togglebox/shared": "workspace:*",
     "mongoose": "^8.0.3",
     "uuid": "^9.0.1"

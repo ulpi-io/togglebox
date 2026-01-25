@@ -1,4 +1,57 @@
-import type { Config, FeatureFlag } from '@togglebox/core'
+import type { Config } from '@togglebox/configs'
+import type {
+  Flag,
+  EvaluationContext as FlagContext,
+  EvaluationResult as FlagResult,
+  FlagValue,
+} from '@togglebox/flags'
+import type {
+  Experiment,
+  ExperimentContext,
+  ExperimentVariation,
+  VariantAssignment,
+} from '@togglebox/experiments'
+import type { StatsEvent } from '@togglebox/stats'
+
+// Re-export types from packages for SDK consumers
+// Tier 1: Remote Configs
+export type { Config }
+
+// Tier 2: Feature Flags (2-value model)
+export type {
+  Flag,
+  FlagContext,
+  FlagResult,
+  FlagValue,
+}
+
+// Tier 3: Experiments
+export type {
+  Experiment,
+  ExperimentContext,
+  ExperimentVariation,
+  VariantAssignment,
+}
+
+// Stats
+export type { StatsEvent }
+
+/**
+ * Stats configuration options
+ */
+export interface StatsOptions {
+  /** Enable stats collection (default: true) */
+  enabled?: boolean
+
+  /** Number of events to batch before sending (default: 20) */
+  batchSize?: number
+
+  /** Flush interval in milliseconds (default: 10000) */
+  flushIntervalMs?: number
+
+  /** Maximum retry attempts for failed sends (default: 3) */
+  maxRetries?: number
+}
 
 /**
  * Client configuration options
@@ -27,6 +80,9 @@ export interface ClientOptions {
    */
   tenantSubdomain?: string
 
+  /** API key for authentication (optional for open source, required for cloud) */
+  apiKey?: string
+
   /** Cache configuration */
   cache?: CacheOptions
 
@@ -35,6 +91,18 @@ export interface ClientOptions {
 
   /** Custom fetch implementation (defaults to global fetch) */
   fetchImpl?: typeof fetch
+
+  /**
+   * Config version to fetch (default: 'stable')
+   * @remarks
+   * - 'stable': Latest stable version (default)
+   * - 'latest': Latest version (may be unstable)
+   * - '1.2.3': Specific version label
+   */
+  configVersion?: string
+
+  /** Stats configuration */
+  stats?: StatsOptions
 }
 
 /**
@@ -61,19 +129,26 @@ export interface ConfigResponse {
 /**
  * Feature flags response from API
  */
-export interface FeatureFlagsResponse {
-  flags: FeatureFlag[]
+export interface FlagsResponse {
+  flags: Flag[]
+}
+
+/**
+ * Experiments response from API
+ */
+export interface ExperimentsResponse {
+  experiments: Experiment[]
 }
 
 /**
  * Event types emitted by the client
  */
-export type ClientEvent = 'update' | 'error'
+export type ClientEvent = 'update' | 'error' | 'statsFlush'
 
 /**
  * Event listener callback
  */
-export type EventListener = (data: any) => void
+export type EventListener = (data: unknown) => void
 
 /**
  * Retry configuration
@@ -82,4 +157,29 @@ export interface RetryOptions {
   maxRetries: number
   initialDelay: number
   maxDelay: number
+}
+
+/**
+ * Conversion data for tracking
+ */
+export interface ConversionData {
+  /** Metric name (e.g., 'purchase', 'signup') */
+  metricName: string
+
+  /** Optional value for sum/average metrics (e.g., revenue amount) */
+  value?: number
+}
+
+/**
+ * Event data for custom event tracking
+ */
+export interface EventData {
+  /** Associated experiment key (optional) */
+  experimentKey?: string
+
+  /** Variation key for conversion attribution (required if experimentKey provided) */
+  variationKey?: string
+
+  /** Custom properties */
+  properties?: Record<string, unknown>
 }

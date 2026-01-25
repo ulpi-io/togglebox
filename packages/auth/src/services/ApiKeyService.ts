@@ -19,8 +19,7 @@
 import { IApiKeyRepository } from '../interfaces/IApiKeyRepository';
 import { IUserRepository } from '../interfaces/IUserRepository';
 import { ApiKey, ApiKeyWithPlaintext, PublicApiKey } from '../models/ApiKey';
-import { generateApiKey, getApiKeyPrefix, getApiKeyLast4 } from '../utils/token';
-import { hashToken } from '../utils/token';
+import { generateApiKey, getApiKeyPrefix, getApiKeyLast4, hashApiKey } from '../utils/token';
 import { userHasPermission } from '../models/User';
 import { logger } from '@togglebox/shared';
 
@@ -42,57 +41,106 @@ export interface CreateApiKeyData {
 }
 
 /**
+ * API key service configuration options.
+ */
+export interface ApiKeyServiceOptions {
+  /**
+   * Whether to validate that the user exists in the database before creating API keys.
+   *
+   * @remarks
+   * Set to `false` when:
+   * - Authentication is optional and users may not have DB records
+   * - JWT users are managed externally (e.g., SSO)
+   * - User creation is deferred until first API key creation
+   *
+   * @default true
+   */
+  validateUser?: boolean;
+
+  /**
+   * Whether to validate that the user has the requested permissions.
+   *
+   * @remarks
+   * Set to `false` when:
+   * - Permissions are managed externally
+   * - All users should be able to create keys with any permissions
+   *
+   * @default true
+   */
+  validatePermissions?: boolean;
+}
+
+/**
  * API key service for managing API keys.
  *
  * @remarks
  * **Security:**
- * - Validates permissions against user's role
+ * - Validates permissions against user's role (optional)
  * - Hashes keys with bcrypt before storage
  * - Updates lastUsedAt on verification
  * - Ownership verification for revocation
  */
 export class ApiKeyService {
+  private options: Required<ApiKeyServiceOptions>;
+
   constructor(
     private apiKeyRepository: IApiKeyRepository,
-    private userRepository: IUserRepository
-  ) {}
+    private userRepository: IUserRepository,
+    options?: ApiKeyServiceOptions
+  ) {
+    // Set defaults for options
+    this.options = {
+      validateUser: options?.validateUser ?? true,
+      validatePermissions: options?.validatePermissions ?? true,
+    };
+  }
 
   /**
-   * Create a new API key with permission validation.
+   * Create a new API key with optional permission validation.
    *
    * @param data - API key data (userId, name, permissions, expiresAt)
    * @returns API key with plaintext key (ONLY shown once)
-   * @throws {Error} 'User not found' if userId invalid
-   * @throws {Error} If user lacks requested permissions
+   * @throws {Error} 'User not found' if userId invalid (when validateUser is true)
+   * @throws {Error} If user lacks requested permissions (when validatePermissions is true)
    *
    * @remarks
    * **CRITICAL:** Plaintext key returned ONLY at creation.
    * After this, only prefix + last4 are available for display.
    *
    * **Permission Validation:**
-   * API key cannot have permissions that user doesn't have.
+   * When `validatePermissions` is true (default), API key cannot have
+   * permissions that user doesn't have.
+   *
+   * **User Validation:**
+   * When `validateUser` is true (default), the user must exist in the database.
+   * Set to false for scenarios where JWT users may not have DB records.
    */
   async createApiKey(data: CreateApiKeyData): Promise<ApiKeyWithPlaintext> {
-    // Verify user exists
-    const user = await this.userRepository.findById(data.userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
+    // Verify user exists (if validation enabled)
+    if (this.options.validateUser) {
+      const user = await this.userRepository.findById(data.userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
 
-    // Validate permissions against user's role permissions
-    const invalidPermissions = data.permissions.filter(
-      (permission) => !userHasPermission(user, permission)
-    );
+      // Validate permissions against user's role permissions (if enabled)
+      if (this.options.validatePermissions) {
+        const invalidPermissions = data.permissions.filter(
+          (permission) => !userHasPermission(user, permission)
+        );
 
-    if (invalidPermissions.length > 0) {
-      throw new Error(
-        `User does not have the following permissions: ${invalidPermissions.join(', ')}`
-      );
+        if (invalidPermissions.length > 0) {
+          throw new Error(
+            `User does not have the following permissions: ${invalidPermissions.join(', ')}`
+          );
+        }
+      }
     }
 
     // Generate API key
     const key = generateApiKey('live');
-    const keyHash = await hashToken(key);
+    // Use SHA-256 for deterministic hashing (required for GSI2 lookup)
+    const keyHash = hashApiKey(key);
     const keyPrefix = getApiKeyPrefix(key);
     const keyLast4 = getApiKeyLast4(key);
 
@@ -158,7 +206,8 @@ export class ApiKeyService {
    * Used by authentication middleware.
    */
   async verifyApiKey(key: string): Promise<ApiKey | null> {
-    const keyHash = await hashToken(key);
+    // Use SHA-256 for deterministic hashing (required for GSI2 lookup)
+    const keyHash = hashApiKey(key);
 
     // Find API key by hash
     const apiKey = await this.apiKeyRepository.findByKeyHash(keyHash);

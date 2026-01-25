@@ -1,0 +1,166 @@
+# ============================================================================
+# ToggleBox - Production Docker Compose
+# ============================================================================
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#   make prod
+# ============================================================================
+
+name: togglebox-prod
+
+services:
+  # ---------------------------------------------------------------------------
+  # DynamoDB Local - AWS-compatible NoSQL database
+  # ---------------------------------------------------------------------------
+  # NOTE: In real production, you would use AWS DynamoDB service
+  # This is for self-hosted production deployments
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: togglebox-dynamodb-prod
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/data"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb-data:/data
+    networks:
+      - togglebox-network
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # DynamoDB Admin - Web UI for browsing data
+  # ---------------------------------------------------------------------------
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    container_name: togglebox-dynamodb-admin-prod
+    ports:
+      - "8001:8001"
+    environment:
+      - DYNAMO_ENDPOINT=http://dynamodb-local:8000
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-local}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-local}
+    networks:
+      - togglebox-network
+    depends_on:
+      - dynamodb-local
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # DynamoDB Init - Creates tables on startup
+  # ---------------------------------------------------------------------------
+  dynamodb-init:
+    image: amazon/aws-cli:latest
+    container_name: togglebox-dynamodb-init-prod
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-local}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-local}
+      - AWS_REGION=us-east-1
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+    volumes:
+      - ./docker/scripts/init-dynamodb.sh:/init-dynamodb.sh:ro
+      - ./docker/scripts/wait-for-dynamodb.sh:/wait-for-dynamodb.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        chmod +x /wait-for-dynamodb.sh /init-dynamodb.sh
+        /wait-for-dynamodb.sh
+        /init-dynamodb.sh
+    networks:
+      - togglebox-network
+    depends_on:
+      - dynamodb-local
+
+  # ---------------------------------------------------------------------------
+  # ToggleBox API - Express.js backend (Production optimized)
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: togglebox-api-prod
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./apps/api/.env
+    environment:
+      # Production overrides
+      - NODE_ENV=production
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-local}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-local}
+    networks:
+      - togglebox-network
+    depends_on:
+      dynamodb-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # ---------------------------------------------------------------------------
+  # ToggleBox Admin - Next.js dashboard (Production optimized)
+  # ---------------------------------------------------------------------------
+  admin:
+    build:
+      context: .
+      dockerfile: docker/admin/Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: togglebox-admin-prod
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./apps/admin/.env.local
+    environment:
+      # Production overrides
+      - NODE_ENV=production
+      - API_URL=http://api:3000
+    networks:
+      - togglebox-network
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+# -----------------------------------------------------------------------------
+# Networks
+# -----------------------------------------------------------------------------
+networks:
+  togglebox-network:
+    name: togglebox-network-prod
+    driver: bridge
+
+# -----------------------------------------------------------------------------
+# Volumes - Persistent data for production
+# -----------------------------------------------------------------------------
+volumes:
+  dynamodb-data:
+    name: togglebox-dynamodb-data

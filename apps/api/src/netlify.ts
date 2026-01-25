@@ -35,6 +35,7 @@ import { logger } from '@togglebox/shared';
  */
 const serverlessHandler = serverless(app, {
   binary: ['image/*', 'application/pdf'],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- serverless-http callback types are not properly typed
   request: (request: any, event: any, context: any) => {
     // Add Netlify context to request for access in controllers/middleware
     request.netlify = {
@@ -52,6 +53,7 @@ const serverlessHandler = serverless(app, {
       method: event.httpMethod,
     });
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- serverless-http callback types are not properly typed
   response: (response: any, _event: any, context: any) => {
     logger.info('Netlify Function response sent', {
       requestId: context.requestId,
@@ -71,6 +73,7 @@ const serverlessHandler = serverless(app, {
  * This handler is deployed as a Netlify Function and handles all API requests.
  * Netlify automatically routes requests to this function based on netlify.toml redirects.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Netlify Function event/context types vary
 export const handler = async (event: any, context: any) => {
   try {
     logger.info('Netlify Function invoked', {
@@ -84,6 +87,7 @@ export const handler = async (event: any, context: any) => {
 
     logger.info('Netlify Function completed', {
       requestId: context.requestId,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- serverless-http result type varies
       statusCode: (result as any).statusCode || 'unknown',
     });
 

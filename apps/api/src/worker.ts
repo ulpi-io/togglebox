@@ -24,7 +24,6 @@
 /// <reference types="@cloudflare/workers-types" />
 
 // Dynamic import for cloudflare:node (only available in Workers runtime)
-// @ts-ignore - cloudflare:node is a Workers-specific module
 import { httpServerHandler } from 'cloudflare:node';
 import app from './app';
 import { logger } from '@togglebox/shared';
@@ -145,14 +144,15 @@ export default {
         method: request.method,
         url: request.url,
         headers: Object.fromEntries(request.headers.entries()),
-        cf: (request as any).cf, // Cloudflare-specific metadata
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cloudflare-specific metadata not in standard Request type
+        cf: (request as any).cf,
       });
 
       // Use httpServerHandler to handle Express app
       // This converts Cloudflare Request to Node.js-compatible request
-      // @ts-ignore - httpServerHandler types may not be fully accurate
+      // @ts-expect-error - httpServerHandler types may not be fully accurate
       const handler = httpServerHandler(app);
-      // @ts-ignore - handler is callable in Workers runtime
+      // @ts-expect-error - handler is callable in Workers runtime
       const response = await handler(request);
 
       // Log response

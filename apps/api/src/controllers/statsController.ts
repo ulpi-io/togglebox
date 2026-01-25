@@ -1,0 +1,340 @@
+import { Request, Response, NextFunction } from 'express';
+import { ThreeTierRepositories } from '@togglebox/database';
+import { logger, withDatabaseContext } from '@togglebox/shared';
+import { StatsEventSchema } from '@togglebox/stats';
+import { z } from 'zod';
+
+/**
+ * Schema for batch events request.
+ */
+const BatchEventsSchema = z.object({
+  events: z.array(StatsEventSchema),
+});
+
+/**
+ * Controller for Statistics operations.
+ *
+ * @remarks
+ * Handles SDK event ingestion and stats retrieval for all three tiers:
+ * - Remote Configs (fetch counts)
+ * - Feature Flags (evaluation counts by value)
+ * - Experiments (exposures and conversions)
+ */
+export class StatsController {
+  private repos: ThreeTierRepositories;
+
+  constructor(repos: ThreeTierRepositories) {
+    this.repos = repos;
+  }
+
+  /**
+   * Processes a batch of events from SDK.
+   *
+   * POST /platforms/:platform/environments/:environment/stats/events
+   */
+  processBatch = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment } = req.params as { platform: string; environment: string };
+
+      const { events } = BatchEventsSchema.parse(req.body);
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        await this.repos.stats.processBatch(platform, environment, events);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('processBatch', 'stats', duration, true);
+        logger.info(`Processed ${events.length} events for ${platform}/${environment}`);
+
+        res.json({
+          success: true,
+          data: {
+            processed: events.length,
+          },
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          code: 'VALIDATION_FAILED',
+          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+      next(error);
+    }
+  };
+
+  /**
+   * Gets stats for a Remote Config.
+   *
+   * GET /platforms/:platform/environments/:environment/configs/:configKey/stats
+   */
+  getConfigStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment, configKey } = req.params as {
+        platform: string;
+        environment: string;
+        configKey: string;
+      };
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        const stats = await this.repos.stats.getConfigStats(platform, environment, configKey);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('getConfigStats', 'stats', duration, true);
+
+        if (!stats) {
+          res.json({
+            success: true,
+            data: {
+              platform,
+              environment,
+              configKey,
+              fetchCount: 0,
+              uniqueClients24h: 0,
+              updatedAt: null,
+            },
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        res.json({
+          success: true,
+          data: stats,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  /**
+   * Gets stats for a Feature Flag.
+   *
+   * GET /platforms/:platform/environments/:environment/flags/:flagKey/stats
+   */
+  getFlagStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment, flagKey } = req.params as {
+        platform: string;
+        environment: string;
+        flagKey: string;
+      };
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        const stats = await this.repos.stats.getFlagStats(platform, environment, flagKey);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('getFlagStats', 'stats', duration, true);
+
+        if (!stats) {
+          res.json({
+            success: true,
+            data: {
+              platform,
+              environment,
+              flagKey,
+              totalEvaluations: 0,
+              valueACount: 0,
+              valueBCount: 0,
+              uniqueUsersA24h: 0,
+              uniqueUsersB24h: 0,
+              updatedAt: null,
+            },
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        res.json({
+          success: true,
+          data: stats,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  /**
+   * Gets flag stats by country.
+   *
+   * GET /platforms/:platform/environments/:environment/flags/:flagKey/stats/by-country
+   */
+  getFlagStatsByCountry = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment, flagKey } = req.params as {
+        platform: string;
+        environment: string;
+        flagKey: string;
+      };
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        const stats = await this.repos.stats.getFlagStatsByCountry(platform, environment, flagKey);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('getFlagStatsByCountry', 'stats', duration, true);
+
+        res.json({
+          success: true,
+          data: stats,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  /**
+   * Gets flag stats daily time series.
+   *
+   * GET /platforms/:platform/environments/:environment/flags/:flagKey/stats/daily
+   */
+  getFlagStatsDaily = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment, flagKey } = req.params as {
+        platform: string;
+        environment: string;
+        flagKey: string;
+      };
+      const days = parseInt(req.query['days'] as string) || 30;
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        const stats = await this.repos.stats.getFlagStatsDaily(platform, environment, flagKey, days);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('getFlagStatsDaily', 'stats', duration, true);
+
+        res.json({
+          success: true,
+          data: stats,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  /**
+   * Gets stats for an Experiment.
+   *
+   * GET /platforms/:platform/environments/:environment/experiments/:experimentKey/stats
+   */
+  getExperimentStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment, experimentKey } = req.params as {
+        platform: string;
+        environment: string;
+        experimentKey: string;
+      };
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        const stats = await this.repos.stats.getExperimentStats(platform, environment, experimentKey);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('getExperimentStats', 'stats', duration, true);
+
+        if (!stats) {
+          res.json({
+            success: true,
+            data: {
+              platform,
+              environment,
+              experimentKey,
+              variations: [],
+              metricResults: [],
+              dailyData: [],
+              updatedAt: null,
+            },
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        res.json({
+          success: true,
+          data: stats,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
+
+  /**
+   * Records a conversion event.
+   *
+   * POST /platforms/:platform/environments/:environment/experiments/:experimentKey/conversions
+   */
+  recordConversion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment, experimentKey } = req.params as {
+        platform: string;
+        environment: string;
+        experimentKey: string;
+      };
+
+      const ConversionSchema = z.object({
+        metricId: z.string(),
+        variationKey: z.string(),
+        userId: z.string(),
+        value: z.number().optional(),
+      });
+
+      const { metricId, variationKey, userId, value } = ConversionSchema.parse(req.body);
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        await this.repos.stats.recordConversion(
+          platform,
+          environment,
+          experimentKey,
+          metricId,
+          variationKey,
+          userId,
+          value
+        );
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('recordConversion', 'stats', duration, true);
+        logger.info(`Recorded conversion for ${experimentKey}/${variationKey}/${metricId}`);
+
+        res.json({
+          success: true,
+          data: {
+            recorded: true,
+          },
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          code: 'VALIDATION_FAILED',
+          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+      next(error);
+    }
+  };
+}

@@ -18,9 +18,20 @@
  */
 
 import { Environment } from '@togglebox/core';
-import { dynamoDBClient, getTableName } from './database';
+import { dynamoDBClient, getEnvironmentsTableName } from './database';
 import { TokenPaginationParams, TokenPaginatedResult } from './interfaces/IPagination';
-import { PutCommand, GetCommand, QueryCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand, QueryCommand, QueryCommandInput, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+
+/**
+ * Type guard for DynamoDB errors with a name property.
+ * AWS SDK v3 uses error.name for exception types (e.g., 'ConditionalCheckFailedException').
+ *
+ * @param error - Unknown error object
+ * @returns True if error is an Error with a name property
+ */
+function isDynamoDBError(error: unknown): error is Error & { name: string } {
+  return error instanceof Error && typeof error.name === 'string';
+}
 
 /**
  * Creates a new environment within a platform.
@@ -68,10 +79,10 @@ export async function createEnvironment(
   };
 
   const params = {
-    TableName: getTableName(),
+    TableName: getEnvironmentsTableName(),
     Item: {
       PK: `PLATFORM#${environment.platform}`,
-      SK: `ENV#${environment.environment}#METADATA`,
+      SK: `ENV#${environment.environment}`,
       ...environmentWithTimestamp,
     },
     ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
@@ -81,7 +92,7 @@ export async function createEnvironment(
     await dynamoDBClient.send(new PutCommand(params));
     return environmentWithTimestamp;
   } catch (error: unknown) {
-    if ((error as any).code === 'ConditionalCheckFailedException') {
+    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
       throw new Error(
         `Environment ${environment.environment} already exists for platform ${environment.platform}`
       );
@@ -130,10 +141,10 @@ export async function getEnvironment(
   environment: string
 ): Promise<Environment | null> {
   const params = {
-    TableName: getTableName(),
+    TableName: getEnvironmentsTableName(),
     Key: {
       PK: `PLATFORM#${platform}`,
-      SK: `ENV#${environment}#METADATA`,
+      SK: `ENV#${environment}`,
     },
   };
 
@@ -211,8 +222,8 @@ export async function listEnvironments(
   }
 
   // Explicit pagination: return single page
-  const params: any = {
-    TableName: getTableName(),
+  const params: QueryCommandInput = {
+    TableName: getEnvironmentsTableName(),
     KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
     ExpressionAttributeValues: {
       ':pk': `PLATFORM#${platform}`,
@@ -234,9 +245,7 @@ export async function listEnvironments(
 
   const result = await dynamoDBClient.send(new QueryCommand(params));
   const items = result.Items
-    ? result.Items.filter((item: any) => (item['SK'] as string).endsWith('#METADATA')).map((item: any) =>
-        mapToEnvironment(item as Record<string, unknown>)
-      )
+    ? result.Items.map((item) => mapToEnvironment(item as Record<string, unknown>))
     : [];
 
   // Encode LastEvaluatedKey as base64 token for next page
@@ -290,10 +299,10 @@ export async function listEnvironments(
  */
 export async function deleteEnvironment(platform: string, environment: string): Promise<boolean> {
   const params = {
-    TableName: getTableName(),
+    TableName: getEnvironmentsTableName(),
     Key: {
       PK: `PLATFORM#${platform}`,
-      SK: `ENV#${environment}#METADATA`,
+      SK: `ENV#${environment}`,
     },
     ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
   };
@@ -303,7 +312,7 @@ export async function deleteEnvironment(platform: string, environment: string): 
     return true;
   } catch (error: unknown) {
     // Environment not found (condition failed)
-    if (error instanceof Error && 'code' in error && (error as { code: string }).code === 'ConditionalCheckFailedException') {
+    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
       return false;
     }
     // Other errors (network, permissions, etc.)

@@ -2,8 +2,7 @@
  * Main entry point for standalone Node.js server deployment.
  *
  * @remarks
- * Re-exports the Express application instance. When run directly (not imported),
- * the app.ts file starts the HTTP server on the configured PORT.
+ * Starts the HTTP server on the configured PORT.
  *
  * Used for:
  * - Local development (`npm run dev`)
@@ -12,5 +11,14 @@
  */
 
 import app from './app';
+import { logger, config } from '@togglebox/shared';
+
+const PORT = config.env.PORT;
+
+app.listen(PORT, () => {
+  logger.info(`Config Service started on port ${PORT}`);
+  logger.info(`Environment: ${config.env.NODE_ENV}`);
+  logger.info(`Health check: http://localhost:${PORT}/health`);
+});
 
 export default app;

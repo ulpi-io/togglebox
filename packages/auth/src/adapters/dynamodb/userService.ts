@@ -26,7 +26,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { PutCommand, GetCommand, QueryCommand, DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { User, CreateUserData, UpdateUserData } from '../../models/User';
-import { dynamoDBClient, getAuthTableName } from './database';
+import { dynamoDBClient, getUsersTableName } from './database';
 
 /**
  * Create a new user in DynamoDB.
@@ -61,7 +61,7 @@ export async function createUser(data: CreateUserData): Promise<User> {
   };
 
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getUsersTableName(),
     Item: {
       PK: `USER#${user.id}`,
       SK: `USER#${user.id}`,
@@ -102,7 +102,7 @@ export async function createUser(data: CreateUserData): Promise<User> {
  */
 export async function findUserById(id: string): Promise<User | null> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getUsersTableName(),
     Key: {
       PK: `USER#${id}`,
       SK: `USER#${id}`,
@@ -132,7 +132,7 @@ export async function findUserById(id: string): Promise<User | null> {
  */
 export async function findUserByEmail(email: string): Promise<User | null> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getUsersTableName(),
     IndexName: 'GSI1',
     KeyConditionExpression: 'GSI1PK = :pk',
     ExpressionAttributeValues: {
@@ -179,7 +179,7 @@ export async function updateUser(id: string, data: UpdateUserData): Promise<User
   };
 
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getUsersTableName(),
     Item: {
       PK: `USER#${id}`,
       SK: `USER#${id}`,
@@ -212,7 +212,7 @@ export async function updateUser(id: string, data: UpdateUserData): Promise<User
  */
 export async function deleteUser(id: string): Promise<void> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getUsersTableName(),
     Key: {
       PK: `USER#${id}`,
       SK: `USER#${id}`,
@@ -258,7 +258,7 @@ export async function listUsers(options?: {
   // Query for all users using a scan on PK pattern
   // In production, consider using GSI with a fixed partition key for all users
   const params: any = {
-    TableName: getAuthTableName(),
+    TableName: getUsersTableName(),
     FilterExpression: 'begins_with(PK, :pk)',
     ExpressionAttributeValues: {
       ':pk': 'USER#',

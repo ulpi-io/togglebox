@@ -1,31 +1,27 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { deletePlatformAction } from '@/actions/platforms';
-import { Button } from '@/components/ui/button';
+import { deletePlatformApi } from '@/lib/api/platforms';
+import { Button } from '@togglebox/ui';
 
 interface DeletePlatformButtonProps {
   platform: string;
+  onSuccess?: () => void;
 }
 
-export function DeletePlatformButton({ platform }: DeletePlatformButtonProps) {
-  const router = useRouter();
+export function DeletePlatformButton({ platform, onSuccess }: DeletePlatformButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   async function handleDelete() {
     setIsDeleting(true);
     try {
-      const result = await deletePlatformAction(platform);
-      if (result.success) {
-        router.refresh();
-      } else {
-        alert(result.error);
-        setIsDeleting(false);
+      await deletePlatformApi(platform);
+      if (onSuccess) {
+        onSuccess();
       }
-    } catch (error) {
-      alert('Failed to delete platform');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete platform');
       setIsDeleting(false);
     }
   }

@@ -1,17 +1,18 @@
 import { useMemo } from 'react'
-import { evaluateFeatureFlag } from '@togglebox/core'
-import type { Config, EvaluationContext } from '@togglebox/core'
+import type { Config } from '@togglebox/configs'
+import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
+import type { Experiment, ExperimentContext } from '@togglebox/experiments'
 import { useToggleBoxContext } from './provider'
 
 /**
- * Hook to access configuration
+ * Hook to access full ToggleBox context
  */
 export function useToggleBox() {
   return useToggleBoxContext()
 }
 
 /**
- * Hook to access configuration object
+ * Hook to access configuration object (Tier 1)
  */
 export function useConfig(): Config | null {
   const { config } = useToggleBoxContext()
@@ -19,37 +20,60 @@ export function useConfig(): Config | null {
 }
 
 /**
- * Hook to check if a feature flag is enabled
+ * Hook to access all feature flags (Tier 2)
  */
-export function useFeatureFlag(flagName: string, context?: EvaluationContext) {
-  const { featureFlags, isLoading } = useToggleBoxContext()
-
-  const result = useMemo(() => {
-    const flag = featureFlags.find(f => f.flagName === flagName)
-    if (!flag) {
-      return { enabled: false, isLoading }
-    }
-
-    const evaluation = evaluateFeatureFlag(flag, context || {})
-    return { enabled: evaluation.enabled, isLoading }
-  }, [featureFlags, flagName, context, isLoading])
-
-  return result
+export function useFlags(): Flag[] {
+  const { flags } = useToggleBoxContext()
+  return flags
 }
 
 /**
- * Hook to get all evaluated feature flags
+ * Hook to check if a feature flag is enabled (Tier 2)
+ *
+ * @param flagKey - The flag key to check
+ * @param context - Optional evaluation context for targeting
+ * @returns Object with enabled state and loading state
  */
-export function useFeatureFlags(context?: EvaluationContext) {
-  const { featureFlags, isLoading } = useToggleBoxContext()
+export function useFlag(flagKey: string, context?: FlagContext) {
+  const { flags, isLoading, isFlagEnabled } = useToggleBoxContext()
 
-  const evaluated = useMemo(() => {
-    return featureFlags.reduce((acc, flag) => {
-      const evaluation = evaluateFeatureFlag(flag, context || {})
-      acc[flag.flagName] = evaluation.enabled
-      return acc
-    }, {} as Record<string, boolean>)
-  }, [featureFlags, context])
+  const result = useMemo(() => {
+    const flag = flags.find((f: Flag) => f.flagKey === flagKey)
+    return { flag, exists: !!flag, isLoading }
+  }, [flags, flagKey, isLoading])
 
-  return { flags: evaluated, isLoading }
+  return {
+    ...result,
+    checkEnabled: async () => isFlagEnabled(flagKey, context),
+  }
+}
+
+/**
+ * Hook to access all experiments (Tier 3)
+ */
+export function useExperiments(): Experiment[] {
+  const { experiments } = useToggleBoxContext()
+  return experiments
+}
+
+/**
+ * Hook to get experiment variant (Tier 3)
+ *
+ * @param experimentKey - The experiment key
+ * @param context - Evaluation context for variant assignment
+ * @returns Object with variant info and loading state
+ */
+export function useExperiment(experimentKey: string, context: ExperimentContext) {
+  const { experiments, isLoading, getVariant } = useToggleBoxContext()
+
+  const experiment = useMemo(() => {
+    return experiments.find((e: Experiment) => e.experimentKey === experimentKey)
+  }, [experiments, experimentKey])
+
+  return {
+    experiment,
+    exists: !!experiment,
+    isLoading,
+    getVariant: async () => getVariant(experimentKey, context),
+  }
 }

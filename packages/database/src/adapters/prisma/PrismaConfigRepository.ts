@@ -7,7 +7,7 @@
  */
 
 import { PrismaClient } from '.prisma/client-database';
-import { Version } from '@togglebox/core';
+import { Version } from '@togglebox/configs';
 import {
   IConfigRepository,
   OffsetPaginationParams,
@@ -72,8 +72,8 @@ export class PrismaConfigRepository implements IConfigRepository {
       return {
         platform: created.platform,
         environment: created.environment,
+        versionLabel: created.versionLabel ?? '',
         versionTimestamp: created.versionTimestamp,
-        versionLabel: created.versionLabel || undefined,
         isStable: created.isStable,
         config: JSON.parse(created.config),
         createdBy: created.createdBy,
@@ -90,20 +90,19 @@ export class PrismaConfigRepository implements IConfigRepository {
   }
 
   /**
-   * Gets configuration version by composite key.
+   * Gets configuration version by versionLabel.
    *
    * @remarks
-   * Uses composite unique index (platform + environment + versionTimestamp).
+   * Uses versionLabel as the human-readable identifier for consistency
+   * across all database adapters (DynamoDB, Prisma, D1).
    */
   async getVersion(
     platform: string,
     environment: string,
-    versionTimestamp: string
+    versionLabel: string
   ): Promise<Version | null> {
-    const version = await this.prisma.configVersion.findUnique({
-      where: {
-        platform_environment_versionTimestamp: { platform, environment, versionTimestamp },
-      },
+    const version = await this.prisma.configVersion.findFirst({
+      where: { platform, environment, versionLabel },
     });
 
     if (!version) {
@@ -113,8 +112,8 @@ export class PrismaConfigRepository implements IConfigRepository {
     return {
       platform: version.platform,
       environment: version.environment,
+      versionLabel: version.versionLabel ?? '',
       versionTimestamp: version.versionTimestamp,
-      versionLabel: version.versionLabel || undefined,
       isStable: version.isStable,
       config: JSON.parse(version.config),
       createdBy: version.createdBy,
@@ -146,8 +145,8 @@ export class PrismaConfigRepository implements IConfigRepository {
     return {
       platform: version.platform,
       environment: version.environment,
+      versionLabel: version.versionLabel ?? '',
       versionTimestamp: version.versionTimestamp,
-      versionLabel: version.versionLabel || undefined,
       isStable: version.isStable,
       config: JSON.parse(version.config),
       createdBy: version.createdBy,
@@ -184,8 +183,8 @@ export class PrismaConfigRepository implements IConfigRepository {
       const items = versions.map((v) => ({
         platform: v.platform,
         environment: v.environment,
+        versionLabel: v.versionLabel ?? '',
         versionTimestamp: v.versionTimestamp,
-        versionLabel: v.versionLabel || undefined,
         isStable: v.isStable,
         config: JSON.parse(v.config),
         createdBy: v.createdBy,
@@ -208,8 +207,8 @@ export class PrismaConfigRepository implements IConfigRepository {
     const items = versions.map((v) => ({
       platform: v.platform,
       environment: v.environment,
+      versionLabel: v.versionLabel ?? '',
       versionTimestamp: v.versionTimestamp,
-      versionLabel: v.versionLabel || undefined,
       isStable: v.isStable,
       config: JSON.parse(v.config),
       createdBy: v.createdBy,
@@ -220,28 +219,92 @@ export class PrismaConfigRepository implements IConfigRepository {
   }
 
   /**
-   * Deletes a configuration version.
+   * Deletes a configuration version by versionLabel.
    *
-   * @returns true if deleted, false if version doesn't exist (Prisma P2025)
+   * @remarks
+   * Uses versionLabel as the human-readable identifier for consistency
+   * across all database adapters (DynamoDB, Prisma, D1).
+   *
+   * @returns true if deleted, false if version doesn't exist
    */
   async deleteVersion(
     platform: string,
     environment: string,
-    versionTimestamp: string
+    versionLabel: string
   ): Promise<boolean> {
+    // First find the version by versionLabel to get the versionTimestamp
+    const version = await this.prisma.configVersion.findFirst({
+      where: { platform, environment, versionLabel },
+      select: { versionTimestamp: true },
+    });
+
+    if (!version) {
+      return false;
+    }
+
     try {
       await this.prisma.configVersion.delete({
         where: {
-          platform_environment_versionTimestamp: { platform, environment, versionTimestamp },
+          platform_environment_versionTimestamp: {
+            platform,
+            environment,
+            versionTimestamp: version.versionTimestamp,
+          },
         },
       });
       return true;
     } catch (error: unknown) {
       if ((error as { code?: string }).code === 'P2025') {
-        // Record not found
+        // Record not found (race condition)
         return false;
       }
       throw error;
     }
+  }
+
+  /**
+   * Marks a configuration version as stable.
+   *
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @param versionLabel - Version label to mark as stable
+   * @returns Updated version if found, null otherwise
+   */
+  async markVersionStable(
+    platform: string,
+    environment: string,
+    versionLabel: string
+  ): Promise<Version | null> {
+    // First find the version by versionLabel
+    const version = await this.prisma.configVersion.findFirst({
+      where: { platform, environment, versionLabel },
+    });
+
+    if (!version) {
+      return null;
+    }
+
+    // Update the version to be stable
+    const updated = await this.prisma.configVersion.update({
+      where: {
+        platform_environment_versionTimestamp: {
+          platform,
+          environment,
+          versionTimestamp: version.versionTimestamp,
+        },
+      },
+      data: { isStable: true },
+    });
+
+    return {
+      platform: updated.platform,
+      environment: updated.environment,
+      versionLabel: updated.versionLabel ?? '',
+      versionTimestamp: updated.versionTimestamp,
+      isStable: updated.isStable,
+      config: JSON.parse(updated.config),
+      createdBy: updated.createdBy,
+      createdAt: updated.createdAt,
+    };
   }
 }

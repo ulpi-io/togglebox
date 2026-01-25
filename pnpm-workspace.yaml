@@ -1,10 +1,17 @@
 packages:
   # Core packages
   - 'packages/core'
+  - 'packages/configs'
   - 'packages/database'
   - 'packages/shared'
   - 'packages/auth'
   - 'packages/cache'
+  - 'packages/ui'
+
+  # Three-tier architecture packages
+  - 'packages/flags'
+  - 'packages/experiments'
+  - 'packages/stats'
 
   # Client SDKs
   - 'packages/sdk-js'
@@ -14,3 +21,7 @@ packages:
   # Applications
   - 'apps/api'
   - 'apps/admin'
+
+  # Example Applications
+  - 'apps/example-nextjs'
+  - 'apps/example-expo'

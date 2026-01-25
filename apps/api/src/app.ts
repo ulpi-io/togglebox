@@ -4,8 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
 import { publicRouter, internalRouter, authRouter } from './routes';
-import { logger, errorHandler, notFoundHandler, corsHeaders, securityHeaders, requestId, sanitizeInput, rateLimitByIP, defaultDatabaseContext } from '@togglebox/shared';
-import { validateEnv, env, appConfig } from '@togglebox/shared/config';
+import { logger, errorHandler, notFoundHandler, corsHeaders, securityHeaders, requestId, sanitizeInput, defaultDatabaseContext, config } from '@togglebox/shared';
 import { cacheHeaders, noCacheHeaders } from '@togglebox/cache';
 
 // Load environment variables from .env file
@@ -13,10 +12,9 @@ dotenv.config();
 
 // Validate environment variables at startup
 // This will throw an error and prevent startup if required variables are missing or invalid
-validateEnv();
+config.validateEnv();
 
-const app = express();
-const PORT = env.PORT;
+const app: express.Application = express();
 
 /**
  * Detect serverless environment (Lambda, Cloudflare Workers, Netlify Functions)
@@ -40,17 +38,17 @@ const isServerless = Boolean(
 // Security middleware (skip on serverless - handled by edge/gateway)
 if (!isServerless) {
   app.use(helmet({
-    contentSecurityPolicy: appConfig.SECURITY.csp,
-    hsts: appConfig.SECURITY.hsts,
+    contentSecurityPolicy: config.appConfig.SECURITY.csp,
+    hsts: config.appConfig.SECURITY.hsts,
   }));
 }
 
 app.use(securityHeaders);
 app.use(cors({
-  origin: env.CORS_ORIGIN,
-  methods: appConfig.SECURITY.cors.methods,
-  allowedHeaders: appConfig.SECURITY.cors.allowedHeaders,
-  maxAge: appConfig.SECURITY.cors.maxAge,
+  origin: config.env.CORS_ORIGIN,
+  methods: [...config.appConfig.SECURITY.cors.methods],
+  allowedHeaders: [...config.appConfig.SECURITY.cors.allowedHeaders],
+  maxAge: config.appConfig.SECURITY.cors.maxAge,
 }));
 app.use(corsHeaders);
 
@@ -85,35 +83,69 @@ app.use(sanitizeInput);
 if (!isServerless) {
   app.use(compression());
 }
-app.use(express.json({ limit: appConfig.REQUEST.jsonLimit }));
+app.use(express.json({ limit: config.appConfig.REQUEST.jsonLimit }));
 app.use(express.urlencoded({
-  extended: appConfig.REQUEST.urlencodedExtended,
-  limit: appConfig.REQUEST.urlencodedLimit
+  extended: config.appConfig.REQUEST.urlencodedExtended,
+  limit: config.appConfig.REQUEST.urlencodedLimit
 }));
 
 // Logging middleware
-app.use(logger.getHttpLogger());
+app.use(logger.getHttpLogger() as express.RequestHandler);
 
 // Database context middleware (sets req.dbConfig for multitenancy support)
 app.use(defaultDatabaseContext());
 
 // Health check endpoint (before routes)
+// Simple liveness check - doesn't verify dependencies
 app.get('/health', (_req, res) => {
   res.json({
     success: true,
-    message: `${appConfig.APP_NAME} is running`,
+    message: `${config.appConfig.APP_NAME} is running`,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: env.NODE_ENV,
-    version: appConfig.APP_VERSION,
+    environment: config.env.NODE_ENV,
+    version: config.appConfig.APP_VERSION,
   });
+});
+
+// Readiness check endpoint - verifies database connectivity
+app.get('/ready', async (_req, res) => {
+  try {
+    // Import Container to access database
+    const { Container } = await import('./container');
+    const db = Container.getDatabase();
+
+    // Perform simple database query to verify connectivity
+    // Using listPlatforms with limit to minimize database load
+    await db.platform.listPlatforms({ limit: 1 });
+
+    res.json({
+      success: true,
+      message: 'Service is ready',
+      timestamp: new Date().toISOString(),
+      checks: {
+        database: 'connected',
+      },
+    });
+  } catch (error) {
+    logger.error('Readiness check failed', error);
+    res.status(503).json({
+      success: false,
+      message: 'Service not ready',
+      timestamp: new Date().toISOString(),
+      checks: {
+        database: 'disconnected',
+      },
+      error: error instanceof Error ? error.message : 'Database connection failed',
+    });
+  }
 });
 
 // Cache headers middleware
 // Apply cache headers to public GET endpoints
 app.use('/api/v1/platforms', cacheHeaders({
-  ttl: appConfig.CACHE.ttl,
-  maxAge: appConfig.CACHE.maxAge,
+  ttl: config.appConfig.CACHE.ttl,
+  maxAge: config.appConfig.CACHE.maxAge,
 }));
 
 // Disable caching on internal endpoints (write operations)
@@ -128,27 +160,28 @@ app.use('/api/v1', authRouter);             // Auth endpoints (conditionally loa
 app.get('/', (_req, res) => {
   res.json({
     success: true,
-    message: appConfig.APP_NAME,
-    description: appConfig.APP_DESCRIPTION,
-    version: appConfig.APP_VERSION,
+    message: config.appConfig.APP_NAME,
+    description: config.appConfig.APP_DESCRIPTION,
+    version: config.appConfig.APP_VERSION,
     timestamp: new Date().toISOString(),
     endpoints: {
       public: {
         health: '/health',
-        platforms: `${appConfig.API.basePath}/platforms`,
-        environments: `${appConfig.API.basePath}/platforms/:platform/environments`,
-        versions: `${appConfig.API.basePath}/platforms/:platform/environments/:environment/versions`,
-        latestStable: `${appConfig.API.basePath}/platforms/:platform/environments/:environment/versions/latest/stable`,
-        webhookStatus: `${appConfig.API.basePath}/webhook/cache/invalidations`,
+        ready: '/ready',
+        platforms: `${config.appConfig.API.basePath}/platforms`,
+        environments: `${config.appConfig.API.basePath}/platforms/:platform/environments`,
+        versions: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/versions`,
+        latestStable: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/versions/latest/stable`,
+        webhookStatus: `${config.appConfig.API.basePath}/webhook/cache/invalidations`,
       },
       internal: {
-        createPlatform: `POST ${appConfig.API.internalBasePath}/platforms`,
-        createEnvironment: `POST ${appConfig.API.internalBasePath}/platforms/:platform/environments`,
-        createVersion: `POST ${appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/versions`,
-        updateVersion: `PUT ${appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/versions/:version`,
-        deleteVersion: `DELETE ${appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/versions/:version`,
-        cacheInvalidate: `POST ${appConfig.API.internalBasePath}/cache/invalidate`,
-        webhookInvalidate: `GET ${appConfig.API.internalBasePath}/webhook/cache/invalidate`,
+        createPlatform: `POST ${config.appConfig.API.internalBasePath}/platforms`,
+        createEnvironment: `POST ${config.appConfig.API.internalBasePath}/platforms/:platform/environments`,
+        createVersion: `POST ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/versions`,
+        updateVersion: `PUT ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/versions/:version`,
+        deleteVersion: `DELETE ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/versions/:version`,
+        cacheInvalidate: `POST ${config.appConfig.API.internalBasePath}/cache/invalidate`,
+        webhookInvalidate: `GET ${config.appConfig.API.internalBasePath}/webhook/cache/invalidate`,
       },
     },
   });
@@ -182,11 +215,3 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 export default app;
-
-if (require.main === module) {
-  app.listen(PORT, () => {
-    logger.info(`Config Service started on port ${PORT}`);
-    logger.info(`Environment: ${env.NODE_ENV}`);
-    logger.info(`Health check: http://localhost:${PORT}/health`);
-  });
-}

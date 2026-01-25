@@ -1,11 +1,11 @@
-# ToggleBox Admin Dashboard
+# ToggleBox App
 
-Production-ready admin dashboard for managing remote configurations and feature flags.
+Production-ready dashboard for managing remote configurations and feature flags.
 
 ## Features
 
 - 🔐 **Authentication**: Login, register, password reset
-- 👥 **User Management**: Admin panel for user control
+- 👥 **User Management**: User management panel
 - 🔑 **API Keys**: Generate and manage API keys
 - 🎯 **Platforms & Environments**: Multi-platform support
 - ⚙️ **Configuration**: Version-controlled config management
@@ -76,8 +76,8 @@ pnpm build
 pnpm start
 
 # Or use Docker
-docker build -t togglebox-admin .
-docker run -p 3001:3001 togglebox-admin
+docker build -t togglebox-app .
+docker run -p 3001:3001 togglebox-app
 ```
 
 ## License

@@ -62,7 +62,9 @@ export class WebhookController {
       if (globalParam === 'true') {
         const invalidationId = await this.cacheProvider.invalidateGlobalCache();
 
-        logger.logCloudFrontInvalidation(invalidationId, ['/*'], true);
+        if (invalidationId) {
+          logger.logCloudFrontInvalidation(invalidationId, ['/*'], true);
+        }
         logger.info('Created global cache invalidation via webhook');
 
         res.json({
@@ -113,7 +115,9 @@ export class WebhookController {
 
       const invalidationId = await this.cacheProvider.invalidateCache(paths);
 
-      logger.logCloudFrontInvalidation(invalidationId, paths, true);
+      if (invalidationId) {
+        logger.logCloudFrontInvalidation(invalidationId, paths, true);
+      }
       logger.info(`Created cache invalidation ${invalidationId || 'skipped'} via webhook for scope: ${scope}`);
 
       res.json({

@@ -1,0 +1,92 @@
+# ============================================================================
+# ToggleBox API - Development Dockerfile
+# ============================================================================
+# Development image with hot reload support using tsx watch
+# All dependencies and packages built during Docker build for faster startup
+# ============================================================================
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install system dependencies for native modules (bcrypt)
+RUN apk add --no-cache \
+    libc6-compat \
+    curl \
+    bash \
+    python3 \
+    make \
+    g++
+
+# Enable pnpm with specific version
+RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
+
+# Copy workspace configuration files first (for layer caching)
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json ./
+
+# Copy all packages (required for pnpm workspace resolution)
+COPY packages/ ./packages/
+
+# Copy API app
+COPY apps/api/ ./apps/api/
+
+# Install all dependencies during build
+RUN pnpm install --frozen-lockfile
+
+# Generate Prisma client from schema (required before building packages)
+RUN cd packages/database && npx prisma generate
+
+# Build workspace packages during build
+RUN pnpm build:packages
+
+# Expose API port
+EXPOSE 3000
+
+# Create entrypoint that runs package watchers + API dev server
+RUN cat > /entrypoint.sh <<'EOF'
+#!/bin/bash
+set -e
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  ToggleBox API - Development Mode (Hot Reload)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "  📦 Starting package watchers for hot reload..."
+echo ""
+
+# Regenerate Prisma client to pick up schema changes
+echo "  🔄 Generating Prisma client..."
+cd /app/packages/database && npx prisma generate
+
+# Rebuild packages first to ensure dist is up-to-date with mounted src
+echo "  🔨 Building packages..."
+cd /app
+pnpm build:packages
+
+echo ""
+echo "  👀 Starting package watchers in background..."
+
+# Start TypeScript watchers for each package in background
+cd /app/packages/core && pnpm run dev &
+cd /app/packages/shared && pnpm run dev &
+cd /app/packages/database && pnpm run dev &
+cd /app/packages/cache && pnpm run dev &
+cd /app/packages/auth && pnpm run dev &
+
+# Give watchers a moment to initialize
+sleep 2
+
+echo ""
+echo "  🚀 Starting API development server..."
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+cd /app/apps/api
+exec pnpm run dev
+EOF
+
+RUN chmod +x /entrypoint.sh
+
+# Use entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]

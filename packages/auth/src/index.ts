@@ -76,6 +76,7 @@ export * from './interfaces';
 export { UserService } from './services/UserService';
 export { PasswordResetService } from './services/PasswordResetService';
 export { ApiKeyService } from './services/ApiKeyService';
+export type { CreateApiKeyData, ApiKeyServiceOptions } from './services/ApiKeyService';
 export { EmailService, createEmailService } from './services/EmailService';
 export type { EmailServiceConfig } from './services/EmailService';
 

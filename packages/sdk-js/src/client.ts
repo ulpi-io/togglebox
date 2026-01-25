@@ -1,28 +1,40 @@
-import type { Config, FeatureFlag, EvaluationContext, EvaluationResult } from '@togglebox/core'
-import { evaluateFeatureFlag, evaluateMultipleFeatureFlags } from '@togglebox/core'
+import type { Config } from '@togglebox/configs'
+import type { Flag, EvaluationContext as FlagContext, EvaluationResult as FlagResult } from '@togglebox/flags'
+import { evaluateFlag } from '@togglebox/flags'
+import type { Experiment, ExperimentContext, VariantAssignment } from '@togglebox/experiments'
+import { assignVariation } from '@togglebox/experiments'
 import { HttpClient } from './http'
 import { Cache } from './cache'
+import { StatsReporter } from './stats'
 import { ConfigurationError } from './errors'
 import type {
   ClientOptions,
   ConfigResponse,
   ClientEvent,
   EventListener,
+  ConversionData,
+  EventData,
 } from './types'
 
 /**
- * ToggleBox Client for fetching configs and evaluating feature flags
+ * ToggleBox Client
+ *
+ * Unified client for the three-tier architecture:
+ * - Tier 1: Remote Configs (same value for everyone)
+ * - Tier 2: Feature Flags (2-value, country/language targeting)
+ * - Tier 3: Experiments (multi-variant A/B testing)
  */
 export class ToggleBoxClient {
   private http: HttpClient
   private cache: Cache
+  private stats: StatsReporter
   private platform: string
   private environment: string
   private pollingInterval: number
   private pollingTimer: NodeJS.Timeout | null = null
-  private globalContext: EvaluationContext = {}
+  private globalContext: FlagContext = { userId: 'anonymous' }
   private listeners: Map<ClientEvent, Set<EventListener>> = new Map()
-
+  private configVersion: string
 
   constructor(options: ClientOptions) {
     // Validate required options
@@ -53,8 +65,17 @@ export class ToggleBoxClient {
     this.platform = options.platform
     this.environment = options.environment
     this.pollingInterval = options.pollingInterval || 0
-    this.http = new HttpClient(apiUrl, options.fetchImpl)
+    this.configVersion = options.configVersion || 'stable'
+    this.http = new HttpClient(apiUrl, options.fetchImpl, options.apiKey)
     this.cache = new Cache(options.cache)
+    this.stats = new StatsReporter(
+      this.http,
+      this.platform,
+      this.environment,
+      options.stats,
+      (data) => this.emit('statsFlush', data),
+      (error) => this.emit('error', error)
+    )
 
     // Start polling if interval is set
     if (this.pollingInterval > 0) {
@@ -62,11 +83,59 @@ export class ToggleBoxClient {
     }
   }
 
+  // ==================== TIER 1: REMOTE CONFIGS ====================
+
   /**
-   * Get latest stable configuration
+   * Get a remote config value.
+   *
+   * @param key - Config key
+   * @param defaultValue - Default value if not found
+   * @returns The config value or default
+   *
+   * @example
+   * ```typescript
+   * const apiUrl = client.getConfigValue('api_url', 'https://default.api.com')
+   * const maxRetries = client.getConfigValue<number>('max_retries', 3)
+   * ```
+   */
+  async getConfigValue<T>(key: string, defaultValue: T): Promise<T> {
+    try {
+      const config = await this.getConfig()
+      const value = config[key]
+
+      // Track the fetch
+      this.stats.trackConfigFetch(key)
+
+      return value !== undefined ? (value as T) : defaultValue
+    } catch {
+      return defaultValue
+    }
+  }
+
+  /**
+   * Get all config values.
+   *
+   * @example
+   * ```typescript
+   * const allConfigs = await client.getAllConfigs()
+   * ```
+   */
+  async getAllConfigs(): Promise<Config> {
+    return this.getConfig()
+  }
+
+  /**
+   * Get configuration using the configured version (default: 'stable')
    */
   async getConfig(): Promise<Config> {
-    const cacheKey = `config:${this.platform}:${this.environment}`
+    return this.getConfigVersion(this.configVersion)
+  }
+
+  /**
+   * Get a specific config version
+   */
+  async getConfigVersion(version: string): Promise<Config> {
+    const cacheKey = `config:${this.platform}:${this.environment}:${version}`
 
     // Try cache first
     const cached = this.cache.get<Config>(cacheKey)
@@ -74,8 +143,16 @@ export class ToggleBoxClient {
       return cached
     }
 
-    // Fetch from API
-    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/versions/latest/stable`
+    // Build path based on version type
+    let path: string
+    if (version === 'stable') {
+      path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/versions/latest/stable`
+    } else if (version === 'latest') {
+      path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/versions/latest`
+    } else {
+      path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/versions/${version}`
+    }
+
     const response = await this.http.get<{ data: ConfigResponse }>(path)
     const config = response.data.config
 
@@ -85,21 +162,247 @@ export class ToggleBoxClient {
     return config
   }
 
+  // ==================== TIER 2: FEATURE FLAGS (2-value) ====================
+
   /**
-   * Get all feature flags
+   * Get a feature flag value (2-value model).
+   *
+   * @param flagKey - The flag key
+   * @param context - Evaluation context (userId, country, language)
+   * @returns The evaluated value (valueA or valueB)
+   *
+   * @example
+   * ```typescript
+   * const uiVersion = await client.getFlag('ui-version', { userId: 'user-123', country: 'US' })
+   * // Returns: 'v1' or 'v2'
+   * ```
    */
-  async getFeatureFlags(): Promise<FeatureFlag[]> {
-    const cacheKey = `flags:${this.platform}:${this.environment}`
+  async getFlag(flagKey: string, context: FlagContext): Promise<FlagResult> {
+    const cacheKey = `newflags:${this.platform}:${this.environment}`
 
     // Try cache first
-    const cached = this.cache.get<FeatureFlag[]>(cacheKey)
+    let flags = this.cache.get<Flag[]>(cacheKey)
+    if (!flags) {
+      const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/flags`
+      const response = await this.http.get<{ data: Flag[] }>(path)
+      flags = response.data
+      this.cache.set(cacheKey, flags)
+    }
+
+    const flag = flags.find((f) => f.flagKey === flagKey)
+    if (!flag) {
+      throw new Error(`Flag "${flagKey}" not found`)
+    }
+
+    const result = evaluateFlag(flag, context)
+
+    // Track the evaluation
+    this.stats.trackFlagEvaluation(
+      flagKey,
+      result.servedValue,
+      context.userId ?? 'anonymous',
+      context.country
+    )
+
+    return result
+  }
+
+  /**
+   * Check if a feature flag is enabled (2-value boolean).
+   *
+   * @param flagKey - The flag key
+   * @param context - Evaluation context
+   * @param defaultValue - Default if flag not found (default: false)
+   * @returns true if valueA is served, false if valueB
+   *
+   * @example
+   * ```typescript
+   * const showNewUI = await client.isFlagEnabled('new-ui', { userId: 'user-123' })
+   * if (showNewUI) {
+   *   renderNewUI()
+   * }
+   * ```
+   */
+  async isFlagEnabled(
+    flagKey: string,
+    context: FlagContext,
+    defaultValue = false
+  ): Promise<boolean> {
+    try {
+      const result = await this.getFlag(flagKey, context)
+      return result.servedValue === 'A'
+    } catch {
+      return defaultValue
+    }
+  }
+
+  // ==================== TIER 3: EXPERIMENTS ====================
+
+  /**
+   * Get the assigned variation for an experiment.
+   *
+   * @param experimentKey - The experiment key
+   * @param context - Experiment context (userId, country, language)
+   * @returns The assigned variation or null if not eligible
+   *
+   * @example
+   * ```typescript
+   * const variant = await client.getVariant('checkout-test', { userId: 'user-123' })
+   * if (variant) {
+   *   console.log(`Assigned to: ${variant.variationKey}`)
+   * }
+   * ```
+   */
+  async getVariant(
+    experimentKey: string,
+    context: ExperimentContext
+  ): Promise<VariantAssignment | null> {
+    const cacheKey = `experiments:${this.platform}:${this.environment}`
+
+    // Try cache first
+    let experiments = this.cache.get<Experiment[]>(cacheKey)
+    if (!experiments) {
+      const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments`
+      const response = await this.http.get<{ data: Experiment[] }>(path)
+      experiments = response.data
+      this.cache.set(cacheKey, experiments)
+    }
+
+    const experiment = experiments.find((e) => e.experimentKey === experimentKey)
+    if (!experiment) {
+      throw new Error(`Experiment "${experimentKey}" not found`)
+    }
+
+    const assignment = assignVariation(experiment, context)
+
+    if (assignment) {
+      // Track the exposure
+      this.stats.trackExperimentExposure(
+        experimentKey,
+        assignment.variationKey,
+        context.userId
+      )
+    }
+
+    return assignment
+  }
+
+  /**
+   * Track a conversion event for an experiment.
+   *
+   * @param experimentKey - The experiment key
+   * @param context - Experiment context
+   * @param data - Conversion data (metricName, optional value)
+   *
+   * @example
+   * ```typescript
+   * // Track a purchase conversion
+   * await client.trackConversion('checkout-test', { userId: 'user-123' }, {
+   *   metricName: 'purchase',
+   *   value: 99.99, // Revenue amount
+   * })
+   * ```
+   */
+  async trackConversion(
+    experimentKey: string,
+    context: ExperimentContext,
+    data: ConversionData
+  ): Promise<void> {
+    // Get the user's assigned variation
+    const assignment = await this.getVariant(experimentKey, context)
+
+    if (assignment) {
+      this.stats.trackConversion(
+        experimentKey,
+        data.metricName,
+        assignment.variationKey,
+        context.userId,
+        data.value
+      )
+    }
+  }
+
+  /**
+   * Track a custom event.
+   *
+   * @param eventName - Name of the event
+   * @param context - User context
+   * @param data - Optional event data
+   *
+   * @example
+   * ```typescript
+   * await client.trackEvent('add_to_cart', { userId: 'user-123' }, {
+   *   experimentKey: 'checkout-test',
+   *   properties: { itemCount: 3, cartValue: 150 }
+   * })
+   * ```
+   */
+  trackEvent(
+    eventName: string,
+    context: ExperimentContext,
+    data?: EventData
+  ): void {
+    // Custom events can be tracked via stats reporter
+    // For now, we track as a conversion with the event name as metric
+    if (data?.experimentKey && data?.variationKey) {
+      this.stats.trackConversion(
+        data.experimentKey,
+        eventName,
+        data.variationKey,
+        context.userId,
+        undefined
+      )
+    }
+  }
+
+  /**
+   * Get all experiments.
+   *
+   * @example
+   * ```typescript
+   * const experiments = await client.getExperiments()
+   * ```
+   */
+  async getExperiments(): Promise<Experiment[]> {
+    const cacheKey = `experiments:${this.platform}:${this.environment}`
+
+    // Try cache first
+    const cached = this.cache.get<Experiment[]>(cacheKey)
     if (cached) {
       return cached
     }
 
     // Fetch from API
-    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/feature-flags`
-    const response = await this.http.get<{ data: FeatureFlag[] }>(path)
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments`
+    const response = await this.http.get<{ data: Experiment[] }>(path)
+    const experiments = response.data
+
+    // Cache
+    this.cache.set(cacheKey, experiments)
+
+    return experiments
+  }
+
+  /**
+   * Get all feature flags (2-value model from Tier 2).
+   *
+   * @example
+   * ```typescript
+   * const flags = await client.getFlags()
+   * ```
+   */
+  async getFlags(): Promise<Flag[]> {
+    const cacheKey = `flags:${this.platform}:${this.environment}`
+
+    // Try cache first
+    const cached = this.cache.get<Flag[]>(cacheKey)
+    if (cached) {
+      return cached
+    }
+
+    // Fetch from API
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/flags`
+    const response = await this.http.get<{ data: Flag[] }>(path)
     const flags = response.data
 
     // Cache
@@ -108,91 +411,47 @@ export class ToggleBoxClient {
     return flags
   }
 
-  /**
-   * Check if a feature flag is enabled
-   */
-  async isEnabled(flagName: string, context?: EvaluationContext): Promise<boolean> {
-    const flags = await this.getFeatureFlags()
-    const flag = flags.find(f => f.flagName === flagName)
-
-    if (!flag) {
-      return false
-    }
-
-    // Merge global context with per-call context
-    const evalContext = { ...this.globalContext, ...context }
-    const result = evaluateFeatureFlag(flag, evalContext)
-
-    return result.enabled
-  }
-
-  /**
-   * Get all evaluated feature flags
-   */
-  async getAllFlags(context?: EvaluationContext): Promise<Record<string, boolean>> {
-    const flags = await this.getFeatureFlags()
-
-    // Merge global context with per-call context
-    const evalContext = { ...this.globalContext, ...context }
-    const results = evaluateMultipleFeatureFlags(flags, evalContext)
-
-    // Convert to simple key-value map
-    const flagMap: Record<string, boolean> = {}
-    for (const flagName in results) {
-      const result = results[flagName]
-      if (result) {
-        flagMap[flagName] = result.enabled
-      }
-    }
-    return flagMap
-  }
-
-  /**
-   * Get detailed evaluation result for a flag
-   */
-  async evaluateFlag(flagName: string, context?: EvaluationContext): Promise<EvaluationResult> {
-    const flags = await this.getFeatureFlags()
-    const flag = flags.find(f => f.flagName === flagName)
-
-    if (!flag) {
-      return { enabled: false, reason: 'Flag not found' }
-    }
-
-    // Merge global context with per-call context
-    const evalContext = { ...this.globalContext, ...context }
-    return evaluateFeatureFlag(flag, evalContext)
-  }
+  // ==================== CONTEXT & LIFECYCLE ====================
 
   /**
    * Set global evaluation context
    */
-  setContext(context: EvaluationContext): void {
+  setContext(context: FlagContext): void {
     this.globalContext = context
   }
 
   /**
    * Get current global context
    */
-  getContext(): EvaluationContext {
+  getContext(): FlagContext {
     return { ...this.globalContext }
   }
 
   /**
-   * Manually refresh config and flags
+   * Manually refresh all cached data
    */
   async refresh(): Promise<void> {
-    // Clear cache for this platform/environment
-    this.cache.delete(`config:${this.platform}:${this.environment}`)
+    // Clear cache for this platform/environment/version
+    this.cache.delete(`config:${this.platform}:${this.environment}:${this.configVersion}`)
     this.cache.delete(`flags:${this.platform}:${this.environment}`)
+    this.cache.delete(`experiments:${this.platform}:${this.environment}`)
 
-    // Fetch fresh data
-    const [config, flags] = await Promise.all([
+    // Fetch fresh data for all three tiers
+    const [config, flags, experiments] = await Promise.all([
       this.getConfig(),
-      this.getFeatureFlags(),
+      this.getFlags(),
+      this.getExperiments(),
     ])
 
-    // Emit update event
-    this.emit('update', { config, flags })
+    // Emit update event with all data
+    this.emit('update', { config, flags, experiments })
+  }
+
+  /**
+   * Flush pending stats events
+   */
+  async flushStats(): Promise<void> {
+    await this.stats.flush()
   }
 
   /**
@@ -245,10 +504,10 @@ export class ToggleBoxClient {
   /**
    * Emit event
    */
-  private emit(event: ClientEvent, data: any): void {
+  private emit(event: ClientEvent, data: unknown): void {
     const eventListeners = this.listeners.get(event)
     if (eventListeners) {
-      eventListeners.forEach(listener => listener(data))
+      eventListeners.forEach((listener) => listener(data))
     }
   }
 
@@ -257,6 +516,7 @@ export class ToggleBoxClient {
    */
   destroy(): void {
     this.stopPolling()
+    this.stats.destroy()
     this.cache.clear()
     this.listeners.clear()
   }

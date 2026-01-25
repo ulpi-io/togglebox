@@ -28,6 +28,7 @@ import { logger } from '@togglebox/shared';
  */
 const handler = serverless(app, {
   binary: ['image/*', 'application/pdf'],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- serverless-http callback types are not properly typed
   request: (request: any, event: any, context: any) => {
     // Add Lambda context to request for access in controllers/middleware
     request.lambda = {
@@ -43,6 +44,7 @@ const handler = serverless(app, {
       memoryLimitInMB: context.memoryLimitInMB,
     });
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- serverless-http callback types are not properly typed
   response: (response: any, _event: any, context: any) => {
     logger.info('Lambda response sent', {
       requestId: context.awsRequestId,
@@ -62,6 +64,7 @@ const handler = serverless(app, {
  * Logs function invocation details, execution time, and completion status.
  * Fatal errors are logged before re-throwing to Lambda runtime.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- AWS Lambda event/context types vary by trigger
 export const lambdaHandler = async (event: any, context: any) => {
   try {
     logger.info('Lambda function invoked', {
@@ -76,6 +79,7 @@ export const lambdaHandler = async (event: any, context: any) => {
 
     logger.info('Lambda function completed', {
       requestId: context.awsRequestId,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- serverless-http result type varies
       statusCode: (result as any).statusCode || 'unknown',
     });
 

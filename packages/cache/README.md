@@ -333,7 +333,7 @@ Invalidates cache for a specific feature flag.
 await cache.invalidateFeatureFlagCache('web', 'production', 'dark-mode');
 ```
 
-**Invalidates:** `/api/v1/platforms/web/environments/production/feature-flags*`
+**Invalidates:** `/api/v1/platforms/web/environments/production/flags*`
 
 ### `generateCachePaths(platform?, environment?, version?): string[]`
 

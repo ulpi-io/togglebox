@@ -21,7 +21,7 @@
  * 2. Platform: All environments in platform (`invalidatePlatformCache`)
  * 3. Environment: All versions in environment (`invalidateEnvironmentCache`)
  * 4. Version: Specific configuration version (`invalidateVersionCache`)
- * 5. Feature Flag: Single feature flag (`invalidateFeatureFlagCache`)
+ * 5. Flag: Single flag (`invalidateFlagCache`)
  * 6. Custom: Arbitrary paths (`invalidateCache`)
  */
 
@@ -64,13 +64,38 @@ export interface CacheProvider {
   invalidateVersionCache(platform: string, environment: string, version: string): Promise<string | null>;
 
   /**
-   * Invalidate cache for a specific feature flag
+   * Invalidate cache for a specific flag
    * @param platform - Platform name
    * @param environment - Environment name
-   * @param flagName - Feature flag name
+   * @param flagKey - Flag key
    * @returns Invalidation ID or null if disabled
    */
-  invalidateFeatureFlagCache(platform: string, environment: string, flagName: string): Promise<string | null>;
+  invalidateFlagCache(platform: string, environment: string, flagKey: string): Promise<string | null>;
+
+  /**
+   * Invalidate cache for a specific experiment
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @param experimentKey - Experiment key
+   * @returns Invalidation ID or null if disabled
+   */
+  invalidateExperimentCache(platform: string, environment: string, experimentKey: string): Promise<string | null>;
+
+  /**
+   * Invalidate cache for all experiments in an environment
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @returns Invalidation ID or null if disabled
+   */
+  invalidateAllExperimentsCache(platform: string, environment: string): Promise<string | null>;
+
+  /**
+   * Invalidate cache for stats endpoints in an environment
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @returns Invalidation ID or null if disabled
+   */
+  invalidateStatsCache(platform: string, environment: string): Promise<string | null>;
 
   /**
    * Generate cache paths based on platform, environment, and version

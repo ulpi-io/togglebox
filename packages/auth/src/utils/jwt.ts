@@ -31,7 +31,7 @@ import { User } from '../models/User';
  */
 export interface JwtPayload {
   /** User unique identifier */
-  userId: string;
+  id: string;
 
   /** User email address */
   email: string;
@@ -87,6 +87,24 @@ const JWT_SECRET = (() => {
 const JWT_EXPIRES_IN = process.env['JWT_EXPIRES_IN'] || '24h';
 
 /**
+ * JWT issuer claim.
+ *
+ * @remarks
+ * Identifies the principal that issued the JWT.
+ * Must match the issuer expected by the API middleware for verification.
+ */
+const JWT_ISSUER = process.env['JWT_ISSUER'] || 'config-service';
+
+/**
+ * JWT audience claim.
+ *
+ * @remarks
+ * Identifies the recipients that the JWT is intended for.
+ * Must match the audience expected by the API middleware for verification.
+ */
+const JWT_AUDIENCE = process.env['JWT_AUDIENCE'] || 'config-service-api';
+
+/**
  * Generate a JWT token for a user.
  *
  * @param user - User to generate token for
@@ -111,8 +129,9 @@ const JWT_EXPIRES_IN = process.env['JWT_EXPIRES_IN'] || '24h';
  * ```
  */
 export function generateToken(user: User): string {
-  const payload: JwtPayload = {
-    userId: user.id,
+  // Use 'id' field name for compatibility with @togglebox/shared auth middleware
+  const payload = {
+    id: user.id,
     email: user.email,
     role: user.role,
   };
@@ -120,6 +139,8 @@ export function generateToken(user: User): string {
   return jwt.sign(payload, JWT_SECRET, {
     algorithm: 'HS256',
     expiresIn: JWT_EXPIRES_IN,
+    issuer: JWT_ISSUER,
+    audience: JWT_AUDIENCE,
   } as jwt.SignOptions);
 }
 
@@ -160,9 +181,41 @@ export function verifyToken(token: string): JwtPayload | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET, {
       algorithms: ['HS256'], // SECURITY: Restrict to HS256 only (prevents algorithm confusion attacks)
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
     }) as JwtPayload;
     return decoded;
   } catch (error) {
+    // Log detailed error for debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[JWT] Verification failed:', errorMessage);
+
+    // Log additional debug info (don't log the full token for security)
+    const tokenPreview = token.substring(0, 20) + '...';
+    console.error('[JWT] Debug info:', {
+      tokenPreview,
+      tokenLength: token.length,
+      expectedIssuer: JWT_ISSUER,
+      expectedAudience: JWT_AUDIENCE,
+      secretLength: JWT_SECRET.length,
+    });
+
+    // Try to decode token without verification to see the claims
+    try {
+      const unverifiedPayload = jwt.decode(token);
+      if (unverifiedPayload && typeof unverifiedPayload === 'object') {
+        const payload = unverifiedPayload as Record<string, unknown>;
+        console.error('[JWT] Token claims (unverified):', {
+          iss: payload['iss'],
+          aud: payload['aud'],
+          exp: payload['exp'],
+          id: payload['id'],
+        });
+      }
+    } catch (decodeError) {
+      console.error('[JWT] Could not decode token for debugging');
+    }
+
     return null;
   }
 }

@@ -90,9 +90,9 @@ export const EnvironmentModel = mongoose.model<IEnvironmentDocument>('Environmen
 export interface IConfigVersionDocument extends Document {
   platform: string;
   environment: string;
+  versionLabel: string;  // Primary identifier for get/delete operations
   versionTimestamp: string;
   platformId: mongoose.Types.ObjectId;
-  versionLabel?: string;
   isStable: boolean;
   config: string; // JSON stored as string
   createdBy: string;
@@ -104,23 +104,30 @@ export interface IConfigVersionDocument extends Document {
  *
  * @remarks
  * **Indexes:**
- * - (platform + environment + versionTimestamp): compound unique index
+ * - (platform + environment + versionLabel): compound unique index - PRIMARY KEY
+ * - (platform + environment + versionTimestamp): compound unique index - for ordering
  * - (platform + environment + isStable): for finding stable versions
  * - platformId: indexed for foreign key lookups
+ *
+ * **Version Identification:**
+ * versionLabel is the primary identifier for get/delete/update operations,
+ * ensuring consistency across all database adapters (DynamoDB, Prisma, D1, Mongoose).
  */
 const ConfigVersionSchema = new Schema<IConfigVersionDocument>({
   platform: { type: String, required: true },
   environment: { type: String, required: true },
+  versionLabel: { type: String, required: true },  // Primary identifier
   versionTimestamp: { type: String, required: true },
   platformId: { type: Schema.Types.ObjectId, ref: 'Platform', required: true, index: true },
-  versionLabel: { type: String, required: false },
   isStable: { type: Boolean, required: true, default: false },
   config: { type: String, required: true },
   createdBy: { type: String, required: true },
   createdAt: { type: String, required: true },
 });
 
-// Compound unique index for platform + environment + versionTimestamp
+// Compound unique index for platform + environment + versionLabel (PRIMARY KEY)
+ConfigVersionSchema.index({ platform: 1, environment: 1, versionLabel: 1 }, { unique: true });
+// Compound unique index for platform + environment + versionTimestamp (for ordering)
 ConfigVersionSchema.index({ platform: 1, environment: 1, versionTimestamp: 1 }, { unique: true });
 // Index for finding stable versions
 ConfigVersionSchema.index({ platform: 1, environment: 1, isStable: 1 });
@@ -131,62 +138,253 @@ ConfigVersionSchema.index({ platform: 1, environment: 1, isStable: 1 });
 export const ConfigVersionModel = mongoose.model<IConfigVersionDocument>('ConfigVersion', ConfigVersionSchema);
 
 /**
- * Feature flag document interface for Mongoose.
+ * Flag document interface for Mongoose.
  */
-export interface IFeatureFlagDocument extends Document {
+export interface IFlagDocument extends Document {
   platform: string;
   environment: string;
-  flagName: string;
-  platformId: mongoose.Types.ObjectId;
-  enabled: boolean;
+  flagKey: string;
+  name: string;
   description?: string;
+  enabled: boolean;
+  flagType: 'boolean' | 'string' | 'number';
+  valueA: boolean | string | number;
+  valueB: boolean | string | number;
+  targeting: string; // JSON stored as string
+  defaultValue: 'A' | 'B';
+  // Percentage rollout
+  rolloutEnabled: boolean;
+  rolloutPercentageA: number;
+  rolloutPercentageB: number;
+  version: string;
+  isActive: boolean;
   createdBy: string;
   createdAt: string;
-  updatedAt?: string;
-  rolloutType: string;
-  rolloutPercentage?: number;
-  targetUserIds: string; // JSON array as string
-  excludeUserIds: string; // JSON array as string
-  targetCountries: string; // JSON array as string
-  targetLanguages: string; // JSON array as string
+  updatedAt: string;
 }
 
 /**
- * Feature flag schema with indexes for flags queries.
+ * Flag schema with versioning and indexes.
  *
  * @remarks
  * **Indexes:**
- * - (platform + environment + flagName): compound unique index
- * - (platform + environment): for listing all flags
- * - platformId: indexed for foreign key lookups
- *
- * **JSON Arrays:**
- * Targeting arrays stored as JSON strings with default '[]'.
+ * - (platform + environment + flagKey + version): compound unique index
+ * - (platform + environment + flagKey + isActive): for finding active version
  */
-const FeatureFlagSchema = new Schema<IFeatureFlagDocument>({
+const FlagSchema = new Schema<IFlagDocument>({
   platform: { type: String, required: true },
   environment: { type: String, required: true },
-  flagName: { type: String, required: true },
-  platformId: { type: Schema.Types.ObjectId, ref: 'Platform', required: true, index: true },
-  enabled: { type: Boolean, required: true, default: false },
+  flagKey: { type: String, required: true },
+  name: { type: String, required: true },
   description: { type: String, required: false },
+  enabled: { type: Boolean, required: true },
+  flagType: { type: String, required: true, enum: ['boolean', 'string', 'number'] },
+  valueA: { type: Schema.Types.Mixed, required: true },
+  valueB: { type: Schema.Types.Mixed, required: true },
+  targeting: { type: String, required: true }, // JSON as string
+  defaultValue: { type: String, required: true, enum: ['A', 'B'] },
+  // Percentage rollout
+  rolloutEnabled: { type: Boolean, required: false, default: false },
+  rolloutPercentageA: { type: Number, required: false, default: 100, min: 0, max: 100 },
+  rolloutPercentageB: { type: Number, required: false, default: 0, min: 0, max: 100 },
+  version: { type: String, required: true },
+  isActive: { type: Boolean, required: true, default: true },
   createdBy: { type: String, required: true },
   createdAt: { type: String, required: true },
-  updatedAt: { type: String, required: false },
-  rolloutType: { type: String, required: true, default: 'simple' },
-  rolloutPercentage: { type: Number, required: false },
-  targetUserIds: { type: String, required: true, default: '[]' },
-  excludeUserIds: { type: String, required: true, default: '[]' },
-  targetCountries: { type: String, required: true, default: '[]' },
-  targetLanguages: { type: String, required: true, default: '[]' },
+  updatedAt: { type: String, required: true },
 });
 
-// Compound unique index for platform + environment + flagName
-FeatureFlagSchema.index({ platform: 1, environment: 1, flagName: 1 }, { unique: true });
-// Index for listing flags
-FeatureFlagSchema.index({ platform: 1, environment: 1 });
+// Compound unique index for platform + environment + flagKey + version
+FlagSchema.index({ platform: 1, environment: 1, flagKey: 1, version: 1 }, { unique: true });
+// Index for finding active version
+FlagSchema.index({ platform: 1, environment: 1, flagKey: 1, isActive: 1 });
 
 /**
- * Feature flag Mongoose model.
+ * Flag Mongoose model.
  */
-export const FeatureFlagModel = mongoose.model<IFeatureFlagDocument>('FeatureFlag', FeatureFlagSchema);
+export const FlagModel = mongoose.model<IFlagDocument>('Flag', FlagSchema);
+
+/**
+ * Experiment document interface for Mongoose.
+ */
+export interface IExperimentDocument extends Document {
+  platform: string;
+  environment: string;
+  experimentKey: string;
+  name: string;
+  description?: string;
+  hypothesis: string;
+  status: 'draft' | 'running' | 'paused' | 'completed' | 'archived';
+  startedAt?: string;
+  completedAt?: string;
+  scheduledStartAt?: string;
+  scheduledEndAt?: string;
+  variations: string; // JSON as string
+  controlVariation: string;
+  trafficAllocation: string; // JSON as string
+  targeting: string; // JSON as string
+  primaryMetric: string; // JSON as string
+  secondaryMetrics: string; // JSON as string
+  confidenceLevel: number;
+  minimumDetectableEffect?: number;
+  minimumSampleSize?: number;
+  results?: string; // JSON as string
+  winner?: string;
+  version: string;
+  isActive: boolean;
+  createdBy: string;
+  startedBy?: string;
+  completedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Experiment schema with status-based indexes.
+ *
+ * @remarks
+ * **Indexes:**
+ * - (platform + environment + experimentKey + version): compound unique index
+ * - (platform + environment + status + isActive): for finding experiments by status
+ */
+const ExperimentSchema = new Schema<IExperimentDocument>({
+  platform: { type: String, required: true },
+  environment: { type: String, required: true },
+  experimentKey: { type: String, required: true },
+  name: { type: String, required: true },
+  description: { type: String, required: false },
+  hypothesis: { type: String, required: true },
+  status: { type: String, required: true, enum: ['draft', 'running', 'paused', 'completed', 'archived'] },
+  startedAt: { type: String, required: false },
+  completedAt: { type: String, required: false },
+  scheduledStartAt: { type: String, required: false },
+  scheduledEndAt: { type: String, required: false },
+  variations: { type: String, required: true }, // JSON as string
+  controlVariation: { type: String, required: true },
+  trafficAllocation: { type: String, required: true }, // JSON as string
+  targeting: { type: String, required: true }, // JSON as string
+  primaryMetric: { type: String, required: true }, // JSON as string
+  secondaryMetrics: { type: String, required: true }, // JSON as string
+  confidenceLevel: { type: Number, required: true },
+  minimumDetectableEffect: { type: Number, required: false },
+  minimumSampleSize: { type: Number, required: false },
+  results: { type: String, required: false }, // JSON as string
+  winner: { type: String, required: false },
+  version: { type: String, required: true },
+  isActive: { type: Boolean, required: true, default: true },
+  createdBy: { type: String, required: true },
+  startedBy: { type: String, required: false },
+  completedBy: { type: String, required: false },
+  createdAt: { type: String, required: true },
+  updatedAt: { type: String, required: true },
+});
+
+// Compound unique index for platform + environment + experimentKey + version
+ExperimentSchema.index({ platform: 1, environment: 1, experimentKey: 1, version: 1 }, { unique: true });
+// Index for finding experiments by status
+ExperimentSchema.index({ platform: 1, environment: 1, status: 1, isActive: 1 });
+
+/**
+ * Experiment Mongoose model.
+ */
+export const ExperimentModel = mongoose.model<IExperimentDocument>('Experiment', ExperimentSchema);
+
+/**
+ * Stats document interface for Mongoose.
+ */
+export interface IStatsDocument extends Document {
+  platform: string;
+  environment: string;
+  statsType: 'config' | 'flag' | 'flag_country' | 'flag_daily' | 'exp_var' | 'exp_metric';
+  key: string; // configKey, flagKey, or experimentKey
+  subKey?: string; // country, date, variationKey, or metricId
+
+  // Config stats
+  fetchCount?: number;
+  lastFetchedAt?: string;
+  uniqueClients24h?: number;
+
+  // Flag stats
+  totalEvaluations?: number;
+  valueACount?: number;
+  valueBCount?: number;
+  uniqueUsersA24h?: number;
+  uniqueUsersB24h?: number;
+  lastEvaluatedAt?: string;
+
+  // Flag country stats
+  country?: string;
+
+  // Flag daily stats
+  date?: string;
+
+  // Experiment stats
+  variationKey?: string;
+  metricId?: string;
+  participants?: number;
+  exposures?: number;
+  lastExposureAt?: string;
+  conversions?: number;
+  sampleSize?: number;
+  sumValue?: number;
+  lastConversionAt?: string;
+
+  updatedAt: string;
+}
+
+/**
+ * Stats schema with compound indexes for efficient queries.
+ *
+ * @remarks
+ * **Indexes:**
+ * - (platform + environment + statsType + key): for main stats lookups
+ * - (platform + environment + statsType + key + subKey): for detailed breakdowns
+ */
+const StatsSchema = new Schema<IStatsDocument>({
+  platform: { type: String, required: true },
+  environment: { type: String, required: true },
+  statsType: { type: String, required: true, enum: ['config', 'flag', 'flag_country', 'flag_daily', 'exp_var', 'exp_metric'] },
+  key: { type: String, required: true },
+  subKey: { type: String, required: false },
+
+  // Config stats
+  fetchCount: { type: Number, required: false },
+  lastFetchedAt: { type: String, required: false },
+  uniqueClients24h: { type: Number, required: false },
+
+  // Flag stats
+  totalEvaluations: { type: Number, required: false },
+  valueACount: { type: Number, required: false },
+  valueBCount: { type: Number, required: false },
+  uniqueUsersA24h: { type: Number, required: false },
+  uniqueUsersB24h: { type: Number, required: false },
+  lastEvaluatedAt: { type: String, required: false },
+
+  // Flag country stats
+  country: { type: String, required: false },
+
+  // Flag daily stats
+  date: { type: String, required: false },
+
+  // Experiment stats
+  variationKey: { type: String, required: false },
+  metricId: { type: String, required: false },
+  participants: { type: Number, required: false },
+  exposures: { type: Number, required: false },
+  lastExposureAt: { type: String, required: false },
+  conversions: { type: Number, required: false },
+  sampleSize: { type: Number, required: false },
+  sumValue: { type: Number, required: false },
+  lastConversionAt: { type: String, required: false },
+
+  updatedAt: { type: String, required: true },
+});
+
+// Compound indexes for stats queries
+StatsSchema.index({ platform: 1, environment: 1, statsType: 1, key: 1 });
+StatsSchema.index({ platform: 1, environment: 1, statsType: 1, key: 1, subKey: 1 });
+
+/**
+ * Stats Mongoose model.
+ */
+export const StatsModel = mongoose.model<IStatsDocument>('Stats', StatsSchema);

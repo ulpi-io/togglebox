@@ -98,37 +98,51 @@ model ConfigVersion {
 // FEATURE FLAG MODEL
 // ============================================================================
 
-/// Represents a mutable feature flag
+/// Represents a versioned, immutable feature flag
+/// Like config versions, each flag can have multiple versions with one active at a time
 model FeatureFlag {
-  // Composite primary key
-  platform    String
-  environment String
-  flagName    String
+  // Composite primary key using versionLabel (user-facing identifier)
+  platform     String
+  environment  String
+  flagName     String
+  versionLabel String // Semantic version (e.g., "1.0.0") - primary version identifier
 
   // Foreign key to Platform
   platformId  String
+
+  // Versioning fields
+  isActive  Boolean @default(true) // Only one version should be active per flagName
 
   // Basic fields
   enabled     Boolean  @default(false)
   description String?
   createdBy   String // Email of creator
   createdAt   String // ISO-8601 timestamp
-  updatedAt   String? // ISO-8601 timestamp
+
+  // Typed variation fields (LaunchDarkly-style)
+  flagType          String @default("boolean") // boolean, string, number, json
+  variations        String @default("[]") // JSON array of {name, value, weight?, rolloutPercentage?, allowedUserIds?, deniedUserIds?}
+  defaultVariation  String @default("off") // Name of variation when flag is "off"
+  onVariation       String @default("on") // Name of variation when flag is "on"
 
   // Phased rollout fields (stored as JSON strings for cross-database compatibility)
-  rolloutType       String @default("simple") // simple, percentage, or targeted
-  rolloutPercentage Int? // 0-100
-  targetUserIds     String @default("[]") // JSON array as text
-  excludeUserIds    String @default("[]") // JSON array as text
-  targetCountries   String @default("[]") // JSON array as text
-  targetLanguages   String @default("[]") // JSON array as text
+  rolloutType              String @default("simple") // simple, percentage, or targeted
+  rolloutPercentage        Int? // 0-100
+  targetUserIds            String @default("[]") // JSON array as text
+  excludeUserIds           String @default("[]") // JSON array as text
+  targetCountries          String @default("[]") // JSON array as text
+  targetLanguages          String @default("[]") // JSON array as text
+
+  // Advanced targeting fields
+  targetPlatformVersions    String @default("[]") // JSON array of version constraints
 
   // Relations
   platformRef    Platform    @relation(fields: [platformId], references: [id], onDelete: Cascade)
   environmentRef Environment @relation(fields: [platform, environment], references: [platform, environment], onDelete: Cascade)
 
-  @@id([platform, environment, flagName])
-  @@index([platform, environment]) // For listFeatureFlags queries
+  @@id([platform, environment, flagName, versionLabel])
+  @@index([platform, environment, isActive]) // For listActiveFeatureFlags queries
+  @@index([platform, environment, flagName]) // For listing all versions of a flag
   @@index([platformId])
   @@map("feature_flags")
 }
@@ -147,4 +161,267 @@ model Usage {
   lastUpdated String // ISO-8601 timestamp
 
   @@map("usage")
+}
+
+// ============================================================================
+// FLAG MODEL (Three-Tier Architecture - Tier 2)
+// ============================================================================
+
+/// Represents a 2-value feature flag with country/language targeting
+/// This is the new three-tier model (distinct from the legacy FeatureFlag model)
+model Flag {
+  // Composite primary key
+  platform    String
+  environment String
+  flagKey     String
+  version     String // Semantic version (e.g., "1.0.0")
+
+  // Fields
+  name        String
+  description String?
+  enabled     Boolean @default(false) // Master switch
+
+  // Type & Values (EXACTLY 2 values - A/B)
+  flagType String @default("boolean") // boolean, string, number
+  valueA   String // JSON-encoded value
+  valueB   String // JSON-encoded value
+
+  // Targeting (JSON-encoded for cross-database compatibility)
+  targeting    String @default("{}") // JSON: {countries: [], forceIncludeUsers: [], forceExcludeUsers: []}
+  defaultValue String @default("B")  // 'A' or 'B'
+
+  // Percentage Rollout
+  rolloutEnabled     Boolean @default(false)
+  rolloutPercentageA Int     @default(100) // 0-100
+  rolloutPercentageB Int     @default(0)   // 0-100
+
+  // Versioning
+  isActive Boolean @default(true)
+
+  // Audit
+  createdBy String
+  createdAt String // ISO-8601 timestamp
+  updatedAt String // ISO-8601 timestamp
+
+  @@id([platform, environment, flagKey, version])
+  @@index([platform, environment, isActive]) // For listActive queries
+  @@index([platform, environment, flagKey])  // For getActive and listVersions
+  @@map("flags")
+}
+
+// ============================================================================
+// EXPERIMENT MODEL (Three-Tier Architecture - Tier 3)
+// ============================================================================
+
+/// Represents a multi-variant A/B experiment with statistical analysis
+model Experiment {
+  // Composite primary key
+  platform      String
+  environment   String
+  experimentKey String
+  version       String // Semantic version
+
+  // Metadata
+  name        String
+  description String?
+  hypothesis  String
+
+  // Lifecycle
+  status           String  @default("draft") // draft, running, paused, completed, archived
+  startedAt        String? // ISO-8601 timestamp
+  completedAt      String? // ISO-8601 timestamp
+  scheduledStartAt String? // ISO-8601 timestamp
+  scheduledEndAt   String? // ISO-8601 timestamp
+
+  // Variations & Traffic (JSON-encoded)
+  variations        String // JSON array of variations
+  controlVariation  String // Key of control variation
+  trafficAllocation String // JSON array of traffic allocation
+
+  // Targeting (JSON-encoded)
+  targeting String @default("{}") // JSON: {countries: [], forceIncludeUsers: [], forceExcludeUsers: []}
+
+  // Metrics (JSON-encoded)
+  primaryMetric    String  // JSON object
+  secondaryMetrics String? // JSON array
+
+  // Statistical configuration
+  confidenceLevel         Float   @default(0.95)
+  minimumDetectableEffect Float?
+  minimumSampleSize       Int?
+
+  // Results (JSON-encoded, read-only computed field)
+  results String? // JSON object
+  winner  String? // Variation key
+
+  // Versioning
+  isActive Boolean @default(true)
+
+  // Audit
+  createdBy String
+  createdAt String // ISO-8601 timestamp
+  updatedAt String // ISO-8601 timestamp
+
+  @@id([platform, environment, experimentKey, version])
+  @@index([platform, environment, status])        // For list by status
+  @@index([platform, environment, isActive])      // For get active
+  @@index([platform, environment, experimentKey]) // For listVersions
+  @@map("experiments")
+}
+
+// ============================================================================
+// STATS MODELS (Three-Tier Architecture)
+// ============================================================================
+
+/// Stats for Remote Config fetches
+model ConfigStats {
+  // Composite primary key
+  platform    String
+  environment String
+  configKey   String
+
+  // Metrics
+  fetchCount       Int     @default(0)
+  lastFetchedAt    String? // ISO-8601 timestamp
+  uniqueClients24h Int     @default(0)
+
+  // Timestamp
+  updatedAt String // ISO-8601 timestamp
+
+  @@id([platform, environment, configKey])
+  @@map("config_stats")
+}
+
+/// Stats for Feature Flag evaluations
+model FlagStats {
+  // Composite primary key
+  platform    String
+  environment String
+  flagKey     String
+
+  // Metrics
+  totalEvaluations Int     @default(0)
+  valueACount      Int     @default(0)
+  valueBCount      Int     @default(0)
+  uniqueUsersA24h  Int     @default(0)
+  uniqueUsersB24h  Int     @default(0)
+  lastEvaluatedAt  String? // ISO-8601 timestamp
+
+  // Timestamp
+  updatedAt String // ISO-8601 timestamp
+
+  @@id([platform, environment, flagKey])
+  @@map("flag_stats")
+}
+
+/// Daily stats for Feature Flags
+model FlagStatsDaily {
+  // Composite primary key
+  platform    String
+  environment String
+  flagKey     String
+  date        String // YYYY-MM-DD
+
+  // Metrics
+  valueACount Int @default(0)
+  valueBCount Int @default(0)
+
+  @@id([platform, environment, flagKey, date])
+  @@map("flag_stats_daily")
+}
+
+/// Country breakdown for Feature Flags
+model FlagStatsByCountry {
+  // Composite primary key
+  platform    String
+  environment String
+  flagKey     String
+  country     String // ISO-3166 2-letter code
+
+  // Metrics
+  valueACount Int @default(0)
+  valueBCount Int @default(0)
+
+  @@id([platform, environment, flagKey, country])
+  @@map("flag_stats_by_country")
+}
+
+/// Stats for Experiment variations
+model ExperimentVariationStats {
+  // Composite primary key
+  platform      String
+  environment   String
+  experimentKey String
+  variationKey  String
+
+  // Metrics
+  participants    Int     @default(0)
+  exposures       Int     @default(0)
+  lastExposureAt  String? // ISO-8601 timestamp
+
+  // Timestamp
+  updatedAt String // ISO-8601 timestamp
+
+  @@id([platform, environment, experimentKey, variationKey])
+  @@map("experiment_variation_stats")
+}
+
+/// Daily stats for Experiment variations
+model ExperimentStatsDaily {
+  // Composite primary key
+  platform      String
+  environment   String
+  experimentKey String
+  variationKey  String
+  date          String // YYYY-MM-DD
+
+  // Metrics
+  participants Int @default(0)
+  conversions  Int @default(0)
+
+  @@id([platform, environment, experimentKey, variationKey, date])
+  @@map("experiment_stats_daily")
+}
+
+/// Metric stats for Experiments
+model ExperimentMetricStats {
+  // Composite primary key
+  platform      String
+  environment   String
+  experimentKey String
+  variationKey  String
+  metricId      String
+
+  // Metrics
+  sampleSize       Int   @default(0)
+  sumValue         Float @default(0)
+  count            Int   @default(0)
+  conversions      Int   @default(0)
+  lastConversionAt String? // ISO-8601 timestamp
+
+  // Timestamp
+  updatedAt String // ISO-8601 timestamp
+
+  @@id([platform, environment, experimentKey, variationKey, metricId])
+  @@map("experiment_metric_stats")
+}
+
+/// Daily metric stats for Experiments
+model ExperimentMetricStatsDaily {
+  // Composite primary key
+  platform      String
+  environment   String
+  experimentKey String
+  variationKey  String
+  metricId      String
+  date          String // YYYY-MM-DD
+
+  // Metrics
+  sampleSize  Int   @default(0)
+  sumValue    Float @default(0)
+  count       Int   @default(0)
+  conversions Int   @default(0)
+
+  @@id([platform, environment, experimentKey, variationKey, metricId, date])
+  @@map("experiment_metric_stats_daily")
 }

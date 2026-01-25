@@ -2,13 +2,20 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { ToggleBoxClient } from '@togglebox/sdk'
-import type { Config, FeatureFlag, EvaluationContext } from '@togglebox/core'
+import type { Config } from '@togglebox/configs'
+import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
+import type { Experiment, ExperimentContext } from '@togglebox/experiments'
 import type { ToggleBoxProviderProps, ToggleBoxContextValue } from './types'
 
 const ToggleBoxContext = createContext<ToggleBoxContextValue | null>(null)
 
 /**
- * Provider component for ToggleBox configuration
+ * Provider component for ToggleBox three-tier architecture.
+ *
+ * Provides access to:
+ * - Tier 1: Remote Configs (same value for all users)
+ * - Tier 2: Feature Flags (2-value model with targeting)
+ * - Tier 3: Experiments (multi-variant A/B testing)
  */
 export function ToggleBoxProvider({
   platform,
@@ -17,12 +24,19 @@ export function ToggleBoxProvider({
   tenantSubdomain,
   cache,
   pollingInterval = 0,
+  configVersion,
   initialConfig,
   initialFlags,
+  initialExperiments,
   children,
 }: ToggleBoxProviderProps) {
+  // Tier 1: Remote Configs
   const [config, setConfig] = useState<Config | null>(initialConfig || null)
-  const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>(initialFlags || [])
+  // Tier 2: Feature Flags (2-value model)
+  const [flags, setFlags] = useState<Flag[]>(initialFlags || [])
+  // Tier 3: Experiments
+  const [experiments, setExperiments] = useState<Experiment[]>(initialExperiments || [])
+
   const [isLoading, setIsLoading] = useState(!initialConfig)
   const [error, setError] = useState<Error | null>(null)
 
@@ -37,29 +51,38 @@ export function ToggleBoxProvider({
       tenantSubdomain,
       cache,
       pollingInterval,
+      configVersion,
     })
 
     clientRef.current = client
 
     // Listen for updates from polling
-    client.on('update', ({ config: newConfig, flags: newFlags }) => {
-      setConfig(newConfig)
-      setFeatureFlags(newFlags)
+    client.on('update', (data) => {
+      const updateData = data as {
+        config: Config
+        flags: Flag[]
+        experiments: Experiment[]
+      }
+      setConfig(updateData.config)
+      setFlags(updateData.flags)
+      setExperiments(updateData.experiments)
     })
 
     client.on('error', (err) => {
-      setError(err)
+      setError(err as Error)
     })
 
     // Initial fetch if no initial data
     if (!initialConfig) {
       Promise.all([
         client.getConfig(),
-        client.getFeatureFlags(),
+        client.getFlags(),
+        client.getExperiments(),
       ])
-        .then(([configData, flagsData]) => {
+        .then(([configData, flagsData, experimentsData]) => {
           setConfig(configData)
-          setFeatureFlags(flagsData)
+          setFlags(flagsData)
+          setExperiments(experimentsData)
           setError(null)
         })
         .catch((err) => {
@@ -73,7 +96,7 @@ export function ToggleBoxProvider({
     return () => {
       client.destroy()
     }
-  }, [platform, environment, apiUrl, tenantSubdomain, pollingInterval, initialConfig])
+  }, [platform, environment, apiUrl, tenantSubdomain, pollingInterval, configVersion, initialConfig])
 
   const refresh = useCallback(async () => {
     if (!clientRef.current) return
@@ -89,24 +112,26 @@ export function ToggleBoxProvider({
     }
   }, [])
 
-  const isEnabled = useCallback(async (flagName: string, context?: EvaluationContext) => {
+  const isFlagEnabled = useCallback(async (flagKey: string, context?: FlagContext) => {
     if (!clientRef.current) return false
-    return clientRef.current.isEnabled(flagName, context)
+    return clientRef.current.isFlagEnabled(flagKey, context ?? { userId: 'anonymous' })
   }, [])
 
-  const setContext = useCallback((context: EvaluationContext) => {
-    if (!clientRef.current) return
-    clientRef.current.setContext(context)
+  const getVariant = useCallback(async (experimentKey: string, context: ExperimentContext) => {
+    if (!clientRef.current) return null
+    const result = await clientRef.current.getVariant(experimentKey, context)
+    return result?.variationKey ?? null
   }, [])
 
   const value: ToggleBoxContextValue = {
     config,
-    featureFlags,
+    flags,
+    experiments,
     isLoading,
     error,
     refresh,
-    isEnabled,
-    setContext,
+    isFlagEnabled,
+    getVariant,
   }
 
   return (

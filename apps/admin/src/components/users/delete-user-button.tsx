@@ -2,15 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteUserAction } from '@/actions/users';
-import { Button } from '@/components/ui/button';
+import { deleteUserApi } from '@/lib/api/users';
+import { Button } from '@togglebox/ui';
 
 interface DeleteUserButtonProps {
   userId: string;
   userEmail: string;
+  onSuccess?: () => void;
 }
 
-export function DeleteUserButton({ userId, userEmail }: DeleteUserButtonProps) {
+export function DeleteUserButton({ userId, userEmail, onSuccess }: DeleteUserButtonProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -18,15 +19,14 @@ export function DeleteUserButton({ userId, userEmail }: DeleteUserButtonProps) {
   async function handleDelete() {
     setIsDeleting(true);
     try {
-      const result = await deleteUserAction(userId);
-      if (result.success) {
-        router.refresh();
+      await deleteUserApi(userId);
+      if (onSuccess) {
+        onSuccess();
       } else {
-        alert(result.error);
-        setIsDeleting(false);
+        router.refresh();
       }
-    } catch (error) {
-      alert('Failed to delete user');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete user');
       setIsDeleting(false);
     }
   }

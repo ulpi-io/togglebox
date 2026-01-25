@@ -34,8 +34,50 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
  *
  * @remarks
  * Falls back to "configurations" if DYNAMODB_TABLE is not set.
+ * @deprecated Use specific table name functions instead (e.g., getPlatformsTableName)
  */
 const DEFAULT_TABLE_NAME = process.env['DYNAMODB_TABLE'] || 'configurations';
+
+/**
+ * Table name constants for the DynamoDB tables.
+ *
+ * @remarks
+ * **Environment Variable Configuration:**
+ * When deployed to AWS Lambda via serverless.yml, table names are injected
+ * via environment variables with stage suffixes (e.g., togglebox-users-dev).
+ * For local development, hardcoded defaults are used.
+ *
+ * **Auth Tables (Admin-only):**
+ * - togglebox-users: User accounts
+ * - togglebox-api-keys: API key management
+ * - togglebox-password-resets: Password reset tokens
+ *
+ * **Config Tables (Admin + Customer-facing):**
+ * - togglebox-platforms: Platform metadata
+ * - togglebox-environments: Environment metadata
+ * - togglebox-configs: Configuration versions
+ *
+ * **Three-Tier Architecture Tables:**
+ * - togglebox-remote-configs: Remote config key-value pairs
+ * - togglebox-flags: Feature flags (2-value model)
+ * - togglebox-experiments: A/B experiments (multi-variant)
+ * - togglebox-stats: Metrics and analytics
+ * - togglebox-usage: API usage tracking per tenant
+ */
+const TABLE_NAMES = {
+  USERS: process.env['DYNAMODB_USERS_TABLE'] || 'togglebox-users',
+  API_KEYS: process.env['DYNAMODB_API_KEYS_TABLE'] || 'togglebox-api-keys',
+  PASSWORD_RESETS: process.env['DYNAMODB_PASSWORD_RESETS_TABLE'] || 'togglebox-password-resets',
+  PLATFORMS: process.env['DYNAMODB_PLATFORMS_TABLE'] || 'togglebox-platforms',
+  ENVIRONMENTS: process.env['DYNAMODB_ENVIRONMENTS_TABLE'] || 'togglebox-environments',
+  CONFIGS: process.env['DYNAMODB_CONFIGS_TABLE'] || 'togglebox-configs',
+  // Three-tier architecture tables
+  REMOTE_CONFIGS: process.env['DYNAMODB_REMOTE_CONFIGS_TABLE'] || 'togglebox-remote-configs',
+  FLAGS: process.env['DYNAMODB_FLAGS_TABLE'] || 'togglebox-flags',
+  EXPERIMENTS: process.env['DYNAMODB_EXPERIMENTS_TABLE'] || 'togglebox-experiments',
+  STATS: process.env['DYNAMODB_STATS_TABLE'] || 'togglebox-stats',
+  USAGE: process.env['DYNAMODB_USAGE_TABLE'] || 'togglebox-usage',
+};
 
 /**
  * AsyncLocalStorage for request-scoped table prefix.
@@ -113,6 +155,218 @@ export function getTableName(tablePrefix?: string, tableName?: string): string {
   // Priority 3: Fallback prefix (for non-request contexts like CLI scripts)
   const base = tableName || DEFAULT_TABLE_NAME;
   return `${FALLBACK_TABLE_PREFIX}${base}`;
+}
+
+/**
+ * Helper function to get table name with prefix applied.
+ *
+ * @param baseName - Base table name (e.g., 'togglebox-users')
+ * @returns Full table name with prefix applied
+ *
+ * @internal
+ */
+function getTableNameWithPrefix(baseName: string): string {
+  // Priority 1: AsyncLocalStorage (request-scoped, safe for concurrent requests)
+  const asyncPrefix = tablePrefixStorage.getStore();
+  if (asyncPrefix !== undefined) {
+    return `${asyncPrefix}${baseName}`;
+  }
+
+  // Priority 2: Fallback prefix (for non-request contexts like CLI scripts)
+  return `${FALLBACK_TABLE_PREFIX}${baseName}`;
+}
+
+/**
+ * Get the users table name with tenant prefix applied.
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-users' or 'togglebox-users')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `USER#{id}` - User UUID
+ * - GSI1: `EMAIL#{email}` - Email lookup
+ *
+ * @example
+ * ```typescript
+ * const tableName = getUsersTableName();
+ * // Without tenant context: 'togglebox-users'
+ * // With tenant context: 'tenant_abc_togglebox-users'
+ * ```
+ */
+export function getUsersTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.USERS);
+}
+
+/**
+ * Get the API keys table name with tenant prefix applied.
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-api-keys' or 'togglebox-api-keys')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `APIKEY#{id}` - API key UUID
+ * - GSI1: `USER#{userId}` - User's API keys
+ * - GSI2: `HASH#{keyHash}` - Key hash lookup for authentication
+ *
+ * @example
+ * ```typescript
+ * const tableName = getApiKeysTableName();
+ * ```
+ */
+export function getApiKeysTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.API_KEYS);
+}
+
+/**
+ * Get the password resets table name with tenant prefix applied.
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-password-resets' or 'togglebox-password-resets')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `RESET#{id}` - Reset token UUID
+ * - GSI1: `USER#{userId}` - User's reset tokens
+ * - GSI2: `HASH#{tokenHash}` - Token hash lookup
+ *
+ * @example
+ * ```typescript
+ * const tableName = getPasswordResetsTableName();
+ * ```
+ */
+export function getPasswordResetsTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.PASSWORD_RESETS);
+}
+
+/**
+ * Get the platforms table name with tenant prefix applied.
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-platforms' or 'togglebox-platforms')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `PLATFORM#{name}` - Platform name (unique)
+ * - No GSI needed for simple name-based lookup
+ *
+ * @example
+ * ```typescript
+ * const tableName = getPlatformsTableName();
+ * ```
+ */
+export function getPlatformsTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.PLATFORMS);
+}
+
+/**
+ * Get the environments table name with tenant prefix applied.
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-environments' or 'togglebox-environments')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `PLATFORM#{platform}` - Parent platform
+ * - SK: `ENV#{name}` - Environment name
+ *
+ * @example
+ * ```typescript
+ * const tableName = getEnvironmentsTableName();
+ * ```
+ */
+export function getEnvironmentsTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.ENVIRONMENTS);
+}
+
+/**
+ * Get the configs table name with tenant prefix applied.
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-configs' or 'togglebox-configs')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `PLATFORM#{platform}#ENV#{env}` - Platform + environment composite key
+ * - SK: `VERSION#{timestamp}` - Version timestamp for ordering
+ * - GSI1: `STABLE` - For latest stable version lookup
+ *
+ * @example
+ * ```typescript
+ * const tableName = getConfigsTableName();
+ * ```
+ */
+export function getConfigsTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.CONFIGS);
+}
+
+/**
+ * Get the remote configs table name with tenant prefix applied.
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-remote-configs' or 'togglebox-remote-configs')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `PLATFORM#{platform}#ENV#{env}` - Platform + environment composite key
+ * - SK: `CONFIG#{key}#V#{version}` - Config key + version
+ * - GSI1: For active config lookup
+ */
+export function getRemoteConfigsTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.REMOTE_CONFIGS);
+}
+
+/**
+ * Get the flags table name with tenant prefix applied (simplified 2-value model).
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-flags' or 'togglebox-flags')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `PLATFORM#{platform}#ENV#{env}` - Platform + environment composite key
+ * - SK: `FLAG#{key}#V#{version}` - Flag key + version
+ * - GSI1: For active flag lookup
+ */
+export function getFlagsTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.FLAGS);
+}
+
+/**
+ * Get the experiments table name with tenant prefix applied.
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-experiments' or 'togglebox-experiments')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `PLATFORM#{platform}#ENV#{env}` - Platform + environment composite key
+ * - SK: `EXP#{key}#V#{version}` - Experiment key + version
+ * - GSI1: For status-based queries (running experiments)
+ */
+export function getExperimentsTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.EXPERIMENTS);
+}
+
+/**
+ * Get the stats table name with tenant prefix applied.
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-stats' or 'togglebox-stats')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `PLATFORM#{platform}#ENV#{env}` - Platform + environment composite key
+ * - SK: `STATS#{type}#{key}` - Stats type (CONFIG, FLAG, EXP) + key
+ * - GSI1: For time-based queries
+ */
+export function getStatsTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.STATS);
+}
+
+/**
+ * Get the usage table name with tenant prefix applied.
+ *
+ * @returns Full table name (e.g., 'tenant_abc_togglebox-usage' or 'togglebox-usage')
+ *
+ * @remarks
+ * **Table Schema:**
+ * - PK: `TENANT#{id}` - Tenant identifier
+ * - SK: `USAGE#apiRequests` - Usage metric type
+ */
+export function getUsageTableName(): string {
+  return getTableNameWithPrefix(TABLE_NAMES.USAGE);
 }
 
 /**

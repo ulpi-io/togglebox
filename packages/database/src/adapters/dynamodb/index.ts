@@ -28,18 +28,22 @@
  * ```
  */
 
-import { DatabaseRepositories } from '../../factory';
+import { DatabaseRepositories, ThreeTierRepositories } from '../../factory';
 import { DynamoDBPlatformRepository } from './DynamoDBPlatformRepository';
 import { DynamoDBEnvironmentRepository } from './DynamoDBEnvironmentRepository';
 import { DynamoDBConfigRepository } from './DynamoDBConfigRepository';
-import { DynamoDBFeatureFlagRepository } from './DynamoDBFeatureFlagRepository';
 import { DynamoDBUsageRepository } from './DynamoDBUsageRepository';
+import { DynamoDBNewFlagRepository } from './DynamoDBNewFlagRepository';
+import { DynamoDBExperimentRepository } from './DynamoDBExperimentRepository';
+import { DynamoDBStatsRepository } from './DynamoDBStatsRepository';
 
 export * from './DynamoDBPlatformRepository';
 export * from './DynamoDBEnvironmentRepository';
 export * from './DynamoDBConfigRepository';
-export * from './DynamoDBFeatureFlagRepository';
 export * from './DynamoDBUsageRepository';
+export * from './DynamoDBNewFlagRepository';
+export * from './DynamoDBExperimentRepository';
+export * from './DynamoDBStatsRepository';
 
 /**
  * Creates DynamoDB repository instances.
@@ -57,7 +61,25 @@ export function createDynamoDBRepositories(): DatabaseRepositories {
     platform: new DynamoDBPlatformRepository(),
     environment: new DynamoDBEnvironmentRepository(),
     config: new DynamoDBConfigRepository(),
-    featureFlag: new DynamoDBFeatureFlagRepository(),
     usage: new DynamoDBUsageRepository(),
+  };
+}
+
+/**
+ * Creates DynamoDB repository instances for the three-tier architecture.
+ *
+ * @returns Three-tier repositories for DynamoDB adapter
+ *
+ * @remarks
+ * Returns repositories for:
+ * - Feature Flags (new 2-value model with country/language targeting)
+ * - Experiments (multi-variant A/B testing)
+ * - Stats (metrics for all tiers)
+ */
+export function createDynamoDBThreeTierRepositories(): ThreeTierRepositories {
+  return {
+    flag: new DynamoDBNewFlagRepository(),
+    experiment: new DynamoDBExperimentRepository(),
+    stats: new DynamoDBStatsRepository(),
   };
 }

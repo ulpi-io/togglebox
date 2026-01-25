@@ -1,0 +1,150 @@
+# ============================================================================
+# ToggleBox - Development Docker Compose
+# ============================================================================
+# Usage:
+#   docker compose -f docker-compose.dev.yml up
+#   make dev
+# ============================================================================
+
+name: togglebox-dev
+
+services:
+  # ---------------------------------------------------------------------------
+  # DynamoDB Local - AWS-compatible NoSQL database
+  # ---------------------------------------------------------------------------
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: togglebox-oss-dynamodb
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/data"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./docker/data:/data
+    networks:
+      - togglebox-network
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # DynamoDB Admin - Web UI for browsing data
+  # ---------------------------------------------------------------------------
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    container_name: togglebox-oss-dynamodb-admin
+    ports:
+      - "8001:8001"
+    environment:
+      - DYNAMO_ENDPOINT=http://dynamodb-local:8000
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    networks:
+      - togglebox-network
+    depends_on:
+      - dynamodb-local
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # DynamoDB Init - Creates tables on startup
+  # ---------------------------------------------------------------------------
+  dynamodb-init:
+    image: amazon/aws-cli:latest
+    container_name: togglebox-oss-dynamodb-init
+    environment:
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+      - AWS_REGION=us-east-1
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+    volumes:
+      - ./docker/scripts/init-dynamodb.sh:/init-dynamodb.sh:ro
+      - ./docker/scripts/wait-for-dynamodb.sh:/wait-for-dynamodb.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        chmod +x /wait-for-dynamodb.sh /init-dynamodb.sh
+        /wait-for-dynamodb.sh
+        /init-dynamodb.sh
+    networks:
+      - togglebox-network
+    depends_on:
+      - dynamodb-local
+
+  # ---------------------------------------------------------------------------
+  # ToggleBox API - Express.js backend (Development with hot reload)
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile.dev
+    container_name: togglebox-api-dev
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./apps/api/.env
+    environment:
+      # Docker-specific overrides (these override .env file values)
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    volumes:
+      # Mount ONLY source directories for hot reload (not node_modules)
+      - ./apps/api/src:/app/apps/api/src:cached
+      - ./packages/core/src:/app/packages/core/src:cached
+      - ./packages/database/src:/app/packages/database/src:cached
+      - ./packages/cache/src:/app/packages/cache/src:cached
+      - ./packages/auth/src:/app/packages/auth/src:cached
+      - ./packages/shared/src:/app/packages/shared/src:cached
+    networks:
+      - togglebox-network
+    depends_on:
+      dynamodb-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # ToggleBox Admin - Next.js dashboard (Development with hot reload)
+  # ---------------------------------------------------------------------------
+  admin:
+    build:
+      context: .
+      dockerfile: docker/admin/Dockerfile.dev
+    container_name: togglebox-admin-dev
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./apps/admin/.env.local
+    environment:
+      # Docker-specific overrides
+      - API_URL=http://api:3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    volumes:
+      # Mount lockfile for dependency sync at startup
+      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml:cached
+      - ./packages/ui/package.json:/app/packages/ui/package.json:cached
+      - ./apps/admin/package.json:/app/apps/admin/package.json:cached
+      # Mount source directories for hot reload
+      - ./apps/admin/src:/app/apps/admin/src:cached
+      - ./apps/admin/public:/app/apps/admin/public:cached
+      - ./packages/core/src:/app/packages/core/src:cached
+      - ./packages/shared/src:/app/packages/shared/src:cached
+      - ./packages/ui/src:/app/packages/ui/src:cached
+    networks:
+      - togglebox-network
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+# -----------------------------------------------------------------------------
+# Networks
+# -----------------------------------------------------------------------------
+networks:
+  togglebox-network:
+    name: togglebox-network
+    driver: bridge
+

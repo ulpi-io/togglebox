@@ -1,13 +1,37 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { ToggleBoxClient } from '@togglebox/sdk'
 import { Storage } from './storage'
-import type { Config, FeatureFlag, EvaluationContext } from '@togglebox/core'
+import type { Config } from '@togglebox/configs'
+import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
+import type { Experiment, ExperimentContext } from '@togglebox/experiments'
 import type { ToggleBoxProviderProps, ToggleBoxContextValue } from './types'
 
 const ToggleBoxContext = createContext<ToggleBoxContextValue | null>(null)
 
 /**
- * Provider component for ToggleBox configuration with AsyncStorage support
+ * Provider component for ToggleBox three-tier architecture with MMKV offline support.
+ *
+ * Provides access to:
+ * - Tier 1: Remote Configs (same value for all users)
+ * - Tier 2: Feature Flags (2-value model with targeting)
+ * - Tier 3: Experiments (multi-variant A/B testing)
+ *
+ * @remarks
+ * Uses react-native-mmkv for high-performance persistent storage.
+ * MMKV is significantly faster and more reliable than AsyncStorage.
+ *
+ * @example
+ * ```tsx
+ * <ToggleBoxProvider
+ *   platform="mobile"
+ *   environment="production"
+ *   tenantSubdomain="acme"
+ *   persistToStorage={true}
+ *   storageTTL={86400000} // 24 hours
+ * >
+ *   <App />
+ * </ToggleBoxProvider>
+ * ```
  */
 export function ToggleBoxProvider({
   platform,
@@ -16,12 +40,18 @@ export function ToggleBoxProvider({
   tenantSubdomain,
   cache,
   pollingInterval = 0,
+  configVersion,
   persistToStorage = false,
   storageTTL = 86400000, // 24 hours default
   children,
 }: ToggleBoxProviderProps) {
+  // Tier 1: Remote Configs
   const [config, setConfig] = useState<Config | null>(null)
-  const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>([])
+  // Tier 2: Feature Flags (2-value model)
+  const [flags, setFlags] = useState<Flag[]>([])
+  // Tier 3: Experiments
+  const [experiments, setExperiments] = useState<Experiment[]>([])
+
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
@@ -44,34 +74,42 @@ export function ToggleBoxProvider({
       tenantSubdomain,
       cache,
       pollingInterval,
+      configVersion,
     })
 
     clientRef.current = client
 
     // Listen for updates from polling
-    client.on('update', async ({ config: newConfig, flags: newFlags }) => {
-      setConfig(newConfig)
-      setFeatureFlags(newFlags)
+    client.on('update', async (data) => {
+      const updateData = data as {
+        config: Config
+        flags: Flag[]
+        experiments: Experiment[]
+      }
+      setConfig(updateData.config)
+      setFlags(updateData.flags)
+      setExperiments(updateData.experiments)
 
-      // Save to AsyncStorage if enabled
+      // Save to MMKV if enabled
       if (persistToStorage && storageRef.current) {
-        await storageRef.current.save(newConfig, newFlags)
+        await storageRef.current.save(updateData.config, updateData.flags, updateData.experiments)
       }
     })
 
     client.on('error', (err) => {
-      setError(err)
+      setError(err as Error)
     })
 
     // Load initial data
     const loadData = async () => {
       try {
-        // Try loading from AsyncStorage first
+        // Try loading from MMKV first
         if (persistToStorage && storageRef.current) {
           const stored = await storageRef.current.load()
           if (stored) {
             setConfig(stored.config)
-            setFeatureFlags(stored.flags)
+            setFlags(stored.flags)
+            setExperiments(stored.experiments)
             setIsLoading(false)
 
             // Fetch fresh data in background
@@ -81,18 +119,20 @@ export function ToggleBoxProvider({
         }
 
         // Fetch from API
-        const [configData, flagsData] = await Promise.all([
+        const [configData, flagsData, experimentsData] = await Promise.all([
           client.getConfig(),
-          client.getFeatureFlags(),
+          client.getFlags(),
+          client.getExperiments(),
         ])
 
         setConfig(configData)
-        setFeatureFlags(flagsData)
+        setFlags(flagsData)
+        setExperiments(experimentsData)
         setError(null)
 
-        // Save to AsyncStorage if enabled
+        // Save to MMKV if enabled
         if (persistToStorage && storageRef.current) {
-          await storageRef.current.save(configData, flagsData)
+          await storageRef.current.save(configData, flagsData, experimentsData)
         }
       } catch (err) {
         setError(err as Error)
@@ -106,7 +146,7 @@ export function ToggleBoxProvider({
     return () => {
       client.destroy()
     }
-  }, [platform, environment, apiUrl, tenantSubdomain, pollingInterval, persistToStorage])
+  }, [platform, environment, apiUrl, tenantSubdomain, pollingInterval, configVersion, persistToStorage])
 
   const refresh = useCallback(async () => {
     if (!clientRef.current) return
@@ -122,24 +162,26 @@ export function ToggleBoxProvider({
     }
   }, [])
 
-  const isEnabled = useCallback(async (flagName: string, context?: EvaluationContext) => {
+  const isFlagEnabled = useCallback(async (flagKey: string, context?: FlagContext) => {
     if (!clientRef.current) return false
-    return clientRef.current.isEnabled(flagName, context)
+    return clientRef.current.isFlagEnabled(flagKey, context ?? { userId: 'anonymous' })
   }, [])
 
-  const setContext = useCallback((context: EvaluationContext) => {
-    if (!clientRef.current) return
-    clientRef.current.setContext(context)
+  const getVariant = useCallback(async (experimentKey: string, context: ExperimentContext) => {
+    if (!clientRef.current) return null
+    const result = await clientRef.current.getVariant(experimentKey, context)
+    return result?.variationKey ?? null
   }, [])
 
   const value: ToggleBoxContextValue = {
     config,
-    featureFlags,
+    flags,
+    experiments,
     isLoading,
     error,
     refresh,
-    isEnabled,
-    setContext,
+    isFlagEnabled,
+    getVariant,
   }
 
   return (

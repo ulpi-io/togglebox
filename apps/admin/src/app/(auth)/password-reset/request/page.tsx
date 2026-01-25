@@ -1,15 +1,43 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { requestPasswordResetAction } from '@/actions/auth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { requestPasswordResetApi } from '@/lib/api/auth';
+import {
+  Alert,
+  Button,
+  Input,
+  Label,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@togglebox/ui';
 
 export default function RequestPasswordResetPage() {
-  const [state, formAction, pending] = useActionState(requestPasswordResetAction, null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+
+    try {
+      await requestPasswordResetApi(email);
+      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send reset link');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <Card>
@@ -19,7 +47,7 @@ export default function RequestPasswordResetPage() {
           Enter your email to receive a password reset link
         </CardDescription>
       </CardHeader>
-      <form action={formAction}>
+      <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -29,29 +57,26 @@ export default function RequestPasswordResetPage() {
               type="email"
               placeholder="user@example.com"
               required
-              disabled={pending}
+              disabled={isLoading}
             />
-            {state?.errors?.email && (
-              <p className="text-sm text-destructive">{state.errors.email[0]}</p>
-            )}
           </div>
 
-          {state?.error && (
-            <div className="border-2 border-destructive p-3">
-              <p className="text-sm text-destructive">{state.error}</p>
-            </div>
+          {error && (
+            <Alert variant="destructive">
+              {error}
+            </Alert>
           )}
 
-          {state?.success && (
-            <div className="border-2 border-black p-3">
-              <p className="text-sm">{state.message}</p>
-            </div>
+          {success && (
+            <Alert variant="success">
+              If an account exists with that email, you will receive a password reset link.
+            </Alert>
           )}
         </CardContent>
 
         <CardFooter className="flex-col space-y-4">
-          <Button type="submit" disabled={pending} className="w-full">
-            {pending ? 'Sending...' : 'Send Reset Link'}
+          <Button type="submit" disabled={isLoading} className="w-full">
+            {isLoading ? 'Sending...' : 'Send Reset Link'}
           </Button>
 
           <div className="text-sm text-center">

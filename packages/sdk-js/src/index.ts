@@ -1,16 +1,8 @@
 // Main client
 export { ToggleBoxClient } from './client'
 
-// Types
-export type {
-  ClientOptions,
-  CacheOptions,
-  ConfigResponse,
-  FeatureFlagsResponse,
-  ClientEvent,
-  EventListener,
-  RetryOptions,
-} from './types'
+// Stats reporter
+export { StatsReporter } from './stats'
 
 // Errors
 export {
@@ -20,13 +12,41 @@ export {
   ConfigurationError,
 } from './errors'
 
-// Re-export types from core for convenience
+// Types - SDK specific
 export type {
-  Config,
-  FeatureFlag,
-  EvaluationContext,
-  EvaluationResult,
-  Platform,
-  Environment,
-  Version,
-} from '@togglebox/core'
+  ClientOptions,
+  CacheOptions,
+  StatsOptions,
+  ConfigResponse,
+  FlagsResponse,
+  ExperimentsResponse,
+  ClientEvent,
+  EventListener,
+  RetryOptions,
+  ConversionData,
+  EventData,
+} from './types'
+
+// Re-export types from packages for SDK consumers
+
+// Tier 1: Remote Configs
+export type { Config } from '@togglebox/configs'
+
+// Tier 2: Feature Flags (2-value model)
+export type {
+  Flag,
+  EvaluationContext as FlagContext,
+  EvaluationResult as FlagResult,
+  FlagValue,
+} from '@togglebox/flags'
+
+// Tier 3: Experiments
+export type {
+  Experiment,
+  ExperimentContext,
+  ExperimentVariation,
+  VariantAssignment,
+} from '@togglebox/experiments'
+
+// Stats
+export type { StatsEvent } from '@togglebox/stats'

@@ -99,7 +99,11 @@ tags:
   - name: Config Versions
     description: Versioned configuration management (immutable)
   - name: Feature Flags
-    description: Feature flag management (mutable toggles)
+    description: Feature flag management with 2-value model (A/B) and geographic targeting
+  - name: Experiments
+    description: Multi-variant A/B/n experiments with statistical analysis
+  - name: Stats
+    description: Analytics and statistics for configs, flags, and experiments
   - name: Evaluation
     description: Feature flag evaluation with context
   - name: Cache
@@ -911,6 +915,28 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 
+  /internal/platforms/{platform}:
+    delete:
+      tags:
+        - Platforms
+      summary: Delete platform
+      description: Delete a platform and all its environments, versions, and flags
+      operationId: deletePlatform
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+      responses:
+        '204':
+          description: Platform deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ============================================================================
   # ENVIRONMENTS (Public Read)
   # ============================================================================
@@ -1028,6 +1054,29 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 
+  /internal/platforms/{platform}/environments/{environment}:
+    delete:
+      tags:
+        - Environments
+      summary: Delete environment
+      description: Delete an environment and all its versions and flags
+      operationId: deleteEnvironment
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+      responses:
+        '204':
+          description: Environment deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ============================================================================
   # CONFIG VERSIONS (Public Read)
   # ============================================================================
@@ -1062,7 +1111,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /platforms/{platform}/environments/{environment}/versions/{versionTimestamp}:
+  /platforms/{platform}/environments/{environment}/versions/{version}:
     get:
       tags:
         - Config Versions
@@ -1072,7 +1121,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Platform'
         - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/VersionTimestamp'
+        - $ref: '#/components/parameters/Version'
       responses:
         '200':
           description: Configuration version details
@@ -1148,12 +1197,13 @@ paths:
             schema:
               type: object
               required:
+                - version
                 - config
-                - createdBy
               properties:
-                versionLabel:
+                version:
                   type: string
-                  description: Optional user-friendly version label
+                  pattern: '^\d+\.\d+\.\d+$'
+                  description: Semantic version label (e.g., "1.0.0", "2.1.3"). Required. This becomes the versionLabel internally.
                 isStable:
                   type: boolean
                   default: false
@@ -1163,6 +1213,7 @@ paths:
                 createdBy:
                   type: string
                   format: email
+                  description: Optional - extracted from auth context if not provided
       responses:
         '201':
           description: Configuration version created successfully
@@ -1189,7 +1240,7 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
 
-  /internal/platforms/{platform}/environments/{environment}/versions/{versionTimestamp}:
+  /internal/platforms/{platform}/environments/{environment}/versions/{version}:
     delete:
       tags:
         - Config Versions
@@ -1202,7 +1253,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Platform'
         - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/VersionTimestamp'
+        - $ref: '#/components/parameters/Version'
       responses:
         '204':
           description: Version deleted successfully
@@ -1219,11 +1270,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /internal/platforms/{platform}/environments/{environment}/versions/{version}/mark-stable:
+    patch:
+      tags:
+        - Config Versions
+      summary: Mark version as stable
+      description: Mark a configuration version as stable (production-ready). Only one version can be stable at a time per environment.
+      operationId: markVersionStable
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/Version'
+      responses:
+        '200':
+          description: Version marked as stable successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Version'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ============================================================================
   # FEATURE FLAGS (Public Read)
   # ============================================================================
 
-  /platforms/{platform}/environments/{environment}/feature-flags:
+  /platforms/{platform}/environments/{environment}/flags:
     get:
       tags:
         - Feature Flags
@@ -1257,7 +1344,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /platforms/{platform}/environments/{environment}/feature-flags/{flagName}:
+  /platforms/{platform}/environments/{environment}/flags/{flagKey}:
     get:
       tags:
         - Feature Flags
@@ -1267,7 +1354,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Platform'
         - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagName'
+        - $ref: '#/components/parameters/FlagKey'
       responses:
         '200':
           description: Feature flag details
@@ -1286,11 +1373,66 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /platforms/{platform}/environments/{environment}/flags/{flagKey}/evaluate:
+    get:
+      tags:
+        - Evaluation
+      summary: Evaluate feature flag (public)
+      description: |
+        Evaluate a feature flag for a given context. This is a public endpoint for SDK usage.
+        Returns the resolved value based on targeting rules.
+      operationId: evaluateFlagPublic
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/FlagKey'
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: User identifier for targeting
+        - name: country
+          in: query
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+          description: ISO 3166-1 alpha-2 country code
+        - name: language
+          in: query
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+          description: ISO 639-1 language code
+      responses:
+        '200':
+          description: Flag evaluation result
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: CDN caching headers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/EvaluationResult'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ============================================================================
   # FEATURE FLAGS (Internal Write)
   # ============================================================================
 
-  /internal/platforms/{platform}/environments/{environment}/feature-flags:
+  /internal/platforms/{platform}/environments/{environment}/flags:
     post:
       tags:
         - Feature Flags
@@ -1337,7 +1479,7 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
 
-  /internal/platforms/{platform}/environments/{environment}/feature-flags/{flagName}:
+  /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}:
     put:
       tags:
         - Feature Flags
@@ -1350,7 +1492,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Platform'
         - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagName'
+        - $ref: '#/components/parameters/FlagKey'
       requestBody:
         required: true
         content:
@@ -1395,7 +1537,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Platform'
         - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagName'
+        - $ref: '#/components/parameters/FlagKey'
       responses:
         '204':
           description: Feature flag deleted successfully
@@ -1406,7 +1548,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /internal/platforms/{platform}/environments/{environment}/feature-flags/{flagName}/toggle:
+  /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/toggle:
     patch:
       tags:
         - Feature Flags
@@ -1419,7 +1561,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Platform'
         - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagName'
+        - $ref: '#/components/parameters/FlagKey'
       requestBody:
         required: true
         content:
@@ -1455,11 +1597,87 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/versions:
+    get:
+      tags:
+        - Feature Flags
+      summary: List flag versions
+      description: Retrieve all versions of a specific feature flag
+      operationId: listFlagVersions
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/FlagKey'
+      responses:
+        '200':
+          description: List of flag versions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FeatureFlag'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/versions/{version}:
+    get:
+      tags:
+        - Feature Flags
+      summary: Get specific flag version
+      description: Retrieve a specific version of a feature flag
+      operationId: getFlagVersion
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/FlagKey'
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Flag version number
+      responses:
+        '200':
+          description: Flag version details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/FeatureFlag'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ============================================================================
   # FEATURE FLAG EVALUATION
   # ============================================================================
 
-  /internal/platforms/{platform}/environments/{environment}/feature-flags/evaluate:
+  /internal/platforms/{platform}/environments/{environment}/flags/evaluate:
     post:
       tags:
         - Evaluation
@@ -1502,7 +1720,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /internal/platforms/{platform}/environments/{environment}/feature-flags/{flagName}/evaluate:
+  /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/evaluate:
     post:
       tags:
         - Evaluation
@@ -1515,7 +1733,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Platform'
         - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagName'
+        - $ref: '#/components/parameters/FlagKey'
       requestBody:
         required: true
         content:
@@ -1534,6 +1752,755 @@ paths:
                     type: boolean
                   data:
                     $ref: '#/components/schemas/EvaluationResult'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================================
+  # EXPERIMENTS (Public Read)
+  # ============================================================================
+
+  /platforms/{platform}/environments/{environment}/experiments:
+    get:
+      tags:
+        - Experiments
+      summary: List all experiments
+      description: Retrieve all experiments for an environment
+      operationId: listExperiments
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+      responses:
+        '200':
+          description: List of experiments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Experiment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /platforms/{platform}/environments/{environment}/experiments/{experimentKey}:
+    get:
+      tags:
+        - Experiments
+      summary: Get specific experiment
+      description: Retrieve details of a specific experiment
+      operationId: getExperiment
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      responses:
+        '200':
+          description: Experiment details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Experiment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /platforms/{platform}/environments/{environment}/experiments/{experimentKey}/assign:
+    get:
+      tags:
+        - Experiments
+      summary: Assign user to experiment variation (Public)
+      description: Get variation assignment for a user. Returns consistent assignment based on userId.
+      operationId: assignVariationPublic
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: User identifier for consistent bucketing
+      responses:
+        '200':
+          description: Variation assignment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/VariationAssignment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================================
+  # EXPERIMENTS (Internal Write)
+  # ============================================================================
+
+  /internal/platforms/{platform}/environments/{environment}/experiments:
+    post:
+      tags:
+        - Experiments
+      summary: Create new experiment
+      description: Create a new A/B/n experiment
+      operationId: createExperiment
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExperiment'
+      responses:
+        '201':
+          description: Experiment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Experiment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}:
+    put:
+      tags:
+        - Experiments
+      summary: Update experiment
+      description: Update an experiment (only in draft status)
+      operationId: updateExperiment
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExperiment'
+      responses:
+        '200':
+          description: Experiment updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Experiment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Experiments
+      summary: Delete experiment
+      description: Delete an experiment (only in draft or archived status)
+      operationId: deleteExperiment
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      responses:
+        '204':
+          description: Experiment deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Cannot delete running experiment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/start:
+    post:
+      tags:
+        - Experiments
+      summary: Start experiment
+      description: Start an experiment (changes status from draft to running)
+      operationId: startExperiment
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      responses:
+        '200':
+          description: Experiment started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Experiment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Experiment already running or completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/pause:
+    post:
+      tags:
+        - Experiments
+      summary: Pause experiment
+      description: Pause a running experiment
+      operationId: pauseExperiment
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      responses:
+        '200':
+          description: Experiment paused
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Experiment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/resume:
+    post:
+      tags:
+        - Experiments
+      summary: Resume experiment
+      description: Resume a paused experiment
+      operationId: resumeExperiment
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      responses:
+        '200':
+          description: Experiment resumed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Experiment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/complete:
+    post:
+      tags:
+        - Experiments
+      summary: Complete experiment
+      description: Mark experiment as completed with a winning variation
+      operationId: completeExperiment
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                winningVariationKey:
+                  type: string
+                  description: Key of the winning variation
+      responses:
+        '200':
+          description: Experiment completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Experiment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/archive:
+    post:
+      tags:
+        - Experiments
+      summary: Archive experiment
+      description: Archive a completed experiment
+      operationId: archiveExperiment
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      responses:
+        '200':
+          description: Experiment archived
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Experiment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/assign:
+    post:
+      tags:
+        - Experiments
+      summary: Assign user to experiment variation (Internal)
+      description: Get variation assignment with full context support
+      operationId: assignVariationInternal
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationContext'
+      responses:
+        '200':
+          description: Variation assignment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/VariationAssignment'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/results:
+    get:
+      tags:
+        - Experiments
+      summary: Get experiment results
+      description: Get statistical analysis and results for an experiment
+      operationId: getExperimentResults
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      responses:
+        '200':
+          description: Experiment results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ExperimentResults'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================================
+  # STATS
+  # ============================================================================
+
+  /platforms/{platform}/environments/{environment}/stats/events:
+    post:
+      tags:
+        - Stats
+      summary: Batch event ingestion
+      description: Submit batch of analytics events from SDK
+      operationId: processBatchEvents
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchEvents'
+      responses:
+        '200':
+          description: Events processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      processed:
+                        type: integer
+                      failed:
+                        type: integer
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /internal/platforms/{platform}/environments/{environment}/configs/{configKey}/stats:
+    get:
+      tags:
+        - Stats
+      summary: Get config statistics
+      description: Get usage statistics for a configuration
+      operationId: getConfigStats
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - name: configKey
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Config statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ConfigStats'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/stats:
+    get:
+      tags:
+        - Stats
+      summary: Get flag statistics
+      description: Get usage statistics for a feature flag
+      operationId: getFlagStats
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/FlagKey'
+      responses:
+        '200':
+          description: Flag statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/FlagStats'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/stats/by-country:
+    get:
+      tags:
+        - Stats
+      summary: Get flag statistics by country
+      description: Get usage statistics for a feature flag grouped by country
+      operationId: getFlagStatsByCountry
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/FlagKey'
+      responses:
+        '200':
+          description: Flag statistics by country
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CountryStats'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/stats/daily:
+    get:
+      tags:
+        - Stats
+      summary: Get flag statistics daily time series
+      description: Get daily usage statistics for a feature flag
+      operationId: getFlagStatsDaily
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/FlagKey'
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+          description: Number of days to retrieve
+      responses:
+        '200':
+          description: Daily flag statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DailyStats'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/stats:
+    get:
+      tags:
+        - Stats
+      summary: Get experiment statistics
+      description: Get usage statistics for an experiment
+      operationId: getExperimentStats
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      responses:
+        '200':
+          description: Experiment statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ExperimentStats'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/conversions:
+    post:
+      tags:
+        - Stats
+      summary: Record experiment conversion
+      description: Record a conversion event for an experiment
+      operationId: recordConversion
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ExperimentKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - metricKey
+              properties:
+                userId:
+                  type: string
+                metricKey:
+                  type: string
+                value:
+                  type: number
+                  description: Numeric value for revenue/count metrics
+      responses:
+        '200':
+          description: Conversion recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
                   timestamp:
                     type: string
                     format: date-time
@@ -1590,6 +2557,45 @@ paths:
                     format: date-time
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /internal/cache/invalidate-all:
+    post:
+      tags:
+        - Cache
+      summary: Invalidate all CDN caches
+      description: Invalidate all CDN cache paths globally. Use with caution.
+      operationId: invalidateCacheAll
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: Global cache invalidation initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      invalidationId:
+                        type: string
+                      status:
+                        type: string
+                      paths:
+                        type: array
+                        items:
+                          type: string
+                  timestamp:
+                    type: string
+                    format: date-time
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1779,22 +2785,29 @@ components:
         type: string
       description: Environment name
 
-    VersionTimestamp:
-      name: versionTimestamp
+    Version:
+      name: version
       in: path
       required: true
       schema:
         type: string
-        format: date-time
-      description: ISO-8601 timestamp identifying the version
+      description: Version label (human-readable identifier, e.g., "v1.0.0", "1.2.3"). This is the versionLabel field, not the auto-generated versionTimestamp.
 
-    FlagName:
-      name: flagName
+    FlagKey:
+      name: flagKey
       in: path
       required: true
       schema:
         type: string
-      description: Feature flag name
+      description: Feature flag key identifier
+
+    ExperimentKey:
+      name: experimentKey
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Experiment key identifier
 
   schemas:
     PublicUser:
@@ -1922,6 +2935,7 @@ components:
         - platform
         - environment
         - versionTimestamp
+        - versionLabel
         - isStable
         - config
         - createdBy
@@ -1934,10 +2948,11 @@ components:
         versionTimestamp:
           type: string
           format: date-time
-          description: Auto-generated ISO-8601 timestamp
+          description: Auto-generated ISO-8601 timestamp for ordering
         versionLabel:
           type: string
-          description: Optional user-friendly label
+          pattern: '^\d+\.\d+\.\d+$'
+          description: Semantic version label (e.g., "1.0.0"). This is the primary identifier used in URLs.
         isStable:
           type: boolean
           default: false
@@ -1953,11 +2968,18 @@ components:
 
     FeatureFlag:
       type: object
+      description: |
+        Feature Flag with 2-value model (valueA/valueB) and geographic targeting.
+        For multi-variant testing (3+ variants), use Experiments instead.
       required:
         - platform
         - environment
-        - flagName
+        - flagKey
+        - name
         - enabled
+        - flagType
+        - valueA
+        - valueB
         - createdBy
         - createdAt
       properties:
@@ -1965,13 +2987,65 @@ components:
           type: string
         environment:
           type: string
-        flagName:
+        flagKey:
+          type: string
+          pattern: '^[a-z][a-z0-9-]*$'
+          description: Unique identifier (lowercase, hyphenated, must start with letter)
+        name:
+          type: string
+          description: Human-readable display name
+        description:
           type: string
         enabled:
           type: boolean
           default: false
-        description:
+          description: Master switch - when false, always serves defaultValue
+        flagType:
           type: string
+          enum: [boolean, string, number]
+          default: boolean
+        valueA:
+          oneOf:
+            - type: boolean
+            - type: string
+            - type: number
+          description: Primary value (served when conditions match)
+        valueB:
+          oneOf:
+            - type: boolean
+            - type: string
+            - type: number
+          description: Secondary value (fallback)
+        targeting:
+          $ref: '#/components/schemas/FlagTargeting'
+        defaultValue:
+          type: string
+          enum: [A, B]
+          default: B
+          description: Value to serve when no targeting matches
+        rolloutEnabled:
+          type: boolean
+          default: false
+          description: Enable percentage-based rollout
+        rolloutPercentageA:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 100
+          description: Percentage of users who receive valueA (0-100)
+        rolloutPercentageB:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 0
+          description: Percentage of users who receive valueB (auto-calculated as 100 - rolloutPercentageA)
+        version:
+          type: string
+          description: Semantic version string
+        isActive:
+          type: boolean
+          default: true
+          description: Whether this version is the active one
         createdBy:
           type: string
           format: email
@@ -1981,118 +3055,532 @@ components:
         updatedAt:
           type: string
           format: date-time
-        rolloutType:
-          type: string
-          enum: [simple, percentage, targeted]
-          default: simple
-          description: |
-            simple: Basic on/off toggle
-            percentage: Gradual rollout (0-100%)
-            targeted: Specific user targeting
-        rolloutPercentage:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: Percentage of users (percentage rollout only)
-        targetUserIds:
-          type: array
-          items:
-            type: string
-          description: Force-in list
-        excludeUserIds:
-          type: array
-          items:
-            type: string
-          description: Force-out list
-        targetCountries:
-          type: array
-          items:
-            type: string
-          description: Country filter (ISO 3166-1 alpha-2)
-        targetLanguages:
-          type: array
-          items:
-            type: string
-          description: Language filter (ISO 639-1)
 
-    CreateFeatureFlag:
+    FlagTargeting:
       type: object
+      description: Geographic and user-level targeting configuration
+      properties:
+        countries:
+          type: array
+          items:
+            $ref: '#/components/schemas/CountryTarget'
+          description: Country-level targeting rules
+        forceIncludeUsers:
+          type: array
+          items:
+            type: string
+          description: User IDs that always receive valueA
+        forceExcludeUsers:
+          type: array
+          items:
+            type: string
+          description: User IDs that always receive valueB
+
+    CountryTarget:
+      type: object
+      required:
+        - country
+        - serveValue
+      properties:
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO 3166-1 alpha-2 country code
+        serveValue:
+          type: string
+          enum: [A, B]
+        languages:
+          type: array
+          items:
+            $ref: '#/components/schemas/LanguageTarget'
+          description: Optional language-specific overrides within this country
+
+    LanguageTarget:
+      type: object
+      required:
+        - language
+        - serveValue
+      properties:
+        language:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO 639-1 language code
+        serveValue:
+          type: string
+          enum: [A, B]
+
+    Experiment:
+      type: object
+      description: A/B/n experiment with multiple variations and statistical analysis
       required:
         - platform
         - environment
-        - flagName
+        - experimentKey
+        - name
+        - status
+        - variations
         - createdBy
+        - createdAt
       properties:
         platform:
           type: string
         environment:
           type: string
-        flagName:
+        experimentKey:
           type: string
-        enabled:
-          type: boolean
-          default: false
+          description: Unique identifier
+        name:
+          type: string
         description:
           type: string
-        createdBy:
+        hypothesis:
           type: string
-          format: email
-        rolloutType:
+          description: What you expect to learn
+        status:
           type: string
-          enum: [simple, percentage, targeted]
-          default: simple
-        rolloutPercentage:
+          enum: [draft, running, paused, completed, archived]
+        variations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExperimentVariation'
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExperimentMetric'
+        targeting:
+          $ref: '#/components/schemas/ExperimentTargeting'
+        trafficAllocation:
           type: number
           minimum: 0
           maximum: 100
-        targetUserIds:
+          description: Percentage of traffic included in experiment
+        winningVariationKey:
+          type: string
+          description: Set when experiment is completed
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          format: email
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ExperimentVariation:
+      type: object
+      required:
+        - key
+        - name
+        - weight
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        weight:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Traffic percentage for this variation
+        isControl:
+          type: boolean
+          default: false
+        value:
+          description: The value returned to clients
+          oneOf:
+            - type: boolean
+            - type: string
+            - type: number
+            - type: object
+
+    ExperimentMetric:
+      type: object
+      required:
+        - key
+        - name
+        - metricType
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        metricType:
+          type: string
+          enum: [conversion, revenue, count]
+        successDirection:
+          type: string
+          enum: [increase, decrease]
+          default: increase
+        isPrimary:
+          type: boolean
+          default: false
+
+    ExperimentTargeting:
+      type: object
+      properties:
+        countries:
+          type: array
+          items:
+            type: object
+            properties:
+              country:
+                type: string
+              languages:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    language:
+                      type: string
+        forceIncludeUsers:
           type: array
           items:
             type: string
-        excludeUserIds:
-          type: array
-          items:
-            type: string
-        targetCountries:
-          type: array
-          items:
-            type: string
-        targetLanguages:
+        forceExcludeUsers:
           type: array
           items:
             type: string
 
-    UpdateFeatureFlag:
+    CreateExperiment:
       type: object
-      description: All fields optional for partial updates
+      required:
+        - experimentKey
+        - name
+        - variations
+        - createdBy
       properties:
-        enabled:
-          type: boolean
+        experimentKey:
+          type: string
+        name:
+          type: string
         description:
           type: string
-        rolloutType:
+        hypothesis:
           type: string
-          enum: [simple, percentage, targeted]
-        rolloutPercentage:
+        variations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExperimentVariation'
+          minItems: 2
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExperimentMetric'
+        targeting:
+          $ref: '#/components/schemas/ExperimentTargeting'
+        trafficAllocation:
           type: number
           minimum: 0
           maximum: 100
-        targetUserIds:
+          default: 100
+        createdBy:
+          type: string
+          format: email
+
+    UpdateExperiment:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        hypothesis:
+          type: string
+        variations:
           type: array
           items:
-            type: string
-        excludeUserIds:
+            $ref: '#/components/schemas/ExperimentVariation'
+        metrics:
           type: array
           items:
-            type: string
-        targetCountries:
+            $ref: '#/components/schemas/ExperimentMetric'
+        targeting:
+          $ref: '#/components/schemas/ExperimentTargeting'
+        trafficAllocation:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    VariationAssignment:
+      type: object
+      required:
+        - experimentKey
+        - variationKey
+        - inExperiment
+      properties:
+        experimentKey:
+          type: string
+        variationKey:
+          type: string
+        variationName:
+          type: string
+        value:
+          description: The variation value
+        inExperiment:
+          type: boolean
+          description: Whether user is part of the experiment traffic
+
+    ExperimentResults:
+      type: object
+      properties:
+        experimentKey:
+          type: string
+        status:
+          type: string
+        totalParticipants:
+          type: integer
+        variations:
           type: array
           items:
-            type: string
-        targetLanguages:
+            type: object
+            properties:
+              key:
+                type: string
+              name:
+                type: string
+              participants:
+                type: integer
+              conversionRate:
+                type: number
+              improvementOverControl:
+                type: number
+              statisticalSignificance:
+                type: number
+        recommendedWinner:
+          type: string
+        confidenceLevel:
+          type: number
+
+    BatchEvents:
+      type: object
+      required:
+        - events
+      properties:
+        events:
           type: array
           items:
-            type: string
+            type: object
+            required:
+              - eventType
+              - timestamp
+            properties:
+              eventType:
+                type: string
+                enum: [flag_evaluation, config_fetch, experiment_assignment, conversion]
+              timestamp:
+                type: string
+                format: date-time
+              flagKey:
+                type: string
+              experimentKey:
+                type: string
+              configKey:
+                type: string
+              userId:
+                type: string
+              country:
+                type: string
+              language:
+                type: string
+              value:
+                type: number
+              metadata:
+                type: object
+
+    ConfigStats:
+      type: object
+      properties:
+        configKey:
+          type: string
+        totalFetches:
+          type: integer
+        uniqueUsers:
+          type: integer
+        lastFetchedAt:
+          type: string
+          format: date-time
+
+    FlagStats:
+      type: object
+      properties:
+        flagKey:
+          type: string
+        totalEvaluations:
+          type: integer
+        uniqueUsers:
+          type: integer
+        valueACount:
+          type: integer
+        valueBCount:
+          type: integer
+        lastEvaluatedAt:
+          type: string
+          format: date-time
+
+    CountryStats:
+      type: object
+      properties:
+        country:
+          type: string
+        totalEvaluations:
+          type: integer
+        valueACount:
+          type: integer
+        valueBCount:
+          type: integer
+
+    DailyStats:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        totalEvaluations:
+          type: integer
+        uniqueUsers:
+          type: integer
+        valueACount:
+          type: integer
+        valueBCount:
+          type: integer
+
+    ExperimentStats:
+      type: object
+      properties:
+        experimentKey:
+          type: string
+        totalAssignments:
+          type: integer
+        uniqueUsers:
+          type: integer
+        variationStats:
+          type: array
+          items:
+            type: object
+            properties:
+              variationKey:
+                type: string
+              assignments:
+                type: integer
+              conversions:
+                type: integer
+              conversionRate:
+                type: number
+
+    CreateFeatureFlag:
+      type: object
+      required:
+        - flagKey
+        - name
+      properties:
+        flagKey:
+          type: string
+          pattern: '^[a-z][a-z0-9-]*$'
+          description: Unique identifier (lowercase, hyphenated, must start with letter)
+        name:
+          type: string
+          description: Human-readable display name
+        description:
+          type: string
+        enabled:
+          type: boolean
+          default: false
+        flagType:
+          type: string
+          enum: [boolean, string, number]
+          default: boolean
+        valueA:
+          oneOf:
+            - type: boolean
+            - type: string
+            - type: number
+          description: Primary value (defaults to true for boolean flags)
+        valueB:
+          oneOf:
+            - type: boolean
+            - type: string
+            - type: number
+          description: Secondary value (defaults to false for boolean flags)
+        targeting:
+          $ref: '#/components/schemas/FlagTargeting'
+        defaultValue:
+          type: string
+          enum: [A, B]
+          default: B
+        rolloutEnabled:
+          type: boolean
+          default: false
+          description: Enable percentage-based rollout
+        rolloutPercentageA:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 100
+          description: Percentage of users who receive valueA
+        rolloutPercentageB:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 0
+          description: Percentage of users who receive valueB
+        createdBy:
+          type: string
+          format: email
+
+    UpdateFeatureFlag:
+      type: object
+      description: All fields optional for partial updates. Creates a new version.
+      required:
+        - createdBy
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        valueA:
+          oneOf:
+            - type: boolean
+            - type: string
+            - type: number
+        valueB:
+          oneOf:
+            - type: boolean
+            - type: string
+            - type: number
+        targeting:
+          $ref: '#/components/schemas/FlagTargeting'
+        defaultValue:
+          type: string
+          enum: [A, B]
+        rolloutEnabled:
+          type: boolean
+          description: Enable percentage-based rollout
+        rolloutPercentageA:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Percentage of users who receive valueA
+        rolloutPercentageB:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Percentage of users who receive valueB
+        createdBy:
+          type: string
+          format: email
 
     EvaluationContext:
       type: object
@@ -2135,8 +3623,8 @@ components:
           description: Invalidate all caches for this environment (requires platform)
         version:
           type: string
-          format: date-time
-          description: Invalidate specific version (requires platform + environment)
+          pattern: '^\d+\.\d+\.\d+$'
+          description: Semantic version label to invalidate (requires platform + environment)
         global:
           type: boolean
           description: Invalidate all caches globally

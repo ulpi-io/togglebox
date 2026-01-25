@@ -154,5 +154,22 @@ export function createUserRoutes(
     userController.deleteUser
   );
 
+  /**
+   * PATCH /api/v1/users/:id/role
+   *
+   * Update user role.
+   *
+   * **Middleware:** authMiddleware.authenticate, authMiddleware.requirePermission('user:manage')
+   * **Handler:** {@link UserController.updateUserRole}
+   * **Authorization:** Admin only (user:manage permission)
+   * **Security:** Cannot demote yourself
+   */
+  router.patch(
+    '/:id/role',
+    authMiddleware.authenticate,
+    authMiddleware.requirePermission('user:manage'),
+    userController.updateUserRole
+  );
+
   return router;
 }

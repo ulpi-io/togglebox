@@ -23,13 +23,14 @@ import {
 
 describe('Example: Controller Testing with Dependency Injection', () => {
   let mockDb: ReturnType<typeof setupTestContainer>['mockDb'];
+  let mockThreeTier: ReturnType<typeof setupTestContainer>['mockThreeTier'];
   let mockCache: ReturnType<typeof setupTestContainer>['mockCache'];
 
   /**
    * Setup: Inject mock dependencies before each test
    */
   beforeEach(() => {
-    ({ mockDb, mockCache } = setupTestContainer());
+    ({ mockDb, mockThreeTier, mockCache } = setupTestContainer());
   });
 
   /**
@@ -92,49 +93,56 @@ describe('Example: Controller Testing with Dependency Injection', () => {
     });
   });
 
-  describe('FeatureFlagController', () => {
+  describe('FlagController', () => {
     it('should create a controller with injected dependencies', () => {
-      const controller = Container.createFeatureFlagController();
+      const controller = Container.createFlagController();
       expect(controller).toBeDefined();
     });
 
-    it('example: should create a feature flag', async () => {
+    it('example: should create a flag', async () => {
       // Arrange
       const mockFlag = {
         platform: 'web',
         environment: 'production',
-        flagName: 'new-feature',
-        enabled: true,
+        flagKey: 'new-feature',
+        name: 'New Feature',
         description: 'Test feature',
-        createdBy: 'test-user',
+        flagType: 'boolean' as const,
+        enabled: true,
+        valueA: true,
+        valueB: false,
+        version: '1.0.0',
+        isActive: true,
+        createdBy: 'test-user@example.com',
         createdAt: new Date().toISOString(),
-        rolloutType: 'simple' as const,
+        updatedAt: new Date().toISOString(),
       };
 
-      mockDb.featureFlag.createFeatureFlag.mockResolvedValue(mockFlag);
-      mockCache.invalidateCache.mockResolvedValue('invalidation-123');
+      mockThreeTier.flag.create.mockResolvedValue(mockFlag);
+      mockCache.invalidateFlagCache.mockResolvedValue('invalidation-123');
 
-      const controller = Container.createFeatureFlagController();
+      const controller = Container.createFlagController();
       const req = createMockRequest({
+        params: { platform: 'web', environment: 'production' },
         body: {
-          platform: 'web',
-          environment: 'production',
-          flagName: 'new-feature',
-          enabled: true,
+          flagKey: 'new-feature',
+          name: 'New Feature',
           description: 'Test feature',
-          createdBy: 'test-user',
-          rolloutType: 'simple',
+          flagType: 'boolean',
+          valueA: true,
+          valueB: false,
+          createdBy: 'test-user@example.com',
         },
       });
       const res = createMockResponse();
       const next = createMockNext();
 
       // Act
-      await controller.createFeatureFlag(req as any, res as any, next);
+      await controller.createFlag(req as any, res as any, next);
 
       // Assert
-      expect(mockDb.featureFlag.createFeatureFlag).toHaveBeenCalled();
-      expect(mockCache.invalidateCache).toHaveBeenCalled();
+      expect(mockThreeTier.flag.create).toHaveBeenCalled();
+      expect(mockCache.invalidateFlagCache).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(201);
     });
   });

@@ -221,8 +221,8 @@ import { RemoteConfigProvider, useRemoteConfig } from '@togglebox/sdk-expo';
 ```
 GET /api/v1/platforms/{platform}/environments/{env}/versions/latest
 GET /api/v1/platforms/{platform}/environments/{env}/versions/latest/stable
-GET /api/v1/platforms/{platform}/environments/{env}/feature-flags
-GET /api/v1/platforms/{platform}/environments/{env}/feature-flags/{flag}
+GET /api/v1/platforms/{platform}/environments/{env}/flags
+GET /api/v1/platforms/{platform}/environments/{env}/flags/{flagKey}
 ```
 
 ### Internal (Write operations)
@@ -231,7 +231,7 @@ GET /api/v1/platforms/{platform}/environments/{env}/feature-flags/{flag}
 POST   /api/v1/internal/platforms
 POST   /api/v1/internal/platforms/{platform}/environments
 POST   /api/v1/internal/platforms/{platform}/environments/{env}/versions
-PATCH  /api/v1/internal/platforms/{platform}/environments/{env}/feature-flags/{flag}/toggle
+PATCH  /api/v1/internal/platforms/{platform}/environments/{env}/flags/{flagKey}/toggle
 DELETE /api/v1/internal/platforms/{platform}
 ```
 

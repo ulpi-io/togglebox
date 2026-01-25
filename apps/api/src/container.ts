@@ -13,11 +13,14 @@
  * - Explicit dependency graph
  */
 
-import { getDatabase, DatabaseRepositories, resetDatabase } from '@togglebox/database';
+import { getDatabase, DatabaseRepositories, resetDatabase, getThreeTierRepositories, ThreeTierRepositories, resetThreeTierRepositories } from '@togglebox/database';
 import { createCacheProvider, CacheProvider, CacheConfig } from '@togglebox/cache';
+import { logger } from '@togglebox/shared';
 import { ConfigController } from './controllers/configController';
-import { FeatureFlagController } from './controllers/featureFlagController';
 import { WebhookController } from './controllers/webhookController';
+import { FlagController } from './controllers/flagController';
+import { ExperimentController } from './controllers/experimentController';
+import { StatsController } from './controllers/statsController';
 
 /**
  * Application Dependencies Container
@@ -28,6 +31,7 @@ import { WebhookController } from './controllers/webhookController';
  */
 export class Container {
   private static db: DatabaseRepositories | null = null;
+  private static threeTierRepos: ThreeTierRepositories | null = null;
   private static cacheProvider: CacheProvider | null = null;
 
   /**
@@ -50,12 +54,31 @@ export class Container {
    *
    * @remarks
    * For testing, use Container.setDependencies() to inject mock cache provider
+   *
+   * Validates provider configuration and defaults to 'none' if required credentials are missing:
+   * - CloudFront requires distributionId
+   * - Cloudflare requires zoneId and apiToken
    */
   static getCacheProvider(): CacheProvider {
     if (!this.cacheProvider) {
+      const envProvider = (process.env['CACHE_PROVIDER'] as 'cloudfront' | 'cloudflare' | 'none') || 'cloudfront';
+      let provider = envProvider;
+
+      // Validate CloudFront configuration
+      if (envProvider === 'cloudfront' && !process.env['CLOUDFRONT_DISTRIBUTION_ID']) {
+        logger.warn('Cache provider set to "cloudfront" but CLOUDFRONT_DISTRIBUTION_ID is missing. Defaulting to disabled cache.');
+        provider = 'none';
+      }
+
+      // Validate Cloudflare configuration
+      if (envProvider === 'cloudflare' && (!process.env['CLOUDFLARE_ZONE_ID'] || !process.env['CLOUDFLARE_API_TOKEN'])) {
+        logger.warn('Cache provider set to "cloudflare" but CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN is missing. Defaulting to disabled cache.');
+        provider = 'none';
+      }
+
       const config: CacheConfig = {
         enabled: process.env['CACHE_ENABLED'] === 'true',
-        provider: (process.env['CACHE_PROVIDER'] as 'cloudfront' | 'cloudflare' | 'none') || 'cloudfront',
+        provider,
         cloudfront: {
           distributionId: process.env['CLOUDFRONT_DISTRIBUTION_ID'],
           region: process.env['AWS_REGION'] || 'us-east-1',
@@ -71,20 +94,21 @@ export class Container {
   }
 
   /**
+   * Get or create three-tier repositories (flags, experiments, stats)
+   * Singleton pattern to reuse repositories across controllers
+   */
+  static getThreeTierRepositories(): ThreeTierRepositories {
+    if (!this.threeTierRepos) {
+      this.threeTierRepos = getThreeTierRepositories();
+    }
+    return this.threeTierRepos;
+  }
+
+  /**
    * Create ConfigController with injected dependencies
    */
   static createConfigController(): ConfigController {
     return new ConfigController(
-      this.getDatabase(),
-      this.getCacheProvider()
-    );
-  }
-
-  /**
-   * Create FeatureFlagController with injected dependencies
-   */
-  static createFeatureFlagController(): FeatureFlagController {
-    return new FeatureFlagController(
       this.getDatabase(),
       this.getCacheProvider()
     );
@@ -96,6 +120,35 @@ export class Container {
   static createWebhookController(): WebhookController {
     return new WebhookController(
       this.getCacheProvider()
+    );
+  }
+
+  /**
+   * Create FlagController with injected dependencies (Tier 2: 2-value flags)
+   */
+  static createFlagController(): FlagController {
+    return new FlagController(
+      this.getThreeTierRepositories(),
+      this.getCacheProvider()
+    );
+  }
+
+  /**
+   * Create ExperimentController with injected dependencies
+   */
+  static createExperimentController(): ExperimentController {
+    return new ExperimentController(
+      this.getThreeTierRepositories(),
+      this.getCacheProvider()
+    );
+  }
+
+  /**
+   * Create StatsController with injected dependencies
+   */
+  static createStatsController(): StatsController {
+    return new StatsController(
+      this.getThreeTierRepositories()
     );
   }
 
@@ -123,10 +176,14 @@ export class Container {
    */
   static setDependencies(dependencies: {
     db?: DatabaseRepositories;
+    threeTierRepos?: ThreeTierRepositories;
     cacheProvider?: CacheProvider;
   }): void {
     if (dependencies.db) {
       this.db = dependencies.db;
+    }
+    if (dependencies.threeTierRepos) {
+      this.threeTierRepos = dependencies.threeTierRepos;
     }
     if (dependencies.cacheProvider) {
       this.cacheProvider = dependencies.cacheProvider;
@@ -149,8 +206,10 @@ export class Container {
    */
   static reset(): void {
     this.db = null;
+    this.threeTierRepos = null;
     this.cacheProvider = null;
-    // Reset database package-level singleton
+    // Reset database package-level singletons
     resetDatabase();
+    resetThreeTierRepositories();
   }
 }

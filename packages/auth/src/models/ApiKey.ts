@@ -126,7 +126,7 @@ export type ApiKeyWithPlaintext = PublicApiKey & {
  * ```
  */
 export function getKeyPrefix(key: string): string {
-  return key.substring(0, 8);
+  return key.slice(0, 8);
 }
 
 /**
@@ -144,7 +144,7 @@ export function getKeyPrefix(key: string): string {
  * ```
  */
 export function getKeyLast4(key: string): string {
-  return key.substring(key.length - 4);
+  return key.slice(-4);
 }
 
 /**

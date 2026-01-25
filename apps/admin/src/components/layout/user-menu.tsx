@@ -2,79 +2,82 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { logoutAction } from '@/actions/auth';
-import { Button } from '@/components/ui/button';
-import type { User } from '@/lib/api/types';
+import { LogOut, User, Settings, ChevronDown } from 'lucide-react';
+import {
+  cn,
+  Button,
+  Badge,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@togglebox/ui';
+import type { User as UserType } from '@/lib/api/types';
 
 interface UserMenuProps {
-  user: User;
+  user: UserType;
 }
 
 export function UserMenu({ user }: UserMenuProps) {
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   async function handleLogout() {
     setIsLoggingOut(true);
+
     try {
-      await logoutAction();
-      router.push('/login');
+      await fetch('/api/logout', { method: 'POST' });
+      document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      window.location.href = '/login';
     } catch (error) {
-      setIsLoggingOut(false);
-      console.error('Logout failed:', error);
+      console.error('Logout error:', error);
+      window.location.href = '/login';
     }
   }
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 p-2 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors"
-      >
-        <div className="text-left">
-          <div className="text-sm font-bold">{user.email}</div>
-          <div className="text-xs opacity-70">{user.role}</div>
-        </div>
-      </button>
-
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 mt-2 w-64 border-2 border-black bg-white z-20">
-            <div className="p-4 border-b-2 border-black">
-              <div className="text-sm font-bold">{user.email}</div>
-              <div className="text-xs text-muted-foreground mt-1">Role: {user.role}</div>
-              <div className="text-xs text-muted-foreground">
-                Member since {new Date(user.createdAt).toLocaleDateString()}
-              </div>
-            </div>
-
-            <div className="p-2 space-y-1">
-              <button
-                onClick={() => {
-                  router.push('/profile');
-                  setIsOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-black hover:text-white transition-colors"
-              >
-                Profile Settings
-              </button>
-
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-destructive hover:text-white transition-colors disabled:opacity-50"
-              >
-                {isLoggingOut ? 'Logging out...' : 'Logout'}
-              </button>
-            </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="glass" className="gap-2 px-3">
+          <div className="hidden sm:block text-left">
+            <div className="text-sm font-medium truncate max-w-[150px]">{user.email}</div>
           </div>
-        </>
-      )}
-    </div>
+          <Badge
+            role={user.role as 'admin' | 'developer' | 'editor' | 'viewer'}
+            size="sm"
+            className="hidden xs:inline-flex"
+          >
+            {user.role.toUpperCase()}
+          </Badge>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{user.email}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              Member since {new Date(user.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push('/profile')}>
+          <User className="mr-2 h-4 w-4" />
+          <span>Profile Settings</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          destructive
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -6,7 +6,7 @@
  * Handles JSON serialization for configuration payloads and versioning logic.
  */
 
-import { Version } from '@togglebox/core';
+import { Version } from '@togglebox/configs';
 import { IConfigRepository, OffsetPaginationParams, TokenPaginationParams, OffsetPaginatedResult } from '../../interfaces';
 import { ConfigVersionModel, PlatformModel } from './schemas';
 
@@ -64,8 +64,8 @@ export class MongooseConfigRepository implements IConfigRepository {
       return {
         platform: doc.platform,
         environment: doc.environment,
-        versionTimestamp: doc.versionTimestamp,
         versionLabel: doc.versionLabel,
+        versionTimestamp: doc.versionTimestamp,
         isStable: doc.isStable,
         config: JSON.parse(doc.config),
         createdBy: doc.createdBy,
@@ -82,15 +82,22 @@ export class MongooseConfigRepository implements IConfigRepository {
     }
   }
 
+  /**
+   * Gets configuration version by versionLabel.
+   *
+   * @remarks
+   * Uses versionLabel as the human-readable identifier for consistency
+   * across all database adapters (DynamoDB, Prisma, D1, Mongoose).
+   */
   async getVersion(
     platform: string,
     environment: string,
-    versionTimestamp: string
+    versionLabel: string
   ): Promise<Version | null> {
     const doc = await ConfigVersionModel.findOne({
       platform,
       environment,
-      versionTimestamp,
+      versionLabel,
     }).exec();
 
     if (!doc) {
@@ -100,8 +107,8 @@ export class MongooseConfigRepository implements IConfigRepository {
     return {
       platform: doc.platform,
       environment: doc.environment,
-      versionTimestamp: doc.versionTimestamp,
       versionLabel: doc.versionLabel,
+      versionTimestamp: doc.versionTimestamp,
       isStable: doc.isStable,
       config: JSON.parse(doc.config),
       createdBy: doc.createdBy,
@@ -125,8 +132,8 @@ export class MongooseConfigRepository implements IConfigRepository {
     return {
       platform: doc.platform,
       environment: doc.environment,
-      versionTimestamp: doc.versionTimestamp,
       versionLabel: doc.versionLabel,
+      versionTimestamp: doc.versionTimestamp,
       isStable: doc.isStable,
       config: JSON.parse(doc.config),
       createdBy: doc.createdBy,
@@ -151,8 +158,8 @@ export class MongooseConfigRepository implements IConfigRepository {
       const items = docs.map(doc => ({
         platform: doc.platform,
         environment: doc.environment,
-        versionTimestamp: doc.versionTimestamp,
         versionLabel: doc.versionLabel,
+        versionTimestamp: doc.versionTimestamp,
         isStable: doc.isStable,
         config: JSON.parse(doc.config),
         createdBy: doc.createdBy,
@@ -174,8 +181,8 @@ export class MongooseConfigRepository implements IConfigRepository {
     const items = docs.map(doc => ({
       platform: doc.platform,
       environment: doc.environment,
-      versionTimestamp: doc.versionTimestamp,
       versionLabel: doc.versionLabel,
+      versionTimestamp: doc.versionTimestamp,
       isStable: doc.isStable,
       config: JSON.parse(doc.config),
       createdBy: doc.createdBy,
@@ -185,17 +192,61 @@ export class MongooseConfigRepository implements IConfigRepository {
     return { items, total };
   }
 
+  /**
+   * Deletes a configuration version by versionLabel.
+   *
+   * @remarks
+   * Uses versionLabel as the human-readable identifier for consistency
+   * across all database adapters (DynamoDB, Prisma, D1, Mongoose).
+   *
+   * @returns true if deleted, false if version doesn't exist
+   */
   async deleteVersion(
     platform: string,
     environment: string,
-    versionTimestamp: string
+    versionLabel: string
   ): Promise<boolean> {
     const result = await ConfigVersionModel.deleteOne({
       platform,
       environment,
-      versionTimestamp,
+      versionLabel,
     }).exec();
 
     return result.deletedCount > 0;
+  }
+
+  /**
+   * Marks a configuration version as stable.
+   *
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @param versionLabel - Version label to mark as stable
+   * @returns Updated version if found, null otherwise
+   */
+  async markVersionStable(
+    platform: string,
+    environment: string,
+    versionLabel: string
+  ): Promise<Version | null> {
+    const doc = await ConfigVersionModel.findOneAndUpdate(
+      { platform, environment, versionLabel },
+      { isStable: true },
+      { new: true }
+    ).exec();
+
+    if (!doc) {
+      return null;
+    }
+
+    return {
+      platform: doc.platform,
+      environment: doc.environment,
+      versionLabel: doc.versionLabel,
+      versionTimestamp: doc.versionTimestamp,
+      isStable: doc.isStable,
+      config: JSON.parse(doc.config),
+      createdBy: doc.createdBy,
+      createdAt: doc.createdAt,
+    };
   }
 }

@@ -195,7 +195,7 @@ export function createAuthMiddleware(config: AuthConfig) {
       return;
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const token = authHeader.slice(7); // Remove 'Bearer ' prefix
 
     try {
       const decoded = verifyJWT(token);
@@ -204,13 +204,13 @@ export function createAuthMiddleware(config: AuthConfig) {
       }
 
       // Verify user still exists
-      const user = await userService.getUserById(decoded.userId);
+      const user = await userService.getUserById(decoded.id);
       if (!user) {
         throw new Error('User not found');
       }
 
       req.user = {
-        userId: decoded.userId,
+        userId: decoded.id,
         email: decoded.email,
         role: decoded.role,
       };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Label } from '@/components/ui/label';
+import { Button, Label } from '@togglebox/ui';
 
 interface JsonEditorProps {
   name: string;
@@ -53,15 +53,16 @@ export function JsonEditor({ name, value, onChange, disabled }: JsonEditorProps)
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label htmlFor={name}>Configuration JSON</Label>
-        <button
+        <Label htmlFor={name}>Remote Config JSON</Label>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={formatJson}
           disabled={disabled || !isValid}
-          className="text-sm px-3 py-1 border-2 border-black hover:bg-black hover:text-white transition-colors disabled:opacity-50"
         >
           Format JSON
-        </button>
+        </Button>
       </div>
 
       <textarea
@@ -71,8 +72,8 @@ export function JsonEditor({ name, value, onChange, disabled }: JsonEditorProps)
         onChange={(e) => handleChange(e.target.value)}
         disabled={disabled}
         className={`w-full min-h-[400px] p-4 font-mono text-sm border-2 ${
-          isValid ? 'border-black' : 'border-destructive'
-        } focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50`}
+          isValid ? 'border-border' : 'border-destructive'
+        } focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50`}
         placeholder='{"key": "value"}'
       />
 
@@ -83,7 +84,7 @@ export function JsonEditor({ name, value, onChange, disabled }: JsonEditorProps)
       )}
 
       <p className="text-xs text-muted-foreground">
-        Enter your configuration as valid JSON. Use the Format button to beautify.
+        Enter your remote config as valid JSON. Use the Format button to beautify.
       </p>
     </div>
   );

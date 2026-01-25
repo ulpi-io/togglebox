@@ -58,10 +58,34 @@ export class NoOpCacheProvider implements CacheProvider {
   }
 
   /**
-   * No-op feature flag cache invalidation
+   * No-op flag cache invalidation
    */
-  async invalidateFeatureFlagCache(_platform: string, _environment: string, _flagName: string): Promise<null> {
-    logger.debug('Feature flag cache invalidation skipped (caching disabled)', { provider: 'noop' });
+  async invalidateFlagCache(_platform: string, _environment: string, _flagKey: string): Promise<null> {
+    logger.debug('Flag cache invalidation skipped (caching disabled)', { provider: 'noop' });
+    return null;
+  }
+
+  /**
+   * No-op experiment cache invalidation
+   */
+  async invalidateExperimentCache(_platform: string, _environment: string, _experimentKey: string): Promise<null> {
+    logger.debug('Experiment cache invalidation skipped (caching disabled)', { provider: 'noop' });
+    return null;
+  }
+
+  /**
+   * No-op all experiments cache invalidation
+   */
+  async invalidateAllExperimentsCache(_platform: string, _environment: string): Promise<null> {
+    logger.debug('All experiments cache invalidation skipped (caching disabled)', { provider: 'noop' });
+    return null;
+  }
+
+  /**
+   * No-op stats cache invalidation
+   */
+  async invalidateStatsCache(_platform: string, _environment: string): Promise<null> {
+    logger.debug('Stats cache invalidation skipped (caching disabled)', { provider: 'noop' });
     return null;
   }
 

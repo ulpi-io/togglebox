@@ -36,7 +36,7 @@ import {
   PasswordResetToken,
   CreatePasswordResetTokenData,
 } from '../../models/PasswordResetToken';
-import { dynamoDBClient, getAuthTableName } from './database';
+import { dynamoDBClient, getPasswordResetsTableName } from './database';
 
 /**
  * Create a new password reset token in DynamoDB.
@@ -71,7 +71,7 @@ export async function createPasswordResetToken(
   };
 
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getPasswordResetsTableName(),
     Item: {
       PK: `RESET#${token.id}`,
       SK: `RESET#${token.id}`,
@@ -115,7 +115,7 @@ export async function findPasswordResetTokenById(
   id: string
 ): Promise<PasswordResetToken | null> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getPasswordResetsTableName(),
     Key: {
       PK: `RESET#${id}`,
       SK: `RESET#${id}`,
@@ -148,7 +148,7 @@ export async function findPasswordResetTokenByTokenHash(
   tokenHash: string
 ): Promise<PasswordResetToken | null> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getPasswordResetsTableName(),
     IndexName: 'GSI2',
     KeyConditionExpression: 'GSI2PK = :pk',
     ExpressionAttributeValues: {
@@ -186,7 +186,7 @@ export async function findValidPasswordResetTokensByUser(
   const now = new Date().toISOString();
 
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getPasswordResetsTableName(),
     IndexName: 'GSI1',
     KeyConditionExpression: 'GSI1PK = :pk AND GSI1SK > :now',
     ExpressionAttributeValues: {
@@ -214,7 +214,7 @@ export async function findValidPasswordResetTokensByUser(
  */
 export async function deletePasswordResetToken(id: string): Promise<void> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getPasswordResetsTableName(),
     Key: {
       PK: `RESET#${id}`,
       SK: `RESET#${id}`,
@@ -241,7 +241,7 @@ export async function deletePasswordResetToken(id: string): Promise<void> {
  */
 export async function deletePasswordResetTokensByUser(userId: string): Promise<void> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getPasswordResetsTableName(),
     IndexName: 'GSI1',
     KeyConditionExpression: 'GSI1PK = :pk',
     ExpressionAttributeValues: {
@@ -283,7 +283,7 @@ export async function deleteExpiredPasswordResetTokens(): Promise<number> {
 
   // Scan for expired tokens
   const params: any = {
-    TableName: getAuthTableName(),
+    TableName: getPasswordResetsTableName(),
     FilterExpression: 'begins_with(PK, :pk) AND expiresAt < :now',
     ExpressionAttributeValues: {
       ':pk': 'RESET#',

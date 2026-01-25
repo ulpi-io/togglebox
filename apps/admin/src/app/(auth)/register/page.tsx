@@ -1,15 +1,47 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { registerAction } from '@/actions/auth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { registerApi } from '@/lib/api/auth';
+import {
+  Button,
+  Input,
+  Label,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@togglebox/ui';
+import { setCookie } from '@/lib/utils/cookies';
 
 export default function RegisterPage() {
-  const [state, formAction, pending] = useActionState(registerAction, null);
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+      const response = await registerApi(email, password);
+      // Store token in cookie
+      setCookie('auth-token', response.token, 7);
+      router.push('/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <Card>
@@ -17,7 +49,7 @@ export default function RegisterPage() {
         <CardTitle>Register</CardTitle>
         <CardDescription>Create a new account to get started</CardDescription>
       </CardHeader>
-      <form action={formAction}>
+      <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -27,11 +59,8 @@ export default function RegisterPage() {
               type="email"
               placeholder="user@example.com"
               required
-              disabled={pending}
+              disabled={isLoading}
             />
-            {state?.errors?.email && (
-              <p className="text-sm text-destructive">{state.errors.email[0]}</p>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -41,26 +70,23 @@ export default function RegisterPage() {
               name="password"
               type="password"
               required
-              disabled={pending}
+              disabled={isLoading}
             />
             <p className="text-xs text-muted-foreground">
               Must contain uppercase, lowercase, and number
             </p>
-            {state?.errors?.password && (
-              <p className="text-sm text-destructive">{state.errors.password[0]}</p>
-            )}
           </div>
 
-          {state?.error && (
+          {error && (
             <div className="border-2 border-destructive p-3">
-              <p className="text-sm text-destructive">{state.error}</p>
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
         </CardContent>
 
         <CardFooter className="flex-col space-y-4">
-          <Button type="submit" disabled={pending} className="w-full">
-            {pending ? 'Creating account...' : 'Register'}
+          <Button type="submit" disabled={isLoading} className="w-full">
+            {isLoading ? 'Creating account...' : 'Register'}
           </Button>
 
           <div className="text-sm text-center">

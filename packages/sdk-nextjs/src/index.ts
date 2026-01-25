@@ -1,6 +1,15 @@
-// Provider and hooks
-export { ToggleBoxProvider } from './provider'
-export { useToggleBox, useConfig, useFeatureFlag, useFeatureFlags } from './hooks'
+// Provider and context
+export { ToggleBoxProvider, useToggleBoxContext } from './provider'
+
+// Hooks
+export {
+  useToggleBox,
+  useConfig,
+  useFlags,
+  useFlag,
+  useExperiments,
+  useExperiment,
+} from './hooks'
 
 // Server-side helpers
 export { getServerSideConfig, getStaticConfig } from './server'
@@ -10,9 +19,19 @@ export type { ToggleBoxProviderProps, ToggleBoxContextValue } from './types'
 
 // Re-export from sdk for convenience
 export { ToggleBoxClient } from '@togglebox/sdk'
+export type { ClientOptions, Config } from '@togglebox/sdk'
+
+// Re-export types from packages for convenience
 export type {
-  ClientOptions,
-  Config,
-  FeatureFlag,
-  EvaluationContext,
+  Flag,
+  FlagContext,
+  FlagResult,
+  FlagValue,
+} from '@togglebox/sdk'
+
+export type {
+  Experiment,
+  ExperimentContext,
+  ExperimentVariation,
+  VariantAssignment,
 } from '@togglebox/sdk'

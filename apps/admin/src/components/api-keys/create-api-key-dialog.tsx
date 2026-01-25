@@ -1,115 +1,161 @@
 'use client';
 
-import { useActionState, useState } from 'react';
-import { createApiKeyAction } from '@/actions/api-keys';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Copy, Check } from 'lucide-react';
+import { createApiKeyApi } from '@/lib/api/api-keys';
+import {
+  Button,
+  Input,
+  Label,
+  Alert,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogBody,
+} from '@togglebox/ui';
 
-export function CreateApiKeyDialog() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(createApiKeyAction, null);
+interface ApiKeyResult {
+  apiKey?: string;
+}
 
-  function handleClose() {
-    setIsOpen(false);
+interface CreateApiKeyDialogProps {
+  onSuccess?: () => void;
+}
+
+export function CreateApiKeyDialog({ onSuccess }: CreateApiKeyDialogProps) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ApiKeyResult | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+
+    try {
+      const apiKey = await createApiKeyApi(name);
+      setResult({ apiKey: apiKey.key });
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.refresh();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  if (!isOpen) {
-    return (
-      <Button onClick={() => setIsOpen(true)}>
-        Create API Key
-      </Button>
-    );
+  function handleOpenChange(newOpen: boolean) {
+    // Reset state when opening or closing
+    setError(null);
+    setResult(null);
+    setCopied(false);
+    setOpen(newOpen);
+  }
+
+  async function handleCopy() {
+    if (result?.apiKey) {
+      await navigator.clipboard.writeText(result.apiKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white max-w-lg w-full border-2 border-black">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create API Key</CardTitle>
-            <CardDescription>Generate a new API key for programmatic access</CardDescription>
-          </CardHeader>
-          <form action={formAction}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Key Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="e.g., Production Server, CI/CD Pipeline"
-                  required
-                  disabled={pending || state?.success}
-                />
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button>Create API Key</Button>
+      </DialogTrigger>
+      <DialogContent size="lg">
+        <DialogHeader>
+          <DialogTitle>Create API Key</DialogTitle>
+          <DialogDescription>Generate a new API key for programmatic access</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <DialogBody className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Key Name</Label>
+              <Input
+                id="name"
+                name="name"
+                placeholder="e.g., Production Server, CI/CD Pipeline"
+                required
+                disabled={isLoading || !!result?.apiKey}
+              />
+              <p className="text-xs text-muted-foreground">
+                A descriptive name to identify this API key
+              </p>
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                {error}
+              </Alert>
+            )}
+
+            {result?.apiKey && (
+              <div className="glass-card p-4 space-y-3">
+                <div className="font-semibold text-sm">Copy this key now!</div>
                 <p className="text-xs text-muted-foreground">
-                  A descriptive name to identify this API key
+                  This key will only be shown once. Store it securely.
                 </p>
-                {state?.errors?.name && (
-                  <p className="text-sm text-destructive">{state.errors.name[0]}</p>
-                )}
-              </div>
-
-              {state?.error && (
-                <div className="border-2 border-destructive p-3">
-                  <p className="text-sm text-destructive">{state.error}</p>
-                </div>
-              )}
-
-              {state?.success && state?.apiKey && (
-                <div className="border-2 border-black p-4 space-y-3">
-                  <div className="font-black text-sm">⚠️ Copy this key now!</div>
-                  <p className="text-xs text-muted-foreground">
-                    This key will only be shown once. Store it securely.
-                  </p>
-                  <div className="p-3 bg-gray-50 border-2 border-black font-mono text-xs break-all">
-                    {state.apiKey}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 p-3 bg-gray-50 rounded-lg font-mono text-xs break-all border border-black/10">
+                    {result.apiKey}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (state.apiKey) {
-                        navigator.clipboard.writeText(state.apiKey);
-                        alert('API key copied to clipboard!');
-                      }
-                    }}
-                    className="w-full p-2 border-2 border-black hover:bg-black hover:text-white transition-colors font-bold"
-                  >
-                    Copy to Clipboard
-                  </button>
-                </div>
-              )}
-            </CardContent>
-
-            <CardFooter className="flex space-x-2">
-              {!state?.success ? (
-                <>
-                  <Button type="submit" disabled={pending} className="flex-1">
-                    {pending ? 'Creating...' : 'Create API Key'}
-                  </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleClose}
-                    disabled={pending}
-                    className="flex-1"
+                    size="icon"
+                    onClick={handleCopy}
                   >
-                    Cancel
+                    {copied ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
                   </Button>
-                </>
-              ) : (
+                </div>
+              </div>
+            )}
+          </DialogBody>
+
+          <DialogFooter>
+            {!result?.apiKey ? (
+              <>
                 <Button
                   type="button"
-                  onClick={handleClose}
-                  className="flex-1"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={isLoading}
                 >
-                  Done
+                  Cancel
                 </Button>
-              )}
-            </CardFooter>
-          </form>
-        </Card>
-      </div>
-    </div>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Creating...' : 'Create API Key'}
+                </Button>
+              </>
+            ) : (
+              <Button type="button" onClick={() => setOpen(false)}>
+                Done
+              </Button>
+            )}
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

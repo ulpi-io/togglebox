@@ -50,6 +50,7 @@ docker/certs/openssl.cnf
 
 # DynamoDB Local data
 dynamodb_data/
+docker/data/
 
 # Docker override files
 docker-compose.override.yml

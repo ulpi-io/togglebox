@@ -1,13 +1,16 @@
 /**
  * @togglebox/core
  *
- * Core business logic for remote config service.
- * Contains Zod schemas and feature flag evaluation logic.
- * Zero backend dependencies - can be used in frontend SDKs.
+ * Shared utilities and types for the ToggleBox ecosystem.
+ *
+ * @remarks
+ * This package provides shared types and utilities that are used by multiple packages.
+ * For domain-specific schemas, use the appropriate package:
+ * - Remote Configs: @togglebox/configs (Tier 1)
+ * - Feature Flags: @togglebox/flags (Tier 2)
+ * - Experiments: @togglebox/experiments (Tier 3)
+ * - Stats: @togglebox/stats
  */
 
-// Export all schemas and types
 export * from './schemas';
-
-// Export feature flag evaluator
-export * from './evaluator';
+export * from './hash';

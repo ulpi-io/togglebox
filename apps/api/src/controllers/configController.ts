@@ -1,9 +1,34 @@
 import { Request, Response, NextFunction } from 'express';
 import { DatabaseRepositories } from '@togglebox/database';
 import { logger, withDatabaseContext, getTokenPaginationParams, createPaginationMeta } from '@togglebox/shared';
-import { CreateVersionSchema, CacheInvalidationSchema } from '@togglebox/core';
 import { CacheProvider } from '@togglebox/cache';
 import { z } from 'zod';
+import { Version, CacheInvalidationSchema } from '@togglebox/configs';
+
+/**
+ * Zod schema for platform creation validation
+ */
+const CreatePlatformSchema = z.object({
+  name: z.string()
+    .min(1, 'Platform name is required')
+    .max(100, 'Platform name must be 100 characters or less')
+    .regex(/^[a-zA-Z0-9-_]+$/, 'Platform name can only contain letters, numbers, hyphens, and underscores'),
+  description: z.string()
+    .max(500, 'Description must be 500 characters or less')
+    .optional(),
+});
+
+/**
+ * Zod schema for version creation body validation.
+ * Platform, environment, and createdBy are extracted from URL params and JWT token.
+ */
+const CreateVersionBodySchema = z.object({
+  version: z.string()
+    .min(1, 'Version is required')
+    .regex(/^\d+\.\d+\.\d+$/, 'Version must be in semver format (e.g., 1.0.0)'),
+  config: z.record(z.unknown()),
+  isStable: z.boolean().optional().default(false),
+});
 
 /**
  * Controller handling all configuration-related HTTP requests.
@@ -61,7 +86,25 @@ export class ConfigController {
    */
   createVersion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const validatedData = CreateVersionSchema.parse(req.body);
+      // Extract platform and environment from URL params
+      const { platform, environment } = req.params as { platform: string; environment: string };
+
+      // Get createdBy from authenticated user (set by requireAuth middleware)
+      const user = (req as unknown as { user?: { email?: string } }).user;
+      const createdBy = user?.email || 'system@togglebox.dev';
+
+      // Validate body fields only (platform, environment, createdBy come from params/user)
+      const bodyData = CreateVersionBodySchema.parse(req.body);
+
+      // Combine extracted values with body data
+      const validatedData: Omit<Version, 'versionTimestamp' | 'createdAt'> = {
+        platform,
+        environment,
+        createdBy,
+        versionLabel: bodyData.version, // Map 'version' to 'versionLabel'
+        config: bodyData.config as Version['config'],
+        isStable: bodyData.isStable,
+      };
 
       // Execute all database operations with correct table prefix from request context
       await withDatabaseContext(req, async () => {
@@ -111,23 +154,22 @@ export class ConfigController {
   /**
    * Retrieves a specific configuration version.
    *
-   * @param req - Express request with platform, environment, versionTimestamp in params
+   * @param req - Express request with platform, environment, version in params
    * @param res - Express response object
    * @param next - Express next function for error handling
    *
    * @remarks
-   * The versionTimestamp parameter is the ISO-8601 timestamp identifier
-   * (e.g., "2024-11-22T10:34:56.789Z") returned when the version was created.
+   * The version parameter is the semantic version label (e.g., "1.0.0").
    *
    * @returns HTTP 200 with version data, or 404 if not found
    */
   getVersion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { platform, environment, versionTimestamp } = req.params as { platform: string; environment: string; versionTimestamp: string };
+      const { platform, environment, version } = req.params as { platform: string; environment: string; version: string };
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const result = await this.db.config.getVersion(platform, environment, versionTimestamp);
+        const result = await this.db.config.getVersion(platform, environment, version);
         const duration = Date.now() - startTime;
 
         logger.logDatabaseOperation('getVersion', 'configurations', duration, true);
@@ -247,12 +289,13 @@ export class ConfigController {
           }
         } else {
           // Token-based pagination (DynamoDB) - single page
+          const tokenResult = result as { items: typeof result.items; nextToken?: string };
           res.json({
             success: true,
             data: result.items,
             meta: {
-              nextToken: result.nextToken,
-              hasMore: !!result.nextToken,
+              nextToken: tokenResult.nextToken,
+              hasMore: !!tokenResult.nextToken,
             },
             timestamp: new Date().toISOString(),
           });
@@ -266,13 +309,12 @@ export class ConfigController {
   /**
    * Deletes a configuration version.
    *
-   * @param req - Express request with platform, environment, versionTimestamp in params
+   * @param req - Express request with platform, environment, version in params
    * @param res - Express response object
    * @param next - Express next function for error handling
    *
    * @remarks
-   * The versionTimestamp parameter is the ISO-8601 timestamp identifier
-   * (e.g., "2024-11-22T10:34:56.789Z") returned when the version was created.
+   * The version parameter is the semantic version label (e.g., "1.0.0").
    *
    * **Cache Invalidation:**
    * Automatically invalidates CloudFront cache for "latest" queries.
@@ -282,11 +324,11 @@ export class ConfigController {
    */
   deleteVersion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { platform, environment, versionTimestamp } = req.params as { platform: string; environment: string; versionTimestamp: string };
+      const { platform, environment, version } = req.params as { platform: string; environment: string; version: string };
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const deleted = await this.db.config.deleteVersion(platform, environment, versionTimestamp);
+        const deleted = await this.db.config.deleteVersion(platform, environment, version);
         const duration = Date.now() - startTime;
 
         logger.logDatabaseOperation('deleteVersion', 'configurations', duration, true);
@@ -300,7 +342,7 @@ export class ConfigController {
           return;
         }
 
-        logger.info(`Deleted version ${versionTimestamp} for platform ${platform} and environment ${environment}`);
+        logger.info(`Deleted version ${version} for platform ${platform} and environment ${environment}`);
 
         // Invalidate "latest" query caches only (deletion affects aggregate queries)
         const cachePaths = [
@@ -322,6 +364,57 @@ export class ConfigController {
   };
 
   /**
+   * Marks a configuration version as stable.
+   *
+   * @param req - Express request with platform, environment, version in params
+   * @param res - Express response object
+   * @param next - Express next function for error handling
+   *
+   * @returns HTTP 200 with updated version, or 404 if not found
+   */
+  markVersionStable = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment, version } = req.params as { platform: string; environment: string; version: string };
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        const result = await this.db.config.markVersionStable(platform, environment, version);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('markVersionStable', 'configurations', duration, true);
+
+        if (!result) {
+          res.status(404).json({
+            success: false,
+            error: 'Version not found',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        logger.info(`Marked version ${version} as stable for platform ${platform} and environment ${environment}`);
+
+        // Invalidate stable version cache
+        const cachePaths = [
+          `/api/v1/platforms/${platform}/environments/${environment}/versions/latest/stable`,
+        ];
+
+        this.cacheProvider.invalidateCache(cachePaths).catch(err => {
+          logger.error('Cache invalidation failed (non-blocking)', err);
+        });
+
+        res.json({
+          success: true,
+          data: result,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
    * Creates a new platform.
    *
    * @param req - Express request containing platform data in body (name, description)
@@ -335,26 +428,16 @@ export class ConfigController {
    */
   createPlatform = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { name, description } = req.body;
-
-      if (!name || typeof name !== 'string') {
-        res.status(422).json({
-          success: false,
-          error: 'Platform name is required',
-          code: 'VALIDATION_FAILED',
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
+      const validatedData = CreatePlatformSchema.parse(req.body);
 
       await withDatabaseContext(req, async () => {
         const platform = await this.db.platform.createPlatform({
-          name,
-          description,
+          name: validatedData.name,
+          description: validatedData.description,
           createdAt: new Date().toISOString(),
         });
 
-        logger.info(`Created platform ${name}`);
+        logger.info(`Created platform ${validatedData.name}`);
 
         res.status(201).json({
           success: true,
@@ -363,6 +446,16 @@ export class ConfigController {
         });
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          code: 'VALIDATION_FAILED',
+          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       next(error);
     }
   };
@@ -396,6 +489,58 @@ export class ConfigController {
           data: platform,
           timestamp: new Date().toISOString(),
         });
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Deletes a platform and all its associated data.
+   *
+   * @param req - Express request with platform name in params
+   * @param res - Express response object
+   * @param next - Express next function for error handling
+   *
+   * @remarks
+   * **WARNING: This is a destructive operation!**
+   * Deletes the platform and all associated environments, configurations, and feature flags.
+   *
+   * **Cache Invalidation:**
+   * Automatically invalidates all caches related to this platform.
+   *
+   * @returns HTTP 204 No Content on success, or 404 if not found
+   */
+  deletePlatform = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform } = req.params as { platform: string };
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        const deleted = await this.db.platform.deletePlatform(platform);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('deletePlatform', 'platforms', duration, true);
+
+        if (!deleted) {
+          res.status(404).json({
+            success: false,
+            error: 'Platform not found',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        logger.info(`Deleted platform ${platform} and all associated data`);
+
+        // Invalidate all caches for this platform
+        const cachePaths = this.cacheProvider.generateCachePaths(platform);
+        this.cacheProvider.invalidateCache(cachePaths).catch(err => {
+          logger.error('Cache invalidation failed (non-blocking)', err);
+        });
+
+        // HTTP 204 No Content - successful DELETE with no response body
+        res.status(204).send();
       });
     } catch (error) {
       next(error);
@@ -451,12 +596,13 @@ export class ConfigController {
           }
         } else {
           // Token-based pagination (DynamoDB) - single page
+          const tokenResult = result as { items: typeof result.items; nextToken?: string };
           res.json({
             success: true,
             data: result.items,
             meta: {
-              nextToken: result.nextToken,
-              hasMore: !!result.nextToken,
+              nextToken: tokenResult.nextToken,
+              hasMore: !!tokenResult.nextToken,
             },
             timestamp: new Date().toISOString(),
           });
@@ -562,6 +708,58 @@ export class ConfigController {
   };
 
   /**
+   * Deletes an environment and all its associated data.
+   *
+   * @param req - Express request with platform and environment in params
+   * @param res - Express response object
+   * @param next - Express next function for error handling
+   *
+   * @remarks
+   * **WARNING: This is a destructive operation!**
+   * Deletes the environment and all associated configurations, feature flags, and experiments.
+   *
+   * **Cache Invalidation:**
+   * Automatically invalidates all caches related to this environment.
+   *
+   * @returns HTTP 204 No Content on success, or 404 if not found
+   */
+  deleteEnvironment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment } = req.params as { platform: string; environment: string };
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        const deleted = await this.db.environment.deleteEnvironment(platform, environment);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('deleteEnvironment', 'environments', duration, true);
+
+        if (!deleted) {
+          res.status(404).json({
+            success: false,
+            error: 'Environment not found',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        logger.info(`Deleted environment ${environment} for platform ${platform} and all associated data`);
+
+        // Invalidate all caches for this environment
+        const cachePaths = this.cacheProvider.generateCachePaths(platform, environment);
+        this.cacheProvider.invalidateCache(cachePaths).catch(err => {
+          logger.error('Cache invalidation failed (non-blocking)', err);
+        });
+
+        // HTTP 204 No Content - successful DELETE with no response body
+        res.status(204).send();
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
    * Lists all environments for a platform.
    *
    * Supports pagination via query parameters:
@@ -611,16 +809,54 @@ export class ConfigController {
           }
         } else {
           // Token-based pagination (DynamoDB) - single page
+          const tokenResult = result as { items: typeof result.items; nextToken?: string };
           res.json({
             success: true,
             data: result.items,
             meta: {
-              nextToken: result.nextToken,
-              hasMore: !!result.nextToken,
+              nextToken: tokenResult.nextToken,
+              hasMore: !!tokenResult.nextToken,
             },
             timestamp: new Date().toISOString(),
           });
         }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Invalidates all CloudFront/CDN caches globally.
+   *
+   * @param req - Express request
+   * @param res - Express response object
+   * @param next - Express next function for error handling
+   *
+   * @remarks
+   * **WARNING: This invalidates ALL cached configurations globally!**
+   * Use this endpoint carefully as it will invalidate all caches for all platforms,
+   * environments, and versions. This is typically used for emergency cache busting
+   * or after major infrastructure changes.
+   *
+   * @returns HTTP 200 with invalidation details
+   */
+  invalidateAllCache = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const invalidationId = await this.cacheProvider.invalidateGlobalCache();
+
+      if (invalidationId) {
+        logger.logCloudFrontInvalidation(invalidationId, ['/*'], true);
+      }
+      logger.info(`Created global cache invalidation ${invalidationId || 'skipped'}`);
+
+      // Return JSON response with invalidation details
+      res.status(200).json({
+        success: true,
+        message: 'Global cache invalidation initiated',
+        invalidatedPaths: ['/*'],
+        invalidationId: invalidationId || null,
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       next(error);
@@ -658,7 +894,9 @@ export class ConfigController {
       const invalidationId = await this.cacheProvider.invalidateCache(paths);
       const duration = Date.now() - startTime;
 
-      logger.logCloudFrontInvalidation(invalidationId, paths, true);
+      if (invalidationId) {
+        logger.logCloudFrontInvalidation(invalidationId, paths, true);
+      }
       logger.info(`Created cache invalidation ${invalidationId || 'skipped'} for paths: ${paths.join(', ')}`);
 
       res.json({

@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  transpilePackages: ['@togglebox/ui'],
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',

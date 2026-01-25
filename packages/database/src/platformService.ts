@@ -19,9 +19,20 @@
 
 import { Platform } from '@togglebox/core';
 import { v4 as uuidv4 } from 'uuid';
-import { dynamoDBClient, getTableName } from './database';
+import { dynamoDBClient, getPlatformsTableName } from './database';
 import { TokenPaginationParams, TokenPaginatedResult } from './interfaces/IPagination';
-import { PutCommand, GetCommand, QueryCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand, DeleteCommand, ScanCommand, ScanCommandInput } from '@aws-sdk/lib-dynamodb';
+
+/**
+ * Type guard for DynamoDB errors with a name property.
+ * AWS SDK v3 uses error.name for exception types (e.g., 'ConditionalCheckFailedException').
+ *
+ * @param error - Unknown error object
+ * @returns True if error is an Error with a name property
+ */
+function isDynamoDBError(error: unknown): error is Error & { name: string } {
+  return error instanceof Error && typeof error.name === 'string';
+}
 
 /**
  * Creates a new platform.
@@ -66,21 +77,19 @@ export async function createPlatform(platform: Omit<Platform, 'id'>): Promise<Pl
   };
 
   const params = {
-    TableName: getTableName(),
+    TableName: getPlatformsTableName(),
     Item: {
       PK: `PLATFORM#${platform.name}`,
-      SK: 'METADATA',
-      GSI1PK: 'PLATFORM',
       ...platformWithId,
     },
-    ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
+    ConditionExpression: 'attribute_not_exists(PK)',
   };
 
   try {
     await dynamoDBClient.send(new PutCommand(params));
     return platformWithId;
   } catch (error: unknown) {
-    if ((error as any).code === 'ConditionalCheckFailedException') {
+    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
       throw new Error(`Platform ${platform.name} already exists`);
     }
     throw error;
@@ -123,10 +132,9 @@ export async function createPlatform(platform: Omit<Platform, 'id'>): Promise<Pl
  */
 export async function getPlatform(name: string): Promise<Platform | null> {
   const params = {
-    TableName: getTableName(),
+    TableName: getPlatformsTableName(),
     Key: {
       PK: `PLATFORM#${name}`,
-      SK: 'METADATA',
     },
   };
 
@@ -194,14 +202,9 @@ export async function listPlatforms(
     };
   }
 
-  // Explicit pagination: return single page
-  const params: any = {
-    TableName: getTableName(),
-    IndexName: 'GSI1',
-    KeyConditionExpression: 'GSI1PK = :pk',
-    ExpressionAttributeValues: {
-      ':pk': 'PLATFORM',
-    },
+  // Explicit pagination: return single page using Scan (platforms table has no GSI)
+  const params: ScanCommandInput = {
+    TableName: getPlatformsTableName(),
     Limit: pagination.limit,
   };
 
@@ -216,7 +219,7 @@ export async function listPlatforms(
     }
   }
 
-  const result = await dynamoDBClient.send(new QueryCommand(params));
+  const result = await dynamoDBClient.send(new ScanCommand(params));
   const items = result.Items ? result.Items.map((item) => mapToPlatform(item as Record<string, unknown>)) : [];
 
   // Encode LastEvaluatedKey as base64 token for next page
@@ -259,12 +262,11 @@ export async function listPlatforms(
  */
 export async function deletePlatform(name: string): Promise<boolean> {
   const params = {
-    TableName: getTableName(),
+    TableName: getPlatformsTableName(),
     Key: {
       PK: `PLATFORM#${name}`,
-      SK: 'METADATA',
     },
-    ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
+    ConditionExpression: 'attribute_exists(PK)',
   };
 
   try {
@@ -272,7 +274,7 @@ export async function deletePlatform(name: string): Promise<boolean> {
     return true;
   } catch (error: unknown) {
     // Platform not found (condition failed)
-    if (error instanceof Error && 'code' in error && (error as { code: string }).code === 'ConditionalCheckFailedException') {
+    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
       return false;
     }
     // Other errors (network, permissions, etc.)
@@ -314,6 +316,6 @@ export async function deletePlatform(name: string): Promise<boolean> {
  * ```
  */
 function mapToPlatform(item: Record<string, unknown>): Platform {
-  const { PK, SK, GSI1PK, ...platformData } = item;
+  const { PK, ...platformData } = item;
   return platformData as Platform;
 }

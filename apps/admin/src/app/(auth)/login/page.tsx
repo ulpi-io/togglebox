@@ -1,15 +1,48 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { loginAction } from '@/actions/auth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { loginApi } from '@/lib/api/auth';
+import {
+  Alert,
+  Button,
+  Input,
+  Label,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@togglebox/ui';
+import { setCookie } from '@/lib/utils/cookies';
 
 export default function LoginPage() {
-  const [state, formAction, pending] = useActionState(loginAction, null);
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+      const response = await loginApi(email, password);
+      // Store token in cookie
+      setCookie('auth-token', response.token, 7);
+      router.push('/dashboard');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <Card>
@@ -17,7 +50,7 @@ export default function LoginPage() {
         <CardTitle>Login</CardTitle>
         <CardDescription>Enter your credentials to access the dashboard</CardDescription>
       </CardHeader>
-      <form action={formAction}>
+      <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -27,11 +60,8 @@ export default function LoginPage() {
               type="email"
               placeholder="user@example.com"
               required
-              disabled={pending}
+              disabled={isLoading}
             />
-            {state?.errors?.email && (
-              <p className="text-sm text-destructive">{state.errors.email[0]}</p>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -41,23 +71,20 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
-              disabled={pending}
+              disabled={isLoading}
             />
-            {state?.errors?.password && (
-              <p className="text-sm text-destructive">{state.errors.password[0]}</p>
-            )}
           </div>
 
-          {state?.error && (
-            <div className="border-2 border-destructive p-3">
-              <p className="text-sm text-destructive">{state.error}</p>
-            </div>
+          {error && (
+            <Alert variant="destructive">
+              {error}
+            </Alert>
           )}
         </CardContent>
 
         <CardFooter className="flex-col space-y-4">
-          <Button type="submit" disabled={pending} className="w-full">
-            {pending ? 'Logging in...' : 'Login'}
+          <Button type="submit" disabled={isLoading} className="w-full">
+            {isLoading ? 'Logging in...' : 'Login'}
           </Button>
 
           <div className="text-sm text-center space-y-2">
@@ -67,7 +94,7 @@ export default function LoginPage() {
               </Link>
             </div>
             <div>
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/register" className="font-bold hover:underline">
                 Register
               </Link>

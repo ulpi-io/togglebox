@@ -1,6 +1,5 @@
 import { createAuthRouter } from '@togglebox/auth';
 import { logger } from '@togglebox/shared';
-import { env } from '@togglebox/shared/config/env';
 
 /**
  * Auth router - ALWAYS loaded
@@ -13,7 +12,7 @@ import { env } from '@togglebox/shared/config/env';
  */
 
 const authRouter = createAuthRouter({
-  dbType: (env.DB_TYPE || 'dynamodb') as 'mysql' | 'postgresql' | 'sqlite' | 'mongodb' | 'dynamodb' | 'd1',
+  dbType: (process.env['DB_TYPE'] || 'dynamodb') as 'mysql' | 'postgresql' | 'sqlite' | 'mongodb' | 'dynamodb' | 'd1',
   authEnabled: true,
 });
 

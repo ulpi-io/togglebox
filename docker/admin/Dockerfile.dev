@@ -1,0 +1,87 @@
+# ============================================================================
+# ToggleBox Admin - Development Dockerfile
+# ============================================================================
+# Development image with Next.js hot reload support
+# All dependencies and packages built during Docker build for faster startup
+# ============================================================================
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install system dependencies for Next.js and native modules
+RUN apk add --no-cache \
+    libc6-compat \
+    curl \
+    bash \
+    python3 \
+    make \
+    g++
+
+# Enable pnpm with specific version
+RUN corepack enable && corepack prepare pnpm@8.12.0 --activate
+
+# Copy workspace configuration files first (for layer caching)
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.json ./
+
+# Copy all packages (required for pnpm workspace resolution)
+COPY packages/ ./packages/
+
+# Copy Admin app
+COPY apps/admin/ ./apps/admin/
+
+# Install all dependencies during build
+RUN pnpm install --frozen-lockfile
+
+# Build workspace packages during build (if admin depends on them)
+RUN pnpm build:packages || true
+
+# Expose admin port
+EXPOSE 3001
+
+# Create entrypoint that runs package watchers + Next.js dev server
+RUN cat > /entrypoint.sh <<'EOF'
+#!/bin/bash
+set -e
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  ToggleBox Admin - Development Mode (Hot Reload)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "  📦 Starting package watchers for hot reload..."
+echo ""
+
+# Install any new/updated dependencies from mounted lockfile
+echo "  📥 Syncing dependencies..."
+cd /app
+pnpm install --prefer-offline || true
+
+# Rebuild packages first to ensure dist is up-to-date with mounted src
+echo "  🔨 Building packages..."
+pnpm build:packages || true
+
+echo ""
+echo "  👀 Starting package watchers in background..."
+
+# Start TypeScript watchers for packages used by admin
+cd /app/packages/core && pnpm run dev &
+cd /app/packages/shared && pnpm run dev &
+cd /app/packages/ui && pnpm run dev &
+
+# Give watchers a moment to initialize
+sleep 2
+
+echo ""
+echo "  🚀 Starting Next.js development server..."
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+cd /app/apps/admin
+exec pnpm run dev
+EOF
+
+RUN chmod +x /entrypoint.sh
+
+# Use entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]

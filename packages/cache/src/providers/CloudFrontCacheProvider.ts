@@ -111,11 +111,41 @@ export class CloudFrontCacheProvider implements CacheProvider {
   }
 
   /**
-   * Invalidates CloudFront cache for a specific feature flag.
+   * Invalidates CloudFront cache for a specific flag.
    */
-  async invalidateFeatureFlagCache(platform: string, environment: string, flagName: string): Promise<string | null> {
+  async invalidateFlagCache(platform: string, environment: string, flagKey: string): Promise<string | null> {
     return this.invalidateCache([
-      `/api/v1/platforms/${platform}/environments/${environment}/feature-flags/${flagName}`,
+      `/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}`,
+      `/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}/*`,
+    ]);
+  }
+
+  /**
+   * Invalidates CloudFront cache for a specific experiment.
+   */
+  async invalidateExperimentCache(platform: string, environment: string, experimentKey: string): Promise<string | null> {
+    return this.invalidateCache([
+      `/api/v1/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`,
+      `/api/v1/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/*`,
+    ]);
+  }
+
+  /**
+   * Invalidates CloudFront cache for all experiments in an environment.
+   */
+  async invalidateAllExperimentsCache(platform: string, environment: string): Promise<string | null> {
+    return this.invalidateCache([
+      `/api/v1/platforms/${platform}/environments/${environment}/experiments/*`,
+    ]);
+  }
+
+  /**
+   * Invalidates CloudFront cache for stats endpoints in an environment.
+   */
+  async invalidateStatsCache(platform: string, environment: string): Promise<string | null> {
+    return this.invalidateCache([
+      `/api/v1/platforms/${platform}/environments/${environment}/*/stats`,
+      `/api/v1/platforms/${platform}/environments/${environment}/*/stats/*`,
     ]);
   }
 

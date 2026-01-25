@@ -166,8 +166,8 @@ export class CloudFrontService {
    * Invalidates all feature flags within the specified environment.
    * Useful when multiple flags have been updated or when deploying flag changes.
    */
-  async invalidateAllFeatureFlagsCache(platform: string, environment: string): Promise<string> {
-    return this.invalidateCache([`/platforms/${platform}/environments/${environment}/feature-flags/*`]);
+  async invalidateAllFlagsCache(platform: string, environment: string): Promise<string> {
+    return this.invalidateCache([`/platforms/${platform}/environments/${environment}/flags/*`]);
   }
 
   /**
@@ -175,17 +175,81 @@ export class CloudFrontService {
    *
    * @param platform - Platform name
    * @param environment - Environment name
-   * @param flagName - Feature flag name
+   * @param flagKey - Feature flag key
    * @returns Promise resolving to the CloudFront invalidation ID
    *
    * @remarks
    * Invalidates the specific feature flag endpoint.
    * Should be called when a flag is toggled or updated.
    */
-  async invalidateFeatureFlagCache(platform: string, environment: string, flagName: string): Promise<string> {
+  async invalidateFlagCache(platform: string, environment: string, flagKey: string): Promise<string> {
     return this.invalidateCache([
-      `/platforms/${platform}/environments/${environment}/feature-flags/${flagName}`,
+      `/platforms/${platform}/environments/${environment}/flags/${flagKey}`,
+      `/platforms/${platform}/environments/${environment}/flags/${flagKey}/*`,
     ]);
+  }
+
+  /**
+   * Invalidates all CloudFront caches for experiments in an environment.
+   *
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @returns Promise resolving to the CloudFront invalidation ID
+   *
+   * @remarks
+   * Invalidates all experiments within the specified environment.
+   */
+  async invalidateAllExperimentsCache(platform: string, environment: string): Promise<string> {
+    return this.invalidateCache([`/platforms/${platform}/environments/${environment}/experiments/*`]);
+  }
+
+  /**
+   * Invalidates CloudFront cache for a specific experiment.
+   *
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @param experimentKey - Experiment key
+   * @returns Promise resolving to the CloudFront invalidation ID
+   *
+   * @remarks
+   * Invalidates the specific experiment endpoint.
+   */
+  async invalidateExperimentCache(platform: string, environment: string, experimentKey: string): Promise<string> {
+    return this.invalidateCache([
+      `/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`,
+      `/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/*`,
+    ]);
+  }
+
+  /**
+   * Invalidates CloudFront cache for stats endpoints in an environment.
+   *
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @returns Promise resolving to the CloudFront invalidation ID
+   *
+   * @remarks
+   * Invalidates all stats endpoints within the specified environment.
+   */
+  async invalidateStatsCache(platform: string, environment: string): Promise<string> {
+    return this.invalidateCache([
+      `/platforms/${platform}/environments/${environment}/*/stats`,
+      `/platforms/${platform}/environments/${environment}/*/stats/*`,
+    ]);
+  }
+
+  /**
+   * @deprecated Use invalidateAllFlagsCache instead
+   */
+  async invalidateAllFeatureFlagsCache(platform: string, environment: string): Promise<string> {
+    return this.invalidateAllFlagsCache(platform, environment);
+  }
+
+  /**
+   * @deprecated Use invalidateFlagCache instead
+   */
+  async invalidateFeatureFlagCache(platform: string, environment: string, flagKey: string): Promise<string> {
+    return this.invalidateFlagCache(platform, environment, flagKey);
   }
 
   /**

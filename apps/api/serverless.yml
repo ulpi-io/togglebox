@@ -9,18 +9,35 @@ provider:
   region: ${opt:region, 'us-east-1'}
   memorySize: 512
   timeout: 30
-  
+
   environment:
     NODE_ENV: ${self:provider.stage}
-    DYNAMODB_TABLE: ${self:service}-configurations-${self:provider.stage}
-    AWS_REGION: ${self:provider.region}
+    AWS_REGION_NAME: ${self:provider.region}
     LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
     CORS_ORIGIN: ${env:CORS_ORIGIN, '*'}
     ENABLE_AUTHENTICATION: ${env:ENABLE_AUTHENTICATION, 'true'}
-    
+    # Table names with stage suffix
+    DYNAMODB_USERS_TABLE: ${self:custom.tableNames.users}
+    DYNAMODB_API_KEYS_TABLE: ${self:custom.tableNames.apiKeys}
+    DYNAMODB_PASSWORD_RESETS_TABLE: ${self:custom.tableNames.passwordResets}
+    DYNAMODB_PLATFORMS_TABLE: ${self:custom.tableNames.platforms}
+    DYNAMODB_ENVIRONMENTS_TABLE: ${self:custom.tableNames.environments}
+    DYNAMODB_CONFIGS_TABLE: ${self:custom.tableNames.configs}
+    DYNAMODB_REMOTE_CONFIGS_TABLE: ${self:custom.tableNames.remoteConfigs}
+    DYNAMODB_FLAGS_TABLE: ${self:custom.tableNames.flags}
+    DYNAMODB_EXPERIMENTS_TABLE: ${self:custom.tableNames.experiments}
+    DYNAMODB_STATS_TABLE: ${self:custom.tableNames.stats}
+    DYNAMODB_USAGE_TABLE: ${self:custom.tableNames.usage}
+    # Cache configuration
+    CLOUDFRONT_DISTRIBUTION_ID: ${env:CLOUDFRONT_DISTRIBUTION_ID, ''}
+    # Auth secrets (set via environment or SSM)
+    JWT_SECRET: ${env:JWT_SECRET, ssm:/togglebox/${self:provider.stage}/jwt-secret~true}
+    API_KEY_SECRET: ${env:API_KEY_SECRET, ssm:/togglebox/${self:provider.stage}/api-key-secret~true}
+
   iam:
     role:
       statements:
+        # DynamoDB permissions for all tables
         - Effect: Allow
           Action:
             - dynamodb:Query
@@ -29,9 +46,43 @@ provider:
             - dynamodb:PutItem
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
+            - dynamodb:BatchGetItem
+            - dynamodb:BatchWriteItem
           Resource:
-            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
-            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}/index/*"
+            # Users table
+            - !GetAtt UsersTable.Arn
+            - !Sub "${UsersTable.Arn}/index/*"
+            # API Keys table
+            - !GetAtt ApiKeysTable.Arn
+            - !Sub "${ApiKeysTable.Arn}/index/*"
+            # Password Resets table
+            - !GetAtt PasswordResetsTable.Arn
+            - !Sub "${PasswordResetsTable.Arn}/index/*"
+            # Platforms table
+            - !GetAtt PlatformsTable.Arn
+            - !Sub "${PlatformsTable.Arn}/index/*"
+            # Environments table
+            - !GetAtt EnvironmentsTable.Arn
+            - !Sub "${EnvironmentsTable.Arn}/index/*"
+            # Configs table
+            - !GetAtt ConfigsTable.Arn
+            - !Sub "${ConfigsTable.Arn}/index/*"
+            # Remote Configs table
+            - !GetAtt RemoteConfigsTable.Arn
+            - !Sub "${RemoteConfigsTable.Arn}/index/*"
+            # Flags table
+            - !GetAtt FlagsTable.Arn
+            - !Sub "${FlagsTable.Arn}/index/*"
+            # Experiments table
+            - !GetAtt ExperimentsTable.Arn
+            - !Sub "${ExperimentsTable.Arn}/index/*"
+            # Stats table
+            - !GetAtt StatsTable.Arn
+            - !Sub "${StatsTable.Arn}/index/*"
+            # Usage table
+            - !GetAtt UsageTable.Arn
+            - !Sub "${UsageTable.Arn}/index/*"
+        # CloudFront invalidation permissions
         - Effect: Allow
           Action:
             - cloudfront:CreateInvalidation
@@ -70,42 +121,202 @@ functions:
           method: ANY
           cors: false
 
+  # Auth API - public authentication endpoints
+  authApi:
+    handler: dist/lambda.lambdaHandler
+    events:
+      - http:
+          path: /api/v1/auth/{proxy+}
+          method: ANY
+          cors: true
+
+custom:
+  # Table names with stage suffix
+  tableNames:
+    users: togglebox-users-${self:provider.stage}
+    apiKeys: togglebox-api-keys-${self:provider.stage}
+    passwordResets: togglebox-password-resets-${self:provider.stage}
+    platforms: togglebox-platforms-${self:provider.stage}
+    environments: togglebox-environments-${self:provider.stage}
+    configs: togglebox-configs-${self:provider.stage}
+    remoteConfigs: togglebox-remote-configs-${self:provider.stage}
+    flags: togglebox-flags-${self:provider.stage}
+    experiments: togglebox-experiments-${self:provider.stage}
+    stats: togglebox-stats-${self:provider.stage}
+    usage: togglebox-usage-${self:provider.stage}
+
+  serverless-offline:
+    httpPort: 3000
+    host: 0.0.0.0
+
 resources:
   Resources:
-    # API Gateway Resource Policy - Restrict internal API to AWS account only
-    InternalApiGatewayRestApi:
-      Type: AWS::ApiGateway::RestApi
-      Properties:
-        Policy:
-          Version: '2012-10-17'
-          Statement:
-            # Allow access only from within AWS account
-            - Effect: Allow
-              Principal: '*'
-              Action: 'execute-api:Invoke'
-              Resource: 'execute-api:/*'
-              Condition:
-                StringEquals:
-                  'aws:PrincipalAccount': '#{AWS::AccountId}'
-            # Deny all other access
-            - Effect: Deny
-              Principal: '*'
-              Action: 'execute-api:Invoke'
-              Resource: 'execute-api:/*'
-              Condition:
-                StringNotEquals:
-                  'aws:PrincipalAccount': '#{AWS::AccountId}'
-
-    ConfigurationsTable:
+    # =========================================================================
+    # USERS TABLE
+    # =========================================================================
+    # Schema: PK = USER#{id}, GSI1PK = EMAIL#{email}
+    UsersTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        TableName: ${self:custom.tableNames.users}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+    # =========================================================================
+    # API KEYS TABLE
+    # =========================================================================
+    # Schema: PK = APIKEY#{id}, GSI1PK = USER#{userId}, GSI2PK = HASH#{keyHash}
+    ApiKeysTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableNames.apiKeys}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI2PK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: GSI2
+            KeySchema:
+              - AttributeName: GSI2PK
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+    # =========================================================================
+    # PASSWORD RESETS TABLE
+    # =========================================================================
+    # Schema: PK = RESET#{id}, GSI1PK = USER#{userId}, GSI2PK = HASH#{tokenHash}
+    PasswordResetsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableNames.passwordResets}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI2PK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: GSI2
+            KeySchema:
+              - AttributeName: GSI2PK
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+    # =========================================================================
+    # PLATFORMS TABLE
+    # =========================================================================
+    # Schema: PK = PLATFORM#{name}
+    PlatformsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableNames.platforms}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+    # =========================================================================
+    # ENVIRONMENTS TABLE
+    # =========================================================================
+    # Schema: PK = PLATFORM#{platform}, SK = ENV#{name}
+    EnvironmentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableNames.environments}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+    # =========================================================================
+    # CONFIGS TABLE
+    # =========================================================================
+    # Schema: PK = PLATFORM#{p}#ENV#{e}, SK = VERSION#{timestamp}, GSI1PK = STABLE
+    ConfigsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableNames.configs}
         AttributeDefinitions:
           - AttributeName: PK
             AttributeType: S
           - AttributeName: SK
             AttributeType: S
           - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
             AttributeType: S
         KeySchema:
           - AttributeName: PK
@@ -117,11 +328,10 @@ resources:
             KeySchema:
               - AttributeName: GSI1PK
                 KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
             Projection:
               ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 5
-              WriteCapacityUnits: 5
         BillingMode: PAY_PER_REQUEST
         StreamSpecification:
           StreamViewType: NEW_AND_OLD_IMAGES
@@ -130,11 +340,209 @@ resources:
         SSESpecification:
           SSEEnabled: true
 
+    # =========================================================================
+    # REMOTE CONFIGS TABLE
+    # =========================================================================
+    # Schema: PK = PLATFORM#{p}#ENV#{e}, SK = CONFIG#{key}#V#{version}, GSI1PK = active lookup
+    RemoteConfigsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableNames.remoteConfigs}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+    # =========================================================================
+    # FLAGS TABLE
+    # =========================================================================
+    # Schema: PK = PLATFORM#{p}#ENV#{e}, SK = FLAG#{key}#V#{version}, GSI1PK = active lookup
+    FlagsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableNames.flags}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+    # =========================================================================
+    # EXPERIMENTS TABLE
+    # =========================================================================
+    # Schema: PK = PLATFORM#{p}#ENV#{e}, SK = EXP#{key}#V#{version}, GSI1PK = status lookup
+    ExperimentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableNames.experiments}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+    # =========================================================================
+    # STATS TABLE
+    # =========================================================================
+    # Schema: PK = PLATFORM#{p}#ENV#{e}, SK = STATS#{type}#{key}, GSI1 = time-based queries
+    StatsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableNames.stats}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+    # =========================================================================
+    # USAGE TABLE
+    # =========================================================================
+    # Schema: PK = TENANT#{id}, SK = USAGE#apiRequests
+    UsageTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableNames.usage}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+  Outputs:
+    # Output table ARNs for reference
+    UsersTableArn:
+      Value: !GetAtt UsersTable.Arn
+      Export:
+        Name: ${self:service}-${self:provider.stage}-UsersTableArn
+    ApiKeysTableArn:
+      Value: !GetAtt ApiKeysTable.Arn
+      Export:
+        Name: ${self:service}-${self:provider.stage}-ApiKeysTableArn
+    PlatformsTableArn:
+      Value: !GetAtt PlatformsTable.Arn
+      Export:
+        Name: ${self:service}-${self:provider.stage}-PlatformsTableArn
+    FlagsTableArn:
+      Value: !GetAtt FlagsTable.Arn
+      Export:
+        Name: ${self:service}-${self:provider.stage}-FlagsTableArn
+    ExperimentsTableArn:
+      Value: !GetAtt ExperimentsTable.Arn
+      Export:
+        Name: ${self:service}-${self:provider.stage}-ExperimentsTableArn
+    # API Gateway endpoints
+    ApiGatewayRestApiId:
+      Value: !Ref ApiGatewayRestApi
+      Export:
+        Name: ${self:service}-${self:provider.stage}-ApiGatewayRestApiId
+    ServiceEndpoint:
+      Value: !Sub "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${self:provider.stage}"
+      Export:
+        Name: ${self:service}-${self:provider.stage}-ServiceEndpoint
+
 plugins:
   - serverless-offline
-  - serverless-plugin-typescript
-
-custom:
-  serverless-offline:
-    httpPort: 3000
-    host: 0.0.0.0

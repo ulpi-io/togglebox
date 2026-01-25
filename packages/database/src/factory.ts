@@ -40,7 +40,7 @@
  *
  * // Use repositories (same interface regardless of database)
  * const platform = await db.platform.createPlatform({ name: 'web', description: '...' });
- * const flags = await db.featureFlag.listFeatureFlags('web', 'production');
+ * const config = await db.config.getLatestVersion('web', 'production');
  * ```
  */
 
@@ -49,9 +49,11 @@ import {
   IPlatformRepository,
   IEnvironmentRepository,
   IConfigRepository,
-  IFeatureFlagRepository,
   IUsageRepository,
 } from './interfaces';
+import type { IFlagRepository } from '@togglebox/flags';
+import type { IExperimentRepository } from '@togglebox/experiments';
+import type { IStatsRepository } from '@togglebox/stats';
 
 /**
  * Container for all database repository instances.
@@ -79,26 +81,67 @@ import {
  *   isStable: true,
  * });
  *
- * // Feature flag operations
- * await db.featureFlag.createFeatureFlag({
- *   platform: 'web',
- *   environment: 'production',
- *   flagName: 'new-ui',
- *   enabled: true,
- *   rolloutType: 'percentage',
- *   rolloutPercentage: 50,
- * });
- *
  * // Usage tracking operations (atomic increments)
  * await db.usage.incrementApiRequests('tenant-subdomain');
+ *
+ * // For feature flags, use the three-tier repositories:
+ * const threeTier = getThreeTierRepositories();
+ * await threeTier.flag.create({...});
  * ```
  */
 export interface DatabaseRepositories {
   platform: IPlatformRepository;
   environment: IEnvironmentRepository;
   config: IConfigRepository;
-  featureFlag: IFeatureFlagRepository;
   usage: IUsageRepository;
+}
+
+/**
+ * Container for three-tier architecture repositories.
+ *
+ * @remarks
+ * These repositories implement the new three-tier model:
+ * - Tier 1: Remote Configs (uses existing config repository)
+ * - Tier 2: Feature Flags (new 2-value model with targeting)
+ * - Tier 3: Experiments (multi-variant A/B testing)
+ *
+ * @example
+ * ```ts
+ * const threeTier = getThreeTierRepositories();
+ *
+ * // Feature Flags (2 values, country/language targeting)
+ * await threeTier.flag.create({
+ *   platform: 'web',
+ *   environment: 'production',
+ *   flagKey: 'dark-mode',
+ *   name: 'Dark Mode',
+ *   flagType: 'boolean',
+ *   valueA: true,
+ *   valueB: false,
+ *   createdBy: 'admin@example.com',
+ * });
+ *
+ * // Experiments (multi-variant)
+ * await threeTier.experiment.create({
+ *   platform: 'web',
+ *   environment: 'production',
+ *   experimentKey: 'checkout-test',
+ *   name: 'Checkout Flow Test',
+ *   hypothesis: 'Single-page checkout increases conversions',
+ *   variations: [...],
+ *   trafficAllocation: [...],
+ *   primaryMetric: {...},
+ *   createdBy: 'product@example.com',
+ * });
+ *
+ * // Stats
+ * await threeTier.stats.incrementFlagEvaluation('web', 'production', 'dark-mode', 'A', 'user-123');
+ * ```
+ */
+export interface ThreeTierRepositories {
+  flag: IFlagRepository;
+  experiment: IExperimentRepository;
+  stats: IStatsRepository;
 }
 
 /**
@@ -469,9 +512,9 @@ function createDynamoDBRepositories(_config: DatabaseConfig): DatabaseRepositori
  *
  *     // Use repositories at the edge
  *     const platform = await db.platform.getPlatform('web');
- *     const flags = await db.featureFlag.listFeatureFlags('web', 'production');
+ *     const config = await db.config.getLatestVersion('web', 'production');
  *
- *     return new Response(JSON.stringify({ platform, flags }));
+ *     return new Response(JSON.stringify({ platform, config }));
  *   },
  * };
  *
@@ -638,4 +681,172 @@ export function getDatabase(config?: DatabaseConfig): DatabaseRepositories {
  */
 export function resetDatabase(): void {
   databaseInstance = null;
+}
+
+/**
+ * Singleton instance for three-tier repositories.
+ */
+let threeTierInstance: ThreeTierRepositories | null = null;
+
+/**
+ * Creates three-tier repository instances based on configuration.
+ *
+ * @param config - Database configuration with type and connection details
+ * @returns Three-tier repositories for the specified database
+ *
+ * @throws {Error} If database type is not supported
+ *
+ * @remarks
+ * **ALL databases now support the complete three-tier architecture:**
+ * - ✅ Tier 1: Remote Configs (Platform, Environment, Config repositories)
+ * - ✅ Tier 2: Feature Flags (2-value model with targeting)
+ * - ✅ Tier 3: Experiments (multi-variant A/B testing)
+ * - ✅ Stats (metrics for all tiers)
+ *
+ * @example
+ * ```ts
+ * // Works with ANY database type
+ * const threeTier = createThreeTierRepositories({ type: 'mysql', mysqlUrl: '...' });
+ * await threeTier.flag.create({ ... });
+ * await threeTier.experiment.create({ ... });
+ * await threeTier.stats.incrementFlagEvaluation('web', 'prod', 'dark-mode', 'A', 'user-123');
+ * ```
+ */
+export function createThreeTierRepositories(config: DatabaseConfig): ThreeTierRepositories {
+  switch (config.type) {
+    case 'dynamodb':
+      return createDynamoDBThreeTierRepos();
+
+    case 'mysql':
+    case 'postgresql':
+    case 'sqlite':
+      return createPrismaThreeTierRepos(config);
+
+    case 'mongodb':
+      return createMongooseThreeTierRepos(config);
+
+    case 'd1':
+      return createD1ThreeTierRepos(config);
+
+    default:
+      throw new Error(`Unsupported database type: ${(config as { type: unknown }).type}`);
+  }
+}
+
+/**
+ * Creates DynamoDB three-tier repositories.
+ */
+function createDynamoDBThreeTierRepos(): ThreeTierRepositories {
+  const { createDynamoDBThreeTierRepositories } = require('./adapters/dynamodb');
+  return createDynamoDBThreeTierRepositories();
+}
+
+/**
+ * Creates Prisma three-tier repositories for MySQL, PostgreSQL, and SQLite.
+ */
+function createPrismaThreeTierRepos(config: DatabaseConfig): ThreeTierRepositories {
+  const { createPrismaThreeTierRepositories } = require('./adapters/prisma');
+
+  let connectionUrl: string;
+  let isSQLite = false;
+
+  switch (config.type) {
+    case 'mysql':
+      if (!config.mysqlUrl) {
+        throw new Error('MySQL connection URL is required');
+      }
+      connectionUrl = config.mysqlUrl;
+      break;
+
+    case 'postgresql':
+      if (!config.postgresUrl) {
+        throw new Error('PostgreSQL connection URL is required');
+      }
+      connectionUrl = config.postgresUrl;
+      break;
+
+    case 'sqlite':
+      if (!config.sqliteFile) {
+        throw new Error('SQLite file path is required');
+      }
+      connectionUrl = `file:${config.sqliteFile}`;
+      isSQLite = true;
+      break;
+
+    default:
+      throw new Error(`Invalid database type for Prisma three-tier: ${config.type}`);
+  }
+
+  return createPrismaThreeTierRepositories(connectionUrl, isSQLite);
+}
+
+/**
+ * Creates Mongoose three-tier repositories for MongoDB.
+ */
+function createMongooseThreeTierRepos(config: DatabaseConfig): ThreeTierRepositories {
+  const { createMongooseThreeTierRepositories } = require('./adapters/mongoose');
+
+  if (!config.mongoUrl) {
+    throw new Error('MongoDB connection URL is required');
+  }
+
+  return createMongooseThreeTierRepositories(config.mongoUrl);
+}
+
+/**
+ * Creates Cloudflare D1 three-tier repositories.
+ */
+function createD1ThreeTierRepos(config: DatabaseConfig): ThreeTierRepositories {
+  const { createD1ThreeTierRepositories } = require('./adapters/d1');
+
+  if (config.type !== 'd1') {
+    throw new Error(`Invalid database type for D1 three-tier: ${config.type}`);
+  }
+
+  if (!config.d1Database) {
+    throw new Error('D1 database binding is required');
+  }
+
+  return createD1ThreeTierRepositories(config.d1Database);
+}
+
+/**
+ * Gets or creates the three-tier repositories singleton.
+ *
+ * @param config - Optional database configuration
+ * @returns Three-tier repositories singleton instance
+ *
+ * @remarks
+ * Returns repositories for the new three-tier architecture:
+ * - flag: Feature Flags (2-value model with targeting)
+ * - experiment: Experiments (multi-variant A/B testing)
+ * - stats: Statistics for all tiers
+ *
+ * @example
+ * ```ts
+ * const threeTier = getThreeTierRepositories();
+ *
+ * // Create a feature flag
+ * const flag = await threeTier.flag.create({...});
+ *
+ * // Create an experiment
+ * const exp = await threeTier.experiment.create({...});
+ *
+ * // Track stats
+ * await threeTier.stats.incrementFlagEvaluation(...);
+ * ```
+ */
+export function getThreeTierRepositories(config?: DatabaseConfig): ThreeTierRepositories {
+  if (!threeTierInstance) {
+    const dbConfig = config || require('./config').loadDatabaseConfig();
+    threeTierInstance = createThreeTierRepositories(dbConfig);
+  }
+  return threeTierInstance;
+}
+
+/**
+ * Resets the three-tier repositories singleton.
+ */
+export function resetThreeTierRepositories(): void {
+  threeTierInstance = null;
 }

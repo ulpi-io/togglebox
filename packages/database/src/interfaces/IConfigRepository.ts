@@ -7,18 +7,23 @@
  * Defines the contract for configuration version CRUD operations across all database adapters.
  * Manages versioned configurations with stable/unstable releases.
  *
+ * **Version Identification:**
+ * All adapters use `versionLabel` (semantic version string like "1.0.0") as the primary
+ * identifier for get, delete, and markStable operations. This ensures consistent API
+ * behavior regardless of the underlying database.
+ *
  * **Repository Pattern:**
  * Abstracts database-specific logic behind a common interface.
  * Supports immutable versioning and stable version queries.
  *
  * **Implementations:**
- * - `PrismaConfigRepository` - MySQL, PostgreSQL, SQLite
- * - `MongooseConfigRepository` - MongoDB
- * - `DynamoDBConfigRepository` - DynamoDB (sparse index for stable versions)
- * - `D1ConfigRepository` - Cloudflare D1
+ * - `PrismaConfigRepository` - MySQL, PostgreSQL, SQLite (uses versionLabel for lookups)
+ * - `MongooseConfigRepository` - MongoDB (uses versionLabel for lookups)
+ * - `DynamoDBConfigRepository` - DynamoDB (uses versionLabel as sort key)
+ * - `D1ConfigRepository` - Cloudflare D1 (uses versionLabel for lookups)
  */
 
-import { Version } from '@togglebox/core';
+import { Version } from '@togglebox/configs';
 import { OffsetPaginationParams, TokenPaginationParams, PaginatedResult } from './IPagination';
 
 /**
@@ -35,17 +40,17 @@ export interface IConfigRepository {
   createVersion(version: Omit<Version, 'versionTimestamp' | 'createdAt'>): Promise<Version>;
 
   /**
-   * Retrieves a specific configuration version by timestamp.
+   * Retrieves a specific configuration version by label.
    *
    * @param platform - Platform name
    * @param environment - Environment name
-   * @param versionTimestamp - ISO-8601 timestamp of the version
+   * @param versionLabel - Semantic version label (e.g., "1.0.0")
    * @returns Version if found, null otherwise
    */
   getVersion(
     platform: string,
     environment: string,
-    versionTimestamp: string
+    versionLabel: string
   ): Promise<Version | null>;
 
   /**
@@ -92,7 +97,7 @@ export interface IConfigRepository {
    *
    * @param platform - Platform name
    * @param environment - Environment name
-   * @param versionTimestamp - ISO-8601 timestamp of the version to delete
+   * @param versionLabel - Semantic version label to delete
    * @returns true if deleted, false if version doesn't exist
    *
    * @remarks
@@ -101,6 +106,20 @@ export interface IConfigRepository {
   deleteVersion(
     platform: string,
     environment: string,
-    versionTimestamp: string
+    versionLabel: string
   ): Promise<boolean>;
+
+  /**
+   * Marks a configuration version as stable.
+   *
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @param versionLabel - Semantic version label to mark as stable
+   * @returns Updated version if found, null otherwise
+   */
+  markVersionStable(
+    platform: string,
+    environment: string,
+    versionLabel: string
+  ): Promise<Version | null>;
 }

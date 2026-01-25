@@ -32,7 +32,7 @@
  * ```
  */
 
-import { DatabaseRepositories } from '@togglebox/database';
+import { DatabaseRepositories, ThreeTierRepositories } from '@togglebox/database';
 import { CacheProvider } from '@togglebox/cache';
 import { Container } from '../container';
 
@@ -65,12 +65,8 @@ export function createMockDatabase(): jest.Mocked<DatabaseRepositories> {
       updateVersion: jest.fn(),
       deleteVersion: jest.fn(),
     },
-    featureFlag: {
-      createFeatureFlag: jest.fn(),
-      getFeatureFlag: jest.fn(),
-      listFeatureFlags: jest.fn(),
-      updateFeatureFlag: jest.fn(),
-      deleteFeatureFlag: jest.fn(),
+    usage: {
+      incrementApiRequests: jest.fn(),
     },
   } as jest.Mocked<DatabaseRepositories>;
 }
@@ -87,16 +83,59 @@ export function createMockCacheProvider(): jest.Mocked<CacheProvider> {
     invalidatePlatformCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
     invalidateEnvironmentCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
     invalidateVersionCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
-    invalidateFeatureFlagCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
+    invalidateFlagCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
     generateCachePaths: jest.fn().mockReturnValue(['/api/mock/path']),
     isEnabled: jest.fn().mockReturnValue(true),
   } as jest.Mocked<CacheProvider>;
 }
 
 /**
+ * Creates a mock three-tier repositories with jest mock functions
+ *
+ * @returns Mock three-tier repositories (flag, experiment, stats)
+ */
+export function createMockThreeTierRepositories(): jest.Mocked<ThreeTierRepositories> {
+  return {
+    flag: {
+      create: jest.fn(),
+      update: jest.fn(),
+      toggle: jest.fn(),
+      getActive: jest.fn(),
+      getVersion: jest.fn(),
+      listActive: jest.fn(),
+      listVersions: jest.fn(),
+      delete: jest.fn(),
+      exists: jest.fn(),
+    },
+    experiment: {
+      create: jest.fn(),
+      update: jest.fn(),
+      getActive: jest.fn(),
+      getVersion: jest.fn(),
+      listActive: jest.fn(),
+      listVersions: jest.fn(),
+      delete: jest.fn(),
+      exists: jest.fn(),
+      start: jest.fn(),
+      stop: jest.fn(),
+      conclude: jest.fn(),
+    },
+    stats: {
+      incrementFlagEvaluation: jest.fn(),
+      incrementExperimentAssignment: jest.fn(),
+      incrementExperimentConversion: jest.fn(),
+      getFlagStats: jest.fn(),
+      getExperimentStats: jest.fn(),
+      getFlagEvaluationHistory: jest.fn(),
+      getExperimentAssignmentHistory: jest.fn(),
+    },
+  } as jest.Mocked<ThreeTierRepositories>;
+}
+
+/**
  * Sets up the test container with mock dependencies
  *
- * @returns Object containing mock database and cache provider
+ * @returns Object containing mock database, three-tier repos, and cache provider
  *
  * @remarks
  * Call this in beforeEach() to reset and inject mocks.
@@ -104,14 +143,16 @@ export function createMockCacheProvider(): jest.Mocked<CacheProvider> {
  */
 export function setupTestContainer() {
   const mockDb = createMockDatabase();
+  const mockThreeTier = createMockThreeTierRepositories();
   const mockCache = createMockCacheProvider();
 
   Container.setDependencies({
     db: mockDb,
+    threeTierRepos: mockThreeTier,
     cacheProvider: mockCache,
   });
 
-  return { mockDb, mockCache };
+  return { mockDb, mockThreeTier, mockCache };
 }
 
 /**

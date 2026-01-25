@@ -11,6 +11,5 @@
 export * from './IPlatformRepository';
 export * from './IEnvironmentRepository';
 export * from './IConfigRepository';
-export * from './IFeatureFlagRepository';
 export * from './IUsageRepository';
 export * from './IPagination';

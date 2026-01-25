@@ -1,0 +1,155 @@
+/* ToggleBox UI - Shared Styles */
+/* Import this file in your app's globals.css AFTER @tailwind directives */
+
+/*
+ * DESIGN SYSTEM NOTES:
+ *
+ * This file provides CSS utilities that cannot be expressed as Tailwind classes.
+ * The Tailwind preset (tailwind/preset.ts) defines theme tokens and animations.
+ *
+ * Border conventions:
+ * - Cards/containers: border-black/10 (subtle glassmorphism effect)
+ * - Form elements: border-black/20 (better visibility for inputs)
+ * - Dividers/separators: border-border (uses theme token)
+ */
+
+/* CSS Variables - matching Tailwind preset */
+:root {
+  --background: #FFFFFF;
+  --foreground: #000000;
+  --border: #000000;
+  --ring: #000000;
+  --muted: #F5F5F5;
+  --muted-foreground: #666666;
+  --destructive: #DC2626;
+  --success: #16A34A;
+  --warning: #CA8A04;
+  --info: #2563EB;
+}
+
+/* Base styles */
+* {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Glassmorphism components */
+.glass {
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+.glass-dark {
+  background-color: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+.glass-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+.glass-header {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+.glass-sidebar {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Utility classes */
+.text-balance {
+  text-wrap: balance;
+}
+
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+.press-effect:active {
+  transform: scale(0.98);
+  transition: transform 100ms;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.gradient-subtle {
+  background: linear-gradient(to bottom, #F5F5F5, #FFFFFF);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+.skeleton-bg {
+  background: linear-gradient(to right, #F5F5F5, #FAFAFA, #F5F5F5);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Shimmer animation for skeleton loaders */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

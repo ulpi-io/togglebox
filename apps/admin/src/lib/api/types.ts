@@ -25,7 +25,6 @@ export interface Platform {
 export interface Environment {
   platform: string;
   environment: string;
-  name: string; // Alias for environment
   description?: string;
   createdAt: string;
 }
@@ -34,33 +33,55 @@ export interface Environment {
 export interface ConfigVersion {
   platform: string;
   environment: string;
-  versionTimestamp: string;
-  versionLabel?: string;
-  version: string; // Semantic version (e.g., "1.0.0")
+  versionTimestamp: string; // Unique identifier (ISO-8601 timestamp)
+  versionLabel: string; // Semantic version for display (e.g., "1.0.0")
   isStable: boolean;
   config: Record<string, unknown>;
   createdBy: string;
   createdAt: string;
 }
 
-// Feature flag types
-export type RolloutType = 'simple' | 'percentage' | 'targeted';
+/**
+ * Flag types - Three-Tier Architecture, Tier 2: Feature Flags
+ * 2-value model (valueA/valueB) with country/language targeting.
+ */
+export type FlagType = 'boolean' | 'string' | 'number';
+export type FlagValue = boolean | string | number;
 
-export interface FeatureFlag {
+export interface FlagLanguageTarget {
+  language: string;
+  serveValue: 'A' | 'B';
+}
+
+export interface FlagCountryTarget {
+  country: string;
+  serveValue: 'A' | 'B';
+  languages?: FlagLanguageTarget[];
+}
+
+export interface FlagTargeting {
+  countries: FlagCountryTarget[];
+  forceIncludeUsers: string[];
+  forceExcludeUsers: string[];
+}
+
+export interface Flag {
   platform: string;
   environment: string;
-  flagName: string;
-  enabled: boolean;
+  flagKey: string;
+  name: string;
   description?: string;
+  enabled: boolean;
+  flagType: FlagType;
+  valueA: FlagValue;
+  valueB: FlagValue;
+  targeting: FlagTargeting;
+  defaultValue: 'A' | 'B';
+  version: string;
+  isActive: boolean;
   createdBy: string;
   createdAt: string;
-  updatedAt?: string;
-  rolloutType: RolloutType;
-  rolloutPercentage?: number;
-  targetUserIds?: string[];
-  excludeUserIds?: string[];
-  targetCountries?: string[];
-  targetLanguages?: string[];
+  updatedAt: string;
 }
 
 // Evaluation types
@@ -70,10 +91,12 @@ export interface EvaluationContext {
   language?: string;
 }
 
-export interface EvaluationResult {
+export interface FlagEvaluationResult {
+  flagKey: string;
   enabled: boolean;
-  reason?: string;
-  flagName?: string;
+  variant: 'A' | 'B';
+  value: FlagValue;
+  reason: string;
 }
 
 // API Key types
@@ -105,4 +128,108 @@ export interface InvalidationStatus {
   status: 'InProgress' | 'Completed';
   createTime: string;
   paths: string[];
+}
+
+/**
+ * Experiment types - Three-Tier Architecture, Tier 3: A/B Testing
+ * Multi-variant experiments with statistical analysis.
+ */
+export type ExperimentStatus = 'draft' | 'running' | 'paused' | 'completed' | 'archived';
+export type MetricType = 'conversion' | 'count' | 'sum' | 'average';
+export type SuccessDirection = 'increase' | 'decrease';
+export type ResultStatus = 'collecting' | 'significant' | 'not_significant' | 'inconclusive';
+
+export interface ExperimentVariation {
+  key: string;
+  name: string;
+  value: unknown;
+  isControl: boolean;
+}
+
+export interface TrafficAllocation {
+  variationKey: string;
+  percentage: number;
+}
+
+export interface LanguageTarget {
+  language: string;
+}
+
+export interface CountryTarget {
+  country: string;
+  languages?: LanguageTarget[];
+}
+
+export interface ExperimentTargeting {
+  countries?: CountryTarget[];
+  forceIncludeUsers?: string[];
+  forceExcludeUsers?: string[];
+}
+
+export interface ExperimentMetric {
+  id: string;
+  name: string;
+  eventName: string;
+  metricType: MetricType;
+  successDirection: SuccessDirection;
+  valueProperty?: string;
+}
+
+export interface VariationResult {
+  variationKey: string;
+  participants: number;
+  conversions: number;
+  conversionRate: number;
+  relativeLift?: number;
+  confidenceInterval?: [number, number];
+}
+
+export interface ExperimentResults {
+  status: ResultStatus;
+  lastUpdatedAt: string;
+  totalParticipants: number;
+  totalConversions: number;
+  variations: VariationResult[];
+  pValue?: number;
+  isSignificant: boolean;
+  sampleRatioMismatch?: boolean;
+  warnings?: string[];
+}
+
+export interface Experiment {
+  platform: string;
+  environment: string;
+  experimentKey: string;
+  name: string;
+  description?: string;
+  hypothesis: string;
+  status: ExperimentStatus;
+  startedAt?: string;
+  completedAt?: string;
+  scheduledStartAt?: string;
+  scheduledEndAt?: string;
+  variations: ExperimentVariation[];
+  controlVariation: string;
+  trafficAllocation: TrafficAllocation[];
+  targeting: ExperimentTargeting;
+  primaryMetric: ExperimentMetric;
+  secondaryMetrics?: ExperimentMetric[];
+  confidenceLevel: number;
+  minimumDetectableEffect?: number;
+  minimumSampleSize?: number;
+  results?: ExperimentResults;
+  winner?: string;
+  version: string;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VariantAssignment {
+  experimentKey: string;
+  variationKey: string;
+  value: unknown;
+  isControl: boolean;
+  reason: string;
 }

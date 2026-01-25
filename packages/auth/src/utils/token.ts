@@ -107,6 +107,40 @@ export async function verifyToken(token: string, hash: string): Promise<boolean>
 }
 
 /**
+ * Hash an API key using SHA-256 for deterministic GSI lookup.
+ *
+ * @param key - Full plaintext API key
+ * @returns SHA-256 hex hash string
+ *
+ * @remarks
+ * **CRITICAL:** For API keys, we MUST use deterministic hashing (same input = same output)
+ * to enable GSI2 lookup by key hash. bcrypt CANNOT be used because it includes random salt,
+ * which produces different hashes each time.
+ *
+ * **GSI2 Pattern:**
+ * - GSI2PK: `APIKEY_HASH#<sha256-hash>`
+ * - This allows O(1) lookup by API key during authentication
+ *
+ * **Security:**
+ * - SHA-256 is cryptographically secure and collision-resistant
+ * - 256-bit output provides sufficient security for API key lookup
+ * - One-way hash prevents key recovery from stored hash
+ *
+ * @example
+ * ```typescript
+ * const key = 'tbx_live_a3f2d1c9b8e7f6d5c4b3a291827364';
+ * const keyHash = hashApiKey(key);
+ * // keyHash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92'
+ *
+ * // Store in DynamoDB with GSI2:
+ * // GSI2PK: 'APIKEY_HASH#8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92'
+ * ```
+ */
+export function hashApiKey(key: string): string {
+  return crypto.createHash('sha256').update(key).digest('hex');
+}
+
+/**
  * Generate an API key with Togglebox format.
  *
  * @param prefix - Environment prefix ('live' for production, 'test' for development)
@@ -159,7 +193,7 @@ export function generateApiKey(prefix: 'live' | 'test' = 'live'): string {
  * ```
  */
 export function getApiKeyPrefix(key: string): string {
-  return key.substring(0, 8);
+  return key.slice(0, 8);
 }
 
 /**
@@ -183,5 +217,5 @@ export function getApiKeyPrefix(key: string): string {
  * ```
  */
 export function getApiKeyLast4(key: string): string {
-  return key.substring(key.length - 4);
+  return key.slice(-4);
 }

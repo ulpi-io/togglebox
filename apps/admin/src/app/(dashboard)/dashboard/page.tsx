@@ -1,10 +1,75 @@
-import { getDashboardStatsApi } from '@/lib/api/stats';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+'use client';
 
-export const dynamic = 'force-dynamic';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { getDashboardStatsApi, type DashboardStats } from '@/lib/api/stats';
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@togglebox/ui';
 
-export default async function DashboardPage() {
-  const stats = await getDashboardStatsApi();
+export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const data = await getDashboardStatsApi();
+        setStats(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard stats');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadStats();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div>
+        <div className="mb-8">
+          <h1 className="text-4xl font-black mb-2">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Overview of your ToggleBox configuration and flags
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="h-4 bg-muted rounded animate-pulse w-20" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-10 bg-muted rounded animate-pulse mb-2" />
+                <div className="h-4 bg-muted rounded animate-pulse w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div>
+        <div className="mb-8">
+          <h1 className="text-4xl font-black mb-2">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Overview of your ToggleBox configuration and flags
+          </p>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <div className="text-destructive text-lg font-bold mb-2">
+              Error loading dashboard
+            </div>
+            <p className="text-muted-foreground">{error || 'Unknown error'}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const statCards = [
     {
@@ -20,12 +85,12 @@ export default async function DashboardPage() {
     {
       title: 'Config Versions',
       value: stats.totalConfigVersions,
-      description: 'Total configuration versions',
+      description: 'Total remote config versions',
     },
     {
-      title: 'Feature Flags',
-      value: stats.totalFeatureFlags,
-      description: 'Active feature flags',
+      title: 'Flags',
+      value: stats.totalFlags,
+      description: 'Active flags',
     },
     {
       title: 'Users',
@@ -70,33 +135,36 @@ export default async function DashboardPage() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <a
-              href="/platforms"
-              className="block p-3 border-2 border-black hover:bg-black hover:text-white transition-colors"
-            >
-              <div className="font-bold">Manage Platforms</div>
-              <div className="text-sm text-muted-foreground">
-                Create and configure platforms
-              </div>
-            </a>
-            <a
-              href="/platforms"
-              className="block p-3 border-2 border-black hover:bg-black hover:text-white transition-colors"
-            >
-              <div className="font-bold">Deploy Configuration</div>
-              <div className="text-sm text-muted-foreground">
-                Deploy new config versions
-              </div>
-            </a>
-            <a
-              href="/users"
-              className="block p-3 border-2 border-black hover:bg-black hover:text-white transition-colors"
-            >
-              <div className="font-bold">Manage Users</div>
-              <div className="text-sm text-muted-foreground">
-                Add or remove team members
-              </div>
-            </a>
+            <Button asChild variant="outline" className="w-full justify-start h-auto p-3">
+              <Link href="/platforms">
+                <div className="text-left">
+                  <div className="font-bold">Manage Platforms</div>
+                  <div className="text-sm text-muted-foreground font-normal">
+                    Create and configure platforms
+                  </div>
+                </div>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full justify-start h-auto p-3">
+              <Link href="/platforms">
+                <div className="text-left">
+                  <div className="font-bold">Deploy Remote Config</div>
+                  <div className="text-sm text-muted-foreground font-normal">
+                    Deploy new config versions
+                  </div>
+                </div>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full justify-start h-auto p-3">
+              <Link href="/users">
+                <div className="text-left">
+                  <div className="font-bold">Manage Users</div>
+                  <div className="text-sm text-muted-foreground font-normal">
+                    Add or remove team members
+                  </div>
+                </div>
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 

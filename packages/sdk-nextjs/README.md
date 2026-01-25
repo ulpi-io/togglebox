@@ -12,7 +12,7 @@ yarn add @togglebox/sdk-nextjs
 pnpm add @togglebox/sdk-nextjs
 ```
 
-## Usage
+## Quick Start
 
 ### Open Source Self-Hosted
 
@@ -32,19 +32,6 @@ export default function App({ children }) {
     </ToggleBoxProvider>
   )
 }
-
-function MyComponent() {
-  const { config, featureFlags, isEnabled } = useToggleBoxContext()
-
-  const hasNewFeature = await isEnabled('new-dashboard')
-
-  return (
-    <div>
-      <h1>App Config: {JSON.stringify(config)}</h1>
-      <p>New Dashboard: {hasNewFeature ? 'Enabled' : 'Disabled'}</p>
-    </div>
-  )
-}
 ```
 
 ### Cloud Multi-Tenant
@@ -52,7 +39,7 @@ function MyComponent() {
 ```tsx
 'use client'
 
-import { ToggleBoxProvider, useToggleBoxContext } from '@togglebox/sdk-nextjs'
+import { ToggleBoxProvider } from '@togglebox/sdk-nextjs'
 
 export default function App({ children }) {
   return (
@@ -62,6 +49,106 @@ export default function App({ children }) {
       tenantSubdomain="acme" // Connects to https://acme.togglebox.io
     >
       {children}
+    </ToggleBoxProvider>
+  )
+}
+```
+
+## Configs vs Feature Flags
+
+ToggleBox provides two complementary systems:
+
+### Configs: Static Application Settings
+
+Configs are **versioned, immutable snapshots** of application settings:
+
+```tsx
+function AppSettings() {
+  const { config, isLoading } = useToggleBoxContext()
+
+  if (isLoading) return <Spinner />
+
+  return (
+    <div style={{ backgroundColor: config?.theme?.primaryColor }}>
+      <h1>{config?.appName}</h1>
+      <p>API: {config?.apiBaseUrl}</p>
+      <p>Max upload: {config?.limits?.maxUploadSize} bytes</p>
+    </div>
+  )
+}
+```
+
+### Feature Flags: Dynamic On/Off Switches
+
+Feature flags are **mutable state** with targeting rules:
+
+```tsx
+function Dashboard() {
+  const { isEnabled, setContext } = useToggleBoxContext()
+  const { user } = useAuth()
+  const [showNewUI, setShowNewUI] = useState(false)
+
+  useEffect(() => {
+    // Set user context for targeted rollouts
+    setContext({
+      userId: user.id,
+      userEmail: user.email,
+      plan: user.subscription.plan,
+    })
+  }, [user])
+
+  useEffect(() => {
+    // Check feature flag with context
+    isEnabled('new-dashboard').then(setShowNewUI)
+  }, [])
+
+  return showNewUI ? <NewDashboard /> : <LegacyDashboard />
+}
+```
+
+## Version-Specific Configs
+
+Pin to a specific config version for controlled rollouts:
+
+```tsx
+// Pin to a specific config version
+<ToggleBoxProvider
+  platform="web"
+  environment="production"
+  tenantSubdomain="acme"
+  configVersion="2.0.0"  // Always fetches this version
+>
+  {children}
+</ToggleBoxProvider>
+```
+
+For SSR with version-specific configs:
+
+```tsx
+import { ToggleBoxClient } from '@togglebox/sdk'
+import { ToggleBoxProvider } from '@togglebox/sdk-nextjs'
+
+export default async function Page() {
+  const client = new ToggleBoxClient({
+    platform: 'web',
+    environment: 'production',
+    tenantSubdomain: 'acme',
+  })
+
+  // Fetch a specific version on the server
+  const config = await client.getConfigVersion('2.0.0')
+  const flags = await client.getFeatureFlags()
+
+  return (
+    <ToggleBoxProvider
+      platform="web"
+      environment="production"
+      tenantSubdomain="acme"
+      configVersion="2.0.0"
+      initialConfig={config}
+      initialFlags={flags}
+    >
+      <ClientComponent />
     </ToggleBoxProvider>
   )
 }
@@ -125,6 +212,14 @@ interface ToggleBoxProviderProps {
    */
   tenantSubdomain?: string
 
+  /**
+   * Config version to fetch (default: 'stable')
+   * - 'stable': Latest stable version
+   * - 'latest': Latest version (may be unstable)
+   * - '1.2.3': Specific version label
+   */
+  configVersion?: string
+
   /** Cache configuration */
   cache?: {
     enabled: boolean
@@ -176,19 +271,68 @@ const {
 </ToggleBoxProvider>
 ```
 
-### Feature Flag with Context
+### Using Config Values
+
+```tsx
+function ThemeWrapper({ children }) {
+  const { config, isLoading } = useToggleBoxContext()
+
+  if (isLoading) return <LoadingScreen />
+
+  const theme = config?.theme || defaultTheme
+
+  return (
+    <div
+      style={{
+        '--primary-color': theme.primaryColor,
+        '--secondary-color': theme.secondaryColor,
+        '--font-family': theme.fontFamily,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+```
+
+### Feature Flag with User Context
 
 ```tsx
 function UserProfile({ userId, userEmail }) {
   const { isEnabled, setContext } = useToggleBoxContext()
+  const [hasPremium, setHasPremium] = useState(false)
 
   useEffect(() => {
     setContext({ userId, userEmail })
   }, [userId, userEmail])
 
-  const hasPremium = await isEnabled('premium-features')
+  useEffect(() => {
+    isEnabled('premium-features').then(setHasPremium)
+  }, [userId])
 
-  return <div>{hasPremium && <PremiumBadge />}</div>
+  return (
+    <div>
+      {hasPremium && <PremiumBadge />}
+      <ProfileContent />
+    </div>
+  )
+}
+```
+
+### Percentage-Based Rollout
+
+```tsx
+function CheckoutPage() {
+  const { isEnabled } = useToggleBoxContext()
+  const { user } = useAuth()
+  const [useNewCheckout, setUseNewCheckout] = useState(false)
+
+  useEffect(() => {
+    // Flag configured with 25% rollout in dashboard
+    isEnabled('new-checkout', { userId: user.id }).then(setUseNewCheckout)
+  }, [user.id])
+
+  return useNewCheckout ? <NewCheckout /> : <LegacyCheckout />
 }
 ```
 
@@ -209,14 +353,49 @@ function RefreshButton() {
 ### Error Handling
 
 ```tsx
-function ErrorDisplay() {
-  const { error } = useToggleBoxContext()
+function ConfigLoader({ children }) {
+  const { config, isLoading, error } = useToggleBoxContext()
 
-  if (error) {
-    return <div>Error loading config: {error.message}</div>
+  if (isLoading && !config) {
+    return <LoadingScreen />
   }
 
-  return null
+  if (error && !config) {
+    return (
+      <ErrorScreen
+        message="Failed to load configuration"
+        onRetry={() => window.location.reload()}
+      />
+    )
+  }
+
+  return children
+}
+```
+
+### Combining Configs and Flags
+
+```tsx
+function FeatureCard({ featureName }) {
+  const { config, isEnabled } = useToggleBoxContext()
+  const [isFeatureEnabled, setIsFeatureEnabled] = useState(false)
+
+  useEffect(() => {
+    isEnabled(featureName).then(setIsFeatureEnabled)
+  }, [featureName])
+
+  // Use config for static settings, flags for dynamic on/off
+  const featureConfig = config?.features?.[featureName] || {}
+
+  if (!isFeatureEnabled) return null
+
+  return (
+    <Card
+      title={featureConfig.title}
+      description={featureConfig.description}
+      icon={featureConfig.icon}
+    />
+  )
 }
 ```
 

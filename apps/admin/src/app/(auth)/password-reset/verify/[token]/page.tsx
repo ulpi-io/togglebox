@@ -2,10 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { verifyResetTokenAction } from '@/actions/password-reset';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Spinner } from '@/components/ui/spinner';
-import { Button } from '@/components/ui/button';
+import { verifyResetTokenApi } from '@/lib/api/auth';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Spinner,
+  Button,
+} from '@togglebox/ui';
 import Link from 'next/link';
 
 export default function VerifyResetTokenPage() {
@@ -17,15 +23,19 @@ export default function VerifyResetTokenPage() {
 
   useEffect(() => {
     async function verifyToken() {
-      const response = await verifyResetTokenAction(token);
-
-      if (response.success) {
+      try {
+        const response = await verifyResetTokenApi(token);
+        if (response.valid) {
+          setVerifying(false);
+          // Redirect to complete password reset page
+          router.push(`/password-reset/complete/${token}`);
+        } else {
+          setVerifying(false);
+          setError('Invalid or expired reset token');
+        }
+      } catch (err) {
         setVerifying(false);
-        // Redirect to complete password reset page
-        router.push(`/password-reset/complete/${token}`);
-      } else {
-        setVerifying(false);
-        setError(response.error || 'Invalid or expired reset token');
+        setError(err instanceof Error ? err.message : 'Invalid or expired reset token');
       }
     }
 

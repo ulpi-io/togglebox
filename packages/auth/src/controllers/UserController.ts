@@ -233,6 +233,100 @@ export class UserController {
   };
 
   /**
+   * Create a new user (admin-only endpoint).
+   *
+   * @remarks
+   * **HTTP Endpoint:** POST /api/v1/users
+   *
+   * **Authorization:** Admin only (enforced by middleware)
+   *
+   * **Request Body:**
+   * ```json
+   * {
+   *   "email": "newuser@example.com",
+   *   "password": "SecurePass123",
+   *   "role": "developer"
+   * }
+   * ```
+   *
+   * **Response (201 Created):**
+   * ```json
+   * {
+   *   "success": true,
+   *   "data": {
+   *     "id": "uuid",
+   *     "email": "newuser@example.com",
+   *     "role": "developer",
+   *     "createdAt": "2025-01-01T00:00:00.000Z",
+   *     "updatedAt": "2025-01-01T00:00:00.000Z"
+   *   },
+   *   "timestamp": "2025-01-01T00:00:00.000Z"
+   * }
+   * ```
+   *
+   * **Error Responses:**
+   * - 400 Bad Request: Missing required fields
+   * - 401 Unauthorized: Missing or invalid token
+   * - 403 Forbidden: Non-admin user
+   * - 409 Conflict: User with this email already exists
+   * - 422 Unprocessable Entity: Validation failed (weak password, invalid role)
+   * - 500 Internal Server Error: Server error
+   *
+   * **Security:**
+   * - Password is hashed with bcrypt before storage
+   * - Password hash is never returned in response
+   */
+  createUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email, password, role } = req.body;
+
+      // Validate required fields
+      if (!email || !password) {
+        res.status(400).json({
+          success: false,
+          error: 'Email and password are required',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      // Validate role if provided
+      if (role && !['admin', 'developer', 'viewer'].includes(role)) {
+        res.status(422).json({
+          success: false,
+          error: 'Invalid role. Must be admin, developer, or viewer',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      // Register user via service
+      const user = await this.userService.register({
+        email,
+        password,
+        role: role || 'viewer',
+      });
+
+      res.status(201).json({
+        success: true,
+        data: user,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      if (err.message?.includes('already exists')) {
+        res.status(409).json({
+          success: false,
+          error: err.message,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+      next(error);
+    }
+  };
+
+  /**
    * List all users with pagination and filtering.
    *
    * @remarks
@@ -449,6 +543,108 @@ export class UserController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Update user role.
+   *
+   * @remarks
+   * **HTTP Endpoint:** PATCH /api/v1/users/:id/role
+   *
+   * **Authorization:** Admin only (enforced by middleware)
+   *
+   * **Path Parameters:**
+   * - `id`: User unique identifier (UUID)
+   *
+   * **Request Body:**
+   * ```json
+   * {
+   *   "role": "developer"
+   * }
+   * ```
+   *
+   * **Response (200 OK):**
+   * ```json
+   * {
+   *   "success": true,
+   *   "data": {
+   *     "id": "uuid",
+   *     "email": "user@example.com",
+   *     "role": "developer",
+   *     "createdAt": "2025-01-01T00:00:00.000Z",
+   *     "updatedAt": "2025-01-01T00:00:00.000Z"
+   *   },
+   *   "timestamp": "2025-01-01T00:00:00.000Z"
+   * }
+   * ```
+   *
+   * **Error Responses:**
+   * - 400 Bad Request: Missing user ID or role
+   * - 401 Unauthorized: Missing or invalid token
+   * - 403 Forbidden: Non-admin user or trying to demote yourself
+   * - 404 Not Found: User does not exist
+   * - 500 Internal Server Error: Server error
+   *
+   * **Security:**
+   * - Cannot demote yourself (admin cannot remove their own admin role)
+   * - Prevents last admin from being demoted
+   */
+  updateUserRole = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const id = req.params['id'];
+      const { role } = req.body;
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          error: 'Missing user ID',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      if (!role || !['admin', 'developer', 'viewer'].includes(role)) {
+        res.status(400).json({
+          success: false,
+          error: 'Invalid role. Must be admin, developer, or viewer',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      // Prevent admin from demoting themselves
+      if (req.user && req.user.userId === id && role !== 'admin') {
+        res.status(403).json({
+          success: false,
+          error: 'Cannot demote yourself. Ask another admin to change your role.',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const user = await this.userService.updateProfile(id, { role });
+
+      res.status(200).json({
+        success: true,
+        data: user,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      if (err.message?.includes('not found')) {
+        res.status(404).json({
+          success: false,
+          error: 'User not found',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       next(error);
     }
   };

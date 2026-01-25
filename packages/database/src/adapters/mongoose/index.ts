@@ -36,19 +36,23 @@
  */
 
 import mongoose from 'mongoose';
-import { DatabaseRepositories } from '../../factory';
+import { DatabaseRepositories, ThreeTierRepositories } from '../../factory';
 import { MongoosePlatformRepository } from './MongoosePlatformRepository';
 import { MongooseEnvironmentRepository } from './MongooseEnvironmentRepository';
 import { MongooseConfigRepository } from './MongooseConfigRepository';
-import { MongooseFeatureFlagRepository } from './MongooseFeatureFlagRepository';
 import { MongooseUsageRepository } from './MongooseUsageRepository';
+import { MongooseFlagRepository } from './MongooseFlagRepository';
+import { MongooseExperimentRepository } from './MongooseExperimentRepository';
+import { MongooseStatsRepository } from './MongooseStatsRepository';
 import { logger } from '@togglebox/shared';
 
 export * from './MongoosePlatformRepository';
 export * from './MongooseEnvironmentRepository';
 export * from './MongooseConfigRepository';
-export * from './MongooseFeatureFlagRepository';
 export * from './MongooseUsageRepository';
+export * from './MongooseFlagRepository';
+export * from './MongooseExperimentRepository';
+export * from './MongooseStatsRepository';
 export * from './schemas';
 
 let connectionPromise: Promise<typeof mongoose> | null = null;
@@ -133,8 +137,72 @@ export function createMongooseRepositories(connectionUrl: string): DatabaseRepos
     platform: new MongoosePlatformRepository(),
     environment: new MongooseEnvironmentRepository(),
     config: new MongooseConfigRepository(),
-    featureFlag: new MongooseFeatureFlagRepository(),
     usage: new MongooseUsageRepository(mongoose.connection),
+  };
+}
+
+/**
+ * Creates Mongoose-based three-tier repository instances.
+ *
+ * @param connectionUrl - MongoDB connection URL (optional, for consistency with factory pattern)
+ * @returns Three-tier repositories (Flags, Experiments, Stats)
+ *
+ * @remarks
+ * Connection to MongoDB is established lazily on first database operation.
+ * This function returns repositories for the new three-tier architecture:
+ * - flag: Feature Flags (2-value model with targeting)
+ * - experiment: Experiments (multi-variant A/B testing)
+ * - stats: Statistics for all tiers
+ *
+ * Note: The connectionUrl parameter is accepted for consistency with the factory pattern,
+ * but the connection is managed globally via ensureConnection(). The actual connection
+ * is established when createMongooseRepositories() is called.
+ *
+ * @example
+ * ```ts
+ * const threeTier = createMongooseThreeTierRepositories('mongodb://localhost:27017/togglebox');
+ *
+ * // Create a feature flag
+ * const flag = await threeTier.flag.create({
+ *   platform: 'web',
+ *   environment: 'production',
+ *   flagKey: 'dark-mode',
+ *   name: 'Dark Mode',
+ *   flagType: 'boolean',
+ *   valueA: true,
+ *   valueB: false,
+ *   createdBy: 'admin@example.com',
+ * });
+ *
+ * // Create an experiment
+ * const exp = await threeTier.experiment.create({
+ *   platform: 'web',
+ *   environment: 'production',
+ *   experimentKey: 'checkout-test',
+ *   name: 'Checkout Flow Test',
+ *   hypothesis: 'Single-page checkout increases conversions',
+ *   variations: [...],
+ *   trafficAllocation: [...],
+ *   primaryMetric: {...},
+ *   createdBy: 'product@example.com',
+ * });
+ *
+ * // Track stats
+ * await threeTier.stats.incrementFlagEvaluation('web', 'production', 'dark-mode', 'A', 'user-123');
+ * ```
+ */
+export function createMongooseThreeTierRepositories(connectionUrl?: string): ThreeTierRepositories {
+  // Ensure connection if URL provided
+  if (connectionUrl) {
+    ensureConnection(connectionUrl).catch((error) => {
+      logger.error('Failed to connect to MongoDB for three-tier repositories', error);
+    });
+  }
+
+  return {
+    flag: new MongooseFlagRepository(),
+    experiment: new MongooseExperimentRepository(),
+    stats: new MongooseStatsRepository(),
   };
 }
 

@@ -1,15 +1,17 @@
-# @config/database
+# @togglebox/database
 
-Multi-database abstraction layer for remote config service. Supports MySQL, MongoDB, SQLite, and DynamoDB.
+Multi-database abstraction layer for ToggleBox. Supports MySQL, MongoDB, SQLite, DynamoDB, and Cloudflare D1.
 
 ## Features
 
-- 🔄 **Multi-Database Support** - MySQL, MongoDB, SQLite, DynamoDB
+- 🔄 **Multi-Database Support** - MySQL, MongoDB, SQLite, DynamoDB, Cloudflare D1
 - 🏗️ **Repository Pattern** - Clean abstraction over database operations
 - 🏭 **Factory Pattern** - Runtime database selection via environment variables
 - ⚡ **TypeScript** - Full type safety across all adapters
-- 🔙 **Backward Compatible** - Legacy DynamoDB exports preserved
 - 🎯 **Single Table Design** - Optimized DynamoDB implementation
+- 🚩 **Feature Flags** - 2-value model with country/language targeting
+- 🧪 **Experiments** - Multi-variant A/B testing support
+- 📊 **Usage Tracking** - API usage statistics
 
 ## Supported Databases
 
@@ -18,7 +20,8 @@ Multi-database abstraction layer for remote config service. Supports MySQL, Mong
 | **DynamoDB** | ✅ Production Ready | Custom | AWS serverless deployments |
 | **MySQL** | ✅ Ready | Prisma | Traditional SQL databases |
 | **SQLite** | ✅ Ready | Prisma | Local development, testing |
-| **MongoDB** | ✅ Ready | Prisma | Document-oriented storage |
+| **MongoDB** | ✅ Ready | Mongoose | Document-oriented storage |
+| **Cloudflare D1** | ✅ Ready | D1 | Edge deployments |
 
 ## Quick Start
 
@@ -79,7 +82,7 @@ pnpm prisma:migrate
 ### Using the Factory Pattern (Recommended)
 
 ```typescript
-import { getDatabase } from '@config/database';
+import { getDatabase } from '@togglebox/database';
 
 // Get database instance (singleton)
 const db = getDatabase();
@@ -91,13 +94,18 @@ const platform = await db.platform.createPlatform({
   createdAt: new Date().toISOString(),
 });
 
-const flags = await db.featureFlag.listFeatureFlags('web', 'production');
+// Feature flags (2-value model)
+const flags = await db.flag.listActive('web', 'production');
+const flag = await db.flag.getActive('web', 'production', 'dark-mode');
+
+// Experiments
+const experiments = await db.experiment.listActive('web', 'production');
 ```
 
 ### Using Legacy Exports (Backward Compatible)
 
 ```typescript
-import * as platformService from '@config/database';
+import * as platformService from '@togglebox/database';
 
 const platform = await platformService.createPlatform({
   name: 'web',
@@ -133,24 +141,34 @@ interface IEnvironmentRepository {
 ```typescript
 interface IConfigRepository {
   createVersion(version: Omit<Version, 'versionTimestamp' | 'createdAt'>): Promise<Version>;
-  getVersion(platform: string, environment: string, versionTimestamp: string): Promise<Version | null>;
+  getVersion(platform: string, environment: string, versionLabel: string): Promise<Version | null>;
   getLatestStableVersion(platform: string, environment: string): Promise<Version | null>;
-  listVersions(platform: string, environment: string): Promise<Version[]>;
-  deleteVersion(platform: string, environment: string, versionTimestamp: string): Promise<boolean>;
+  listVersions(platform: string, environment: string, pagination?: PaginationParams): Promise<PaginatedResult<Version>>;
+  deleteVersion(platform: string, environment: string, versionLabel: string): Promise<boolean>;
+  markVersionStable(platform: string, environment: string, versionLabel: string): Promise<Version | null>;
 }
 ```
 
-### IFeatureFlagRepository
+> **Note:** All version lookups use `versionLabel` (semantic version like "1.0.0"), NOT `versionTimestamp`.
+
+### IFlagRepository
+
+The flag repository implements the 2-value model (A/B) with versioning and targeting.
 
 ```typescript
-interface IFeatureFlagRepository {
-  createFeatureFlag(featureFlag: Omit<FeatureFlag, 'createdAt' | 'updatedAt'>): Promise<FeatureFlag>;
-  getFeatureFlag(platform: string, environment: string, flagName: string): Promise<FeatureFlag | null>;
-  listFeatureFlags(platform: string, environment: string): Promise<FeatureFlag[]>;
-  updateFeatureFlag(platform: string, environment: string, flagName: string, updates: Partial<FeatureFlag>): Promise<FeatureFlag | null>;
-  deleteFeatureFlag(platform: string, environment: string, flagName: string): Promise<boolean>;
+interface IFlagRepository {
+  create(data: CreateFlag): Promise<Flag>;
+  update(platform: string, environment: string, flagKey: string, data: UpdateFlag): Promise<Flag>;
+  toggle(platform: string, environment: string, flagKey: string): Promise<Flag>;
+  getActive(platform: string, environment: string, flagKey: string): Promise<Flag | null>;
+  getVersion(platform: string, environment: string, flagKey: string, version: string): Promise<Flag | null>;
+  listActive(platform: string, environment: string): Promise<FlagPage>;
+  listVersions(platform: string, environment: string, flagKey: string): Promise<Flag[]>;
+  delete(platform: string, environment: string, flagKey: string): Promise<boolean>;
 }
 ```
+
+> **Note:** Flag types are imported from `@togglebox/flags` package.
 
 ## Environment Variables Reference
 
@@ -233,18 +251,31 @@ packages/database/
 │   │   ├── IPlatformRepository.ts
 │   │   ├── IEnvironmentRepository.ts
 │   │   ├── IConfigRepository.ts
-│   │   └── IFeatureFlagRepository.ts
+│   │   ├── IUsageRepository.ts
+│   │   └── IPagination.ts
 │   ├── adapters/
-│   │   ├── prisma/          # Prisma adapter (MySQL, SQLite, MongoDB)
+│   │   ├── prisma/          # Prisma adapter (MySQL, PostgreSQL, SQLite)
 │   │   │   ├── PrismaPlatformRepository.ts
 │   │   │   ├── PrismaEnvironmentRepository.ts
 │   │   │   ├── PrismaConfigRepository.ts
-│   │   │   └── PrismaFeatureFlagRepository.ts
-│   │   └── dynamodb/        # DynamoDB adapter
-│   │       ├── DynamoDBPlatformRepository.ts
-│   │       ├── DynamoDBEnvironmentRepository.ts
-│   │       ├── DynamoDBConfigRepository.ts
-│   │       └── DynamoDBFeatureFlagRepository.ts
+│   │   │   ├── PrismaFlagRepository.ts
+│   │   │   └── PrismaExperimentRepository.ts
+│   │   ├── dynamodb/        # DynamoDB adapter
+│   │   │   ├── DynamoDBPlatformRepository.ts
+│   │   │   ├── DynamoDBEnvironmentRepository.ts
+│   │   │   ├── DynamoDBConfigRepository.ts
+│   │   │   ├── DynamoDBNewFlagRepository.ts
+│   │   │   └── DynamoDBExperimentRepository.ts
+│   │   ├── mongoose/        # MongoDB adapter
+│   │   │   ├── MongoosePlatformRepository.ts
+│   │   │   ├── MongooseConfigRepository.ts
+│   │   │   ├── MongooseFlagRepository.ts
+│   │   │   └── MongooseExperimentRepository.ts
+│   │   └── d1/              # Cloudflare D1 adapter
+│   │       ├── D1PlatformRepository.ts
+│   │       ├── D1ConfigRepository.ts
+│   │       ├── D1FlagRepository.ts
+│   │       └── D1ExperimentRepository.ts
 │   ├── config.ts            # Database configuration
 │   ├── factory.ts           # Database factory pattern
 │   └── [legacy services]    # Existing DynamoDB services (backward compatible)
@@ -253,19 +284,21 @@ packages/database/
     └── .env.example         # Example configuration
 ```
 
+> **Note:** Flag and Experiment repository interfaces are defined in their respective domain packages (`@togglebox/flags` and `@togglebox/experiments`).
+
 ## Migration Guide
 
 ### From Legacy DynamoDB to Factory Pattern
 
 **Before:**
 ```typescript
-import * as platformService from '@config/database';
+import * as platformService from '@togglebox/database';
 const platform = await platformService.createPlatform({ ... });
 ```
 
 **After:**
 ```typescript
-import { getDatabase } from '@config/database';
+import { getDatabase } from '@togglebox/database';
 const db = getDatabase();
 const platform = await db.platform.createPlatform({ ... });
 ```

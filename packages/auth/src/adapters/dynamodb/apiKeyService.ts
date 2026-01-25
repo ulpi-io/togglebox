@@ -29,7 +29,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { PutCommand, GetCommand, QueryCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { ApiKey, PublicApiKey } from '../../models/ApiKey';
 import { CreateApiKeyRepositoryData } from '../../interfaces/IApiKeyRepository';
-import { dynamoDBClient, getAuthTableName } from './database';
+import { dynamoDBClient, getApiKeysTableName } from './database';
 
 /**
  * Create a new API key in DynamoDB.
@@ -68,7 +68,7 @@ export async function createApiKey(data: CreateApiKeyRepositoryData): Promise<Ap
   };
 
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getApiKeysTableName(),
     Item: {
       PK: `APIKEY#${apiKey.id}`,
       SK: `APIKEY#${apiKey.id}`,
@@ -111,7 +111,7 @@ export async function createApiKey(data: CreateApiKeyRepositoryData): Promise<Ap
  */
 export async function findApiKeyById(id: string): Promise<ApiKey | null> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getApiKeysTableName(),
     Key: {
       PK: `APIKEY#${id}`,
       SK: `APIKEY#${id}`,
@@ -142,7 +142,7 @@ export async function findApiKeyById(id: string): Promise<ApiKey | null> {
  */
 export async function findApiKeyByKeyHash(keyHash: string): Promise<ApiKey | null> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getApiKeysTableName(),
     IndexName: 'GSI2',
     KeyConditionExpression: 'GSI2PK = :pk',
     ExpressionAttributeValues: {
@@ -175,7 +175,7 @@ export async function findApiKeyByKeyHash(keyHash: string): Promise<ApiKey | nul
  */
 export async function listApiKeysByUser(userId: string): Promise<PublicApiKey[]> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getApiKeysTableName(),
     IndexName: 'GSI1',
     KeyConditionExpression: 'GSI1PK = :pk',
     ExpressionAttributeValues: {
@@ -219,7 +219,7 @@ export async function updateApiKey(id: string, data: Partial<ApiKey>): Promise<A
   };
 
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getApiKeysTableName(),
     Item: {
       PK: `APIKEY#${id}`,
       SK: `APIKEY#${id}`,
@@ -253,7 +253,7 @@ export async function updateApiKey(id: string, data: Partial<ApiKey>): Promise<A
  */
 export async function deleteApiKey(id: string): Promise<void> {
   const params = {
-    TableName: getAuthTableName(),
+    TableName: getApiKeysTableName(),
     Key: {
       PK: `APIKEY#${id}`,
       SK: `APIKEY#${id}`,

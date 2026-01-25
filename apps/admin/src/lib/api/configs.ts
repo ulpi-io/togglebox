@@ -1,11 +1,11 @@
-import { apiClient } from './client';
+import { browserApiClient } from './browser-client';
 import type { ConfigVersion } from './types';
 
 export async function getConfigVersionsApi(
   platform: string,
   environment: string
 ): Promise<ConfigVersion[]> {
-  return apiClient(`/api/v1/internal/platforms/${platform}/environments/${environment}/versions`);
+  return browserApiClient(`/api/v1/platforms/${platform}/environments/${environment}/versions`);
 }
 
 export async function createConfigVersionApi(
@@ -15,7 +15,7 @@ export async function createConfigVersionApi(
   config: Record<string, unknown>,
   isStable?: boolean
 ): Promise<ConfigVersion> {
-  return apiClient(`/api/v1/internal/platforms/${platform}/environments/${environment}/versions`, {
+  return browserApiClient(`/api/v1/internal/platforms/${platform}/environments/${environment}/versions`, {
     method: 'POST',
     body: JSON.stringify({
       version,
@@ -30,7 +30,7 @@ export async function markConfigStableApi(
   environment: string,
   version: string
 ): Promise<void> {
-  return apiClient(
+  return browserApiClient(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/versions/${version}/mark-stable`,
     {
       method: 'PATCH',
@@ -43,7 +43,7 @@ export async function deleteConfigVersionApi(
   environment: string,
   version: string
 ): Promise<void> {
-  return apiClient(
+  return browserApiClient(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/versions/${version}`,
     {
       method: 'DELETE',
@@ -55,5 +55,5 @@ export async function getLatestStableConfigApi(
   platform: string,
   environment: string
 ): Promise<ConfigVersion> {
-  return apiClient(`/api/v1/platforms/${platform}/environments/${environment}/versions/latest/stable`);
+  return browserApiClient(`/api/v1/platforms/${platform}/environments/${environment}/versions/latest/stable`);
 }

@@ -13,7 +13,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@togglebox/configs": "workspace:*",
     "@togglebox/core": "workspace:*",
+    "@togglebox/flags": "workspace:*",
+    "@togglebox/experiments": "workspace:*",
     "@togglebox/sdk": "workspace:*"
   },
   "peerDependencies": {

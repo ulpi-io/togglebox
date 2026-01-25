@@ -6,7 +6,7 @@
  * Handles JSON serialization for configuration payloads and versioning logic.
  */
 
-import { Version } from '@togglebox/core';
+import { Version } from '@togglebox/configs';
 import { IConfigRepository, OffsetPaginationParams, TokenPaginationParams, OffsetPaginatedResult } from '../../interfaces';
 
 /**
@@ -68,8 +68,8 @@ export class D1ConfigRepository implements IConfigRepository {
     return {
       platform: version.platform,
       environment: version.environment,
-      versionTimestamp,
       versionLabel: version.versionLabel,
+      versionTimestamp,
       isStable: version.isStable,
       config: version.config,
       createdBy: version.createdBy,
@@ -78,24 +78,25 @@ export class D1ConfigRepository implements IConfigRepository {
   }
 
   /**
-   * Gets configuration version by composite key.
+   * Gets configuration version by versionLabel.
    *
    * @remarks
-   * Uses composite WHERE clause (platform + environment + versionTimestamp).
+   * Uses versionLabel as the human-readable identifier for consistency
+   * across all database adapters (DynamoDB, Prisma, D1).
    * JSON config is parsed back to object automatically.
    */
   async getVersion(
     platform: string,
     environment: string,
-    versionTimestamp: string
+    versionLabel: string
   ): Promise<Version | null> {
     const result = await this.db
       .prepare(
         `SELECT platform, environment, versionTimestamp, versionLabel, isStable, config, createdBy, createdAt
         FROM config_versions
-        WHERE platform = ?1 AND environment = ?2 AND versionTimestamp = ?3`
+        WHERE platform = ?1 AND environment = ?2 AND versionLabel = ?3`
       )
-      .bind(platform, environment, versionTimestamp)
+      .bind(platform, environment, versionLabel)
       .first<{
         platform: string;
         environment: string;
@@ -114,8 +115,8 @@ export class D1ConfigRepository implements IConfigRepository {
     return {
       platform: result.platform,
       environment: result.environment,
+      versionLabel: result.versionLabel ?? '',
       versionTimestamp: result.versionTimestamp,
-      versionLabel: result.versionLabel || undefined,
       isStable: Boolean(result.isStable),
       config: JSON.parse(result.config),
       createdBy: result.createdBy,
@@ -158,8 +159,8 @@ export class D1ConfigRepository implements IConfigRepository {
     return {
       platform: result.platform,
       environment: result.environment,
+      versionLabel: result.versionLabel ?? '',
       versionTimestamp: result.versionTimestamp,
-      versionLabel: result.versionLabel || undefined,
       isStable: Boolean(result.isStable),
       config: JSON.parse(result.config),
       createdBy: result.createdBy,
@@ -213,8 +214,8 @@ export class D1ConfigRepository implements IConfigRepository {
         ? result.results.map((v) => ({
             platform: v.platform,
             environment: v.environment,
+            versionLabel: v.versionLabel ?? '',
             versionTimestamp: v.versionTimestamp,
-            versionLabel: v.versionLabel || undefined,
             isStable: Boolean(v.isStable),
             config: JSON.parse(v.config),
             createdBy: v.createdBy,
@@ -252,8 +253,8 @@ export class D1ConfigRepository implements IConfigRepository {
       ? result.results.map((v) => ({
           platform: v.platform,
           environment: v.environment,
+          versionLabel: v.versionLabel ?? '',
           versionTimestamp: v.versionTimestamp,
-          versionLabel: v.versionLabel || undefined,
           isStable: Boolean(v.isStable),
           config: JSON.parse(v.config),
           createdBy: v.createdBy,
@@ -265,25 +266,84 @@ export class D1ConfigRepository implements IConfigRepository {
   }
 
   /**
-   * Deletes a configuration version.
-   *
-   * @returns true if deleted, false if version doesn't exist
+   * Deletes a configuration version by versionLabel.
    *
    * @remarks
+   * Uses versionLabel as the human-readable identifier for consistency
+   * across all database adapters (DynamoDB, Prisma, D1).
    * Uses D1's meta.rows_written to detect if row was deleted.
+   *
+   * @returns true if deleted, false if version doesn't exist
    */
   async deleteVersion(
     platform: string,
     environment: string,
-    versionTimestamp: string
+    versionLabel: string
   ): Promise<boolean> {
     const result = await this.db
       .prepare(
-        'DELETE FROM config_versions WHERE platform = ?1 AND environment = ?2 AND versionTimestamp = ?3'
+        'DELETE FROM config_versions WHERE platform = ?1 AND environment = ?2 AND versionLabel = ?3'
       )
-      .bind(platform, environment, versionTimestamp)
+      .bind(platform, environment, versionLabel)
       .run();
 
     return result.meta.rows_written > 0;
+  }
+
+  /**
+   * Marks a configuration version as stable.
+   *
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @param versionLabel - Version label to mark as stable
+   * @returns Updated version if found, null otherwise
+   */
+  async markVersionStable(
+    platform: string,
+    environment: string,
+    versionLabel: string
+  ): Promise<Version | null> {
+    // First find the version by versionLabel
+    const result = await this.db
+      .prepare(
+        `SELECT platform, environment, versionTimestamp, versionLabel, isStable, config, createdBy, createdAt
+        FROM config_versions
+        WHERE platform = ?1 AND environment = ?2 AND versionLabel = ?3`
+      )
+      .bind(platform, environment, versionLabel)
+      .first<{
+        platform: string;
+        environment: string;
+        versionTimestamp: string;
+        versionLabel: string | null;
+        isStable: number;
+        config: string;
+        createdBy: string;
+        createdAt: string;
+      }>();
+
+    if (!result) {
+      return null;
+    }
+
+    // Update the version to be stable
+    await this.db
+      .prepare(
+        `UPDATE config_versions SET isStable = 1
+         WHERE platform = ?1 AND environment = ?2 AND versionTimestamp = ?3`
+      )
+      .bind(platform, environment, result.versionTimestamp)
+      .run();
+
+    return {
+      platform: result.platform,
+      environment: result.environment,
+      versionLabel: result.versionLabel ?? '',
+      versionTimestamp: result.versionTimestamp,
+      isStable: true,
+      config: JSON.parse(result.config),
+      createdBy: result.createdBy,
+      createdAt: result.createdAt,
+    };
   }
 }

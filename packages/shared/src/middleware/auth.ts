@@ -421,7 +421,7 @@ export class AuthService {
 
   private checkUserPermission(userRole: string, requiredPermission: string): boolean {
     const rolePermissions: Record<string, string[]> = {
-      'admin': ['*'], // All permissions
+      'admin': ['*'], // All permissions (includes user:manage, apikey:manage)
       'developer': [
         'config:read',
         'config:write',
@@ -430,6 +430,7 @@ export class AuthService {
         'platform:read',
         'environment:read',
         'cache:invalidate',
+        'apikey:manage', // Developers can manage their own API keys
       ],
       'viewer': [
         'config:read',
@@ -495,7 +496,7 @@ export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: 
     return;
   }
 
-  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+  const token = authHeader.slice(7); // Remove 'Bearer ' prefix
 
   try {
     const decoded = authService.verifyJWT(token);

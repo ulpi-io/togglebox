@@ -137,11 +137,39 @@ export class CloudflareCacheProvider implements CacheProvider {
   }
 
   /**
-   * Purge Cloudflare cache for a specific feature flag.
+   * Purge Cloudflare cache for a specific flag.
    */
-  async invalidateFeatureFlagCache(platform: string, environment: string, flagName: string): Promise<string | null> {
+  async invalidateFlagCache(platform: string, environment: string, flagKey: string): Promise<string | null> {
     return this.invalidateCache([
-      `/api/v1/platforms/${platform}/environments/${environment}/feature-flags/${flagName}`,
+      `/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}`,
+    ]);
+  }
+
+  /**
+   * Purge Cloudflare cache for a specific experiment.
+   */
+  async invalidateExperimentCache(platform: string, environment: string, experimentKey: string): Promise<string | null> {
+    return this.invalidateCache([
+      `/api/v1/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`,
+    ]);
+  }
+
+  /**
+   * Purge Cloudflare cache for all experiments in an environment.
+   */
+  async invalidateAllExperimentsCache(platform: string, environment: string): Promise<string | null> {
+    return this.invalidateCache([
+      `/api/v1/platforms/${platform}/environments/${environment}/experiments/*`,
+    ]);
+  }
+
+  /**
+   * Purge Cloudflare cache for stats endpoints in an environment.
+   */
+  async invalidateStatsCache(platform: string, environment: string): Promise<string | null> {
+    // Cloudflare doesn't support wildcards, so we purge the common pattern
+    return this.invalidateCache([
+      `/api/v1/platforms/${platform}/environments/${environment}/*/stats`,
     ]);
   }
 
