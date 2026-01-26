@@ -79,28 +79,58 @@ chore: update dependencies
 - Squash and merge into `main`
 - Delete branch after merge
 
-**PR Template:**
+**PR Template (actual .github/pull_request_template.md):**
 ```markdown
 ## Description
-Brief description of changes
+<!-- Provide a brief description of the changes in this PR -->
 
 ## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
+- [ ] Bug fix (non-breaking change that fixes an issue)
+- [ ] New feature (non-breaking change that adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] Documentation update
+- [ ] Refactoring (no functional changes)
+- [ ] Performance improvement
+- [ ] Dependency update
 
 ## Testing
 - [ ] Unit tests added/updated
 - [ ] Integration tests added/updated
 - [ ] Manual testing performed
+- [ ] All existing tests pass
 
-## Checklist
-- [ ] Code passes ESLint and Prettier
-- [ ] No N+1 queries introduced
-- [ ] All tests passing
-- [ ] Documentation updated
-- [ ] Environment variables added to .env.example
+## Code Quality Checklist
+- [ ] Code follows the project's style guidelines (ESLint and Prettier)
+- [ ] Self-review of code completed
+- [ ] Code commented where necessary (especially complex logic)
+- [ ] No hardcoded values (configuration moved to env vars)
+- [ ] Error handling implemented
+- [ ] No commented-out code
+- [ ] Environment variables documented in `.env.example`
+
+## Security Checklist
+- [ ] No secrets or API keys in code
+- [ ] Input validation implemented
+- [ ] No SQL injection vulnerabilities
+- [ ] Authentication/authorization properly implemented (if applicable)
+- [ ] Dependencies scanned for vulnerabilities (`pnpm audit`)
+
+## Performance Checklist
+- [ ] No N+1 query patterns introduced
+- [ ] Database queries optimized (indexes, eager loading)
+- [ ] No blocking operations in request handlers
+- [ ] Caching strategy considered (if applicable)
+
+## Database Changes (if applicable)
+- [ ] Prisma schema updated
+- [ ] Migrations created
+- [ ] Rollback plan documented
+
+## Reviewer Checklist
+- [ ] Code is easy to understand and maintain
+- [ ] Tests are comprehensive and meaningful
+- [ ] No security vulnerabilities introduced
+- [ ] Changes align with project architecture
 ```
 
 **Merge Strategy:** Squash and merge
@@ -832,7 +862,7 @@ app.use((req, res, next) => {
 
 ---
 
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-01-26
 
 **Note:** These conventions apply to **BOTH monorepos**:
 - **togglebox/** (open source) - Located at `/Users/ciprian/work/_______OGG_______/togglebox/togglebox`

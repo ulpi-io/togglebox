@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Select } from '@togglebox/ui';
 import { getPlatformsApi, getEnvironmentsApi } from '@/lib/api/platforms';
@@ -92,10 +92,13 @@ export function PlatformEnvFilter({
         const data = await getEnvironmentsApi(selectedPlatform);
         setEnvironments(data);
 
-        // If current environment not in new list, reset
-        if (selectedEnvironment && !data.some((e) => e.environment === selectedEnvironment)) {
-          setSelectedEnvironment(null);
-        }
+        // If current environment not in new list, reset (using functional update to avoid dependency)
+        setSelectedEnvironment((current) => {
+          if (current && !data.some((e) => e.environment === current)) {
+            return null;
+          }
+          return current;
+        });
       } catch (err) {
         console.error('Failed to load environments:', err);
         setEnvironments([]);
@@ -208,29 +211,29 @@ export function PlatformEnvFilter({
 // Hook for using platform/env selection in pages
 export function usePlatformEnvFilter() {
   const searchParams = useSearchParams();
-  const [platform, setPlatform] = useState<string | null>(null);
-  const [environment, setEnvironment] = useState<string | null>(null);
 
-  useEffect(() => {
+  const { platform, environment } = useMemo(() => {
     const urlPlatform = searchParams.get('platform');
     const urlEnvironment = searchParams.get('environment');
 
     if (urlPlatform && urlEnvironment) {
-      setPlatform(urlPlatform);
-      setEnvironment(urlEnvironment);
-    } else {
-      // Try localStorage
+      return { platform: urlPlatform, environment: urlEnvironment };
+    }
+
+    // Try localStorage (only runs on client)
+    if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         try {
           const parsed: StoredFilter = JSON.parse(stored);
-          setPlatform(parsed.platform);
-          setEnvironment(parsed.environment);
+          return { platform: parsed.platform, environment: parsed.environment };
         } catch {
-          // Ignore
+          // Ignore invalid stored data
         }
       }
     }
+
+    return { platform: null, environment: null };
   }, [searchParams]);
 
   return { platform, environment };

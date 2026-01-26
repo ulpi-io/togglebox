@@ -67,6 +67,11 @@ internalRouter.delete('/platforms/:platform',
   asyncHandler(configController.deletePlatform)
 );
 
+internalRouter.patch('/platforms/:platform',
+  requirePermission('config:write'),
+  asyncHandler(configController.updatePlatform)
+);
+
 // ============================================================================
 // ENVIRONMENT WRITE ENDPOINTS
 // ============================================================================
@@ -79,6 +84,11 @@ internalRouter.post('/platforms/:platform/environments',
 internalRouter.delete('/platforms/:platform/environments/:environment',
   requirePermission('config:delete'),
   asyncHandler(configController.deleteEnvironment)
+);
+
+internalRouter.patch('/platforms/:platform/environments/:environment',
+  requirePermission('config:write'),
+  asyncHandler(configController.updateEnvironment)
 );
 
 // ============================================================================
@@ -146,6 +156,11 @@ internalRouter.get('/webhook/cache/invalidations',
 // ============================================================================
 // USER MANAGEMENT ENDPOINTS (Admin only)
 // ============================================================================
+
+/**
+ * Note: Current user endpoints (/users/me, /users/me/password) are handled by
+ * the @togglebox/auth package and mounted via authRouter at /api/v1/users/me
+ */
 
 /**
  * User management endpoints require admin permission (user:manage)
@@ -273,6 +288,12 @@ internalRouter.post('/platforms/:platform/environments/:environment/experiments'
 internalRouter.put('/platforms/:platform/environments/:environment/experiments/:experimentKey',
   requirePermission('config:write'),
   asyncHandler(experimentController.updateExperiment)
+);
+
+// Update experiment traffic allocation (running/paused/draft)
+internalRouter.patch('/platforms/:platform/environments/:environment/experiments/:experimentKey/traffic',
+  requirePermission('config:write'),
+  asyncHandler(experimentController.updateTrafficAllocation)
 );
 
 // Start experiment (draft → running)

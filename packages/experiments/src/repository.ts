@@ -10,6 +10,7 @@ import type {
   CreateExperiment,
   UpdateExperiment,
   ExperimentStatus,
+  TrafficAllocation,
 } from './schemas';
 
 /**
@@ -158,4 +159,16 @@ export interface IExperimentRepository {
     experimentKey: string,
     results: Experiment['results']
   ): Promise<void>;
+
+  /**
+   * Update traffic allocation for a running or paused experiment.
+   * This allows adjusting rollout percentages without stopping the experiment.
+   * @throws Error if experiment is not running or paused
+   */
+  updateTrafficAllocation(
+    platform: string,
+    environment: string,
+    experimentKey: string,
+    trafficAllocation: TrafficAllocation[]
+  ): Promise<Experiment>;
 }

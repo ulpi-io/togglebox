@@ -150,7 +150,7 @@ export default function EditConfigPage({ params }: EditConfigPageProps) {
               Error loading config
             </div>
             <p className="text-muted-foreground mb-4">{loadError || 'Config not found'}</p>
-            <Link href={`/platforms/${platform}/environments/${environment}/configs`}>
+            <Link href={`/configs?platform=${platform}&environment=${environment}`}>
               <Button variant="outline">Back to Configs</Button>
             </Link>
           </CardContent>
@@ -174,7 +174,7 @@ export default function EditConfigPage({ params }: EditConfigPageProps) {
               {platform} / {environment} / v{currentVersion}
             </p>
           </div>
-          <Link href={`/platforms/${platform}/environments/${environment}/configs`}>
+          <Link href={`/configs?platform=${platform}&environment=${environment}`}>
             <Button variant="outline">Cancel</Button>
           </Link>
         </div>
@@ -255,7 +255,7 @@ export default function EditConfigPage({ params }: EditConfigPageProps) {
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pt-4">
-          <Link href={`/platforms/${platform}/environments/${environment}/configs`}>
+          <Link href={`/configs?platform=${platform}&environment=${environment}`}>
             <Button type="button" variant="outline" disabled={isLoading}>
               Cancel
             </Button>

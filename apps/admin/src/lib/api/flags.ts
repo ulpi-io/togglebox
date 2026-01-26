@@ -1,5 +1,44 @@
 import { browserApiClient } from './browser-client';
-import type { Flag, FlagTargeting } from './types';
+import type { Flag, FlagTargeting, Platform, Environment } from './types';
+
+/**
+ * Get all flags across all platforms and environments.
+ * Used when no filter is applied.
+ */
+export async function getAllFlagsApi(): Promise<Flag[]> {
+  // First, get all platforms
+  const platforms = await browserApiClient<Platform[]>('/api/v1/platforms');
+
+  // For each platform, get environments and then flags
+  const allFlags: Flag[] = [];
+
+  await Promise.all(
+    platforms.map(async (platform) => {
+      try {
+        const environments = await browserApiClient<Environment[]>(
+          `/api/v1/platforms/${platform.name}/environments`
+        );
+
+        await Promise.all(
+          environments.map(async (env) => {
+            try {
+              const flags = await browserApiClient<Flag[]>(
+                `/api/v1/platforms/${platform.name}/environments/${env.environment}/flags`
+              );
+              allFlags.push(...flags);
+            } catch {
+              // Environment may have no flags, skip it
+            }
+          })
+        );
+      } catch {
+        // Platform may have no environments, skip it
+      }
+    })
+  );
+
+  return allFlags;
+}
 
 /**
  * Get all active flags for an environment.
@@ -208,6 +247,41 @@ export async function deleteFlagApi(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}`,
     {
       method: 'DELETE',
+    }
+  );
+}
+
+/**
+ * Rollout settings for gradual feature rollouts.
+ */
+export interface RolloutSettings {
+  rolloutEnabled?: boolean;
+  rolloutPercentageA?: number; // 0-100
+  rolloutPercentageB?: number; // 0-100
+}
+
+/**
+ * Update a flag's rollout settings for gradual rollouts.
+ *
+ * This is an in-place update (no new version created) that controls
+ * what percentage of users see valueA vs valueB.
+ *
+ * Example: Gradually roll out a feature from 10% -> 50% -> 100%
+ * - rolloutEnabled: true
+ * - rolloutPercentageA: 10 (10% get the new feature)
+ * - rolloutPercentageB: 90 (90% get the old behavior)
+ */
+export async function updateFlagRolloutApi(
+  platform: string,
+  environment: string,
+  flagKey: string,
+  settings: RolloutSettings
+): Promise<Flag> {
+  return browserApiClient<Flag>(
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/rollout`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
     }
   );
 }

@@ -19,6 +19,24 @@ const CreatePlatformSchema = z.object({
 });
 
 /**
+ * Zod schema for platform update validation
+ */
+const UpdatePlatformSchema = z.object({
+  description: z.string()
+    .max(500, 'Description must be 500 characters or less')
+    .optional(),
+});
+
+/**
+ * Zod schema for environment update validation
+ */
+const UpdateEnvironmentSchema = z.object({
+  description: z.string()
+    .max(500, 'Description must be 500 characters or less')
+    .optional(),
+});
+
+/**
  * Zod schema for version creation body validation.
  * Platform, environment, and createdBy are extracted from URL params and JWT token.
  */
@@ -430,10 +448,15 @@ export class ConfigController {
     try {
       const validatedData = CreatePlatformSchema.parse(req.body);
 
+      // Get createdBy from authenticated user (set by requireAuth middleware)
+      const user = (req as unknown as { user?: { id?: string } }).user;
+      const createdBy = user?.id;
+
       await withDatabaseContext(req, async () => {
         const platform = await this.db.platform.createPlatform({
           name: validatedData.name,
           description: validatedData.description,
+          createdBy,
           createdAt: new Date().toISOString(),
         });
 
@@ -514,6 +537,18 @@ export class ConfigController {
   deletePlatform = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { platform } = req.params as { platform: string };
+
+      // Check for admin role - only admins can delete platforms
+      const user = (req as unknown as { user?: { role?: string } }).user;
+      if (user?.role !== 'admin') {
+        res.status(403).json({
+          success: false,
+          error: 'Forbidden: Only admins can delete platforms',
+          code: 'FORBIDDEN',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
@@ -641,6 +676,10 @@ export class ConfigController {
         return;
       }
 
+      // Get createdBy from authenticated user (set by requireAuth middleware)
+      const user = (req as unknown as { user?: { id?: string } }).user;
+      const createdBy = user?.id;
+
       await withDatabaseContext(req, async () => {
         // Validate that platform exists
         const platformData = await this.db.platform.getPlatform(platform);
@@ -657,6 +696,7 @@ export class ConfigController {
           platform,
           environment,
           description,
+          createdBy,
         });
 
         logger.info(`Created environment ${environment} for platform ${platform}`);
@@ -726,6 +766,18 @@ export class ConfigController {
   deleteEnvironment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { platform, environment } = req.params as { platform: string; environment: string };
+
+      // Check for admin role - only admins can delete environments
+      const user = (req as unknown as { user?: { role?: string } }).user;
+      if (user?.role !== 'admin') {
+        res.status(403).json({
+          success: false,
+          error: 'Forbidden: Only admins can delete environments',
+          code: 'FORBIDDEN',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
@@ -822,6 +874,140 @@ export class ConfigController {
         }
       });
     } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Updates a platform's editable fields.
+   *
+   * @param req - Express request with platform name in params and update data in body
+   * @param res - Express response object
+   * @param next - Express next function for error handling
+   *
+   * @remarks
+   * Only the description field can be updated. The platform name (slug) is immutable.
+   *
+   * @returns HTTP 200 with updated platform data, or 404 if not found
+   */
+  updatePlatform = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform } = req.params as { platform: string };
+      const validatedData = UpdatePlatformSchema.parse(req.body);
+
+      await withDatabaseContext(req, async () => {
+        // Check if updatePlatform method exists on the repository
+        if (!this.db.platform.updatePlatform) {
+          res.status(501).json({
+            success: false,
+            error: 'Update operation not supported by current database adapter',
+            code: 'NOT_IMPLEMENTED',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        const startTime = Date.now();
+        const updated = await this.db.platform.updatePlatform(platform, validatedData);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('updatePlatform', 'platforms', duration, true);
+
+        if (!updated) {
+          res.status(404).json({
+            success: false,
+            error: 'Platform not found',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        logger.info(`Updated platform ${platform}`);
+
+        res.json({
+          success: true,
+          data: updated,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          code: 'VALIDATION_FAILED',
+          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+      next(error);
+    }
+  };
+
+  /**
+   * Updates an environment's editable fields.
+   *
+   * @param req - Express request with platform and environment in params and update data in body
+   * @param res - Express response object
+   * @param next - Express next function for error handling
+   *
+   * @remarks
+   * Only the description field can be updated. The environment name (slug) is immutable.
+   *
+   * @returns HTTP 200 with updated environment data, or 404 if not found
+   */
+  updateEnvironment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment } = req.params as { platform: string; environment: string };
+      const validatedData = UpdateEnvironmentSchema.parse(req.body);
+
+      await withDatabaseContext(req, async () => {
+        // Check if updateEnvironment method exists on the repository
+        if (!this.db.environment.updateEnvironment) {
+          res.status(501).json({
+            success: false,
+            error: 'Update operation not supported by current database adapter',
+            code: 'NOT_IMPLEMENTED',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        const startTime = Date.now();
+        const updated = await this.db.environment.updateEnvironment(platform, environment, validatedData);
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('updateEnvironment', 'environments', duration, true);
+
+        if (!updated) {
+          res.status(404).json({
+            success: false,
+            error: 'Environment not found',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        logger.info(`Updated environment ${environment} for platform ${platform}`);
+
+        res.json({
+          success: true,
+          data: updated,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          code: 'VALIDATION_FAILED',
+          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       next(error);
     }
   };

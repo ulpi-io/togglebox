@@ -60,16 +60,16 @@ export function FlagCard({ flag, onToggle, canToggle = false }: FlagCardProps) {
         <span className="px-2 py-1 bg-gray-100 rounded">
           Value B: <code>{String(flag.valueB)}</code>
         </span>
-        {flag.rolloutPercentage !== undefined && (
+        {flag.rolloutEnabled && (
           <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
-            Rollout: {flag.rolloutPercentage}%
+            Rollout: {flag.rolloutPercentageA ?? 100}%
           </span>
         )}
       </div>
 
-      {flag.targeting && flag.targeting.length > 0 && (
+      {flag.targeting?.countries && flag.targeting.countries.length > 0 && (
         <div className="mt-2 text-xs text-gray-500">
-          Targeting: {flag.targeting.map((t) => `${t.attribute}=${t.values.join(',')}`).join('; ')}
+          Targeting: {flag.targeting.countries.map((t) => `${t.country}→${t.serveValue}`).join('; ')}
         </div>
       )}
     </div>

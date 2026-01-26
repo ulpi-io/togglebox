@@ -14,6 +14,8 @@ import type {
   EventListener,
   ConversionData,
   EventData,
+  HealthCheckResponse,
+  ConfigVersionMeta,
 } from './types'
 
 /**
@@ -81,6 +83,27 @@ export class ToggleBoxClient {
     if (this.pollingInterval > 0) {
       this.startPolling()
     }
+  }
+
+  // ==================== CONNECTION & HEALTH ====================
+
+  /**
+   * Check API connectivity and service health.
+   *
+   * @returns Health status including uptime
+   * @throws NetworkError if API is unreachable
+   *
+   * @example
+   * ```typescript
+   * const health = await client.checkConnection()
+   * if (health.success) {
+   *   console.log(`API is healthy, uptime: ${health.uptime}s`)
+   * }
+   * ```
+   */
+  async checkConnection(): Promise<HealthCheckResponse> {
+    const response = await this.http.get<HealthCheckResponse>('/health')
+    return response
   }
 
   // ==================== TIER 1: REMOTE CONFIGS ====================
@@ -162,6 +185,26 @@ export class ToggleBoxClient {
     return config
   }
 
+  /**
+   * List all configuration versions for the current platform/environment.
+   *
+   * @returns Array of config version metadata (without full config data)
+   *
+   * @example
+   * ```typescript
+   * const versions = await client.getConfigVersions()
+   * console.log(`Found ${versions.length} versions`)
+   * versions.forEach(v => {
+   *   console.log(`${v.versionLabel} - stable: ${v.isStable}`)
+   * })
+   * ```
+   */
+  async getConfigVersions(): Promise<ConfigVersionMeta[]> {
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/versions`
+    const response = await this.http.get<{ data: ConfigVersionMeta[] }>(path)
+    return response.data
+  }
+
   // ==================== TIER 2: FEATURE FLAGS (2-value) ====================
 
   /**
@@ -233,6 +276,32 @@ export class ToggleBoxClient {
       return result.servedValue === 'A'
     } catch {
       return defaultValue
+    }
+  }
+
+  /**
+   * Get a specific flag's metadata without evaluation.
+   * Useful for inspecting flag configuration.
+   *
+   * @param flagKey - The flag key
+   * @returns Flag metadata or null if not found
+   *
+   * @example
+   * ```typescript
+   * const flagInfo = await client.getFlagInfo('new-dashboard')
+   * if (flagInfo) {
+   *   console.log(`Flag enabled: ${flagInfo.enabled}`)
+   *   console.log(`Rollout: ${flagInfo.rolloutPercentage}%`)
+   * }
+   * ```
+   */
+  async getFlagInfo(flagKey: string): Promise<Flag | null> {
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/flags/${flagKey}`
+    try {
+      const response = await this.http.get<{ data: Flag }>(path)
+      return response.data
+    } catch {
+      return null
     }
   }
 
@@ -381,6 +450,32 @@ export class ToggleBoxClient {
     this.cache.set(cacheKey, experiments)
 
     return experiments
+  }
+
+  /**
+   * Get a specific experiment's metadata without assignment.
+   * Useful for inspecting experiment configuration.
+   *
+   * @param experimentKey - The experiment key
+   * @returns Experiment metadata or null if not found
+   *
+   * @example
+   * ```typescript
+   * const expInfo = await client.getExperimentInfo('checkout-test')
+   * if (expInfo) {
+   *   console.log(`Experiment status: ${expInfo.status}`)
+   *   console.log(`Variations: ${expInfo.variations.length}`)
+   * }
+   * ```
+   */
+  async getExperimentInfo(experimentKey: string): Promise<Experiment | null> {
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments/${experimentKey}`
+    try {
+      const response = await this.http.get<{ data: Experiment }>(path)
+      return response.data
+    } catch {
+      return null
+    }
   }
 
   /**

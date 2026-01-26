@@ -11,6 +11,7 @@ import type {
   CreateExperiment,
   UpdateExperiment,
   ExperimentStatus,
+  TrafficAllocation,
 } from '@togglebox/experiments';
 import type { IExperimentRepository, ExperimentPage } from '@togglebox/experiments';
 
@@ -533,6 +534,57 @@ export class D1ExperimentRepository implements IExperimentRepository {
       )
       .bind(resultsJson, now, platform, environment, experimentKey, current.version)
       .run();
+  }
+
+  /**
+   * Update traffic allocation for a running or paused experiment.
+   */
+  async updateTrafficAllocation(
+    platform: string,
+    environment: string,
+    experimentKey: string,
+    trafficAllocation: TrafficAllocation[]
+  ): Promise<Experiment> {
+    const current = await this.get(platform, environment, experimentKey);
+    if (!current) {
+      throw new Error(`Experiment not found: ${experimentKey}`);
+    }
+
+    // Only allow updating traffic allocation for draft, running, or paused experiments
+    if (current.status !== 'running' && current.status !== 'paused' && current.status !== 'draft') {
+      throw new Error(`Cannot update traffic allocation for experiment in ${current.status} status`);
+    }
+
+    // Validate traffic allocation sums to 100%
+    const totalPercentage = trafficAllocation.reduce((sum, t) => sum + t.percentage, 0);
+    if (totalPercentage !== 100) {
+      throw new Error(`Traffic allocation must sum to 100%, got ${totalPercentage}%`);
+    }
+
+    // Validate all variation keys exist
+    const variationKeys = new Set(current.variations.map(v => v.key));
+    for (const allocation of trafficAllocation) {
+      if (!variationKeys.has(allocation.variationKey)) {
+        throw new Error(`Unknown variation key: ${allocation.variationKey}`);
+      }
+    }
+
+    const now = new Date().toISOString();
+    const trafficAllocationJson = JSON.stringify(trafficAllocation);
+
+    await this.db
+      .prepare(
+        `UPDATE experiments SET trafficAllocation = ?1, updatedAt = ?2
+        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`
+      )
+      .bind(trafficAllocationJson, now, platform, environment, experimentKey, current.version)
+      .run();
+
+    return {
+      ...current,
+      trafficAllocation,
+      updatedAt: now,
+    };
   }
 
   /**

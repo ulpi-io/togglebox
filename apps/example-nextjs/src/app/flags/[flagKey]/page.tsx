@@ -58,11 +58,7 @@ export default function FlagDetailPage() {
       setEvaluationResult({
         enabled: result.servedValue === 'A',
         value: result.servedValue === 'A' ? String(flag?.valueA) : String(flag?.valueB),
-        reason: result.matchedRule
-          ? `Matched targeting rule for ${result.matchedRule.country}`
-          : result.rolloutApplied
-            ? 'Rollout applied'
-            : 'Default value',
+        reason: result.reason,
       })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to evaluate flag')
@@ -93,7 +89,7 @@ export default function FlagDetailPage() {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-red-800 mb-2">Flag Not Found</h2>
-        <p className="text-red-600 mb-4">The flag "{flagKey}" does not exist.</p>
+        <p className="text-red-600 mb-4">The flag &quot;{flagKey}&quot; does not exist.</p>
         <button
           onClick={() => router.push('/flags')}
           className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"

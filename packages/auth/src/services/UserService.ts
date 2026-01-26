@@ -71,8 +71,15 @@ export interface LoginResponse {
  * @remarks
  * **Security:** Direct passwordHash updates bypass validation.
  * Use {@link UserService.changePassword} for password changes instead.
+ *
+ * **Profile Updates:**
+ * - `name`: User display name (any authenticated user can update their own)
+ * - `role`: User role (admin-only, use separate endpoint)
  */
 export interface UpdateProfileData {
+  /** Update user display name */
+  name?: string;
+
   /** Update user role */
   role?: UserRole;
 

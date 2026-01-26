@@ -42,7 +42,7 @@ export function UserMenu({ user }: UserMenuProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="glass" className="gap-2 px-3">
           <div className="hidden sm:block text-left">
-            <div className="text-sm font-medium truncate max-w-[150px]">{user.email}</div>
+            <div className="text-sm font-medium truncate max-w-[150px]">{user.name || user.email}</div>
           </div>
           <Badge
             role={user.role as 'admin' | 'developer' | 'editor' | 'viewer'}

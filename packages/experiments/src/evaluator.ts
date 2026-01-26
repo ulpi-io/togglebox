@@ -17,6 +17,8 @@ import type {
  */
 export const AssignmentReason = {
   EXPERIMENT_NOT_RUNNING: 'Experiment is not running',
+  EXPERIMENT_NOT_STARTED: 'Experiment has not started yet (scheduled start in future)',
+  EXPERIMENT_ENDED: 'Experiment has ended (scheduled end passed)',
   FORCE_EXCLUDED: 'User is in force exclude list',
   NOT_IN_TARGET: 'User does not match targeting criteria',
   HASH_ASSIGNMENT: 'Assigned via consistent hash',
@@ -108,9 +110,10 @@ function matchesTargeting(
  * @remarks
  * Assignment process:
  * 1. Check if experiment is running
- * 2. Check if user is force-excluded
- * 3. Check if user matches targeting (country/language)
- * 4. Use consistent hash to assign to a variation
+ * 2. Check scheduled start/end dates (if defined)
+ * 3. Check if user is force-excluded
+ * 4. Check if user matches targeting (country/language)
+ * 5. Use consistent hash to assign to a variation
  *
  * The hash is based on `experimentKey:userId` to ensure:
  * - Same user always gets same variation
@@ -128,15 +131,34 @@ export function assignVariation(
     return null;
   }
 
-  // 2. Check targeting
+  // 2. Check scheduled start/end dates
+  const now = new Date();
+
+  if (experiment.scheduledStartAt) {
+    const startDate = new Date(experiment.scheduledStartAt);
+    if (startDate > now) {
+      // Experiment hasn't started yet
+      return null;
+    }
+  }
+
+  if (experiment.scheduledEndAt) {
+    const endDate = new Date(experiment.scheduledEndAt);
+    if (endDate < now) {
+      // Experiment has already ended
+      return null;
+    }
+  }
+
+  // 3. Check targeting
   if (!matchesTargeting(experiment, context)) {
     return null;
   }
 
-  // 3. Get user's hash percentage
+  // 4. Get user's hash percentage
   const percentage = getPercentage(userId, experimentKey);
 
-  // 4. Find the variation based on traffic allocation
+  // 5. Find the variation based on traffic allocation
   let cumulativePercentage = 0;
   let assignedVariation: ExperimentVariation | null = null;
 

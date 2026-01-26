@@ -745,6 +745,73 @@ export class ExperimentController {
   };
 
   /**
+   * Updates traffic allocation for a running or paused experiment.
+   * This allows adjusting rollout percentages without stopping the experiment.
+   *
+   * PATCH /platforms/:platform/environments/:environment/experiments/:experimentKey/traffic
+   */
+  updateTrafficAllocation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { platform, environment, experimentKey } = req.params as {
+        platform: string;
+        environment: string;
+        experimentKey: string;
+      };
+
+      const TrafficAllocationUpdateSchema = z.object({
+        trafficAllocation: z.array(z.object({
+          variationKey: z.string(),
+          percentage: z.number().min(0).max(100),
+        })).min(2),
+      });
+
+      const { trafficAllocation } = TrafficAllocationUpdateSchema.parse(req.body);
+
+      await withDatabaseContext(req, async () => {
+        const startTime = Date.now();
+        const experiment = await this.repos.experiment.updateTrafficAllocation(
+          platform,
+          environment,
+          experimentKey,
+          trafficAllocation
+        );
+        const duration = Date.now() - startTime;
+
+        logger.logDatabaseOperation('updateTrafficAllocation', 'experiments', duration, true);
+        logger.info(`Updated traffic allocation for experiment ${experimentKey} in ${platform}/${environment}`);
+
+        this.invalidateExperimentCache(platform, environment, experimentKey);
+
+        res.json({
+          success: true,
+          data: experiment,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          code: 'VALIDATION_FAILED',
+          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+      if (error instanceof Error && (error.message.includes('not found') || error.message.includes('Cannot') || error.message.includes('must sum'))) {
+        res.status(error.message.includes('not found') ? 404 : 400).json({
+          success: false,
+          error: error.message,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+      next(error);
+    }
+  };
+
+  /**
    * Helper method to invalidate cache for an experiment.
    */
   private invalidateExperimentCache(platform: string, environment: string, experimentKey: string): void {

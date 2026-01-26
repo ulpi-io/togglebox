@@ -5,7 +5,7 @@ import { ToggleBoxClient } from '@togglebox/sdk'
 import type { Config } from '@togglebox/configs'
 import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
 import type { Experiment, ExperimentContext } from '@togglebox/experiments'
-import type { ToggleBoxProviderProps, ToggleBoxContextValue } from './types'
+import type { ToggleBoxProviderProps, ToggleBoxContextValue, ConversionData, EventData } from './types'
 
 const ToggleBoxContext = createContext<ToggleBoxContextValue | null>(null)
 
@@ -123,6 +123,34 @@ export function ToggleBoxProvider({
     return result?.variationKey ?? null
   }, [])
 
+  const trackConversion = useCallback(
+    async (experimentKey: string, context: ExperimentContext, data: ConversionData) => {
+      if (!clientRef.current) return
+      await clientRef.current.trackConversion(experimentKey, context, data)
+    },
+    []
+  )
+
+  const trackEvent = useCallback(
+    (eventName: string, context: ExperimentContext, data?: EventData) => {
+      if (!clientRef.current) return
+      clientRef.current.trackEvent(eventName, context, data)
+    },
+    []
+  )
+
+  const getConfigValue = useCallback(async <T,>(key: string, defaultValue: T): Promise<T> => {
+    if (!clientRef.current) return defaultValue
+    return clientRef.current.getConfigValue(key, defaultValue)
+  }, [])
+
+  const flushStats = useCallback(async () => {
+    if (!clientRef.current) return
+    await clientRef.current.flushStats()
+  }, [])
+
+  const getClient = useCallback(() => clientRef.current, [])
+
   const value: ToggleBoxContextValue = {
     config,
     flags,
@@ -132,6 +160,11 @@ export function ToggleBoxProvider({
     refresh,
     isFlagEnabled,
     getVariant,
+    trackConversion,
+    trackEvent,
+    getConfigValue,
+    flushStats,
+    getClient,
   }
 
   return (

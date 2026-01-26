@@ -44,4 +44,12 @@ export class DynamoDBEnvironmentRepository implements IEnvironmentRepository {
   async deleteEnvironment(platform: string, environment: string): Promise<boolean> {
     return environmentService.deleteEnvironment(platform, environment);
   }
+
+  async updateEnvironment(
+    platform: string,
+    environment: string,
+    updates: { description?: string }
+  ): Promise<Environment | null> {
+    return environmentService.updateEnvironment(platform, environment, updates);
+  }
 }

@@ -43,4 +43,11 @@ export class DynamoDBPlatformRepository implements IPlatformRepository {
   async deletePlatform(name: string): Promise<boolean> {
     return platformService.deletePlatform(name);
   }
+
+  async updatePlatform(
+    currentName: string,
+    updates: { name?: string; description?: string }
+  ): Promise<Platform | null> {
+    return platformService.updatePlatform(currentName, updates);
+  }
 }

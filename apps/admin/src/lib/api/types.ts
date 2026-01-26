@@ -80,6 +80,10 @@ export interface Flag {
   valueB: FlagValue;
   targeting: FlagTargeting;
   defaultValue: 'A' | 'B';
+  // Rollout settings for gradual feature rollouts
+  rolloutEnabled?: boolean;
+  rolloutPercentageA?: number; // 0-100
+  rolloutPercentageB?: number; // 0-100
   version: string;
   isActive: boolean;
   createdBy: string;

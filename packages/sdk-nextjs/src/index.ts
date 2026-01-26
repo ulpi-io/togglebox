@@ -15,7 +15,12 @@ export {
 export { getServerSideConfig, getStaticConfig } from './server'
 
 // Types
-export type { ToggleBoxProviderProps, ToggleBoxContextValue } from './types'
+export type {
+  ToggleBoxProviderProps,
+  ToggleBoxContextValue,
+  ConversionData,
+  EventData,
+} from './types'
 
 // Re-export from sdk for convenience
 export { ToggleBoxClient } from '@togglebox/sdk'

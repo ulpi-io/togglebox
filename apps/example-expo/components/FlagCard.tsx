@@ -53,16 +53,16 @@ export function FlagCard({ flag, onToggle, canToggle = false }: FlagCardProps) {
         <View style={styles.valueTag}>
           <Text style={styles.valueTagText}>Value B: {String(flag.valueB)}</Text>
         </View>
-        {flag.rolloutPercentage !== undefined && (
+        {flag.rolloutEnabled && (
           <View style={[styles.valueTag, styles.rolloutTag]}>
-            <Text style={styles.rolloutText}>Rollout: {flag.rolloutPercentage}%</Text>
+            <Text style={styles.rolloutText}>Rollout: {flag.rolloutPercentageA ?? 100}%</Text>
           </View>
         )}
       </View>
 
-      {flag.targeting && flag.targeting.length > 0 && (
+      {flag.targeting?.countries && flag.targeting.countries.length > 0 && (
         <Text style={styles.targeting}>
-          Targeting: {flag.targeting.map((t) => `${t.attribute}=${t.values.join(',')}`).join('; ')}
+          Targeting: {flag.targeting.countries.map((t) => `${t.country}→${t.serveValue}`).join('; ')}
         </Text>
       )}
     </TouchableOpacity>

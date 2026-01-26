@@ -121,10 +121,16 @@ export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
  * Update profile validation schema.
  *
  * @remarks
- * Currently only allows role updates.
- * Extend with additional fields as needed (name, preferences, etc.).
+ * Allows users to update their profile information.
+ * - `name`: Display name (any authenticated user can update their own)
+ * - `role`: User role (typically admin-only, should be protected by separate middleware)
  */
 export const updateProfileSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name cannot be empty')
+    .max(100, 'Name must not exceed 100 characters')
+    .optional(),
   role: z.enum(['admin', 'developer', 'viewer']).optional(),
 });
 

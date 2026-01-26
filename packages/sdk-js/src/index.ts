@@ -25,6 +25,8 @@ export type {
   RetryOptions,
   ConversionData,
   EventData,
+  HealthCheckResponse,
+  ConfigVersionMeta,
 } from './types'
 
 // Re-export types from packages for SDK consumers

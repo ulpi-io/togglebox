@@ -85,7 +85,7 @@ export default function CreateConfigPage() {
 
     try {
       await createConfigVersionApi(platform, environment, version.trim(), config, isStable);
-      router.push(`/platforms/${platform}/environments/${environment}/configs`);
+      router.push(`/configs?platform=${platform}&environment=${environment}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

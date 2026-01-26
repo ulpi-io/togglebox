@@ -35,7 +35,8 @@ export default function ExperimentDetailPage() {
   const [userId, setUserId] = useState(DEFAULT_USER_ID)
   const [assignmentResult, setAssignmentResult] = useState<{
     variationKey: string
-    variationName: string
+    isControl: boolean
+    reason: string
   } | null>(null)
   const [isAssigning, setIsAssigning] = useState(false)
   const [isActioning, setIsActioning] = useState(false)
@@ -68,7 +69,8 @@ export default function ExperimentDetailPage() {
       if (result) {
         setAssignmentResult({
           variationKey: result.variationKey,
-          variationName: result.variationName,
+          isControl: result.isControl,
+          reason: result.reason,
         })
       } else {
         toast.error('User not eligible for this experiment')
@@ -143,7 +145,7 @@ export default function ExperimentDetailPage() {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-red-800 mb-2">Experiment Not Found</h2>
-        <p className="text-red-600 mb-4">The experiment "{experimentKey}" does not exist.</p>
+        <p className="text-red-600 mb-4">The experiment &quot;{experimentKey}&quot; does not exist.</p>
         <button
           onClick={() => router.push('/experiments')}
           className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
@@ -323,7 +325,21 @@ export default function ExperimentDetailPage() {
                 </div>
                 <div>
                   <span className="text-sm text-gray-500">Variation Name:</span>
-                  <span className="ml-2 font-medium">{assignmentResult.variationName}</span>
+                  <span className="ml-2 font-medium">
+                    {experiment.variations.find(v => v.key === assignmentResult.variationKey)?.name || assignmentResult.variationKey}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Is Control:</span>
+                  <span className={`ml-2 px-2 py-0.5 rounded text-xs ${
+                    assignmentResult.isControl ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {assignmentResult.isControl ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">Reason:</span>
+                  <span className="ml-2 text-sm text-gray-700">{assignmentResult.reason}</span>
                 </div>
               </div>
             </div>

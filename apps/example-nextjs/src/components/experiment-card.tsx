@@ -50,15 +50,21 @@ export function ExperimentCard({
       <div className="mt-3">
         <h4 className="text-xs font-medium text-gray-500 mb-2">Variations</h4>
         <div className="flex flex-wrap gap-2">
-          {experiment.variations.map((variation) => (
-            <div
-              key={variation.variationKey}
-              className="px-3 py-1.5 bg-gray-100 rounded text-sm"
-            >
-              <span className="font-medium">{variation.name || variation.variationKey}</span>
-              <span className="text-gray-500 ml-2">{variation.weight}%</span>
-            </div>
-          ))}
+          {experiment.variations.map((variation) => {
+            const allocation = experiment.trafficAllocation?.find(
+              (t) => t.variationKey === variation.key
+            )
+            const weight = allocation?.percentage ?? 0
+            return (
+              <div
+                key={variation.key}
+                className="px-3 py-1.5 bg-gray-100 rounded text-sm"
+              >
+                <span className="font-medium">{variation.name || variation.key}</span>
+                <span className="text-gray-500 ml-2">{weight}%</span>
+              </div>
+            )
+          })}
         </div>
       </div>
 

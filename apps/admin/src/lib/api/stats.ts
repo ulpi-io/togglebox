@@ -1,13 +1,17 @@
 import { getPlatformsApi, getEnvironmentsApi, getConfigVersionsApi } from './platforms';
 import { getFlagsApi } from './flags';
+import { getExperimentsApi } from './experiments';
 import { getUsersApi } from './users';
 import { getApiKeysApi } from './api-keys';
+import { browserApiClient } from './browser-client';
+import type { FlagStats, FlagCountryStats, FlagDailyStats } from './types';
 
 export interface DashboardStats {
   totalPlatforms: number;
   totalEnvironments: number;
   totalConfigVersions: number;
   totalFlags: number;
+  totalExperiments: number;
   totalUsers: number;
   totalApiKeys: number;
 }
@@ -44,6 +48,7 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
         totalEnvironments: 0,
         totalConfigVersions: 0,
         totalFlags: 0,
+        totalExperiments: 0,
         totalUsers: 0,
         totalApiKeys: 0,
       };
@@ -52,6 +57,7 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
     let totalEnvironments = 0;
     let totalConfigVersions = 0;
     let totalFlags = 0;
+    let totalExperiments = 0;
 
     // For each platform, fetch environments and their resources
     await Promise.all(
@@ -72,8 +78,8 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
           await Promise.all(
             environments.map(async (env) => {
               try {
-                console.log(`[Stats] Fetching configs/flags for ${platform.name}/${env.environment}`);
-                const [configs, flags] = await Promise.all([
+                console.log(`[Stats] Fetching configs/flags/experiments for ${platform.name}/${env.environment}`);
+                const [configs, flags, experiments] = await Promise.all([
                   getConfigVersionsApi(platform.name, env.environment).catch((err) => {
                     console.warn(`[Stats] Failed to fetch configs for ${platform.name}/${env.environment}:`, err);
                     return [];
@@ -82,15 +88,21 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
                     console.warn(`[Stats] Failed to fetch flags for ${platform.name}/${env.environment}:`, err);
                     return [];
                   }),
+                  getExperimentsApi(platform.name, env.environment).catch((err) => {
+                    console.warn(`[Stats] Failed to fetch experiments for ${platform.name}/${env.environment}:`, err);
+                    return [];
+                  }),
                 ]);
 
                 const configCount = Array.isArray(configs) ? configs.length : 0;
                 const flagCount = Array.isArray(flags) ? flags.length : 0;
+                const experimentCount = Array.isArray(experiments) ? experiments.length : 0;
 
-                console.log(`[Stats] ${platform.name}/${env.environment}: ${configCount} configs, ${flagCount} flags`);
+                console.log(`[Stats] ${platform.name}/${env.environment}: ${configCount} configs, ${flagCount} flags, ${experimentCount} experiments`);
 
                 totalConfigVersions += configCount;
                 totalFlags += flagCount;
+                totalExperiments += experimentCount;
               } catch (err) {
                 console.warn(`[Stats] Error fetching data for ${platform.name}/${env.environment}:`, err);
               }
@@ -122,6 +134,7 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
       totalEnvironments,
       totalConfigVersions,
       totalFlags,
+      totalExperiments,
       totalUsers,
       totalApiKeys,
     };
@@ -136,8 +149,51 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
       totalEnvironments: 0,
       totalConfigVersions: 0,
       totalFlags: 0,
+      totalExperiments: 0,
       totalUsers: 0,
       totalApiKeys: 0,
     };
   }
+}
+
+// Flag-specific stats functions
+
+/**
+ * Get flag stats (overall metrics).
+ */
+export async function getFlagStatsApi(
+  platform: string,
+  environment: string,
+  flagKey: string
+): Promise<FlagStats> {
+  return browserApiClient(
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/stats`
+  );
+}
+
+/**
+ * Get flag stats by country.
+ */
+export async function getFlagStatsByCountryApi(
+  platform: string,
+  environment: string,
+  flagKey: string
+): Promise<FlagCountryStats[]> {
+  return browserApiClient(
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/stats/by-country`
+  );
+}
+
+/**
+ * Get flag stats daily time series.
+ */
+export async function getFlagStatsDailyApi(
+  platform: string,
+  environment: string,
+  flagKey: string,
+  days: number = 30
+): Promise<FlagDailyStats[]> {
+  return browserApiClient(
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/stats/daily?days=${days}`
+  );
 }

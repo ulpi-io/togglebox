@@ -539,7 +539,7 @@ export default function CreateExperimentPage() {
         confidenceLevel: 0.95,
       });
 
-      router.push(`/platforms/${platform}/environments/${environment}/experiments`);
+      router.push(`/experiments?platform=${platform}&environment=${environment}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
