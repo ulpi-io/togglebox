@@ -104,3 +104,23 @@ export {
 
 // Empty State
 export { EmptyState } from './components/empty-state';
+
+// Table
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+} from './components/table';
+
+// Filter Tabs
+export { FilterTabs } from './components/filter-tabs';
+export type { FilterOption, FilterTabsProps } from './components/filter-tabs';
+
+// Steps
+export { Steps, StepIndicator } from './components/steps';
+export type { Step, StepsProps, StepIndicatorProps } from './components/steps';

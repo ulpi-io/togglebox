@@ -162,43 +162,17 @@ export async function sendStatsEvents(
   }
 }
 
-/**
- * Evaluate a flag with context
- */
-export async function evaluateFlag(
-  platform: string,
-  environment: string,
-  flagKey: string,
-  context: { userId?: string; country?: string; language?: string }
-): Promise<{ data: { enabled: boolean; value: string; reason: string } }> {
-  const params = new URLSearchParams()
-  if (context.userId) params.set('userId', context.userId)
-  if (context.country) params.set('country', context.country)
-  if (context.language) params.set('language', context.language)
-
-  const response = await fetch(
-    `${API_URL}/platforms/${platform}/environments/${environment}/flags/${flagKey}/evaluate?${params}`
-  )
-  if (!response.ok) {
-    throw new Error('Failed to evaluate flag')
-  }
-  return response.json()
-}
-
-/**
- * Assign experiment variation
- */
-export async function assignExperimentVariation(
-  platform: string,
-  environment: string,
-  experimentKey: string,
-  userId: string
-): Promise<{ data: { variationKey: string; variationName: string } }> {
-  const response = await fetch(
-    `${API_URL}/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/assign?userId=${encodeURIComponent(userId)}`
-  )
-  if (!response.ok) {
-    throw new Error('Failed to assign experiment variation')
-  }
-  return response.json()
-}
+// NOTE: For flag evaluation and experiment assignment, use ToggleBoxClient from SDK:
+//
+// import { ToggleBoxClient } from '@togglebox/sdk-expo'
+//
+// const client = new ToggleBoxClient({ platform, environment, apiUrl })
+//
+// // Evaluate a flag
+// const result = await client.getFlag(flagKey, { userId, country, language })
+// const isEnabled = await client.isFlagEnabled(flagKey, { userId })
+//
+// // Assign experiment variation
+// const variant = await client.getVariant(experimentKey, { userId })
+//
+// client.destroy()

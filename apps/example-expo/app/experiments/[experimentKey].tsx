@@ -1,16 +1,15 @@
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router'
-import { useExperiment, useToggleBox } from '@togglebox/sdk-expo'
+import { useExperiment, useToggleBox, ToggleBoxClient } from '@togglebox/sdk-expo'
 import { Loading } from '@/components/Loading'
 import {
-  assignExperimentVariation,
   startExperiment,
   pauseExperiment,
   completeExperiment,
   hasApiKey,
 } from '@/lib/api'
-import { Colors, PLATFORM, ENVIRONMENT, DEFAULT_USER_ID } from '@/lib/constants'
+import { Colors, PLATFORM, ENVIRONMENT, DEFAULT_USER_ID, API_URL } from '@/lib/constants'
 
 const statusColors: Record<string, { bg: string; text: string }> = {
   draft: { bg: Colors.gray[100], text: Colors.gray[700] },
@@ -33,12 +32,40 @@ export default function ExperimentDetailScreen() {
   } | null>(null)
   const [isAssigning, setIsAssigning] = useState(false)
   const [isActioning, setIsActioning] = useState(false)
+  const [isTracking, setIsTracking] = useState(false)
+  const [conversionValue, setConversionValue] = useState('99.99')
+  const [conversionMetric, setConversionMetric] = useState('purchase')
+
+  // Create a client for assignment and tracking (separate from provider)
+  const clientRef = useRef<ToggleBoxClient | null>(null)
+
+  useEffect(() => {
+    clientRef.current = new ToggleBoxClient({
+      platform: PLATFORM,
+      environment: ENVIRONMENT,
+      apiUrl: API_URL,
+      cache: { enabled: false, ttl: 0 },
+    })
+
+    return () => {
+      clientRef.current?.destroy()
+    }
+  }, [])
 
   const handleAssign = async () => {
+    if (!clientRef.current) return
+
     setIsAssigning(true)
     try {
-      const result = await assignExperimentVariation(PLATFORM, ENVIRONMENT, experimentKey, userId)
-      setAssignmentResult(result.data)
+      const result = await clientRef.current.getVariant(experimentKey, { userId })
+      if (result) {
+        setAssignmentResult({
+          variationKey: result.variationKey,
+          variationName: result.variationName,
+        })
+      } else {
+        Alert.alert('Info', 'User not eligible for this experiment')
+      }
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to assign variation')
     } finally {
@@ -68,6 +95,39 @@ export default function ExperimentDetailScreen() {
       Alert.alert('Error', err instanceof Error ? err.message : `Failed to ${action} experiment`)
     } finally {
       setIsActioning(false)
+    }
+  }
+
+  const handleTrackConversion = async () => {
+    if (!assignmentResult) {
+      Alert.alert('Error', 'Get an assignment first to track a conversion')
+      return
+    }
+
+    if (!clientRef.current) return
+
+    setIsTracking(true)
+    try {
+      await clientRef.current.trackConversion(
+        experimentKey,
+        { userId },
+        {
+          metricName: conversionMetric,
+          value: parseFloat(conversionValue) || undefined,
+        }
+      )
+
+      // Flush stats immediately to see the event
+      await clientRef.current.flushStats()
+
+      Alert.alert(
+        'Success',
+        `Conversion tracked: ${conversionMetric}${conversionValue ? ` ($${conversionValue})` : ''}`
+      )
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to track conversion')
+    } finally {
+      setIsTracking(false)
     }
   }
 
@@ -108,25 +168,31 @@ export default function ExperimentDetailScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Variations</Text>
-          {experiment.variations.map((variation) => (
-            <View key={variation.variationKey} style={styles.variationCard}>
-              <View style={styles.variationInfo}>
-                <Text style={styles.variationName}>
-                  {variation.name || variation.variationKey}
-                </Text>
-                <Text style={styles.variationKey}>Key: {variation.variationKey}</Text>
+          {experiment.variations.map((variation) => {
+            const allocation = experiment.trafficAllocation?.find(
+              (t) => t.variationKey === variation.key
+            )
+            const weight = allocation?.percentage ?? 0
+            return (
+              <View key={variation.key} style={styles.variationCard}>
+                <View style={styles.variationInfo}>
+                  <Text style={styles.variationName}>
+                    {variation.name || variation.key}
+                  </Text>
+                  <Text style={styles.variationKey}>Key: {variation.key}</Text>
+                </View>
+                <View style={styles.variationWeight}>
+                  <Text style={styles.weightValue}>{weight}%</Text>
+                  <Text style={styles.weightLabel}>Weight</Text>
+                </View>
               </View>
-              <View style={styles.variationWeight}>
-                <Text style={styles.weightValue}>{variation.weight}%</Text>
-                <Text style={styles.weightLabel}>Weight</Text>
-              </View>
-            </View>
-          ))}
+            )
+          })}
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total:</Text>
             <Text style={styles.totalValue}>
-              {experiment.variations.reduce((sum, v) => sum + v.weight, 0)}%
+              {experiment.trafficAllocation?.reduce((sum, t) => sum + t.percentage, 0) ?? 0}%
             </Text>
           </View>
         </View>
@@ -238,6 +304,87 @@ export default function ExperimentDetailScreen() {
               </View>
             </View>
           )}
+        </View>
+
+        {/* Conversion Tracking Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Track Conversion</Text>
+          <Text style={styles.sectionDescription}>
+            Simulate a conversion event for this experiment using trackConversion()
+          </Text>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Metric Name</Text>
+            <View style={styles.metricOptions}>
+              {['purchase', 'signup', 'click', 'add_to_cart', 'checkout_started'].map((metric) => (
+                <TouchableOpacity
+                  key={metric}
+                  style={[
+                    styles.metricButton,
+                    conversionMetric === metric && styles.metricButtonActive,
+                  ]}
+                  onPress={() => setConversionMetric(metric)}
+                >
+                  <Text
+                    style={[
+                      styles.metricButtonText,
+                      conversionMetric === metric && styles.metricButtonTextActive,
+                    ]}
+                  >
+                    {metric}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Value (optional, e.g., revenue)</Text>
+            <TextInput
+              style={styles.input}
+              value={conversionValue}
+              onChangeText={setConversionValue}
+              placeholder="99.99"
+              keyboardType="decimal-pad"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.trackButton,
+              (!assignmentResult || isTracking) && styles.disabledButton,
+            ]}
+            onPress={handleTrackConversion}
+            disabled={isTracking || !assignmentResult}
+          >
+            <Text style={styles.trackButtonText}>
+              {isTracking ? 'Tracking...' : 'Track Conversion'}
+            </Text>
+          </TouchableOpacity>
+
+          {!assignmentResult && (
+            <Text style={styles.warningText}>
+              Get an assignment first to track a conversion
+            </Text>
+          )}
+
+          <View style={styles.codeExample}>
+            <Text style={styles.codeExampleTitle}>Code Example</Text>
+            <Text style={styles.codeText}>
+              {`// Track conversion
+await client.trackConversion(
+  '${experimentKey}',
+  { userId: '${userId}' },
+  {
+    metricName: '${conversionMetric}',
+    value: ${conversionValue || 'undefined'},
+  }
+)
+
+// Flush to send immediately
+await client.flushStats()`}
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </>
@@ -468,5 +615,67 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#ffffff',
     fontWeight: '500',
+  },
+  metricOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  metricButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: Colors.gray[100],
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
+  },
+  metricButtonActive: {
+    backgroundColor: Colors.primary[100],
+    borderColor: Colors.primary[500],
+  },
+  metricButtonText: {
+    fontSize: 12,
+    color: Colors.gray[600],
+    fontFamily: 'monospace',
+  },
+  metricButtonTextActive: {
+    color: Colors.primary[700],
+    fontWeight: '600',
+  },
+  trackButton: {
+    backgroundColor: Colors.success,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  trackButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  warningText: {
+    fontSize: 12,
+    color: Colors.warning,
+    marginTop: 8,
+  },
+  codeExample: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+    borderRadius: 8,
+  },
+  codeExampleTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary[800],
+    marginBottom: 8,
+  },
+  codeText: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+    color: Colors.primary[700],
   },
 })
