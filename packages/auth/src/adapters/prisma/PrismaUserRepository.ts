@@ -40,10 +40,10 @@ export class PrismaUserRepository implements IUserRepository {
         email: data.email,
         passwordHash: data.passwordHash,
         role: data.role,
-      },
+      } as any,
     });
 
-    return this.mapToUser(user);
+    return this.mapToUser(user as any);
   }
 
   async findById(id: string): Promise<User | null> {
@@ -51,7 +51,7 @@ export class PrismaUserRepository implements IUserRepository {
       where: { id },
     });
 
-    return user ? this.mapToUser(user) : null;
+    return user ? this.mapToUser(user as any) : null;
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -59,19 +59,20 @@ export class PrismaUserRepository implements IUserRepository {
       where: { email },
     });
 
-    return user ? this.mapToUser(user) : null;
+    return user ? this.mapToUser(user as any) : null;
   }
 
   async update(id: string, data: UpdateUserData): Promise<User> {
     const user = await prisma.user.update({
       where: { id },
       data: {
+        ...(data.name && { name: data.name }),
         ...(data.role && { role: data.role }),
         ...(data.passwordHash && { passwordHash: data.passwordHash }),
-      },
+      } as any,
     });
 
-    return this.mapToUser(user);
+    return this.mapToUser(user as any);
   }
 
   async delete(id: string): Promise<void> {
@@ -98,7 +99,7 @@ export class PrismaUserRepository implements IUserRepository {
     ]);
 
     return {
-      users: users.map((user: PrismaUserModel) => this.mapToUser(user)),
+      users: users.map((user: PrismaUserModel) => this.mapToUser(user as any)),
       total,
     };
   }
@@ -107,14 +108,15 @@ export class PrismaUserRepository implements IUserRepository {
    * Map Prisma user to domain User model
    */
   private mapToUser(prismaUser: PrismaUserModel): User {
+    const user = prismaUser as any;
     return {
-      id: prismaUser.id,
-      name: prismaUser.name ?? undefined,
-      email: prismaUser.email,
-      passwordHash: prismaUser.passwordHash,
-      role: prismaUser.role as UserRole,
-      createdAt: prismaUser.createdAt,
-      updatedAt: prismaUser.updatedAt,
+      id: user.id,
+      name: user.name ?? undefined,
+      email: user.email,
+      passwordHash: user.passwordHash,
+      role: user.role as UserRole,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
   }
 }

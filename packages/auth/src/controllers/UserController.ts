@@ -278,13 +278,13 @@ export class UserController {
    */
   createUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { email, password, role } = req.body;
+      const { name, email, password, role } = req.body;
 
       // Validate required fields
-      if (!email || !password) {
+      if (!name || !email || !password) {
         res.status(400).json({
           success: false,
-          error: 'Email and password are required',
+          error: 'Name, email, and password are required',
           timestamp: new Date().toISOString(),
         });
         return;
@@ -302,6 +302,7 @@ export class UserController {
 
       // Register user via service
       const user = await this.userService.register({
+        name,
         email,
         password,
         role: role || 'viewer',
