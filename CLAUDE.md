@@ -55,9 +55,11 @@ togglebox/
 │   ├── configs/               # Remote configuration business logic
 │   ├── stats/                 # Analytics and statistics
 │   ├── ui/                    # Shared UI components (shadcn/ui)
-│   ├── sdk-js/                # JavaScript SDK for browsers/Node.js
-│   ├── sdk-nextjs/            # Next.js SDK with React hooks
-│   └── sdk-expo/              # Expo/React Native SDK
+│   ├── sdk-js/                # JavaScript SDK for browsers/Node.js (@togglebox/sdk)
+│   ├── sdk-nextjs/            # Next.js SDK with React hooks (@togglebox/sdk-nextjs)
+│   ├── sdk-expo/              # Expo/React Native SDK (@togglebox/sdk-expo)
+│   ├── sdk-php/               # PHP SDK (Composer package)
+│   └── sdk-laravel/           # Laravel SDK (Composer package)
 ├── .github/                   # GitHub Actions CI/CD workflows
 │   ├── workflows/ci.yml       # Lint, TypeCheck, Test, Security Audit
 │   ├── workflows/deploy-aws-lambda.yml
@@ -221,8 +223,10 @@ make status          # Show service status and access points
 - Routes: kebab-case (`/api/v1/user-profiles`)
 
 ### Package Names
-- Open Source: `@togglebox/core`, `@togglebox/database`, `@togglebox/cache`, `@togglebox/auth`, `@togglebox/shared`
-- SDKs: `@togglebox/sdk-js`, `@togglebox/sdk-nextjs`, `@togglebox/sdk-expo`
+- Core: `@togglebox/core`, `@togglebox/configs`, `@togglebox/flags`, `@togglebox/experiments`, `@togglebox/stats`
+- Infrastructure: `@togglebox/database`, `@togglebox/cache`, `@togglebox/auth`, `@togglebox/shared`, `@togglebox/ui`
+- JavaScript SDKs: `@togglebox/sdk`, `@togglebox/sdk-nextjs`, `@togglebox/sdk-expo`
+- PHP SDKs: `togglebox/sdk-php` (Composer), `togglebox/sdk-laravel` (Composer)
 - Cloud: `@togglebox/billing`, `@togglebox/multitenancy`
 
 ### Naming Conventions

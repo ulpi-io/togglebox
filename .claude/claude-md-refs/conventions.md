@@ -509,8 +509,10 @@ DOMAIN=togglebox.local                             # Base domain for tenant subd
 **Package Names (monorepo):**
 
 **togglebox/ (Open Source):**
-- Scoped: `@togglebox/core`, `@togglebox/database`, `@togglebox/cache`, `@togglebox/auth`, `@togglebox/shared`
-- SDKs: `@togglebox/sdk-js`, `@togglebox/sdk-nextjs`, `@togglebox/sdk-expo`
+- Core: `@togglebox/core`, `@togglebox/configs`, `@togglebox/flags`, `@togglebox/experiments`, `@togglebox/stats`
+- Infrastructure: `@togglebox/database`, `@togglebox/cache`, `@togglebox/auth`, `@togglebox/shared`, `@togglebox/ui`
+- JavaScript SDKs: `@togglebox/sdk`, `@togglebox/sdk-nextjs`, `@togglebox/sdk-expo`
+- PHP SDKs: `togglebox/sdk-php` (Composer), `togglebox/sdk-laravel` (Composer)
 
 **togglebox-cloud/ (Private Cloud):**
 - Scoped: `@togglebox/billing`, `@togglebox/multitenancy`

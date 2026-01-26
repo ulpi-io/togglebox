@@ -1,10 +1,10 @@
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router'
-import { useFlag, useToggleBox } from '@togglebox/sdk-expo'
+import { useFlag, useToggleBox, ToggleBoxClient } from '@togglebox/sdk-expo'
 import { Loading } from '@/components/Loading'
-import { evaluateFlag, toggleFlag, hasApiKey } from '@/lib/api'
-import { Colors, PLATFORM, ENVIRONMENT, DEFAULT_USER_ID } from '@/lib/constants'
+import { toggleFlag, hasApiKey } from '@/lib/api'
+import { Colors, PLATFORM, ENVIRONMENT, DEFAULT_USER_ID, API_URL } from '@/lib/constants'
 
 export default function FlagDetailScreen() {
   const { flagKey } = useLocalSearchParams<{ flagKey: string }>()
@@ -24,11 +24,37 @@ export default function FlagDetailScreen() {
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
 
+  // Create a client for evaluation (separate from provider to avoid caching)
+  const clientRef = useRef<ToggleBoxClient | null>(null)
+
+  useEffect(() => {
+    clientRef.current = new ToggleBoxClient({
+      platform: PLATFORM,
+      environment: ENVIRONMENT,
+      apiUrl: API_URL,
+      cache: { enabled: false, ttl: 0 },
+    })
+
+    return () => {
+      clientRef.current?.destroy()
+    }
+  }, [])
+
   const handleEvaluate = async () => {
+    if (!clientRef.current) return
+
     setIsEvaluating(true)
     try {
-      const result = await evaluateFlag(PLATFORM, ENVIRONMENT, flagKey, { userId, country, language })
-      setEvaluationResult(result.data)
+      const result = await clientRef.current.getFlag(flagKey, { userId, country, language })
+      setEvaluationResult({
+        enabled: result.servedValue === 'A',
+        value: result.servedValue === 'A' ? String(flag?.valueA) : String(flag?.valueB),
+        reason: result.matchedRule
+          ? `Matched targeting rule for ${result.matchedRule.country}`
+          : result.rolloutApplied
+            ? 'Rollout applied'
+            : 'Default value',
+      })
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to evaluate flag')
     } finally {
@@ -109,28 +135,28 @@ export default function FlagDetailScreen() {
             <Text style={styles.configValue}>{String(flag.valueB)}</Text>
           </View>
 
-          {flag.rolloutPercentage !== undefined && (
+          {flag.rolloutEnabled && (
             <View style={styles.configRow}>
               <Text style={styles.configLabel}>Rollout Percentage</Text>
               <View style={styles.rolloutContainer}>
                 <View style={styles.rolloutBar}>
                   <View
-                    style={[styles.rolloutFill, { width: `${flag.rolloutPercentage}%` }]}
+                    style={[styles.rolloutFill, { width: `${flag.rolloutPercentageA ?? 100}%` }]}
                   />
                 </View>
-                <Text style={styles.rolloutText}>{flag.rolloutPercentage}%</Text>
+                <Text style={styles.rolloutText}>{flag.rolloutPercentageA ?? 100}%</Text>
               </View>
             </View>
           )}
 
-          {flag.targeting && flag.targeting.length > 0 && (
+          {flag.targeting?.countries && flag.targeting.countries.length > 0 && (
             <View style={styles.configRow}>
               <Text style={styles.configLabel}>Targeting Rules</Text>
               <View style={styles.targetingContainer}>
-                {flag.targeting.map((rule, index) => (
+                {flag.targeting.countries.map((rule, index) => (
                   <View key={index} style={styles.targetingRule}>
                     <Text style={styles.targetingText}>
-                      {rule.attribute} = {rule.values.join(', ')}
+                      {rule.country} → Serve Value {rule.serveValue}
                     </Text>
                   </View>
                 ))}

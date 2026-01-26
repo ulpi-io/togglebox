@@ -2,14 +2,12 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { use } from 'react';
 import Link from 'next/link';
-import { createFlagApi } from '@/lib/api/flags';
+import { createExperimentApi } from '@/lib/api/experiments';
 import { getPlatformsApi, getEnvironmentsApi } from '@/lib/api/platforms';
 import type { Platform, Environment } from '@/lib/api/types';
 import {
   Button,
-  Checkbox,
   Input,
   Label,
   Select,
@@ -18,17 +16,18 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Badge,
   Steps,
 } from '@togglebox/ui';
 
-interface CreateFlagPageProps {
-  params: Promise<{
-    platform: string;
-    environment: string;
-  }>;
+interface Variation {
+  key: string;
+  name: string;
+  value: string;
+  valueType: 'string' | 'json';
+  isControl: boolean;
+  percentage: number;
 }
-
-type FlagType = 'boolean' | 'string' | 'number';
 
 interface CountryLanguagePair {
   country: string;
@@ -41,9 +40,19 @@ interface ValidationResult {
   invalid: string[];
 }
 
+const VARIANT_COLORS = [
+  { border: 'border-info/50', bg: 'bg-info/10' },
+  { border: 'border-success/50', bg: 'bg-success/10' },
+  { border: 'border-warning/50', bg: 'bg-warning/10' },
+  { border: 'border-destructive/50', bg: 'bg-destructive/10' },
+  { border: 'border-purple-500/50', bg: 'bg-purple-50' },
+  { border: 'border-pink-500/50', bg: 'bg-pink-50' },
+];
+
 const STEPS = [
   { id: 'basic', label: 'Basic Info' },
-  { id: 'values', label: 'Values' },
+  { id: 'metric', label: 'Metric' },
+  { id: 'variations', label: 'Variations' },
   { id: 'targeting', label: 'Targeting' },
 ];
 
@@ -63,6 +72,7 @@ function validateUserList(input: string): ValidationResult {
   const duplicates: string[] = [];
   const invalid: string[] = [];
 
+  // Alphanumeric + common ID characters (underscore, dash, dot, @)
   const validPattern = /^[\w\-\.@]+$/;
 
   for (const entry of entries) {
@@ -100,6 +110,7 @@ function validateLanguages(input: string): { valid: string[]; invalid: string[];
   const invalid: string[] = [];
   const duplicates: string[] = [];
 
+  // Language codes should be lowercase letters only (2-3 chars)
   const validPattern = /^[a-z]{2,3}$/;
 
   for (const entry of entries) {
@@ -116,8 +127,7 @@ function validateLanguages(input: string): { valid: string[]; invalid: string[];
   return { valid, invalid, duplicates };
 }
 
-export default function CreateFlagPage({ params }: CreateFlagPageProps) {
-  const { platform: initialPlatform, environment: initialEnvironment } = use(params);
+export default function CreateExperimentPage() {
   const router = useRouter();
 
   // Step navigation
@@ -127,8 +137,8 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
   // Platform/Environment selection
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [selectedPlatform, setSelectedPlatform] = useState(initialPlatform || '');
-  const [selectedEnvironment, setSelectedEnvironment] = useState(initialEnvironment || '');
+  const [selectedPlatform, setSelectedPlatform] = useState('');
+  const [selectedEnvironment, setSelectedEnvironment] = useState('');
   const [loadingPlatforms, setLoadingPlatforms] = useState(true);
   const [loadingEnvironments, setLoadingEnvironments] = useState(false);
 
@@ -145,37 +155,44 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
   useEffect(() => {
     if (selectedPlatform) {
       setLoadingEnvironments(true);
-      if (selectedPlatform !== initialPlatform) {
-        setSelectedEnvironment('');
-      }
+      setSelectedEnvironment('');
       getEnvironmentsApi(selectedPlatform)
         .then(setEnvironments)
         .catch(console.error)
         .finally(() => setLoadingEnvironments(false));
     }
-  }, [selectedPlatform, initialPlatform]);
+  }, [selectedPlatform]);
 
   const platform = selectedPlatform;
   const environment = selectedEnvironment;
 
   // Basic fields
-  const [flagKey, setFlagKey] = useState('');
+  const [experimentKey, setExperimentKey] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [flagType, setFlagType] = useState<FlagType>('boolean');
-  const [enabled, setEnabled] = useState(false);
+  const [hypothesis, setHypothesis] = useState('');
 
-  // 2-value model
-  const [valueA, setValueA] = useState<string>('true');
-  const [valueB, setValueB] = useState<string>('false');
+  // Multi-variant support
+  const [variations, setVariations] = useState<Variation[]>([
+    { key: 'control', name: 'Control', value: '', valueType: 'string', isControl: true, percentage: 50 },
+    { key: 'variant_1', name: 'Variant 1', value: '', valueType: 'string', isControl: false, percentage: 50 },
+  ]);
+  const [jsonErrors, setJsonErrors] = useState<Record<number, string>>({});
 
   // Targeting
   const [countryLanguagePairs, setCountryLanguagePairs] = useState<CountryLanguagePair[]>([]);
   const [forceIncludeUsers, setForceIncludeUsers] = useState('');
   const [forceExcludeUsers, setForceExcludeUsers] = useState('');
 
+  // Primary metric
+  const [metricName, setMetricName] = useState('');
+  const [metricEventName, setMetricEventName] = useState('');
+  const [metricType, setMetricType] = useState<'conversion' | 'count' | 'sum' | 'average'>('conversion');
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const totalPercentage = variations.reduce((sum, v) => sum + v.percentage, 0);
 
   // Validation results for targeting
   const includeUsersValidation = useMemo(() => validateUserList(forceIncludeUsers), [forceIncludeUsers]);
@@ -184,18 +201,29 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
   // Step validation
   const stepValidation = useMemo(() => {
     const basic = {
-      isValid: !!(selectedPlatform && selectedEnvironment && flagKey.trim() && name.trim()),
+      isValid: !!(selectedPlatform && selectedEnvironment && experimentKey.trim() && name.trim() && hypothesis.trim()),
       errors: [] as string[],
     };
     if (!selectedPlatform) basic.errors.push('Platform is required');
     if (!selectedEnvironment) basic.errors.push('Environment is required');
-    if (!flagKey.trim()) basic.errors.push('Flag key is required');
+    if (!experimentKey.trim()) basic.errors.push('Experiment key is required');
     if (!name.trim()) basic.errors.push('Display name is required');
+    if (!hypothesis.trim()) basic.errors.push('Hypothesis is required');
 
-    const values = {
-      isValid: true, // Values always have defaults
+    const metric = {
+      isValid: !!(metricName.trim() && metricEventName.trim()),
       errors: [] as string[],
     };
+    if (!metricName.trim()) metric.errors.push('Metric name is required');
+    if (!metricEventName.trim()) metric.errors.push('Event name is required');
+
+    const variationsValid = {
+      isValid: totalPercentage === 100 && variations.some(v => v.isControl) && Object.keys(jsonErrors).length === 0,
+      errors: [] as string[],
+    };
+    if (totalPercentage !== 100) variationsValid.errors.push(`Traffic must sum to 100% (currently ${totalPercentage}%)`);
+    if (!variations.some(v => v.isControl)) variationsValid.errors.push('One variation must be marked as control');
+    if (Object.keys(jsonErrors).length > 0) variationsValid.errors.push('Fix JSON validation errors');
 
     const targeting = {
       isValid: includeUsersValidation.invalid.length === 0 && excludeUsersValidation.invalid.length === 0,
@@ -204,9 +232,11 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
     if (includeUsersValidation.invalid.length > 0) targeting.errors.push('Invalid user IDs in Force Include');
     if (excludeUsersValidation.invalid.length > 0) targeting.errors.push('Invalid user IDs in Force Exclude');
 
-    return { basic, values, targeting };
+    return { basic, metric, variations: variationsValid, targeting };
   }, [
-    selectedPlatform, selectedEnvironment, flagKey, name,
+    selectedPlatform, selectedEnvironment, experimentKey, name, hypothesis,
+    metricName, metricEventName,
+    totalPercentage, variations, jsonErrors,
     includeUsersValidation, excludeUsersValidation
   ]);
 
@@ -216,7 +246,8 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
       const newCompleted = new Set(prev);
       // Remove steps that are no longer valid
       if (!stepValidation.basic.isValid) newCompleted.delete('basic');
-      if (!stepValidation.values.isValid) newCompleted.delete('values');
+      if (!stepValidation.metric.isValid) newCompleted.delete('metric');
+      if (!stepValidation.variations.isValid) newCompleted.delete('variations');
       if (!stepValidation.targeting.isValid) newCompleted.delete('targeting');
       // Only update if there's a change
       if (newCompleted.size !== prev.size) return newCompleted;
@@ -227,53 +258,149 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
     });
   }, [stepValidation]);
 
-  // Parse value based on flag type
-  function parseValue(raw: string, type: FlagType): boolean | string | number {
-    switch (type) {
-      case 'boolean':
-        return raw === 'true';
-      case 'number':
-        return parseFloat(raw) || 0;
-      default:
-        return raw;
+  function getVariationLabel(index: number, isControl: boolean): string {
+    if (isControl) return 'Control';
+    let variantNumber = 0;
+    for (let i = 0; i <= index; i++) {
+      if (!variations[i].isControl) variantNumber++;
+    }
+    return `Variant ${variantNumber}`;
+  }
+
+  function updateVariation(index: number, updates: Partial<Variation>) {
+    setVariations(prev => prev.map((v, i) => i === index ? { ...v, ...updates } : v));
+  }
+
+  function updateVariationValue(index: number, value: string, valueType: 'string' | 'json') {
+    updateVariation(index, { value });
+
+    if (valueType === 'json' && value.trim()) {
+      try {
+        JSON.parse(value);
+        setJsonErrors(prev => {
+          const next = { ...prev };
+          delete next[index];
+          return next;
+        });
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Invalid JSON';
+        setJsonErrors(prev => ({ ...prev, [index]: message }));
+      }
+    } else {
+      setJsonErrors(prev => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
     }
   }
 
-  // Country/Language pair management
-  function addCountryLanguagePair() {
-    setCountryLanguagePairs([...countryLanguagePairs, { country: '', languages: '' }]);
+  function handleValueTypeChange(index: number, newType: 'string' | 'json') {
+    const variation = variations[index];
+    updateVariation(index, { valueType: newType });
+
+    if (newType === 'json' && variation.value.trim()) {
+      try {
+        JSON.parse(variation.value);
+        setJsonErrors(prev => {
+          const next = { ...prev };
+          delete next[index];
+          return next;
+        });
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Invalid JSON';
+        setJsonErrors(prev => ({ ...prev, [index]: message }));
+      }
+    } else {
+      setJsonErrors(prev => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+    }
   }
 
-  function updateCountryLanguagePair(
-    index: number,
-    update: Partial<{ country: string; languages: string }>
-  ) {
-    const updated = [...countryLanguagePairs];
-    updated[index] = { ...updated[index], ...update };
-    setCountryLanguagePairs(updated);
+  function addVariation() {
+    if (variations.length >= 6) return;
+
+    const variantCount = variations.filter(v => !v.isControl).length + 1;
+    const newKey = `variant_${variantCount}`;
+    const newName = `Variant ${variantCount}`;
+
+    const newCount = variations.length + 1;
+    const evenPercentage = Math.floor(100 / newCount);
+    const remainder = 100 - (evenPercentage * newCount);
+
+    const updatedVariations = variations.map((v, i) => ({
+      ...v,
+      percentage: evenPercentage + (i === 0 ? remainder : 0),
+    }));
+
+    setVariations([
+      ...updatedVariations,
+      { key: newKey, name: newName, value: '', valueType: 'string', isControl: false, percentage: evenPercentage },
+    ]);
+  }
+
+  function removeVariation(index: number) {
+    if (variations.length <= 2) return;
+    if (variations[index].isControl) return;
+
+    const removedPercentage = variations[index].percentage;
+    const remaining = variations.filter((_, i) => i !== index);
+
+    const updatedVariations = remaining.map(v =>
+      v.isControl ? { ...v, percentage: v.percentage + removedPercentage } : v
+    );
+
+    let variantNum = 0;
+    const renumbered = updatedVariations.map(v => {
+      if (v.isControl) return v;
+      variantNum++;
+      return { ...v, key: `variant_${variantNum}`, name: `Variant ${variantNum}` };
+    });
+
+    setVariations(renumbered);
+  }
+
+  function distributeEvenly() {
+    const count = variations.length;
+    const evenPercentage = Math.floor(100 / count);
+    const remainder = 100 - (evenPercentage * count);
+
+    setVariations(prev => prev.map((v, i) => ({
+      ...v,
+      percentage: evenPercentage + (i === 0 ? remainder : 0),
+    })));
+  }
+
+  function setAsControl(index: number) {
+    setVariations(prev => {
+      const updated = prev.map((v, i) => ({
+        ...v,
+        isControl: i === index,
+        key: i === index ? 'control' : v.key,
+        name: i === index ? 'Control' : v.name,
+      }));
+      let variantNum = 0;
+      return updated.map(v => {
+        if (v.isControl) return v;
+        variantNum++;
+        return { ...v, key: `variant_${variantNum}`, name: `Variant ${variantNum}` };
+      });
+    });
+  }
+
+  function addCountryLanguagePair() {
+    setCountryLanguagePairs(prev => [...prev, { country: '', languages: '' }]);
+  }
+
+  function updateCountryLanguagePair(index: number, updates: Partial<CountryLanguagePair>) {
+    setCountryLanguagePairs(prev => prev.map((p, i) => i === index ? { ...p, ...updates } : p));
   }
 
   function removeCountryLanguagePair(index: number) {
-    setCountryLanguagePairs(countryLanguagePairs.filter((_, i) => i !== index));
-  }
-
-  // Handle flag type change - reset values to sensible defaults
-  function handleFlagTypeChange(newType: FlagType) {
-    setFlagType(newType);
-    switch (newType) {
-      case 'boolean':
-        setValueA('true');
-        setValueB('false');
-        break;
-      case 'string':
-        setValueA('');
-        setValueB('');
-        break;
-      case 'number':
-        setValueA('0');
-        setValueB('0');
-        break;
-    }
+    setCountryLanguagePairs(prev => prev.filter((_, i) => i !== index));
   }
 
   // Navigation
@@ -316,7 +443,8 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
 
   // Check if all steps are valid for submission
   const canSubmit = stepValidation.basic.isValid &&
-    stepValidation.values.isValid &&
+    stepValidation.metric.isValid &&
+    stepValidation.variations.isValid &&
     stepValidation.targeting.isValid;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -324,12 +452,16 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
     setError(null);
 
     if (!canSubmit) {
+      // Find first invalid step and navigate to it
       if (!stepValidation.basic.isValid) {
         setCurrentStep('basic');
         setError(stepValidation.basic.errors[0]);
-      } else if (!stepValidation.values.isValid) {
-        setCurrentStep('values');
-        setError(stepValidation.values.errors[0]);
+      } else if (!stepValidation.metric.isValid) {
+        setCurrentStep('metric');
+        setError(stepValidation.metric.errors[0]);
+      } else if (!stepValidation.variations.isValid) {
+        setCurrentStep('variations');
+        setError(stepValidation.variations.errors[0]);
       } else if (!stepValidation.targeting.isValid) {
         setCurrentStep('targeting');
         setError(stepValidation.targeting.errors[0]);
@@ -340,7 +472,28 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
     setIsLoading(true);
 
     try {
-      // Build targeting object
+      const parsedVariations = variations.map(v => {
+        let parsedValue: unknown = v.value;
+        if (v.valueType === 'json' && v.value.trim()) {
+          try {
+            parsedValue = JSON.parse(v.value);
+          } catch {
+            parsedValue = v.value;
+          }
+        }
+        return {
+          key: v.key,
+          name: v.name.trim(),
+          value: parsedValue,
+          isControl: v.isControl,
+        };
+      });
+
+      const trafficAllocation = variations.map(v => ({
+        variationKey: v.key,
+        percentage: v.percentage,
+      }));
+
       const targeting: {
         countries?: { country: string; languages?: { language: string }[] }[];
         forceIncludeUsers?: string[];
@@ -365,18 +518,28 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
         targeting.forceExcludeUsers = excludeUsersValidation.valid;
       }
 
-      await createFlagApi(platform, environment, {
-        flagKey: flagKey.trim(),
+      const controlVariation = variations.find(v => v.isControl);
+
+      await createExperimentApi(platform, environment, {
+        experimentKey: experimentKey.trim(),
         name: name.trim(),
         description: description.trim() || undefined,
-        enabled,
-        flagType,
-        valueA: parseValue(valueA, flagType),
-        valueB: parseValue(valueB, flagType),
+        hypothesis: hypothesis.trim(),
+        variations: parsedVariations,
+        controlVariation: controlVariation!.key,
+        trafficAllocation,
         targeting: Object.keys(targeting).length > 0 ? targeting : undefined,
+        primaryMetric: {
+          id: metricEventName.trim().toLowerCase().replace(/\s+/g, '_'),
+          name: metricName.trim(),
+          eventName: metricEventName.trim(),
+          metricType,
+          successDirection: 'increase',
+        },
+        confidenceLevel: 0.95,
       });
 
-      router.push(`/platforms/${platform}/environments/${environment}/flags`);
+      router.push(`/platforms/${platform}/environments/${environment}/experiments`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -385,7 +548,7 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
   }
 
   // Render validation feedback for user lists
-  function renderUserListValidation(validation: ValidationResult) {
+  function renderUserListValidation(validation: ValidationResult, label: string) {
     const hasIssues = validation.duplicates.length > 0 || validation.invalid.length > 0;
     if (!hasIssues && validation.valid.length === 0) return null;
 
@@ -415,14 +578,14 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-black mb-2">Create Flag</h1>
+            <h1 className="text-4xl font-black mb-2">Create Experiment</h1>
             <p className="text-muted-foreground">
               {platform && environment
-                ? `Add a new feature flag for ${platform} / ${environment}`
-                : 'Add a new feature flag'}
+                ? `Add a new A/B/n test for ${platform} / ${environment}`
+                : 'Configure and launch a new A/B/n test experiment'}
             </p>
           </div>
-          <Link href={`/platforms/${initialPlatform}/environments/${initialEnvironment}/flags`}>
+          <Link href="/experiments">
             <Button variant="outline">Cancel</Button>
           </Link>
         </div>
@@ -499,17 +662,17 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="flagKey">Flag Key *</Label>
+                    <Label htmlFor="experimentKey">Experiment Key *</Label>
                     <Input
-                      id="flagKey"
-                      value={flagKey}
-                      onChange={(e) => setFlagKey(e.target.value)}
-                      placeholder="e.g., dark_mode"
+                      id="experimentKey"
+                      value={experimentKey}
+                      onChange={(e) => setExperimentKey(e.target.value)}
+                      placeholder="e.g., checkout-redesign"
                       required
                       disabled={isLoading}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Use snake_case for consistency
+                      Use kebab-case for consistency
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -518,7 +681,7 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g., Dark Mode"
+                      placeholder="e.g., Checkout Redesign Test"
                       required
                       disabled={isLoading}
                     />
@@ -531,23 +694,22 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Brief description of this flag"
+                    placeholder="Brief description of this experiment"
                     disabled={isLoading}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="flagType">Flag Type</Label>
-                  <Select
-                    id="flagType"
-                    value={flagType}
-                    onChange={(e) => handleFlagTypeChange(e.target.value as FlagType)}
+                  <Label htmlFor="hypothesis">Hypothesis *</Label>
+                  <textarea
+                    id="hypothesis"
+                    value={hypothesis}
+                    onChange={(e) => setHypothesis(e.target.value)}
+                    placeholder="e.g., Single-page checkout will increase conversions by 15%"
+                    required
                     disabled={isLoading}
-                  >
-                    <option value="boolean">Boolean (true/false)</option>
-                    <option value="string">String (text values)</option>
-                    <option value="number">Number (numeric values)</option>
-                  </Select>
+                    className="w-full p-3 border border-black/20 rounded-lg min-h-[100px] bg-white/80 focus:ring-2 focus:ring-black/20 focus:border-black/40 focus:bg-white transition-all duration-200"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -560,93 +722,223 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
           </div>
         )}
 
-        {/* Step 2: Values */}
-        {currentStep === 'values' && (
+        {/* Step 2: Metric */}
+        {currentStep === 'metric' && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Flag Values</CardTitle>
+                <CardTitle>Primary Metric</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="valueA">Value A (default)</Label>
-                    {flagType === 'boolean' ? (
-                      <Select
-                        id="valueA"
-                        value={valueA}
-                        onChange={(e) => setValueA(e.target.value)}
-                        disabled={isLoading}
-                      >
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                      </Select>
-                    ) : (
-                      <Input
-                        id="valueA"
-                        type={flagType === 'number' ? 'number' : 'text'}
-                        value={valueA}
-                        onChange={(e) => setValueA(e.target.value)}
-                        placeholder={flagType === 'number' ? '0' : 'value'}
-                        disabled={isLoading}
-                      />
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Served when flag conditions are not met
-                    </p>
+                    <Label htmlFor="metricName">Metric Name *</Label>
+                    <Input
+                      id="metricName"
+                      value={metricName}
+                      onChange={(e) => setMetricName(e.target.value)}
+                      placeholder="e.g., Purchase Conversion"
+                      required
+                      disabled={isLoading}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="valueB">Value B (rollout)</Label>
-                    {flagType === 'boolean' ? (
-                      <Select
-                        id="valueB"
-                        value={valueB}
-                        onChange={(e) => setValueB(e.target.value)}
-                        disabled={isLoading}
-                      >
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                      </Select>
-                    ) : (
-                      <Input
-                        id="valueB"
-                        type={flagType === 'number' ? 'number' : 'text'}
-                        value={valueB}
-                        onChange={(e) => setValueB(e.target.value)}
-                        placeholder={flagType === 'number' ? '0' : 'value'}
-                        disabled={isLoading}
-                      />
-                    )}
+                    <Label htmlFor="metricEventName">Event Name *</Label>
+                    <Input
+                      id="metricEventName"
+                      value={metricEventName}
+                      onChange={(e) => setMetricEventName(e.target.value)}
+                      placeholder="e.g., purchase"
+                      required
+                      disabled={isLoading}
+                    />
                     <p className="text-xs text-muted-foreground">
-                      Served when rollout or targeting applies
+                      Track this event from your app using the SDK:
                     </p>
+                    <pre className="text-xs bg-muted p-2 rounded font-mono overflow-x-auto">
+{`// JavaScript/TypeScript
+await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
+  metricName: '${metricEventName || 'purchase'}',
+  value: 99.99  // optional
+});`}
+                    </pre>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t">
+                <div className="space-y-2">
+                  <Label htmlFor="metricType">Metric Type</Label>
+                  <Select
+                    id="metricType"
+                    value={metricType}
+                    onChange={(e) => setMetricType(e.target.value as typeof metricType)}
+                    disabled={isLoading}
+                  >
+                    <option value="conversion">Conversion (binary event)</option>
+                    <option value="count">Count (number of events)</option>
+                    <option value="sum">Sum (total value)</option>
+                    <option value="average">Average (mean value)</option>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {!stepValidation.metric.isValid && stepValidation.metric.errors.length > 0 && (
+              <Alert variant="warning">
+                <span>Missing required fields: {stepValidation.metric.errors.join(', ')}</span>
+              </Alert>
+            )}
+          </div>
+        )}
+
+        {/* Step 3: Variations */}
+        {currentStep === 'variations' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Checkbox
-                      id="enabled"
-                      checked={enabled}
-                      onChange={(e) => setEnabled(e.target.checked)}
+                    <CardTitle>Variations ({variations.length})</CardTitle>
+                    <Badge
+                      variant={totalPercentage === 100 ? 'default' : 'warning'}
+                      size="sm"
+                    >
+                      {totalPercentage}% total
+                    </Badge>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={distributeEvenly}
                       disabled={isLoading}
-                    />
-                    <div>
-                      <Label htmlFor="enabled" className="cursor-pointer">
-                        Enable flag immediately
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        When disabled, the flag will serve Value A to all users
-                      </p>
-                    </div>
+                    >
+                      Distribute Evenly
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={addVariation}
+                      disabled={isLoading || variations.length >= 6}
+                    >
+                      + Add Variant
+                    </Button>
                   </div>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {variations.map((variation, index) => {
+                  const colors = VARIANT_COLORS[index % VARIANT_COLORS.length];
+                  const label = getVariationLabel(index, variation.isControl);
+                  return (
+                    <div
+                      key={`${variation.key}-${index}`}
+                      className={`p-4 rounded-lg border-2 ${colors.border} ${colors.bg}`}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{label}</span>
+                          {variation.isControl && (
+                            <Badge variant="default" size="sm">CONTROL</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!variation.isControl && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setAsControl(index)}
+                              disabled={isLoading}
+                            >
+                              Set as Control
+                            </Button>
+                          )}
+                          {variations.length > 2 && !variation.isControl && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeVariation(index)}
+                              disabled={isLoading}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Name</Label>
+                            <Input
+                              value={variation.name}
+                              onChange={(e) => updateVariation(index, { name: e.target.value })}
+                              disabled={isLoading}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Traffic %</Label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={variation.percentage}
+                                onChange={(e) => updateVariation(index, {
+                                  percentage: parseInt(e.target.value, 10) || 0
+                                })}
+                                disabled={isLoading}
+                              />
+                              <span className="text-muted-foreground">%</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Value</Label>
+                            <Select
+                              value={variation.valueType}
+                              onChange={(e) => handleValueTypeChange(index, e.target.value as 'string' | 'json')}
+                              disabled={isLoading}
+                              className="w-24 h-8 text-xs"
+                            >
+                              <option value="string">String</option>
+                              <option value="json">JSON</option>
+                            </Select>
+                          </div>
+                          <textarea
+                            value={variation.value}
+                            onChange={(e) => updateVariationValue(index, e.target.value, variation.valueType)}
+                            placeholder={variation.valueType === 'json' ? '{"version": "v1", "enabled": true}' : 'simple string value'}
+                            disabled={isLoading}
+                            className={`w-full p-3 border rounded-lg min-h-[100px] bg-white/80 focus:ring-2 focus:ring-black/20 focus:border-black/40 focus:bg-white transition-all duration-200 font-mono ${
+                              jsonErrors[index] ? 'border-destructive' : 'border-black/20'
+                            }`}
+                          />
+                          {jsonErrors[index] && (
+                            <p className="text-xs text-destructive">{jsonErrors[index]}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {totalPercentage !== 100 && (
+                  <Alert variant="warning">
+                    <span>Traffic allocation must sum to 100%. Currently at {totalPercentage}%.</span>
+                  </Alert>
+                )}
               </CardContent>
             </Card>
           </div>
         )}
 
-        {/* Step 3: Targeting */}
+        {/* Step 4: Targeting */}
         {currentStep === 'targeting' && (
           <div className="space-y-6">
             <Card>
@@ -671,7 +963,7 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
 
                   {countryLanguagePairs.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No country targeting configured. Flag will apply to all users.
+                      No country targeting configured. Experiment will run for all users.
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -761,9 +1053,9 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
                       disabled={isLoading}
                     />
                     <p className="text-xs text-muted-foreground">
-                      User IDs always included in flag (comma or newline separated)
+                      User IDs always included in experiment (comma or newline separated)
                     </p>
-                    {renderUserListValidation(includeUsersValidation)}
+                    {renderUserListValidation(includeUsersValidation, 'include')}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="forceExcludeUsers">Force Exclude Users</Label>
@@ -778,9 +1070,9 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
                       disabled={isLoading}
                     />
                     <p className="text-xs text-muted-foreground">
-                      User IDs always excluded from flag (comma or newline separated)
+                      User IDs always excluded from experiment (comma or newline separated)
                     </p>
-                    {renderUserListValidation(excludeUsersValidation)}
+                    {renderUserListValidation(excludeUsersValidation, 'exclude')}
                   </div>
                 </div>
               </CardContent>
@@ -810,7 +1102,7 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <Link href={`/platforms/${initialPlatform}/environments/${initialEnvironment}/flags`}>
+            <Link href="/experiments">
               <Button type="button" variant="outline" disabled={isLoading}>
                 Cancel
               </Button>
@@ -828,7 +1120,7 @@ export default function CreateFlagPage({ params }: CreateFlagPageProps) {
                 type="submit"
                 disabled={isLoading || !canSubmit}
               >
-                {isLoading ? 'Creating...' : 'Create Flag'}
+                {isLoading ? 'Creating...' : 'Create Experiment'}
               </Button>
             )}
           </div>

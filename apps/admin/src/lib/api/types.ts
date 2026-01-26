@@ -1,6 +1,7 @@
 // User types
 export interface User {
   id: string;
+  name?: string;
   email: string;
   role: 'admin' | 'developer' | 'viewer';
   createdAt: string;
@@ -18,6 +19,7 @@ export interface Platform {
   id: string;
   name: string;
   description?: string;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -26,6 +28,7 @@ export interface Environment {
   platform: string;
   environment: string;
   description?: string;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -232,4 +235,31 @@ export interface VariantAssignment {
   value: unknown;
   isControl: boolean;
   reason: string;
+}
+
+// Stats types
+export interface FlagStats {
+  platform: string;
+  environment: string;
+  flagKey: string;
+  totalEvaluations: number;
+  valueACount: number;
+  valueBCount: number;
+  uniqueUsersA24h: number;
+  uniqueUsersB24h: number;
+  updatedAt: string | null;
+}
+
+export interface FlagCountryStats {
+  country: string;
+  totalEvaluations: number;
+  valueACount: number;
+  valueBCount: number;
+}
+
+export interface FlagDailyStats {
+  date: string;
+  totalEvaluations: number;
+  valueACount: number;
+  valueBCount: number;
 }

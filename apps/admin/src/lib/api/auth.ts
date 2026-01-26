@@ -9,13 +9,14 @@ export async function loginApi(email: string, password: string): Promise<AuthRes
 }
 
 export async function registerApi(
+  name: string,
   email: string,
   password: string,
   role?: 'admin' | 'developer' | 'viewer'
 ): Promise<AuthResponse> {
   return browserApiClient('/api/v1/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password, role }),
+    body: JSON.stringify({ name, email, password, role }),
   });
 }
 
@@ -48,4 +49,18 @@ export async function completePasswordResetApi(token: string, newPassword: strin
 
 export async function getCurrentUserApi(): Promise<User> {
   return browserApiClient('/api/v1/users/me');
+}
+
+export async function updateProfileApi(data: { name?: string }): Promise<User> {
+  return browserApiClient('/api/v1/users/me', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function changePasswordApi(currentPassword: string, newPassword: string): Promise<void> {
+  return browserApiClient('/api/v1/users/me/password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
 }

@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { useFlag, useToggleBox } from '@togglebox/sdk-nextjs'
+import { useFlag, useToggleBox, ToggleBoxClient } from '@togglebox/sdk-nextjs'
 import { EvaluateForm } from '@/components/evaluate-form'
 import { Loading } from '@/components/loading'
-import { evaluateFlag, toggleFlag, hasApiKey } from '@/lib/api'
+import { toggleFlag, hasApiKey } from '@/lib/api'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
 const PLATFORM = process.env.NEXT_PUBLIC_PLATFORM || 'web'
 const ENVIRONMENT = process.env.NEXT_PUBLIC_ENVIRONMENT || 'staging'
 const DEFAULT_USER_ID = process.env.NEXT_PUBLIC_USER_ID || 'demo-user-123'
@@ -28,15 +29,41 @@ export default function FlagDetailPage() {
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
 
+  // Create a client for evaluation (separate from provider to avoid caching)
+  const clientRef = useRef<ToggleBoxClient | null>(null)
+
+  useEffect(() => {
+    clientRef.current = new ToggleBoxClient({
+      platform: PLATFORM,
+      environment: ENVIRONMENT,
+      apiUrl: API_URL,
+      cache: { enabled: false, ttl: 0 },
+    })
+
+    return () => {
+      clientRef.current?.destroy()
+    }
+  }, [])
+
   const handleEvaluate = async (context: {
     userId: string
     country: string
     language: string
   }) => {
+    if (!clientRef.current) return
+
     setIsEvaluating(true)
     try {
-      const result = await evaluateFlag(PLATFORM, ENVIRONMENT, flagKey, context)
-      setEvaluationResult(result.data)
+      const result = await clientRef.current.getFlag(flagKey, context)
+      setEvaluationResult({
+        enabled: result.servedValue === 'A',
+        value: result.servedValue === 'A' ? String(flag?.valueA) : String(flag?.valueB),
+        reason: result.matchedRule
+          ? `Matched targeting rule for ${result.matchedRule.country}`
+          : result.rolloutApplied
+            ? 'Rollout applied'
+            : 'Default value',
+      })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to evaluate flag')
     } finally {
@@ -143,7 +170,7 @@ export default function FlagDetailPage() {
               </dd>
             </div>
 
-            {flag.rolloutPercentage !== undefined && (
+            {flag.rolloutEnabled && (
               <div>
                 <dt className="text-sm font-medium text-gray-500">Rollout Percentage</dt>
                 <dd className="mt-1">
@@ -151,27 +178,27 @@ export default function FlagDetailPage() {
                     <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-primary-600"
-                        style={{ width: `${flag.rolloutPercentage}%` }}
+                        style={{ width: `${flag.rolloutPercentageA ?? 100}%` }}
                       />
                     </div>
-                    <span className="text-sm text-gray-600">{flag.rolloutPercentage}%</span>
+                    <span className="text-sm text-gray-600">{flag.rolloutPercentageA ?? 100}%</span>
                   </div>
                 </dd>
               </div>
             )}
 
-            {flag.targeting && flag.targeting.length > 0 && (
+            {flag.targeting?.countries && flag.targeting.countries.length > 0 && (
               <div>
                 <dt className="text-sm font-medium text-gray-500">Targeting Rules</dt>
                 <dd className="mt-2 space-y-2">
-                  {flag.targeting.map((rule, index) => (
+                  {flag.targeting.countries.map((rule, index) => (
                     <div
                       key={index}
                       className="px-3 py-2 bg-gray-50 rounded text-sm"
                     >
-                      <span className="font-medium">{rule.attribute}</span>
-                      <span className="text-gray-500"> = </span>
-                      <span>{rule.values.join(', ')}</span>
+                      <span className="font-medium">{rule.country}</span>
+                      <span className="text-gray-500"> → </span>
+                      <span>Serve Value {rule.serveValue}</span>
                     </div>
                   ))}
                 </dd>
