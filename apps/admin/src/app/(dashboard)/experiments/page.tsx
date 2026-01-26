@@ -208,10 +208,19 @@ function ExperimentsContent() {
                     {experiment.createdBy || '-'}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center justify-end">
-                      <Link href={`/platforms/${experiment.platform}/environments/${experiment.environment}/experiments/${experiment.experimentKey}`}>
-                        <Button variant="outline" size="sm" className="text-xs">View</Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Link
+                        href={`/platforms/${experiment.platform}/environments/${experiment.environment}/experiments/${experiment.experimentKey}`}
+                        className="p-2 rounded-lg hover:bg-muted transition-colors"
+                        title="View details"
+                      >
+                        <FlaskConical className="h-4 w-4 text-muted-foreground" />
                       </Link>
+                      <ExperimentActions
+                        experiment={experiment}
+                        user={user}
+                        onSuccess={loadExperiments}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
