@@ -33,9 +33,11 @@ Architecture decisions and patterns for ToggleBox dual monorepo structure.
 - **packages/configs**: Remote configuration business logic
 - **packages/stats**: Analytics and statistics tracking
 - **packages/ui**: Shared UI components (shadcn/ui)
-- **packages/sdk-js**: JavaScript SDK for browsers and Node.js
-- **packages/sdk-nextjs**: Next.js SDK with React hooks
-- **packages/sdk-expo**: Expo/React Native SDK
+- **packages/sdk-js**: JavaScript SDK for browsers and Node.js (`@togglebox/sdk`)
+- **packages/sdk-nextjs**: Next.js SDK with React hooks (`@togglebox/sdk-nextjs`)
+- **packages/sdk-expo**: Expo/React Native SDK (`@togglebox/sdk-expo`)
+- **packages/sdk-php**: PHP SDK (Composer package `togglebox/sdk-php`)
+- **packages/sdk-laravel**: Laravel SDK (Composer package `togglebox/sdk-laravel`)
 - **packages/shared**: Shared utilities, types, and middleware
 
 **API Architecture (Open Source):**
