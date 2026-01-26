@@ -53,6 +53,7 @@ export async function createUser(data: CreateUserData): Promise<User> {
   const now = new Date();
   const user: User = {
     id: uuidv4(),
+    name: data.name,
     email: data.email,
     passwordHash: data.passwordHash,
     role: data.role,

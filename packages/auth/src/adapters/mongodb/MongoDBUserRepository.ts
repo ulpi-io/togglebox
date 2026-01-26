@@ -97,6 +97,7 @@ export class MongoDBUserRepository implements IUserRepository {
   private mapToUser(doc: IUserDocument): User {
     return {
       id: doc._id.toString(),
+      name: doc.name,
       email: doc.email,
       passwordHash: doc.passwordHash,
       role: doc.role as UserRole,

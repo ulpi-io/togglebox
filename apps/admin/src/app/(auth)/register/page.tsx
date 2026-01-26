@@ -28,11 +28,12 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
     try {
-      const response = await registerApi(email, password);
+      const response = await registerApi(name, email, password);
       // Store token in cookie
       setCookie('auth-token', response.token, 7);
       router.push('/dashboard');
@@ -51,6 +52,18 @@ export default function RegisterPage() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="John Doe"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

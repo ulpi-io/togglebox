@@ -36,6 +36,7 @@ export class PrismaUserRepository implements IUserRepository {
   async create(data: CreateUserData): Promise<User> {
     const user = await prisma.user.create({
       data: {
+        name: data.name,
         email: data.email,
         passwordHash: data.passwordHash,
         role: data.role,
@@ -108,6 +109,7 @@ export class PrismaUserRepository implements IUserRepository {
   private mapToUser(prismaUser: PrismaUserModel): User {
     return {
       id: prismaUser.id,
+      name: prismaUser.name ?? undefined,
       email: prismaUser.email,
       passwordHash: prismaUser.passwordHash,
       role: prismaUser.role as UserRole,

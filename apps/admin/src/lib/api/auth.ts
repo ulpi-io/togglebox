@@ -9,13 +9,14 @@ export async function loginApi(email: string, password: string): Promise<AuthRes
 }
 
 export async function registerApi(
+  name: string,
   email: string,
   password: string,
   role?: 'admin' | 'developer' | 'viewer'
 ): Promise<AuthResponse> {
   return browserApiClient('/api/v1/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password, role }),
+    body: JSON.stringify({ name, email, password, role }),
   });
 }
 

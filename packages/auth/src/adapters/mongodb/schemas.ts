@@ -34,6 +34,7 @@ import mongoose, { Schema, Document } from 'mongoose';
  * - `updatedAt`: Auto-updated timestamp
  */
 export interface IUserDocument extends Document {
+  name?: string;
   email: string;
   passwordHash: string;
   role: string;
@@ -59,6 +60,7 @@ export interface IUserDocument extends Document {
  */
 const userSchema = new Schema<IUserDocument>(
   {
+    name: { type: String },
     email: { type: String, required: true, unique: true, index: true },
     passwordHash: { type: String, required: true },
     role: { type: String, required: true, enum: ['admin', 'developer', 'viewer'] },

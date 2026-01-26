@@ -30,6 +30,9 @@ import { generateToken } from '../utils/jwt';
  * Role defaults to 'viewer' if not provided.
  */
 export interface RegisterUserData {
+  /** User display name */
+  name: string;
+
   /** User email address (must be unique) */
   email: string;
 
@@ -128,6 +131,7 @@ export class UserService {
 
     // Create user
     const user = await this.userRepository.create({
+      name: data.name,
       email: data.email,
       passwordHash,
       role: data.role || 'viewer', // Default role is viewer

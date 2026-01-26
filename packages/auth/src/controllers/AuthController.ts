@@ -78,9 +78,10 @@ export class AuthController {
    */
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { email, password, role } = req.body;
+      const { name, email, password, role } = req.body;
 
       const user = await this.userService.register({
+        name,
         email,
         password,
         role,

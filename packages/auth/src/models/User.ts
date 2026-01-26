@@ -26,6 +26,9 @@ export interface User {
   /** Unique user identifier (UUID) */
   id: string;
 
+  /** User's display name */
+  name?: string;
+
   /** User's email address (unique, used for login) */
   email: string;
 
