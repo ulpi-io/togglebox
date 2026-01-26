@@ -50,3 +50,17 @@ export async function completePasswordResetApi(token: string, newPassword: strin
 export async function getCurrentUserApi(): Promise<User> {
   return browserApiClient('/api/v1/users/me');
 }
+
+export async function updateProfileApi(data: { name?: string }): Promise<User> {
+  return browserApiClient('/api/v1/users/me', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function changePasswordApi(currentPassword: string, newPassword: string): Promise<void> {
+  return browserApiClient('/api/v1/users/me/password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
