@@ -139,9 +139,8 @@ export default function CreateExperimentPage({ params }: CreateExperimentPagePro
   const { platform: initialPlatform, environment: initialEnvironment } = use(params);
   const router = useRouter();
 
-  // Step navigation - track steps user has LEFT (not just visited)
+  // Step navigation
   const [currentStep, setCurrentStep] = useState('basic');
-  const [leftSteps, setLeftSteps] = useState<string[]>([]); // Steps user has navigated away from
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
 
   // Platform/Environment selection
@@ -252,16 +251,23 @@ export default function CreateExperimentPage({ params }: CreateExperimentPagePro
     includeUsersValidation, excludeUsersValidation
   ]);
 
-  // Update completed steps based on validation AND whether user has left the step
+  // Remove completed status if step validation fails (e.g., user clears required field)
   useEffect(() => {
-    const newCompleted = new Set<string>();
-    // Only mark as completed if both valid AND user has navigated away from it
-    if (stepValidation.basic.isValid && leftSteps.includes('basic')) newCompleted.add('basic');
-    if (stepValidation.metric.isValid && leftSteps.includes('metric')) newCompleted.add('metric');
-    if (stepValidation.variations.isValid && leftSteps.includes('variations')) newCompleted.add('variations');
-    if (stepValidation.targeting.isValid && leftSteps.includes('targeting')) newCompleted.add('targeting');
-    setCompletedSteps(newCompleted);
-  }, [stepValidation, leftSteps]);
+    setCompletedSteps(prev => {
+      const newCompleted = new Set(prev);
+      // Remove steps that are no longer valid
+      if (!stepValidation.basic.isValid) newCompleted.delete('basic');
+      if (!stepValidation.metric.isValid) newCompleted.delete('metric');
+      if (!stepValidation.variations.isValid) newCompleted.delete('variations');
+      if (!stepValidation.targeting.isValid) newCompleted.delete('targeting');
+      // Only update if there's a change
+      if (newCompleted.size !== prev.size) return newCompleted;
+      for (const item of prev) {
+        if (!newCompleted.has(item)) return newCompleted;
+      }
+      return prev;
+    });
+  }, [stepValidation]);
 
   function getVariationLabel(index: number, isControl: boolean): string {
     if (isControl) return 'Control';
@@ -411,30 +417,37 @@ export default function CreateExperimentPage({ params }: CreateExperimentPagePro
   // Navigation
   const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
 
-  function markCurrentStepAsLeft() {
-    // Mark the current step as "left" (user navigated away from it)
-    if (!leftSteps.includes(currentStep)) {
-      setLeftSteps(prev => [...prev, currentStep]);
+  function markCurrentStepAsCompleted() {
+    // Only mark step as completed if validation passes
+    const stepId = currentStep;
+    const validation = stepValidation[stepId as keyof typeof stepValidation];
+    if (validation?.isValid && !completedSteps.has(stepId)) {
+      setCompletedSteps(prev => new Set([...prev, stepId]));
     }
   }
 
   function goToNextStep() {
     if (currentStepIndex < STEPS.length - 1) {
-      markCurrentStepAsLeft();
+      // Only mark as completed when moving FORWARD (not when going back)
+      markCurrentStepAsCompleted();
       setCurrentStep(STEPS[currentStepIndex + 1].id);
     }
   }
 
   function goToPreviousStep() {
     if (currentStepIndex > 0) {
-      markCurrentStepAsLeft();
+      // Don't mark as completed when going back - user hasn't "finished" the step
       setCurrentStep(STEPS[currentStepIndex - 1].id);
     }
   }
 
   function handleStepClick(stepId: string) {
     if (stepId !== currentStep) {
-      markCurrentStepAsLeft();
+      const targetIndex = STEPS.findIndex(s => s.id === stepId);
+      // Only mark as completed if navigating forward
+      if (targetIndex > currentStepIndex) {
+        markCurrentStepAsCompleted();
+      }
       setCurrentStep(stepId);
     }
   }
