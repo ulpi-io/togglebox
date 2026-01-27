@@ -179,18 +179,42 @@ function HomeScreen() {
 
 ### Example Apps
 
-See the SDKs in action:
+Both example apps are **kitchen sink** demos with copy-paste ready code:
 
-- **[example-nextjs](./apps/example-nextjs)** - Next.js app showing remote configs, feature flags, and experiments
-- **[example-expo](./apps/example-expo)** - React Native/Expo app with offline support
+#### [Next.js Example](./apps/example-nextjs)
+
+Full-featured Next.js 15 app demonstrating:
+
+| Quick Start | Complete Examples |
+|-------------|-------------------|
+| Provider Setup | Feature Toggle UI |
+| useConfig Hook | A/B Test CTA Buttons |
+| useFlag Hook | Config-Driven Themes |
+| useExperiment Hook | SSR with Hydration |
+| Event Tracking | Polling Updates |
+| SSR Config Fetching | |
 
 ```bash
-# Run the Next.js example
-pnpm dev:example-nextjs
-
-# Run the Expo example
-pnpm dev:example-expo
+pnpm dev:example-nextjs  # http://localhost:3002
 ```
+
+#### [Expo Example](./apps/example-expo)
+
+React Native/Expo app demonstrating:
+
+| Quick Start | Advanced |
+|-------------|----------|
+| Provider Setup | Conversion Tracking |
+| Remote Config | Offline Storage (MMKV) |
+| Feature Flags | Polling & Refresh |
+| Experiments | Health Check |
+| | Error Handling |
+
+```bash
+pnpm dev:example-expo  # Expo Go or simulator
+```
+
+See the [Next.js Example README](./apps/example-nextjs/README.md) and [Expo Example README](./apps/example-expo/README.md) for detailed documentation.
 
 ---
 
