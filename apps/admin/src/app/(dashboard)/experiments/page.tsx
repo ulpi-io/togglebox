@@ -277,7 +277,7 @@ function ExperimentsContent() {
           <p className="text-muted-foreground mb-6">
             Create your first A/B experiment for {environment}
           </p>
-          <Link href={`/platforms/${platform}/environments/${environment}/experiments/create`}>
+          <Link href={`/experiments/create?platform=${platform}&environment=${environment}`}>
             <Button>Create Experiment</Button>
           </Link>
         </CardContent>
@@ -293,7 +293,7 @@ function ExperimentsContent() {
           value={filter}
           onChange={setFilter}
         />
-        <Link href={`/platforms/${platform}/environments/${environment}/experiments/create`}>
+        <Link href={`/experiments/create?platform=${platform}&environment=${environment}`}>
           <Button>Create Experiment</Button>
         </Link>
       </div>
