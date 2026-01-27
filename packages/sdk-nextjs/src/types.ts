@@ -37,6 +37,12 @@ export interface ToggleBoxProviderProps {
   apiUrl?: string
 
   /**
+   * API key for authentication (optional for self-hosted, required for cloud)
+   * @remarks Set NEXT_PUBLIC_TOGGLEBOX_API_KEY in environment variables
+   */
+  apiKey?: string
+
+  /**
    * Tenant subdomain for cloud deployments
    * @remarks Automatically constructs apiUrl as https://{tenantSubdomain}.togglebox.io
    * @example 'acme' → https://acme.togglebox.io

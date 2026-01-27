@@ -49,11 +49,7 @@ export default function FlagDetailScreen() {
       setEvaluationResult({
         enabled: result.servedValue === 'A',
         value: result.servedValue === 'A' ? String(flag?.valueA) : String(flag?.valueB),
-        reason: result.matchedRule
-          ? `Matched targeting rule for ${result.matchedRule.country}`
-          : result.rolloutApplied
-            ? 'Rollout applied'
-            : 'Default value',
+        reason: result.reason,
       })
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to evaluate flag')

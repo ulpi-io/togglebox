@@ -28,7 +28,7 @@ export default function ExperimentDetailScreen() {
   const [userId, setUserId] = useState(DEFAULT_USER_ID)
   const [assignmentResult, setAssignmentResult] = useState<{
     variationKey: string
-    variationName: string
+    variationName: string | null
   } | null>(null)
   const [isAssigning, setIsAssigning] = useState(false)
   const [isActioning, setIsActioning] = useState(false)
@@ -59,9 +59,11 @@ export default function ExperimentDetailScreen() {
     try {
       const result = await clientRef.current.getVariant(experimentKey, { userId })
       if (result) {
+        // Look up the variation name from the experiment
+        const variation = experiment?.variations.find((v) => v.key === result.variationKey)
         setAssignmentResult({
           variationKey: result.variationKey,
-          variationName: result.variationName,
+          variationName: variation?.name || null,
         })
       } else {
         Alert.alert('Info', 'User not eligible for this experiment')
@@ -298,10 +300,12 @@ export default function ExperimentDetailScreen() {
                 <Text style={styles.resultLabel}>Variation Key:</Text>
                 <Text style={styles.resultValue}>{assignmentResult.variationKey}</Text>
               </View>
-              <View style={styles.resultRow}>
-                <Text style={styles.resultLabel}>Variation Name:</Text>
-                <Text style={styles.resultName}>{assignmentResult.variationName}</Text>
-              </View>
+              {assignmentResult.variationName && (
+                <View style={styles.resultRow}>
+                  <Text style={styles.resultLabel}>Variation Name:</Text>
+                  <Text style={styles.resultName}>{assignmentResult.variationName}</Text>
+                </View>
+              )}
             </View>
           )}
         </View>

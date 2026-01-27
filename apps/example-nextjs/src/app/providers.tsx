@@ -1,10 +1,10 @@
 'use client'
 
 import { ToggleBoxProvider } from '@togglebox/sdk-nextjs'
-import type { Config } from '@togglebox/sdk-nextjs'
-import type { Flag, Experiment } from '@togglebox/sdk-nextjs'
+import type { Config, Flag, Experiment } from '@togglebox/sdk-nextjs'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY
 const PLATFORM = process.env.NEXT_PUBLIC_PLATFORM || 'web'
 const ENVIRONMENT = process.env.NEXT_PUBLIC_ENVIRONMENT || 'staging'
 
@@ -36,6 +36,7 @@ export function Providers({
       platform={PLATFORM}
       environment={ENVIRONMENT}
       apiUrl={API_URL}
+      apiKey={API_KEY}
       pollingInterval={30000}
       configVersion="stable"
       initialConfig={initialConfig ?? undefined}

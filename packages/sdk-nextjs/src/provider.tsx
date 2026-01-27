@@ -21,6 +21,7 @@ export function ToggleBoxProvider({
   platform,
   environment,
   apiUrl,
+  apiKey,
   tenantSubdomain,
   cache,
   pollingInterval = 0,
@@ -48,6 +49,7 @@ export function ToggleBoxProvider({
       platform,
       environment,
       apiUrl,
+      apiKey,
       tenantSubdomain,
       cache,
       pollingInterval,
@@ -96,7 +98,7 @@ export function ToggleBoxProvider({
     return () => {
       client.destroy()
     }
-  }, [platform, environment, apiUrl, tenantSubdomain, pollingInterval, configVersion, initialConfig])
+  }, [platform, environment, apiUrl, apiKey, tenantSubdomain, pollingInterval, configVersion, initialConfig])
 
   const refresh = useCallback(async () => {
     if (!clientRef.current) return

@@ -24,7 +24,39 @@ export default function RootLayout() {
           },
         }}
       >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* Home - Example Index */}
+        <Stack.Screen
+          name="index"
+          options={{
+            title: 'ToggleBox Examples',
+          }}
+        />
+
+        {/* Quick Examples */}
+        <Stack.Screen
+          name="quick"
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        {/* Advanced Examples */}
+        <Stack.Screen
+          name="advanced"
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        {/* Playground (Tabs) */}
+        <Stack.Screen
+          name="playground"
+          options={{
+            headerShown: false,
+          }}
+        />
+
+        {/* Detail Screens */}
         <Stack.Screen
           name="flags/[flagKey]"
           options={{
