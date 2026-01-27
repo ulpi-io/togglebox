@@ -53,7 +53,7 @@ Create a `.env` file in `apps/example-expo/`:
 EXPO_PUBLIC_API_URL=http://localhost:3000/api/v1
 EXPO_PUBLIC_PLATFORM=mobile
 EXPO_PUBLIC_ENVIRONMENT=development
-EXPO_PUBLIC_API_KEY=your-api-key  # Optional for write operations
+EXPO_PUBLIC_API_KEY=your-api-key  # Required if API has auth enabled
 ```
 
 ---
@@ -105,6 +105,7 @@ export default function RootLayout() {
       platform="mobile"
       environment="production"
       apiUrl="https://your-api.example.com/api/v1"
+      apiKey={process.env.EXPO_PUBLIC_API_KEY}  // Required if API has auth enabled
       pollingInterval={30000}           // Auto-refresh every 30s
       persistToStorage={true}           // Enable MMKV offline storage
       storageTTL={24 * 60 * 60 * 1000}  // 24 hours cache

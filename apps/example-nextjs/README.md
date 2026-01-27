@@ -52,7 +52,7 @@ The app runs at `http://localhost:3002`.
 NEXT_PUBLIC_TOGGLEBOX_API_URL=http://localhost:3000/api/v1
 NEXT_PUBLIC_TOGGLEBOX_PLATFORM=web
 NEXT_PUBLIC_TOGGLEBOX_ENVIRONMENT=development
-NEXT_PUBLIC_TOGGLEBOX_API_KEY=your-api-key  # Optional for write operations
+NEXT_PUBLIC_TOGGLEBOX_API_KEY=your-api-key  # Required if API has auth enabled
 ```
 
 ---
@@ -98,6 +98,7 @@ export default function RootLayout({ children }) {
       platform="web"
       environment="production"
       apiUrl={process.env.NEXT_PUBLIC_TOGGLEBOX_API_URL!}
+      apiKey={process.env.NEXT_PUBLIC_TOGGLEBOX_API_KEY}  // Required if API has auth enabled
       pollingInterval={30000}  // Auto-refresh every 30s
     >
       {children}
@@ -348,8 +349,8 @@ The `ToggleBoxProvider` accepts these props:
   environment="production"          // Environment (production, staging, etc.)
   apiUrl="https://api.example.com"  // ToggleBox API URL
 
-  // Optional
-  apiKey="your-api-key"             // For authenticated requests
+  // Authentication (required if API has ENABLE_AUTHENTICATION=true)
+  apiKey="your-api-key"             // Sent as X-API-Key header on all requests
   pollingInterval={30000}           // Auto-refresh interval (ms)
   configVersion="stable"            // Config version (stable, latest, or semver)
 
