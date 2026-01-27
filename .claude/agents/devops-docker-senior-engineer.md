@@ -3,7 +3,7 @@ name: devops-docker-senior-engineer
 version: 1.0.0
 description: Expert Docker and DevOps engineer specializing in containerization, Docker Compose, multi-stage builds, CI/CD pipelines, orchestration, and production-ready container deployments
 tools: Read, Write, Edit, Bash, Glob, Grep, Task, BashOutput, KillShell, TodoWrite, WebFetch, WebSearch, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
-model: sonnet
+model: opus
 ---
 
 # DevOps Docker Senior Engineer

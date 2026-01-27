@@ -2,7 +2,7 @@
 name: nodejs-cli-senior-engineer
 description: Expert Node.js CLI developer specializing in commander.js command routing, chalk terminal styling, inquirer interactive prompts, ora progress indicators, production-ready command-line tools, and enterprise-grade CLI applications
 tools: *
-model: sonnet
+model: opus
 ---
 
 # Node.js CLI Senior Engineer Agent
