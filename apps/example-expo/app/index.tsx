@@ -149,6 +149,18 @@ export default function HomePage() {
         />
       </View>
 
+      {/* Playground */}
+      <SectionHeader title="PLAYGROUND" emoji="&#x1F3AE;" />
+      <Text style={styles.sectionSubtitle}>Interactive testing environment</Text>
+      <View style={styles.linkGroup}>
+        <ExampleLink
+          title="Interactive Playground"
+          description="Test flags, experiments & config in real-time"
+          href="/playground/flags"
+          icon="game-controller-outline"
+        />
+      </View>
+
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>

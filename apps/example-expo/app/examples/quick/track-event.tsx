@@ -1,74 +1,113 @@
 /**
  * Event Tracking Example
  *
- * ═══════════════════════════════════════════════════════════════════════════════
- * WHY EVENT TRACKING IS SEPARATE FROM CONFIGS, FLAGS & EXPERIMENTS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * ToggleBox has THREE TIERS of functionality with different data flow patterns:
- *
- * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ TIER 1-3: CONFIGS, FLAGS, EXPERIMENTS (READ operations)                     │
- * │                                                                             │
- * │   Server ──────> SDK ──────> Your App                                       │
- * │                                                                             │
- * │   • Data flows FROM the server TO your app                                  │
- * │   • Fetched once, cached locally (MMKV for offline)                         │
- * │   • Determines WHAT to show users                                           │
- * │   • Examples: feature toggles, A/B test variants, remote config             │
- * └─────────────────────────────────────────────────────────────────────────────┘
- *
- * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ EVENT TRACKING (WRITE operations)                                           │
- * │                                                                             │
- * │   Your App ──────> SDK ──────> Server                                       │
- * │                                                                             │
- * │   • Data flows FROM your app TO the server                                  │
- * │   • Batched and sent efficiently (reduces network calls)                    │
- * │   • Records WHAT users do                                                   │
- * │   • Examples: taps, screen views, purchases, conversions                    │
- * └─────────────────────────────────────────────────────────────────────────────┘
- *
- * KEY DIFFERENCES:
- * ────────────────
- *
- *   useConfig(), useFlags(), useExperiments()
- *   → READ data FROM server → render UI accordingly
- *   → "What should we show this user?"
- *
- *   trackEvent(), trackConversion()
- *   → WRITE data TO server → analytics/attribution
- *   → "What did this user do?"
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * MOBILE-SPECIFIC CONSIDERATIONS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * On mobile, event tracking has special considerations:
- *
- *   1. BATCHING: Events are queued and sent in batches to save battery/data
- *   2. OFFLINE: Events are stored locally when offline, sent when connected
- *   3. FLUSH: Use flushStats() before important moments (purchase, app close)
- *
- * ═══════════════════════════════════════════════════════════════════════════════
+ * Shows how to track custom events and A/B test conversions.
+ * Events are batched for efficiency and sent on flushStats().
  */
-
 import { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { ToggleBoxClient } from '@togglebox/sdk-expo'
+import { ExamplePage } from '@/components/ExamplePage'
+import { Colors, API_URL, PLATFORM, ENVIRONMENT } from '@/lib/constants'
 
-// Configuration - replace with your values
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
-const PLATFORM = 'mobile'
-const ENVIRONMENT = 'production'
+const publicCode = `import { ToggleBoxClient } from '@togglebox/sdk-expo'
+
+const client = new ToggleBoxClient({
+  platform: 'mobile',
+  environment: 'production',
+  apiUrl: 'https://your-api.example.com/api/v1',
+})
+
+// Track custom analytics event
+function handleButtonClick() {
+  client.trackEvent('button_click', { userId: 'user-123' }, {
+    properties: {
+      buttonId: 'cta-main',
+      screen: 'pricing',
+    },
+  })
+}
+
+// Track A/B test conversion
+async function handlePurchase(amount: number) {
+  await client.trackConversion('checkout-test', { userId: 'user-123' }, {
+    metricName: 'purchase',
+    value: amount,
+  })
+
+  // Send immediately for critical moments
+  await client.flushStats()
+}
+
+// Cleanup when done
+useEffect(() => () => client.destroy(), [])`
+
+const authCode = `import { ToggleBoxClient } from '@togglebox/sdk-expo'
+
+const client = new ToggleBoxClient({
+  platform: 'mobile',
+  environment: 'production',
+  apiUrl: 'https://your-api.example.com/api/v1',
+})
+
+// Track custom event with rich properties
+function handleFeatureUsage(featureId: string) {
+  client.trackEvent('feature_used', { userId: 'user-123' }, {
+    experimentKey: 'feature-experiment',  // Link to experiment
+    properties: {
+      featureId,
+      duration: 1500,
+      sessionId: 'session-abc',
+    },
+  })
+}
+
+// Track conversion with experiment attribution
+async function handleSubscription(plan: string, amount: number) {
+  await client.trackConversion('pricing-test', { userId: 'user-123' }, {
+    metricName: 'subscription',
+    value: amount,
+  })
+
+  // Also track as custom event with more detail
+  client.trackEvent('subscription_completed', { userId: 'user-123' }, {
+    properties: { plan, amount, currency: 'USD' },
+  })
+
+  await client.flushStats()  // Ensure data is sent
+}
+
+// Set EXPO_PUBLIC_API_KEY=your-key for authenticated tracking`
+
+const keyPoints = [
+  'trackEvent() for custom analytics: taps, views, feature usage',
+  'trackConversion() for A/B test outcomes: purchases, signups, completions',
+  'Events are batched automatically for efficiency',
+  'Use flushStats() before critical moments (purchases, app background)',
+  'Context must match getVariant() context for accurate attribution',
+  'Remember to call client.destroy() on unmount to clean up resources',
+]
 
 export default function TrackEventScreen() {
+  return (
+    <ExamplePage
+      title="Track Event"
+      description="Track custom analytics events and A/B test conversions. Events are batched for efficiency and sent on flushStats()."
+      publicCode={publicCode}
+      authCode={authCode}
+      keyPoints={keyPoints}
+    >
+      <TrackEventDemo />
+    </ExamplePage>
+  )
+}
+
+function TrackEventDemo() {
   const clientRef = useRef<ToggleBoxClient | null>(null)
   const [clicks, setClicks] = useState(0)
   const [tracking, setTracking] = useState(false)
   const [lastTracked, setLastTracked] = useState<string | null>(null)
 
-  // Create client on mount
   useEffect(() => {
     clientRef.current = new ToggleBoxClient({
       platform: PLATFORM,
@@ -78,79 +117,54 @@ export default function TrackEventScreen() {
     return () => clientRef.current?.destroy()
   }, [])
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // trackEvent() - Custom Analytics Events
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Use for general analytics: button taps, screen views, feature usage.
-  // Events are batched and sent efficiently to minimize network calls.
-  //
-  // Parameters:
-  //   - eventName: String identifier for the event
-  //   - context: User context (userId required for attribution)
-  //   - options.properties: Additional event metadata
-
-  const handleButtonClick = async () => {
+  const handleButtonClick = () => {
     if (!clientRef.current) return
-
-    clientRef.current.trackEvent('button_click', { userId: 'user-123' }, {
+    clientRef.current.trackEvent('button_click', { userId: 'demo-user-123' }, {
       properties: {
-        buttonId: 'cta-main',
-        screen: 'pricing',
-        // Add any custom properties relevant to your analytics
+        buttonId: 'demo-cta',
+        screen: 'track-event-example',
+        clickNumber: clicks + 1,
       },
     })
     setClicks((c) => c + 1)
     setLastTracked('Event: button_click')
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // trackConversion() - Experiment Conversion Tracking
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Use to measure A/B test outcomes. Links a user action to an experiment
-  // so you can compare conversion rates between variants.
-  //
-  // Parameters:
-  //   - experimentKey: The experiment this conversion is attributed to
-  //   - context: User context (must match getVariant() context)
-  //   - options.metricName: What was converted (e.g., 'purchase', 'signup')
-  //   - options.value: Numeric value (e.g., purchase amount)
-
   const handlePurchase = async () => {
     if (!clientRef.current) return
     setTracking(true)
-
     try {
-      await clientRef.current.trackConversion('pricing-page', { userId: 'user-123' }, {
+      await clientRef.current.trackConversion('checkout-test', { userId: 'demo-user-123' }, {
         metricName: 'purchase',
         value: 99.99,
       })
-
-      // ═══════════════════════════════════════════════════════════════════════
-      // flushStats() - Send Events Immediately
-      // ═══════════════════════════════════════════════════════════════════════
-      // By default, events are batched for efficiency. Use flushStats() when:
-      //   • Before a purchase confirmation (ensure attribution)
-      //   • Before app goes to background
-      //   • After critical user actions
       await clientRef.current.flushStats()
-
-      setLastTracked('Conversion: purchase ($99.99)')
+      setLastTracked('Conversion: purchase ($99.99) - flushed')
     } catch {
       setLastTracked('Error tracking conversion')
     }
+    setTracking(false)
+  }
 
+  const handleFlush = async () => {
+    if (!clientRef.current) return
+    setTracking(true)
+    try {
+      await clientRef.current.flushStats()
+      setLastTracked(`Flushed ${clicks} pending events`)
+    } catch {
+      setLastTracked('Error flushing events')
+    }
     setTracking(false)
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Track Event</Text>
-
+    <View style={styles.demo}>
       {/* Track Custom Event */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Track Custom Event</Text>
         <Text style={styles.cardDescription}>
-          General analytics: taps, views, feature usage
+          General analytics: button taps, screen views, feature usage
         </Text>
         <TouchableOpacity style={styles.primaryButton} onPress={handleButtonClick}>
           <Text style={styles.buttonText}>Click Me ({clicks} clicks)</Text>
@@ -161,35 +175,51 @@ export default function TrackEventScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Track Conversion</Text>
         <Text style={styles.cardDescription}>
-          A/B test outcomes: link actions to experiments
+          A/B test outcomes: link user actions to experiments
         </Text>
         <TouchableOpacity
-          style={styles.secondaryButton}
+          style={styles.successButton}
           onPress={handlePurchase}
           disabled={tracking}
         >
           {tracking ? (
-            <ActivityIndicator color="#22c55e" />
+            <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.secondaryButtonText}>Complete Purchase</Text>
+            <Text style={styles.buttonText}>Complete Purchase ($99.99)</Text>
           )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Flush Events */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Flush Events</Text>
+        <Text style={styles.cardDescription}>
+          Send batched events immediately (use before critical moments)
+        </Text>
+        <TouchableOpacity
+          style={styles.outlineButton}
+          onPress={handleFlush}
+          disabled={tracking}
+        >
+          <Text style={styles.outlineButtonText}>Flush Stats Now</Text>
         </TouchableOpacity>
       </View>
 
       {/* Result */}
       {lastTracked && (
         <View style={styles.resultCard}>
+          <Text style={styles.resultLabel}>Last Action</Text>
           <Text style={styles.resultText}>{lastTracked}</Text>
         </View>
       )}
 
-      {/* Explanation */}
+      {/* Info Card */}
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>Event Tracking vs Config/Flags</Text>
         <Text style={styles.infoText}>
-          {'\u2022'} Config/Flags/Experiments: READ from server → what to show{'\n'}
-          {'\u2022'} Event Tracking: WRITE to server → what user did{'\n\n'}
-          Events are batched for efficiency. Use flushStats() for critical moments.
+          {'\u2022'} Config/Flags/Experiments: READ from server (what to show){'\n'}
+          {'\u2022'} Event Tracking: WRITE to server (what user did){'\n\n'}
+          Events are batched automatically. Use flushStats() for critical moments.
         </Text>
       </View>
     </View>
@@ -197,82 +227,91 @@ export default function TrackEventScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
+  demo: {
+    gap: 12,
   },
   card: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.gray[50],
     padding: 16,
     borderRadius: 8,
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
+    gap: 8,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: 4,
+    color: Colors.gray[900],
   },
   cardDescription: {
     fontSize: 13,
-    color: '#666',
-    marginBottom: 12,
+    color: Colors.gray[500],
+    marginBottom: 4,
   },
   primaryButton: {
-    backgroundColor: '#0ea5e9',
-    padding: 16,
+    backgroundColor: Colors.primary[500],
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  successButton: {
+    backgroundColor: Colors.success,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  outlineButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: Colors.primary[500],
+    padding: 14,
     borderRadius: 8,
     alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 15,
   },
-  secondaryButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#22c55e',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#22c55e',
+  outlineButtonText: {
+    color: Colors.primary[600],
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 15,
   },
   resultCard: {
     backgroundColor: '#f0fdf4',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  resultText: {
-    color: '#22c55e',
-    fontWeight: '500',
-  },
-  infoCard: {
-    backgroundColor: '#eff6ff',
-    padding: 16,
+    padding: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: '#86efac',
+  },
+  resultLabel: {
+    fontSize: 11,
+    color: Colors.gray[500],
+    marginBottom: 2,
+  },
+  resultText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#166534',
+  },
+  infoCard: {
+    backgroundColor: Colors.primary[50],
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary[200],
+    marginTop: 4,
   },
   infoTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#1e40af',
+    color: Colors.primary[800],
   },
   infoText: {
     fontSize: 13,
-    color: '#1e40af',
+    color: Colors.primary[700],
     lineHeight: 20,
   },
 })

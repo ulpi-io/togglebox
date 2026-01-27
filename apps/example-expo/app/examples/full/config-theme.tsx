@@ -1,16 +1,113 @@
 /**
  * Config-Driven Theme Example
  *
- * Applies theme colors from remote config.
- * Falls back to defaults if config not available.
- * Copy this file and adapt to your app.
+ * Shows how to apply dynamic theming based on remote configuration.
+ * Theme values update in real-time when config changes (with polling).
  */
 import { useMemo } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useConfig } from '@togglebox/sdk-expo'
+import { ExamplePage } from '@/components/ExamplePage'
+import { Colors } from '@/lib/constants'
+
+const publicCode = `import { useMemo } from 'react'
+import { useConfig } from '@togglebox/sdk-expo'
+
+const defaultTheme = {
+  primaryColor: '#3b82f6',
+  secondaryColor: '#6b7280',
+  accentColor: '#10b981',
+  borderRadius: 8,
+}
+
+function ConfigThemeExample() {
+  const { config } = useConfig()
+
+  // Merge remote config theme with defaults
+  const theme = useMemo(() => ({
+    ...defaultTheme,
+    ...(config?.theme || {}),
+  }), [config?.theme])
+
+  return (
+    <View>
+      <Text style={{ color: theme.primaryColor }}>
+        Themed Heading
+      </Text>
+      <TouchableOpacity
+        style={{
+          backgroundColor: theme.primaryColor,
+          borderRadius: theme.borderRadius,
+        }}
+      >
+        <Text>Primary Button</Text>
+      </TouchableOpacity>
+    </View>
+  )
+}`
+
+const authCode = `import { useMemo, useCallback } from 'react'
+import { useConfig } from '@togglebox/sdk-expo'
+import { updateConfig } from '@/lib/api'  // Your API helper
+
+function ConfigThemeExample() {
+  const { config, refresh } = useConfig()
+
+  const theme = useMemo(() => ({
+    primaryColor: '#3b82f6',
+    secondaryColor: '#6b7280',
+    accentColor: '#10b981',
+    borderRadius: 8,
+    ...(config?.theme || {}),
+  }), [config?.theme])
+
+  // Update theme in remote config (requires API key)
+  const handleThemeChange = useCallback(async (updates: object) => {
+    await updateConfig('mobile', 'production', {
+      theme: { ...config?.theme, ...updates }
+    })
+    await refresh()  // Fetch updated config
+  }, [config?.theme, refresh])
+
+  return (
+    <View>
+      <ThemedContent theme={theme} />
+      <ColorPicker
+        currentColor={theme.primaryColor}
+        onColorChange={(color) => handleThemeChange({ primaryColor: color })}
+      />
+    </View>
+  )
+}
+
+// Set EXPO_PUBLIC_API_KEY=your-key for config updates
+// With pollingInterval, theme changes propagate to all users`
+
+const keyPoints = [
+  'Store theme values in remote config object',
+  'Merge remote config with local defaults for fallback',
+  'useMemo prevents unnecessary re-renders on config changes',
+  'With polling enabled, theme changes appear in real-time',
+  'Great for seasonal themes, A/B testing colors, branding updates',
+  'In auth mode, you can update theme values remotely',
+]
 
 export default function ConfigThemeScreen() {
-  const config = useConfig()
+  return (
+    <ExamplePage
+      title="Config Theme"
+      description="Apply dynamic theming from remote configuration. Change colors, border radius, and other visual properties without app updates."
+      publicCode={publicCode}
+      authCode={authCode}
+      keyPoints={keyPoints}
+    >
+      <ConfigThemeDemo />
+    </ExamplePage>
+  )
+}
+
+function ConfigThemeDemo() {
+  const { config } = useConfig()
 
   const defaultTheme = useMemo(
     () => ({
@@ -22,7 +119,6 @@ export default function ConfigThemeScreen() {
     []
   )
 
-  // Get theme from config or use defaults
   const themeConfig = config?.theme as Record<string, string | number> | undefined
   const theme = useMemo(
     () => ({
@@ -35,9 +131,7 @@ export default function ConfigThemeScreen() {
   const borderRadius = typeof theme.borderRadius === 'number' ? theme.borderRadius : 8
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Config Theme</Text>
-
+    <View style={styles.demo}>
       {/* Themed Header */}
       <Text style={[styles.heading, { color: theme.primaryColor as string }]}>
         Themed Heading
@@ -45,7 +139,7 @@ export default function ConfigThemeScreen() {
 
       {/* Themed Text */}
       <Text style={[styles.text, { color: theme.secondaryColor as string }]}>
-        This text uses the secondary color from remote config.
+        This text uses the secondary color from remote config. Change it in your dashboard!
       </Text>
 
       {/* Themed Buttons */}
@@ -87,8 +181,7 @@ export default function ConfigThemeScreen() {
       {/* Tip */}
       <View style={styles.tipCard}>
         <Text style={styles.tipText}>
-          💡 Update the theme object in your remote config to see changes reflected here
-          instantly (with polling enabled).
+          With polling enabled, theme updates in your config will appear here automatically without app restart.
         </Text>
       </View>
     </View>
@@ -108,11 +201,7 @@ function ThemeRow({
     <View style={styles.themeRow}>
       <Text style={styles.themeLabel}>{label}</Text>
       <View style={styles.themeValueRow}>
-        {isColor && (
-          <View
-            style={[styles.colorSwatch, { backgroundColor: value }]}
-          />
-        )}
+        {isColor && <View style={[styles.colorSwatch, { backgroundColor: value }]} />}
         <Text style={styles.themeValue}>{value}</Text>
       </View>
     </View>
@@ -120,29 +209,20 @@ function ThemeRow({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 24,
+  demo: {
+    gap: 16,
   },
   heading: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 8,
   },
   text: {
-    fontSize: 16,
-    marginBottom: 24,
+    fontSize: 15,
+    lineHeight: 22,
   },
   buttonRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 24,
   },
   button: {
     flex: 1,
@@ -152,18 +232,20 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 15,
   },
   card: {
-    backgroundColor: '#f5f5f5',
-    padding: 16,
+    backgroundColor: Colors.gray[50],
+    padding: 14,
     borderRadius: 8,
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
   },
   cardTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     marginBottom: 12,
+    color: Colors.gray[700],
   },
   themeRow: {
     flexDirection: 'row',
@@ -171,12 +253,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: Colors.gray[100],
   },
   themeLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'monospace',
-    color: '#666',
+    color: Colors.gray[500],
   },
   themeValueRow: {
     flexDirection: 'row',
@@ -184,24 +266,27 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   themeValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'monospace',
+    color: Colors.gray[900],
   },
   colorSwatch: {
     width: 20,
     height: 20,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
+    borderColor: Colors.gray[200],
   },
   tipCard: {
-    backgroundColor: '#f0f9ff',
-    padding: 16,
+    backgroundColor: Colors.primary[50],
+    padding: 14,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary[200],
   },
   tipText: {
     fontSize: 13,
-    color: '#0284c7',
+    color: Colors.primary[700],
     lineHeight: 20,
   },
 })
