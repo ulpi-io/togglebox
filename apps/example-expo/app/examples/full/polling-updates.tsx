@@ -1,31 +1,120 @@
 /**
  * Polling & Refresh Example
  *
- * Shows auto-polling and manual refresh for keeping data fresh.
- * Copy this file and adapt to your app.
+ * Shows auto-polling for real-time updates and manual refresh patterns.
+ * Includes pull-to-refresh for mobile-friendly data refresh.
  */
 import { useState, useCallback } from 'react'
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, ActivityIndicator } from 'react-native'
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native'
 import { useFlags } from '@togglebox/sdk-expo'
+import { ExamplePage } from '@/components/ExamplePage'
+import { Colors } from '@/lib/constants'
 
-// Provider configuration for polling:
-//
-// <ToggleBoxProvider
-//   platform="mobile"
-//   environment="production"
-//   apiUrl="https://your-api.example.com/api/v1"
-//   pollingInterval={30000}  // Auto-refresh every 30 seconds
-// >
-//   <App />
-// </ToggleBoxProvider>
+const publicCode = `// In _layout.tsx - Enable auto-polling
+<ToggleBoxProvider
+  platform="mobile"
+  environment="production"
+  apiUrl="https://your-api.example.com/api/v1"
+  pollingInterval={30000}  // Auto-refresh every 30 seconds
+>
+  <App />
+</ToggleBoxProvider>
 
-export default function PollingRefreshScreen() {
+// In component - Manual refresh
+function PollingExample() {
   const { flags, refresh, isLoading } = useFlags()
 
+  return (
+    <FlatList
+      data={flags}
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={refresh}
+        />
+      }
+      renderItem={({ item }) => (
+        <FlagItem flag={item} />
+      )}
+    />
+  )
+}`
+
+const authCode = `// In _layout.tsx
+<ToggleBoxProvider
+  platform="mobile"
+  environment="production"
+  apiUrl="https://your-api.example.com/api/v1"
+  pollingInterval={30000}     // Auto-refresh every 30s
+  persistToStorage={true}      // Cache for offline
+  storageTTL={86400000}        // 24h cache TTL
+>
+  <App />
+</ToggleBoxProvider>
+
+// In component - with manual refresh and last update time
+function PollingExample() {
+  const { flags, refresh, isLoading } = useFlags()
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+
+  const handleRefresh = useCallback(async () => {
+    await refresh()
+    setLastRefresh(new Date())
+  }, [refresh])
+
+  return (
+    <View>
+      <Text>Last refresh: {lastRefresh?.toLocaleTimeString()}</Text>
+      <Button title="Refresh Now" onPress={handleRefresh} disabled={isLoading} />
+      <FlatList
+        data={flags}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
+        }
+        renderItem={({ item }) => <FlagItem flag={item} />}
+      />
+    </View>
+  )
+}
+
+// Changes made in dashboard appear after next poll or manual refresh`
+
+const keyPoints = [
+  'pollingInterval enables automatic background refresh',
+  'refresh() function allows manual data refresh',
+  'Pull-to-refresh pattern with RefreshControl',
+  'Combine with persistToStorage for offline + fresh data',
+  'isLoading state indicates when refresh is in progress',
+  'Typical polling intervals: 30s-60s for real-time, 5-15m for static data',
+]
+
+export default function PollingUpdatesScreen() {
+  return (
+    <ExamplePage
+      title="Polling Updates"
+      description="Keep data fresh with automatic polling and manual refresh. Includes pull-to-refresh for native mobile experience."
+      publicCode={publicCode}
+      authCode={authCode}
+      keyPoints={keyPoints}
+    >
+      <PollingDemo />
+    </ExamplePage>
+  )
+}
+
+function PollingDemo() {
+  const { flags, refresh, isLoading } = useFlags()
   const [refreshCount, setRefreshCount] = useState(0)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
-  // Manual refresh handler
   const handleRefresh = useCallback(async () => {
     await refresh()
     setRefreshCount((c) => c + 1)
@@ -33,11 +122,9 @@ export default function PollingRefreshScreen() {
   }, [refresh])
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Polling & Refresh</Text>
-
+    <View style={styles.demo}>
       {/* Polling Status */}
-      <View style={styles.card}>
+      <View style={styles.statusCard}>
         <StatusRow label="Auto-Polling" value="Every 30s" />
         <StatusRow label="Manual Refreshes" value={String(refreshCount)} />
         <StatusRow
@@ -72,14 +159,23 @@ export default function PollingRefreshScreen() {
             <View style={styles.flagRow}>
               <Text style={styles.flagKey}>{item.flagKey}</Text>
               <View style={[styles.badge, item.enabled ? styles.onBadge : styles.offBadge]}>
-                <Text style={styles.badgeText}>{item.enabled ? 'ON' : 'OFF'}</Text>
+                <Text style={[styles.badgeText, item.enabled && styles.badgeTextOn]}>
+                  {item.enabled ? 'ON' : 'OFF'}
+                </Text>
               </View>
             </View>
           )}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No flags available</Text>
-          }
+          ListEmptyComponent={<Text style={styles.emptyText}>No flags available</Text>}
         />
+      </View>
+
+      {/* Info */}
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>Real-Time Updates</Text>
+        <Text style={styles.infoText}>
+          With pollingInterval enabled, changes you make in your dashboard will appear here automatically.
+          Pull down on the list to refresh manually.
+        </Text>
       </View>
     </View>
   )
@@ -95,43 +191,37 @@ function StatusRow({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+  demo: {
+    gap: 12,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: '#f5f5f5',
-    padding: 16,
+  statusCard: {
+    backgroundColor: Colors.gray[50],
+    padding: 14,
     borderRadius: 8,
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
   },
   statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: Colors.gray[100],
   },
   statusLabel: {
     fontSize: 14,
-    color: '#666',
+    color: Colors.gray[500],
   },
   statusValue: {
     fontSize: 14,
     fontWeight: '500',
+    color: Colors.gray[900],
   },
   button: {
-    backgroundColor: '#0ea5e9',
-    padding: 16,
+    backgroundColor: Colors.primary[500],
+    padding: 14,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 24,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -139,17 +229,21 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 15,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    marginBottom: 8,
+    color: Colors.gray[700],
+    marginTop: 4,
   },
   listContainer: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
+    height: 180,
+    backgroundColor: Colors.gray[50],
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
+    overflow: 'hidden',
   },
   flagRow: {
     flexDirection: 'row',
@@ -157,11 +251,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: Colors.gray[100],
   },
   flagKey: {
     fontSize: 14,
     fontFamily: 'monospace',
+    color: Colors.gray[900],
   },
   badge: {
     paddingHorizontal: 8,
@@ -172,15 +267,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#dcfce7',
   },
   offBadge: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.gray[100],
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
+    color: Colors.gray[500],
+  },
+  badgeTextOn: {
+    color: '#166534',
   },
   emptyText: {
     textAlign: 'center',
-    color: '#999',
+    color: Colors.gray[400],
     padding: 24,
+    fontSize: 14,
+  },
+  infoCard: {
+    backgroundColor: Colors.primary[50],
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary[200],
+  },
+  infoTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 6,
+    color: Colors.primary[800],
+  },
+  infoText: {
+    fontSize: 13,
+    color: Colors.primary[700],
+    lineHeight: 20,
   },
 })

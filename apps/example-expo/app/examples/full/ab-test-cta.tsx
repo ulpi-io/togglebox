@@ -1,24 +1,121 @@
 /**
- * Conversion Tracking Example
+ * A/B Test CTA Example
  *
- * Shows how to track experiment conversions and custom events.
- * Copy this file and adapt to your app.
+ * Shows how to render different CTAs based on experiment variant
+ * and track conversions for measuring results.
  */
 import { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
-import { ToggleBoxClient } from '@togglebox/sdk-expo'
+import { useExperiments, ToggleBoxClient } from '@togglebox/sdk-expo'
+import { ExamplePage } from '@/components/ExamplePage'
+import { Colors, API_URL, PLATFORM, ENVIRONMENT, DEFAULT_USER_ID } from '@/lib/constants'
 
-// Configuration - replace with your values
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
-const PLATFORM = 'mobile'
-const ENVIRONMENT = 'production'
+const publicCode = `import { useState, useEffect, useRef } from 'react'
+import { useExperiments, ToggleBoxClient } from '@togglebox/sdk-expo'
 
-export default function ConversionTrackingScreen() {
+function ABTestCTAExample() {
+  const { getVariant, isLoading } = useExperiments()
+  const [variant, setVariant] = useState<string | null>(null)
   const clientRef = useRef<ToggleBoxClient | null>(null)
-  const [tracking, setTracking] = useState(false)
-  const [lastTracked, setLastTracked] = useState<string | null>(null)
 
-  // Create client on mount, destroy on unmount
+  useEffect(() => {
+    clientRef.current = new ToggleBoxClient({ platform, environment, apiUrl })
+    return () => clientRef.current?.destroy()
+  }, [])
+
+  useEffect(() => {
+    if (!isLoading) {
+      getVariant('pricing-cta', { userId: 'user-123' })
+        .then(setVariant)
+    }
+  }, [isLoading, getVariant])
+
+  const handleCTAClick = () => {
+    // Track conversion when user clicks
+    clientRef.current?.trackConversion('pricing-cta', { userId: 'user-123' }, {
+      metricName: 'cta_click',
+    })
+  }
+
+  if (!variant) return <LoadingSpinner />
+
+  // Render different CTA based on variant
+  if (variant === 'urgent') {
+    return <Button onPress={handleCTAClick}>🔥 Limited Offer!</Button>
+  }
+  return <Button onPress={handleCTAClick}>Start Free Trial</Button>
+}`
+
+const authCode = `import { useState, useEffect, useRef } from 'react'
+import { useExperiments, ToggleBoxClient } from '@togglebox/sdk-expo'
+import { startExperiment, completeExperiment } from '@/lib/api'
+
+function ABTestCTAExample() {
+  const { experiments, getVariant, refresh, isLoading } = useExperiments()
+  const [variant, setVariant] = useState<string | null>(null)
+  const clientRef = useRef<ToggleBoxClient | null>(null)
+
+  // ... client setup and variant assignment ...
+
+  const handleCTAClick = async () => {
+    clientRef.current?.trackConversion('pricing-cta', { userId: 'user-123' }, {
+      metricName: 'cta_click',
+      value: 1,  // Optional numeric value
+    })
+    await clientRef.current?.flushStats()  // Send immediately
+  }
+
+  // Admin controls (requires API key)
+  const handleStartExperiment = async () => {
+    await startExperiment('mobile', 'production', 'pricing-cta')
+    await refresh()
+  }
+
+  const handleCompleteExperiment = async () => {
+    await completeExperiment('mobile', 'production', 'pricing-cta')
+    await refresh()
+  }
+
+  return (
+    <View>
+      {variant === 'urgent' ? <UrgentCTA onClick={handleCTAClick} /> : <StandardCTA onClick={handleCTAClick} />}
+      <ExperimentControls onStart={handleStartExperiment} onComplete={handleCompleteExperiment} />
+    </View>
+  )
+}
+
+// Set EXPO_PUBLIC_API_KEY=your-key for experiment controls`
+
+const keyPoints = [
+  'getVariant() assigns user to a variant deterministically',
+  'Same user always gets the same variant (consistent experience)',
+  'Render completely different UI based on assigned variant',
+  'trackConversion() records when user completes desired action',
+  'Use flushStats() to send conversion data immediately',
+  'In auth mode, you can start/pause/complete experiments',
+]
+
+export default function ABTestCTAScreen() {
+  return (
+    <ExamplePage
+      title="A/B Test CTA"
+      description="Test different call-to-action variants and track conversions to measure which performs better."
+      publicCode={publicCode}
+      authCode={authCode}
+      keyPoints={keyPoints}
+    >
+      <ABTestDemo />
+    </ExamplePage>
+  )
+}
+
+function ABTestDemo() {
+  const { getVariant, isLoading } = useExperiments()
+  const [variant, setVariant] = useState<string | null>(null)
+  const [clicks, setClicks] = useState(0)
+  const [lastAction, setLastAction] = useState<string | null>(null)
+  const clientRef = useRef<ToggleBoxClient | null>(null)
+
   useEffect(() => {
     clientRef.current = new ToggleBoxClient({
       platform: PLATFORM,
@@ -28,99 +125,81 @@ export default function ConversionTrackingScreen() {
     return () => clientRef.current?.destroy()
   }, [])
 
-  // Track a conversion (e.g., purchase)
-  const handleTrackConversion = async () => {
-    if (!clientRef.current) return
-    setTracking(true)
-
-    try {
-      await clientRef.current.trackConversion(
-        'checkout-test', // experiment key
-        { userId: 'user-123' }, // context
-        {
-          metricName: 'purchase',
-          value: 99.99, // optional value
-        }
-      )
-      await clientRef.current.flushStats() // send immediately
-      setLastTracked('Conversion: purchase ($99.99)')
-    } catch (error) {
-      setLastTracked('Error tracking conversion')
+  useEffect(() => {
+    if (!isLoading) {
+      getVariant('pricing-cta', { userId: DEFAULT_USER_ID }).then(setVariant)
     }
+  }, [isLoading, getVariant])
 
-    setTracking(false)
+  const handleCTAClick = async () => {
+    if (!clientRef.current) return
+    setClicks((c) => c + 1)
+    try {
+      await clientRef.current.trackConversion('pricing-cta', { userId: DEFAULT_USER_ID }, {
+        metricName: 'cta_click',
+        value: 1,
+      })
+      await clientRef.current.flushStats()
+      setLastAction(`Conversion tracked: cta_click (click #${clicks + 1})`)
+    } catch {
+      setLastAction('Error tracking conversion')
+    }
   }
 
-  // Track a custom event
-  const handleTrackEvent = async () => {
-    if (!clientRef.current) return
-    setTracking(true)
-
-    try {
-      clientRef.current.trackEvent(
-        'add_to_cart', // event name
-        { userId: 'user-123' }, // context
-        {
-          experimentKey: 'checkout-test',
-          properties: {
-            productId: 'SKU-123',
-            quantity: 2,
-          },
-        }
-      )
-      await clientRef.current.flushStats()
-      setLastTracked('Event: add_to_cart')
-    } catch (error) {
-      setLastTracked('Error tracking event')
-    }
-
-    setTracking(false)
+  if (isLoading || variant === null) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={Colors.primary[500]} />
+        <Text style={styles.loadingText}>Assigning variant...</Text>
+      </View>
+    )
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Conversion Tracking</Text>
+    <View style={styles.demo}>
+      {/* Variant Info */}
+      <View style={styles.variantCard}>
+        <Text style={styles.variantLabel}>Your assigned variant</Text>
+        <Text style={styles.variantValue}>{variant || 'control'}</Text>
+      </View>
 
-      <Text style={styles.description}>
-        Track experiment conversions to measure which variations perform better.
-      </Text>
+      {/* CTA Buttons - Different based on variant */}
+      {variant === 'urgent' ? (
+        <TouchableOpacity style={styles.urgentButton} onPress={handleCTAClick}>
+          <Text style={styles.buttonText}>🔥 Limited Time Offer - Start Now!</Text>
+        </TouchableOpacity>
+      ) : variant === 'social-proof' ? (
+        <TouchableOpacity style={styles.socialButton} onPress={handleCTAClick}>
+          <Text style={styles.buttonText}>Join 10,000+ Happy Users</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.controlButton} onPress={handleCTAClick}>
+          <Text style={styles.buttonText}>Start Your Free Trial</Text>
+        </TouchableOpacity>
+      )}
 
-      {/* Track Conversion Button */}
-      <TouchableOpacity
-        style={styles.primaryButton}
-        onPress={handleTrackConversion}
-        disabled={tracking}
-      >
-        {tracking ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Track Conversion ($99.99)</Text>
-        )}
-      </TouchableOpacity>
+      {/* Click Counter */}
+      <View style={styles.statsRow}>
+        <Text style={styles.statsLabel}>Clicks tracked</Text>
+        <Text style={styles.statsValue}>{clicks}</Text>
+      </View>
 
-      {/* Track Event Button */}
-      <TouchableOpacity
-        style={styles.secondaryButton}
-        onPress={handleTrackEvent}
-        disabled={tracking}
-      >
-        <Text style={styles.secondaryButtonText}>Track Add to Cart Event</Text>
-      </TouchableOpacity>
-
-      {/* Result */}
-      {lastTracked && (
+      {/* Last Action */}
+      {lastAction && (
         <View style={styles.resultCard}>
-          <Text style={styles.resultText}>✓ {lastTracked}</Text>
+          <Text style={styles.resultText}>{lastAction}</Text>
         </View>
       )}
 
-      {/* Usage Info */}
+      {/* Explanation */}
       <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>Usage</Text>
+        <Text style={styles.infoTitle}>A/B Testing Flow</Text>
         <Text style={styles.infoText}>
-          • trackConversion() - Records conversion with optional value{'\n'}
-          • trackEvent() - Records custom events{'\n'}
-          • flushStats() - Sends all pending events immediately
+          1. User visits page → getVariant() assigns variant{'\n'}
+          2. App renders CTA based on assigned variant{'\n'}
+          3. User clicks → trackConversion() records it{'\n'}
+          4. Data sent to server for analysis{'\n\n'}
+          Compare conversion rates across variants to find the winner.
         </Text>
       </View>
     </View>
@@ -128,70 +207,106 @@ export default function ConversionTrackingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+  demo: {
+    gap: 12,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 24,
-  },
-  primaryButton: {
-    backgroundColor: '#0ea5e9',
-    padding: 16,
-    borderRadius: 8,
+  center: {
     alignItems: 'center',
-    marginBottom: 12,
+    paddingVertical: 32,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.gray[500],
+  },
+  variantCard: {
+    backgroundColor: Colors.primary[50],
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary[200],
+  },
+  variantLabel: {
+    fontSize: 12,
+    color: Colors.gray[500],
+    marginBottom: 4,
+  },
+  variantValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.primary[700],
+    fontFamily: 'monospace',
+  },
+  urgentButton: {
+    backgroundColor: '#ef4444',
+    padding: 18,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  socialButton: {
+    backgroundColor: Colors.success,
+    padding: 18,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  controlButton: {
+    backgroundColor: Colors.primary[500],
+    padding: 18,
+    borderRadius: 10,
+    alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
   },
-  secondaryButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#0ea5e9',
-    padding: 16,
-    borderRadius: 8,
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    backgroundColor: Colors.gray[50],
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
   },
-  secondaryButtonText: {
-    color: '#0ea5e9',
+  statsLabel: {
+    fontSize: 14,
+    color: Colors.gray[600],
+  },
+  statsValue: {
+    fontSize: 18,
     fontWeight: '600',
-    fontSize: 16,
+    color: Colors.gray[900],
   },
   resultCard: {
     backgroundColor: '#f0fdf4',
-    padding: 16,
+    padding: 12,
     borderRadius: 8,
-    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#86efac',
   },
   resultText: {
-    color: '#22c55e',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#166534',
   },
   infoCard: {
-    backgroundColor: '#f5f5f5',
-    padding: 16,
+    backgroundColor: Colors.gray[50],
+    padding: 14,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.gray[200],
+    marginTop: 4,
   },
   infoTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
+    color: Colors.gray[700],
   },
   infoText: {
     fontSize: 13,
-    color: '#666',
+    color: Colors.gray[600],
     lineHeight: 20,
   },
 })

@@ -39,6 +39,14 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />
+
+        {/* Interactive Playground (tabs) */}
+        <Stack.Screen
+          name="playground"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
     </ToggleBoxProvider>
   )
