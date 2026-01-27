@@ -152,9 +152,11 @@ app.use('/api/v1/platforms', cacheHeaders({
 app.use('/api/v1/internal', noCacheHeaders());
 
 // API routes
-app.use('/api/v1', publicRouter);           // Public read-only endpoints
-app.use('/api/v1/internal', internalRouter); // Internal write endpoints
-app.use('/api/v1', authRouter);             // Auth endpoints (conditionally loaded)
+// NOTE: authRouter must come FIRST because publicRouter applies conditionalAuth()
+// middleware which would block unauthenticated requests to /auth/login, /auth/register
+app.use('/api/v1', authRouter);             // Auth endpoints (login, register - no auth required)
+app.use('/api/v1', publicRouter);           // Public read-only endpoints (conditionalAuth)
+app.use('/api/v1/internal', internalRouter); // Internal write endpoints (requireAuth)
 
 // Root endpoint
 app.get('/', (_req, res) => {

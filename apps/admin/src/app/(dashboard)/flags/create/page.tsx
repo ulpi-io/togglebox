@@ -301,7 +301,7 @@ export default function CreateFlagPage() {
           forceExcludeUsers: excludeUsersValidation.valid.length > 0 ? excludeUsersValidation.valid : undefined,
         },
       });
-      router.push(`/platforms/${platform}/environments/${environment}/flags`);
+      router.push(`/flags?platform=${platform}&environment=${environment}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create flag');
     } finally {

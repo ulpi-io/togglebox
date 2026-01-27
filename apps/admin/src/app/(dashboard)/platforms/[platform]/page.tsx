@@ -168,17 +168,17 @@ export default function PlatformPage({ params }: PlatformPageProps) {
 
                 <div className="space-y-2 pt-3 border-t border-black/10">
                   <Button asChild variant="outline" className="w-full justify-start">
-                    <Link href={`/platforms/${platform}/environments/${env.environment}/configs`}>
+                    <Link href={`/configs?platform=${platform}&environment=${env.environment}`}>
                       Remote Config
                     </Link>
                   </Button>
                   <Button asChild variant="outline" className="w-full justify-start">
-                    <Link href={`/platforms/${platform}/environments/${env.environment}/flags`}>
+                    <Link href={`/flags?platform=${platform}&environment=${env.environment}`}>
                       Feature Flags
                     </Link>
                   </Button>
                   <Button asChild variant="outline" className="w-full justify-start">
-                    <Link href={`/platforms/${platform}/environments/${env.environment}/experiments`}>
+                    <Link href={`/experiments?platform=${platform}&environment=${env.environment}`}>
                       Experiments
                     </Link>
                   </Button>

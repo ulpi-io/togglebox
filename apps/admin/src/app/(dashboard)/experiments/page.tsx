@@ -277,7 +277,7 @@ function ExperimentsContent() {
           <p className="text-muted-foreground mb-6">
             Create your first A/B experiment for {environment}
           </p>
-          <Link href={`/platforms/${platform}/environments/${environment}/experiments/create`}>
+          <Link href={`/experiments/create?platform=${platform}&environment=${environment}`}>
             <Button>Create Experiment</Button>
           </Link>
         </CardContent>
@@ -293,7 +293,7 @@ function ExperimentsContent() {
           value={filter}
           onChange={setFilter}
         />
-        <Link href={`/platforms/${platform}/environments/${environment}/experiments/create`}>
+        <Link href={`/experiments/create?platform=${platform}&environment=${environment}`}>
           <Button>Create Experiment</Button>
         </Link>
       </div>
@@ -409,16 +409,10 @@ function ExperimentsContent() {
       </Card>
 
       {/* Quick stats */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
+      <div className="text-sm text-muted-foreground px-1">
         <span>
           {filteredExperiments.length} experiment{filteredExperiments.length !== 1 ? 's' : ''} shown · {statusCounts.running} running total
         </span>
-        <Link
-          href={`/platforms/${platform}/environments/${environment}/experiments`}
-          className="flex items-center gap-1 hover:text-foreground transition-colors"
-        >
-          View all <ChevronRight className="h-4 w-4" />
-        </Link>
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ model Platform {
   // Fields
   name        String  @unique
   description String?
+  createdBy   String? // userId of creator
   createdAt   String // ISO-8601 timestamp stored as string for compatibility
 
   // Relations
@@ -51,6 +52,7 @@ model Environment {
 
   // Fields
   description String?
+  createdBy   String? // userId of creator
   createdAt   String // ISO-8601 timestamp
 
   // Relations

@@ -183,3 +183,43 @@ export interface EventData {
   /** Custom properties */
   properties?: Record<string, unknown>
 }
+
+/**
+ * Health check response from API
+ */
+export interface HealthCheckResponse {
+  /** Whether the API is healthy */
+  success: boolean
+
+  /** Health status message */
+  message: string
+
+  /** API uptime in seconds */
+  uptime: number
+}
+
+/**
+ * Config version metadata (without full config data)
+ */
+export interface ConfigVersionMeta {
+  /** Platform name */
+  platform: string
+
+  /** Environment name */
+  environment: string
+
+  /** Version timestamp */
+  versionTimestamp: string
+
+  /** Version label (e.g., '1.0.0') */
+  versionLabel: string
+
+  /** Whether this version is marked as stable */
+  isStable: boolean
+
+  /** User who created this version */
+  createdBy: string
+
+  /** Creation timestamp */
+  createdAt: string
+}

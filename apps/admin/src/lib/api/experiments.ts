@@ -1,5 +1,44 @@
 import { browserApiClient } from './browser-client';
-import type { Experiment, ExperimentResults } from './types';
+import type { Experiment, ExperimentResults, Platform, Environment } from './types';
+
+/**
+ * Get all experiments across all platforms and environments.
+ * Used when no filter is applied.
+ */
+export async function getAllExperimentsApi(): Promise<Experiment[]> {
+  // First, get all platforms
+  const platforms = await browserApiClient<Platform[]>('/api/v1/platforms');
+
+  // For each platform, get environments and then experiments
+  const allExperiments: Experiment[] = [];
+
+  await Promise.all(
+    platforms.map(async (platform) => {
+      try {
+        const environments = await browserApiClient<Environment[]>(
+          `/api/v1/platforms/${platform.name}/environments`
+        );
+
+        await Promise.all(
+          environments.map(async (env) => {
+            try {
+              const experiments = await browserApiClient<Experiment[]>(
+                `/api/v1/platforms/${platform.name}/environments/${env.environment}/experiments`
+              );
+              allExperiments.push(...experiments);
+            } catch {
+              // Environment may have no experiments, skip it
+            }
+          })
+        );
+      } catch {
+        // Platform may have no environments, skip it
+      }
+    })
+  );
+
+  return allExperiments;
+}
 
 /**
  * Get all experiments for an environment.
@@ -88,6 +127,28 @@ export async function createExperimentApi(
     {
       method: 'POST',
       body: JSON.stringify(data),
+    }
+  );
+}
+
+/**
+ * Update traffic allocation for a running/paused/draft experiment.
+ * This allows adjusting rollout percentages without stopping the experiment.
+ */
+export async function updateExperimentTrafficApi(
+  platform: string,
+  environment: string,
+  experimentKey: string,
+  trafficAllocation: Array<{
+    variationKey: string;
+    percentage: number;
+  }>
+): Promise<Experiment> {
+  return browserApiClient<Experiment>(
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/traffic`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ trafficAllocation }),
     }
   );
 }

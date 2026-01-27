@@ -20,7 +20,7 @@
 import { Environment } from '@togglebox/core';
 import { dynamoDBClient, getEnvironmentsTableName } from './database';
 import { TokenPaginationParams, TokenPaginatedResult } from './interfaces/IPagination';
-import { PutCommand, GetCommand, QueryCommand, QueryCommandInput, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand, QueryCommand, QueryCommandInput, DeleteCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 /**
  * Type guard for DynamoDB errors with a name property.
@@ -354,4 +354,61 @@ export async function deleteEnvironment(platform: string, environment: string): 
 function mapToEnvironment(item: Record<string, unknown>): Environment {
   const { PK, SK, ...environmentData } = item;
   return environmentData as Environment;
+}
+
+/**
+ * Updates an environment's editable fields.
+ *
+ * @param platform - Platform name
+ * @param environment - Environment name (slug/identifier)
+ * @param updates - Fields to update (only description is editable)
+ * @returns Updated environment if found, null otherwise
+ *
+ * @remarks
+ * The environment's slug is the identifier and cannot be changed.
+ * Only the description can be updated.
+ */
+export async function updateEnvironment(
+  platform: string,
+  environment: string,
+  updates: { description?: string }
+): Promise<Environment | null> {
+  // Build update expression dynamically
+  const updateExpressions: string[] = [];
+  const expressionAttributeNames: Record<string, string> = {};
+  const expressionAttributeValues: Record<string, unknown> = {};
+
+  if (updates.description !== undefined) {
+    updateExpressions.push('#description = :description');
+    expressionAttributeNames['#description'] = 'description';
+    expressionAttributeValues[':description'] = updates.description;
+  }
+
+  // If no fields to update, just return the existing environment
+  if (updateExpressions.length === 0) {
+    return getEnvironment(platform, environment);
+  }
+
+  const params = {
+    TableName: getEnvironmentsTableName(),
+    Key: {
+      PK: `PLATFORM#${platform}`,
+      SK: `ENV#${environment}`,
+    },
+    UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+    ExpressionAttributeNames: expressionAttributeNames,
+    ExpressionAttributeValues: expressionAttributeValues,
+    ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
+    ReturnValues: 'ALL_NEW' as const,
+  };
+
+  try {
+    const result = await dynamoDBClient.send(new UpdateCommand(params));
+    return result.Attributes ? mapToEnvironment(result.Attributes as Record<string, unknown>) : null;
+  } catch (error: unknown) {
+    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
+      return null;
+    }
+    throw error;
+  }
 }

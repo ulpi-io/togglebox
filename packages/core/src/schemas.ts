@@ -44,6 +44,7 @@ export const PlatformSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
+  createdBy: z.string().optional(),
   createdAt: z.string(),
 });
 
@@ -68,6 +69,7 @@ export const EnvironmentSchema = z.object({
   platform: z.string(),
   environment: z.string(),
   description: z.string().optional(),
+  createdBy: z.string().optional(),
   createdAt: z.string(),
 });
 

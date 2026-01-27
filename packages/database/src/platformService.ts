@@ -21,7 +21,7 @@ import { Platform } from '@togglebox/core';
 import { v4 as uuidv4 } from 'uuid';
 import { dynamoDBClient, getPlatformsTableName } from './database';
 import { TokenPaginationParams, TokenPaginatedResult } from './interfaces/IPagination';
-import { PutCommand, GetCommand, DeleteCommand, ScanCommand, ScanCommandInput } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand, DeleteCommand, ScanCommand, ScanCommandInput, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 /**
  * Type guard for DynamoDB errors with a name property.
@@ -318,4 +318,58 @@ export async function deletePlatform(name: string): Promise<boolean> {
 function mapToPlatform(item: Record<string, unknown>): Platform {
   const { PK, ...platformData } = item;
   return platformData as Platform;
+}
+
+/**
+ * Updates a platform's editable fields.
+ *
+ * @param currentName - Current platform name (slug/identifier)
+ * @param updates - Fields to update (name = display name, description)
+ * @returns Updated platform if found, null otherwise
+ *
+ * @remarks
+ * **Note:** The platform's slug (PK) cannot be changed.
+ * Only name and description fields are editable.
+ */
+export async function updatePlatform(
+  currentName: string,
+  updates: { name?: string; description?: string }
+): Promise<Platform | null> {
+  // Build update expression dynamically
+  const updateExpressions: string[] = [];
+  const expressionAttributeNames: Record<string, string> = {};
+  const expressionAttributeValues: Record<string, unknown> = {};
+
+  if (updates.description !== undefined) {
+    updateExpressions.push('#description = :description');
+    expressionAttributeNames['#description'] = 'description';
+    expressionAttributeValues[':description'] = updates.description;
+  }
+
+  // If no fields to update, just return the existing platform
+  if (updateExpressions.length === 0) {
+    return getPlatform(currentName);
+  }
+
+  const params = {
+    TableName: getPlatformsTableName(),
+    Key: {
+      PK: `PLATFORM#${currentName}`,
+    },
+    UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+    ExpressionAttributeNames: expressionAttributeNames,
+    ExpressionAttributeValues: expressionAttributeValues,
+    ConditionExpression: 'attribute_exists(PK)',
+    ReturnValues: 'ALL_NEW' as const,
+  };
+
+  try {
+    const result = await dynamoDBClient.send(new UpdateCommand(params));
+    return result.Attributes ? mapToPlatform(result.Attributes as Record<string, unknown>) : null;
+  } catch (error: unknown) {
+    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
+      return null;
+    }
+    throw error;
+  }
 }

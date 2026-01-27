@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { use } from 'react';
 import Link from 'next/link';
-import { getExperimentApi, getExperimentResultsApi } from '@/lib/api/experiments';
+import { getExperimentApi, getExperimentResultsApi, updateExperimentTrafficApi } from '@/lib/api/experiments';
 import { getCurrentUserApi } from '@/lib/api/auth';
-import type { Experiment, ExperimentResults, User } from '@/lib/api/types';
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@togglebox/ui';
+import type { Experiment, ExperimentResults, User, TrafficAllocation } from '@/lib/api/types';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Alert } from '@togglebox/ui';
 import { ExperimentStatusBadge } from '@/components/experiments/experiment-status-badge';
 import { ExperimentActions } from '@/components/experiments/experiment-actions';
 import { ExperimentResultsDisplay } from '@/components/experiments/experiment-results';
@@ -30,6 +30,12 @@ export default function ExperimentDetailPage({ params }: ExperimentDetailPagePro
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Traffic allocation editing state
+  const [isEditingTraffic, setIsEditingTraffic] = useState(false);
+  const [editedTraffic, setEditedTraffic] = useState<TrafficAllocation[]>([]);
+  const [isSavingTraffic, setIsSavingTraffic] = useState(false);
+  const [trafficError, setTrafficError] = useState<string | null>(null);
 
   const loadExperiment = useCallback(async () => {
     try {
@@ -69,6 +75,55 @@ export default function ExperimentDetailPage({ params }: ExperimentDetailPagePro
     loadUser();
   }, [loadExperiment, loadUser]);
 
+  // Traffic allocation editing functions
+  const canEditTraffic = experiment && (experiment.status === 'running' || experiment.status === 'paused' || experiment.status === 'draft');
+
+  const startEditingTraffic = () => {
+    if (experiment) {
+      setEditedTraffic([...experiment.trafficAllocation]);
+      setIsEditingTraffic(true);
+      setTrafficError(null);
+    }
+  };
+
+  const cancelEditingTraffic = () => {
+    setIsEditingTraffic(false);
+    setEditedTraffic([]);
+    setTrafficError(null);
+  };
+
+  const updateTrafficPercentage = (variationKey: string, newPercentage: number) => {
+    setEditedTraffic(prev =>
+      prev.map(t =>
+        t.variationKey === variationKey ? { ...t, percentage: newPercentage } : t
+      )
+    );
+  };
+
+  const saveTrafficAllocation = async () => {
+    const totalPercentage = editedTraffic.reduce((sum, t) => sum + t.percentage, 0);
+    if (totalPercentage !== 100) {
+      setTrafficError(`Traffic allocation must sum to 100%, currently ${totalPercentage}%`);
+      return;
+    }
+
+    setIsSavingTraffic(true);
+    setTrafficError(null);
+
+    try {
+      const updated = await updateExperimentTrafficApi(platform, environment, experimentKey, editedTraffic);
+      setExperiment(updated);
+      setIsEditingTraffic(false);
+      setEditedTraffic([]);
+    } catch (err) {
+      setTrafficError(err instanceof Error ? err.message : 'Failed to update traffic allocation');
+    } finally {
+      setIsSavingTraffic(false);
+    }
+  };
+
+  const editedTotalPercentage = editedTraffic.reduce((sum, t) => sum + t.percentage, 0);
+
   if (isLoading) {
     return (
       <div>
@@ -79,7 +134,7 @@ export default function ExperimentDetailPage({ params }: ExperimentDetailPagePro
               {platform} / {environment}
             </p>
           </div>
-          <Link href={`/platforms/${platform}/environments/${environment}/experiments`}>
+          <Link href={`/experiments?platform=${platform}&environment=${environment}`}>
             <Button variant="outline">Back to Experiments</Button>
           </Link>
         </div>
@@ -98,7 +153,7 @@ export default function ExperimentDetailPage({ params }: ExperimentDetailPagePro
               {platform} / {environment}
             </p>
           </div>
-          <Link href={`/platforms/${platform}/environments/${environment}/experiments`}>
+          <Link href={`/experiments?platform=${platform}&environment=${environment}`}>
             <Button variant="outline">Back to Experiments</Button>
           </Link>
         </div>
@@ -136,7 +191,7 @@ export default function ExperimentDetailPage({ params }: ExperimentDetailPagePro
               <Button variant="outline">Edit</Button>
             </Link>
           )}
-          <Link href={`/platforms/${platform}/environments/${environment}/experiments`}>
+          <Link href={`/experiments?platform=${platform}&environment=${environment}`}>
             <Button variant="outline">Back to Experiments</Button>
           </Link>
         </div>
@@ -215,47 +270,131 @@ export default function ExperimentDetailPage({ params }: ExperimentDetailPagePro
           </CardContent>
         </Card>
 
-        {/* Variations Card */}
+        {/* Variations & Traffic Allocation Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Variations ({experiment.variations.length})</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Variations & Traffic Allocation</CardTitle>
+              {canEditTraffic && !isEditingTraffic && (
+                <Button variant="outline" size="sm" onClick={startEditingTraffic}>
+                  Adjust Traffic
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {experiment.variations.map((variation) => {
-                const allocation = experiment.trafficAllocation.find(
-                  (t) => t.variationKey === variation.key
-                );
-                return (
-                  <div
-                    key={variation.key}
-                    className={`p-4 rounded-lg border ${
-                      variation.isControl
-                        ? 'border-info/50 bg-info/10'
-                        : 'border-black/10 bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-lg font-black">{variation.name}</span>
-                        {variation.isControl && (
-                          <Badge variant="default" size="sm">CONTROL</Badge>
-                        )}
+            {isEditingTraffic ? (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Adjust traffic allocation for each variation. Total must equal 100%.
+                </p>
+
+                {/* Traffic sliders */}
+                <div className="space-y-4">
+                  {editedTraffic.map((allocation) => {
+                    const variation = experiment.variations.find(v => v.key === allocation.variationKey);
+                    return (
+                      <div key={allocation.variationKey} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{variation?.name || allocation.variationKey}</span>
+                            {variation?.isControl && (
+                              <Badge variant="secondary" className="text-xs">Control</Badge>
+                            )}
+                          </div>
+                          <span className="text-sm font-bold">{allocation.percentage}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={allocation.percentage}
+                          onChange={(e) => updateTrafficPercentage(allocation.variationKey, parseInt(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                          disabled={isSavingTraffic}
+                        />
                       </div>
-                      <div className="text-sm">
-                        <span className="font-bold">{allocation?.percentage}%</span> traffic
+                    );
+                  })}
+                </div>
+
+                {/* Visual bar */}
+                <div className="h-6 rounded-full overflow-hidden flex">
+                  {editedTraffic.map((allocation, index) => {
+                    const colors = ['bg-primary', 'bg-blue-400', 'bg-green-400', 'bg-orange-400', 'bg-purple-400'];
+                    return (
+                      <div
+                        key={allocation.variationKey}
+                        className={`${colors[index % colors.length]} transition-all duration-200 flex items-center justify-center text-xs text-white font-medium`}
+                        style={{ width: `${allocation.percentage}%` }}
+                      >
+                        {allocation.percentage > 10 && `${allocation.percentage}%`}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Total indicator */}
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <span className="text-sm font-medium">Total:</span>
+                  <span className={`text-sm font-bold ${editedTotalPercentage === 100 ? 'text-green-600' : 'text-destructive'}`}>
+                    {editedTotalPercentage}%
+                  </span>
+                </div>
+
+                {trafficError && (
+                  <Alert variant="destructive">
+                    <span>{trafficError}</span>
+                  </Alert>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={cancelEditingTraffic} disabled={isSavingTraffic}>
+                    Cancel
+                  </Button>
+                  <Button onClick={saveTrafficAllocation} disabled={isSavingTraffic || editedTotalPercentage !== 100}>
+                    {isSavingTraffic ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {experiment.variations.map((variation) => {
+                  const allocation = experiment.trafficAllocation.find(
+                    (t) => t.variationKey === variation.key
+                  );
+                  return (
+                    <div
+                      key={variation.key}
+                      className={`p-4 rounded-lg border ${
+                        variation.isControl
+                          ? 'border-info/50 bg-info/10'
+                          : 'border-black/10 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-lg font-black">{variation.name}</span>
+                          {variation.isControl && (
+                            <Badge variant="default" size="sm">CONTROL</Badge>
+                          )}
+                        </div>
+                        <div className="text-sm">
+                          <span className="font-bold">{allocation?.percentage}%</span> traffic
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-muted-foreground mb-1">Value</div>
+                        <pre className="text-xs bg-muted p-2 rounded-lg overflow-x-auto">
+                          {JSON.stringify(variation.value, null, 2)}
+                        </pre>
                       </div>
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-muted-foreground mb-1">Value</div>
-                      <pre className="text-xs bg-muted p-2 rounded-lg overflow-x-auto">
-                        {JSON.stringify(variation.value, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 

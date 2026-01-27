@@ -283,7 +283,7 @@ function ConfigsContent() {
             <p className="text-muted-foreground mb-6">
               Create your first remote config version for {environment}
             </p>
-            <Link href={`/platforms/${platform}/environments/${environment}/configs/create`}>
+            <Link href={`/configs/create?platform=${platform}&environment=${environment}`}>
               <Button>Create Config</Button>
             </Link>
           </CardContent>
@@ -323,7 +323,7 @@ function ConfigsContent() {
                   </p>
                 )}
               </div>
-              <Link href={`/platforms/${platform}/environments/${environment}/configs/create`}>
+              <Link href={`/configs/create?platform=${platform}&environment=${environment}`}>
                 <Button>Create Config</Button>
               </Link>
             </div>

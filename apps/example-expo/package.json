@@ -16,6 +16,7 @@
     "@expo/vector-icons": "^14.0.4",
     "@togglebox/sdk-expo": "workspace:*",
     "expo": "~52.0.0",
+    "expo-clipboard": "~7.0.0",
     "expo-constants": "~17.0.0",
     "expo-font": "~13.0.0",
     "expo-linking": "~7.0.0",
@@ -36,7 +37,12 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@eslint/js": "^9.16.0",
     "@types/react": "~19.0.0",
-    "typescript": "^5.7.2"
+    "eslint": "^9.39.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0"
   }
 }

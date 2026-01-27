@@ -2,14 +2,35 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { getPlatformsApi, getEnvironmentsApi } from '@/lib/api/platforms';
-import type { Platform, Environment } from '@/lib/api/types';
-import { Card, CardContent, Button, Badge, Skeleton } from '@togglebox/ui';
+import { getPlatformsApi, getEnvironmentsApi, updateEnvironmentApi } from '@/lib/api/platforms';
+import { getCurrentUserApi } from '@/lib/api/auth';
+import type { Platform, Environment, User } from '@/lib/api/types';
+import {
+  Card,
+  CardContent,
+  Button,
+  Skeleton,
+  Input,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  FilterTabs,
+} from '@togglebox/ui';
 import { DeleteEnvironmentButton } from '@/components/environments/delete-environment-button';
-import { ChevronRight, Layers, Flag, FlaskConical } from 'lucide-react';
+import { Layers, Flag, FlaskConical, Pencil, Check, X } from 'lucide-react';
 
 interface EnvironmentWithPlatform extends Environment {
   platformName: string;
+}
+
+interface EditState {
+  platformName: string;
+  environmentName: string;
+  field: 'description';
+  value: string;
 }
 
 export default function EnvironmentsPage() {
@@ -17,15 +38,24 @@ export default function EnvironmentsPage() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [editState, setEditState] = useState<EditState | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const isAdmin = currentUser?.role === 'admin';
 
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const platformsData = await getPlatformsApi();
+      const [platformsData, userData] = await Promise.all([
+        getPlatformsApi(),
+        getCurrentUserApi().catch(() => null),
+      ]);
       setPlatforms(platformsData);
+      setCurrentUser(userData);
 
       const allEnvironments: EnvironmentWithPlatform[] = [];
       for (const platform of platformsData) {
@@ -54,68 +84,126 @@ export default function EnvironmentsPage() {
     loadData();
   }, [loadData]);
 
-  const filteredEnvironments = selectedPlatform
-    ? environments.filter((e) => e.platformName === selectedPlatform)
-    : environments;
+  const filteredEnvironments =
+    selectedPlatform === 'all'
+      ? environments
+      : environments.filter((e) => e.platformName === selectedPlatform);
 
-  const groupedByPlatform = filteredEnvironments.reduce(
-    (acc, env) => {
-      if (!acc[env.platformName]) {
-        acc[env.platformName] = [];
-      }
-      acc[env.platformName].push(env);
-      return acc;
-    },
-    {} as Record<string, EnvironmentWithPlatform[]>
-  );
+  const startEditing = (env: EnvironmentWithPlatform, field: 'description') => {
+    setEditState({
+      platformName: env.platformName,
+      environmentName: env.environment,
+      field,
+      value: env.description || '',
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditState(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editState) return;
+
+    setIsSaving(true);
+    try {
+      await updateEnvironmentApi(editState.platformName, editState.environmentName, {
+        description: editState.value,
+      });
+      // Update local state
+      setEnvironments((prev) =>
+        prev.map((e) =>
+          e.platformName === editState.platformName && e.environment === editState.environmentName
+            ? { ...e, description: editState.value }
+            : e
+        )
+      );
+      setEditState(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update environment');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  // Build filter options
+  const filterOptions = [
+    { value: 'all', label: 'All Platforms', count: environments.length },
+    ...platforms.map((p) => ({
+      value: p.name,
+      label: p.name,
+      count: environments.filter((e) => e.platformName === p.name).length,
+    })),
+  ];
 
   return (
     <div>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Environments</h1>
+          <h1 className="text-4xl font-black tracking-tight">Environments</h1>
           <p className="text-muted-foreground mt-1">
             All environments across all platforms ({environments.length} total)
           </p>
         </div>
       </div>
 
-      {/* Platform filter */}
+      {/* Platform filter tabs */}
       {platforms.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-2">
-          <Button
-            variant={selectedPlatform === null ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedPlatform(null)}
-          >
-            All Platforms
-          </Button>
-          {platforms.map((p) => (
-            <Button
-              key={p.name}
-              variant={selectedPlatform === p.name ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedPlatform(p.name)}
-            >
-              {p.name}
-            </Button>
-          ))}
+        <div className="mb-6">
+          <FilterTabs
+            options={filterOptions}
+            value={selectedPlatform}
+            onChange={setSelectedPlatform}
+          />
         </div>
       )}
 
       {isLoading ? (
         <Card>
-          <div className="divide-y">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="p-4 flex items-center justify-between">
-                <div className="space-y-2">
-                  <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-4 w-48" />
-                </div>
-                <Skeleton className="h-9 w-24" />
-              </div>
-            ))}
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[180px]">Name</TableHead>
+                <TableHead className="w-[150px]">Platform</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="w-[150px]">Created By</TableHead>
+                <TableHead className="w-[120px]">Created At</TableHead>
+                <TableHead className="w-[200px] text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(4)].map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <Skeleton className="h-5 w-28" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-48" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-9 w-24 ml-auto" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </Card>
       ) : error ? (
         <Card>
@@ -135,7 +223,7 @@ export default function EnvironmentsPage() {
             <div className="text-5xl mb-4">🌍</div>
             <h3 className="text-xl font-semibold mb-2">No Environments Yet</h3>
             <p className="text-muted-foreground mb-6">
-              {selectedPlatform
+              {selectedPlatform !== 'all'
                 ? `No environments found for ${selectedPlatform}. Create one to get started.`
                 : 'Create platforms first, then add environments to them.'}
             </p>
@@ -145,64 +233,159 @@ export default function EnvironmentsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {Object.entries(groupedByPlatform).map(([platformName, envs]) => (
-            <div key={platformName}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold">{platformName}</h2>
-                <Link href={`/platforms/${platformName}/environments/create`}>
-                  <Button size="sm">Create Environment</Button>
-                </Link>
-              </div>
-              <Card>
-                <div className="divide-y">
-                  {envs.map((env) => (
-                    <div
-                      key={`${env.platformName}-${env.environment}`}
-                      className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[180px]">
+                  <div className="flex flex-col">
+                    <span>Name</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      URL identifier (immutable)
+                    </span>
+                  </div>
+                </TableHead>
+                <TableHead className="w-[150px]">
+                  <div className="flex flex-col">
+                    <span>Platform</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      Parent platform
+                    </span>
+                  </div>
+                </TableHead>
+                <TableHead>
+                  <div className="flex flex-col">
+                    <span>Description</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      Optional description
+                    </span>
+                  </div>
+                </TableHead>
+                <TableHead className="w-[150px]">
+                  <div className="flex flex-col">
+                    <span>Created By</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      Creator user ID
+                    </span>
+                  </div>
+                </TableHead>
+                <TableHead className="w-[120px]">Created At</TableHead>
+                <TableHead className="w-[200px] text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEnvironments.map((env) => (
+                <TableRow key={`${env.platformName}-${env.environment}`}>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/flags?platform=${env.platformName}&environment=${env.environment}`}
+                      className="hover:underline"
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-semibold truncate">{env.environment}</h3>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(env.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {env.description && (
-                          <p className="text-sm text-muted-foreground truncate mt-0.5">
-                            {env.description}
-                          </p>
-                        )}
+                      {env.environment}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/platforms/${env.platformName}`}
+                      className="text-muted-foreground hover:underline"
+                    >
+                      {env.platformName}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    {editState?.platformName === env.platformName &&
+                    editState?.environmentName === env.environment &&
+                    editState.field === 'description' ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={editState.value}
+                          onChange={(e) =>
+                            setEditState({ ...editState, value: e.target.value })
+                          }
+                          className="h-8"
+                          placeholder="Enter description..."
+                          disabled={isSaving}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveEdit();
+                            if (e.key === 'Escape') cancelEditing();
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={saveEdit}
+                          disabled={isSaving}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={cancelEditing}
+                          disabled={isSaving}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <Button asChild variant="ghost" size="icon-sm" title="Configs">
-                          <Link href={`/configs?platform=${env.platformName}&environment=${env.environment}`}>
-                            <Layers className="h-4 w-4" />
-                          </Link>
+                    ) : (
+                      <div className="flex items-center gap-2 group">
+                        <span className="text-muted-foreground">
+                          {env.description || '-'}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                          onClick={() => startEditing(env, 'description')}
+                        >
+                          <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button asChild variant="ghost" size="icon-sm" title="Flags">
-                          <Link href={`/flags?platform=${env.platformName}&environment=${env.environment}`}>
-                            <Flag className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button asChild variant="ghost" size="icon-sm" title="Experiments">
-                          <Link href={`/experiments?platform=${env.platformName}&environment=${env.environment}`}>
-                            <FlaskConical className="h-4 w-4" />
-                          </Link>
-                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {env.createdBy || '-'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {formatDate(env.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button asChild variant="ghost" size="icon-sm" title="Configs">
+                        <Link
+                          href={`/configs?platform=${env.platformName}&environment=${env.environment}`}
+                        >
+                          <Layers className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button asChild variant="ghost" size="icon-sm" title="Flags">
+                        <Link
+                          href={`/flags?platform=${env.platformName}&environment=${env.environment}`}
+                        >
+                          <Flag className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button asChild variant="ghost" size="icon-sm" title="Experiments">
+                        <Link
+                          href={`/experiments?platform=${env.platformName}&environment=${env.environment}`}
+                        >
+                          <FlaskConical className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      {isAdmin && (
                         <DeleteEnvironmentButton
                           platform={env.platformName}
                           environment={env.environment}
                           onSuccess={loadData}
                         />
-                      </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-          ))}
-        </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   );

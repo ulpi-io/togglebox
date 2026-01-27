@@ -3,44 +3,107 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const navItems = [
-  { href: '/', label: 'Dashboard', icon: '/' },
-  { href: '/config', label: 'Config', icon: 'C' },
-  { href: '/flags', label: 'Flags', icon: 'F' },
-  { href: '/experiments', label: 'Experiments', icon: 'E' },
-  { href: '/stats', label: 'Stats', icon: 'S' },
-  { href: '/server-side', label: 'Server-Side', icon: 'SS' },
-  { href: '/settings', label: 'Settings', icon: '*' },
+type NavItem =
+  | { href: string; label: string; icon: string }
+  | { label: string; icon: string; children: { href: string; label: string }[] }
+
+const navItems: NavItem[] = [
+  { href: '/', label: 'Home', icon: '🏠' },
+  {
+    label: 'Quick Start',
+    icon: '⚡',
+    children: [
+      { href: '/quick', label: 'Overview' },
+      { href: '/quick/provider-setup', label: 'Provider Setup' },
+      { href: '/quick/use-config', label: 'Config Access' },
+      { href: '/quick/use-flag', label: 'Feature Flags' },
+      { href: '/quick/use-experiment', label: 'Experiments' },
+      { href: '/quick/track-event', label: 'Event Tracking' },
+      { href: '/quick/ssr-config', label: 'SSR Config' },
+    ],
+  },
+  {
+    label: 'Examples',
+    icon: '📚',
+    children: [
+      { href: '/examples', label: 'Overview' },
+      { href: '/examples/feature-toggle', label: 'Feature Toggle' },
+      { href: '/examples/ab-test-cta', label: 'A/B Test CTA' },
+      { href: '/examples/config-theme', label: 'Config Theme' },
+      { href: '/examples/ssr-hydration', label: 'SSR + Hydration' },
+      { href: '/examples/polling-updates', label: 'Polling Updates' },
+    ],
+  },
 ]
 
 export function Nav() {
   const pathname = usePathname()
 
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/'
+    return pathname === href || pathname.startsWith(href + '/')
+  }
+
+  const isSectionActive = (children: { href: string }[]) => {
+    return children.some(child => isActive(child.href))
+  }
+
   return (
-    <nav className="w-64 bg-gray-900 text-white min-h-screen p-4">
-      <div className="mb-8">
-        <h1 className="text-xl font-bold text-primary-400">ToggleBox</h1>
-        <p className="text-sm text-gray-400">Next.js Example</p>
+    <nav className="w-64 bg-gray-900 text-white min-h-screen p-4 flex flex-col">
+      <div className="mb-6">
+        <Link href="/" className="block">
+          <h1 className="text-xl font-bold text-primary-400">ToggleBox</h1>
+          <p className="text-sm text-gray-400">Next.js SDK Examples</p>
+        </Link>
       </div>
 
-      <ul className="space-y-2">
+      <ul className="space-y-1 flex-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href ||
-            (item.href !== '/' && pathname.startsWith(item.href))
+          if ('children' in item) {
+            const sectionActive = isSectionActive(item.children)
+            return (
+              <li key={item.label} className="mb-2">
+                <div className={`flex items-center gap-2 px-3 py-2 text-sm font-medium ${
+                  sectionActive ? 'text-white' : 'text-gray-400'
+                }`}>
+                  <span>{item.icon}</span>
+                  {item.label}
+                </div>
+                <ul className="ml-6 space-y-1">
+                  {item.children.map((child) => {
+                    const active = isActive(child.href)
+                    return (
+                      <li key={child.href}>
+                        <Link
+                          href={child.href}
+                          className={`block px-3 py-1.5 rounded text-sm transition-colors ${
+                            active
+                              ? 'bg-primary-600 text-white'
+                              : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                          }`}
+                        >
+                          {child.label}
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </li>
+            )
+          }
 
+          const active = isActive(item.href)
           return (
             <li key={item.href}>
               <Link
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
-                  isActive
+                className={`flex items-center gap-2 px-3 py-2 rounded transition-colors ${
+                  active
                     ? 'bg-primary-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-800'
                 }`}
               >
-                <span className="w-6 h-6 flex items-center justify-center bg-gray-700 rounded text-xs font-mono">
-                  {item.icon}
-                </span>
+                <span>{item.icon}</span>
                 {item.label}
               </Link>
             </li>
@@ -48,8 +111,8 @@ export function Nav() {
         })}
       </ul>
 
-      <div className="mt-auto pt-8 border-t border-gray-800 mt-8">
-        <div className="text-xs text-gray-500">
+      <div className="pt-4 border-t border-gray-800 mt-4">
+        <div className="text-xs text-gray-500 space-y-1">
           <p>Platform: {process.env.NEXT_PUBLIC_PLATFORM || 'web'}</p>
           <p>Environment: {process.env.NEXT_PUBLIC_ENVIRONMENT || 'staging'}</p>
         </div>

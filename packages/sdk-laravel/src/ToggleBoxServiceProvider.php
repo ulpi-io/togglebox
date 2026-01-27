@@ -104,6 +104,11 @@ class ToggleBoxServiceProvider extends ServiceProvider
                 echo \$_togglebox_v?->value ?? '';
             ?>";
         });
+
+        // @config('key', 'default') - output a remote config value
+        Blade::directive('config', function (string $expression) {
+            return "<?php echo e(app('togglebox')->config({$expression})); ?>";
+        });
     }
 
     /**

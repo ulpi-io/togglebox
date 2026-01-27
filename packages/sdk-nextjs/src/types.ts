@@ -1,6 +1,24 @@
+import type { ToggleBoxClient } from '@togglebox/sdk'
 import type { Config } from '@togglebox/configs'
 import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
 import type { Experiment, ExperimentContext } from '@togglebox/experiments'
+
+/**
+ * Conversion data for experiment tracking
+ */
+export interface ConversionData {
+  metricName: string
+  value?: number
+}
+
+/**
+ * Event data for custom event tracking
+ */
+export interface EventData {
+  experimentKey?: string
+  variationKey?: string
+  properties?: Record<string, unknown>
+}
 
 /**
  * Provider configuration options
@@ -17,6 +35,12 @@ export interface ToggleBoxProviderProps {
    * @remarks Use tenantSubdomain for cloud deployments
    */
   apiUrl?: string
+
+  /**
+   * API key for authentication (optional for self-hosted, required for cloud)
+   * @remarks Set NEXT_PUBLIC_TOGGLEBOX_API_KEY in environment variables
+   */
+  apiKey?: string
 
   /**
    * Tenant subdomain for cloud deployments
@@ -83,4 +107,181 @@ export interface ToggleBoxContextValue {
 
   /** Get experiment variant for a user */
   getVariant: (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+
+  /**
+   * Track a conversion event for an experiment.
+   *
+   * @param experimentKey - The experiment key
+   * @param context - Experiment context (userId required)
+   * @param data - Conversion data (metricName, optional value)
+   *
+   * @example
+   * ```typescript
+   * await trackConversion('checkout-test', { userId: 'user-123' }, {
+   *   metricName: 'purchase',
+   *   value: 99.99,
+   * })
+   * ```
+   */
+  trackConversion: (
+    experimentKey: string,
+    context: ExperimentContext,
+    data: ConversionData
+  ) => Promise<void>
+
+  /**
+   * Track a custom event.
+   *
+   * @param eventName - Name of the event
+   * @param context - User context (userId required)
+   * @param data - Optional event data
+   *
+   * @example
+   * ```typescript
+   * trackEvent('add_to_cart', { userId: 'user-123' }, {
+   *   experimentKey: 'checkout-test',
+   *   properties: { itemCount: 3 }
+   * })
+   * ```
+   */
+  trackEvent: (
+    eventName: string,
+    context: ExperimentContext,
+    data?: EventData
+  ) => void
+
+  /**
+   * Get a typed config value with a default fallback.
+   *
+   * @param key - Config key
+   * @param defaultValue - Default value if key not found
+   * @returns The config value or default
+   *
+   * @example
+   * ```typescript
+   * const apiUrl = await getConfigValue('api_url', 'https://default.api.com')
+   * const maxRetries = await getConfigValue<number>('max_retries', 3)
+   * ```
+   */
+  getConfigValue: <T>(key: string, defaultValue: T) => Promise<T>
+
+  /**
+   * Immediately flush pending stats events.
+   * Useful before navigation or when tracking critical conversions.
+   *
+   * @example
+   * ```typescript
+   * await trackConversion('checkout-test', { userId: 'user-123' }, { metricName: 'purchase' })
+   * await flushStats() // Ensure conversion is sent immediately
+   * ```
+   */
+  flushStats: () => Promise<void>
+
+  /**
+   * Get the underlying ToggleBoxClient instance for advanced use cases.
+   * Use with caution - prefer using context methods when possible.
+   *
+   * @returns The client instance or null if not initialized
+   */
+  getClient: () => ToggleBoxClient | null
+}
+
+// ============================================================================
+// Hook Result Types
+// ============================================================================
+
+/**
+ * Result type for useConfig() hook
+ */
+export interface UseConfigResult {
+  /** Current configuration (Tier 1) */
+  config: Config | null
+
+  /** Get a typed config value with a default fallback */
+  getConfigValue: <T>(key: string, defaultValue: T) => Promise<T>
+
+  /** Loading state */
+  isLoading: boolean
+
+  /** Error state */
+  error: Error | null
+
+  /** Manually refresh config */
+  refresh: () => Promise<void>
+}
+
+/**
+ * Result type for useFlags() hook
+ */
+export interface UseFlagsResult {
+  /** Current feature flags (Tier 2) */
+  flags: Flag[]
+
+  /** Check if a flag is enabled */
+  isFlagEnabled: (flagKey: string, context?: FlagContext) => Promise<boolean>
+
+  /** Loading state */
+  isLoading: boolean
+
+  /** Error state */
+  error: Error | null
+
+  /** Manually refresh flags */
+  refresh: () => Promise<void>
+}
+
+/**
+ * Result type for useExperiments() hook
+ */
+export interface UseExperimentsResult {
+  /** Current experiments (Tier 3) */
+  experiments: Experiment[]
+
+  /** Get experiment variant for a user */
+  getVariant: (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+
+  /** Loading state */
+  isLoading: boolean
+
+  /** Error state */
+  error: Error | null
+
+  /** Manually refresh experiments */
+  refresh: () => Promise<void>
+}
+
+/**
+ * Result type for useAnalytics() hook
+ */
+export interface UseAnalyticsResult {
+  /**
+   * Track a custom event.
+   *
+   * @param eventName - Name of the event
+   * @param context - User context (userId required)
+   * @param data - Optional event data
+   */
+  trackEvent: (
+    eventName: string,
+    context: ExperimentContext,
+    data?: EventData
+  ) => void
+
+  /**
+   * Track a conversion event for an experiment.
+   *
+   * @param experimentKey - The experiment key
+   * @param context - Experiment context (userId required)
+   * @param data - Conversion data (metricName, optional value)
+   */
+  trackConversion: (
+    experimentKey: string,
+    context: ExperimentContext,
+    data: ConversionData
+  ) => Promise<void>
+
+  /**
+   * Immediately flush pending stats events.
+   */
+  flushStats: () => Promise<void>
 }

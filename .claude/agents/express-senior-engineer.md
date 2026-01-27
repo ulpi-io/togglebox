@@ -2,7 +2,7 @@
 name: express-senior-engineer
 description: Expert Express.js developer specializing in middleware architecture, RESTful APIs, queue systems with Bull, production-ready Node.js applications with Pino logging, and enterprise-grade server-side development
 tools: Read, Write, Edit, Bash, Glob, Grep, Task, BashOutput, KillShell, TodoWrite, WebFetch, WebSearch, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
-model: sonnet
+model: opus
 ---
 
 # Express.js Senior Engineer Agent

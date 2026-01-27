@@ -42,8 +42,12 @@ Architecture decisions and patterns for ToggleBox dual monorepo structure.
 
 **API Architecture (Open Source):**
 - **Controllers**: `configController`, `flagController`, `experimentController`, `statsController`, `webhookController`
-- **Routes**: Public (read-only) and Internal (write) endpoint separation
-- **Middleware**: Optional auth, rate limiting, validation, error handling, cache headers
+- **Routes**:
+  - `publicRoutes.ts` - Read-only GET endpoints with conditional auth (`conditionalAuth()`)
+  - `internalRoutes.ts` - Write operations (POST/PUT/PATCH/DELETE) with mandatory auth (`requireAuth()`, `requirePermission()`)
+  - `authRoutes.ts` - Authentication endpoints (login, register, password reset)
+- **Middleware**: Optional auth via `conditionalAuth()`, mandatory auth via `requireAuth()`, permission checks via `requirePermission()`, rate limiting, validation, error handling, cache headers
+- **Container**: Dependency injection via `Container` class for controller instantiation
 - **Multi-platform**: Single Express app deploys to Lambda, Workers, Netlify, Docker
 
 ### togglebox-cloud/ (Private Cloud Version)
@@ -148,16 +152,26 @@ const apiUrl = `https://${tenant}.togglebox.local`;
 - **Public Endpoints** (`/api/v1/platforms/*`): Read-only GET requests, internet-accessible
 - **Internal Endpoints** (`/api/v1/internal/*`): Write operations (POST/PUT/PATCH/DELETE), network-restricted
 
-**Examples:**
+**Actual API Endpoints (from publicRoutes.ts and internalRoutes.ts):**
 ```
-# Public (Read-only)
-GET /api/v1/platforms/{platform}/environments/{env}/versions/latest/stable
-GET /api/v1/platforms/{platform}/environments/{env}/feature-flags
+# Public (Read-only) - conditionalAuth based on ENABLE_AUTHENTICATION
+GET /api/v1/health                                                    # Health check (always unauthenticated)
+GET /api/v1/platforms                                                 # List platforms
+GET /api/v1/platforms/:platform/environments                          # List environments
+GET /api/v1/platforms/:platform/environments/:env/versions/latest/stable  # Get latest stable config
+GET /api/v1/platforms/:platform/environments/:env/flags               # List feature flags
+GET /api/v1/platforms/:platform/environments/:env/flags/:flagKey/evaluate?userId=...  # Evaluate flag
+GET /api/v1/platforms/:platform/environments/:env/experiments         # List experiments
+GET /api/v1/platforms/:platform/environments/:env/experiments/:key/assign?userId=...  # Assign variation
+POST /api/v1/platforms/:platform/environments/:env/stats/events       # SDK event ingestion
 
-# Internal (Write operations)
-POST /api/v1/internal/platforms
-POST /api/v1/internal/platforms/{platform}/environments/{env}/versions
-PATCH /api/v1/internal/platforms/{platform}/environments/{env}/feature-flags/{flag}/toggle
+# Internal (Write operations) - always requireAuth() + requirePermission()
+POST /api/v1/internal/platforms                                       # Create platform (config:write)
+PATCH /api/v1/internal/platforms/:platform/environments/:env/flags/:flagKey/toggle  # Toggle flag (config:write)
+POST /api/v1/internal/platforms/:platform/environments/:env/experiments/:key/start  # Start experiment (config:write)
+POST /api/v1/internal/cache/invalidate                                # Invalidate cache (cache:invalidate)
+POST /api/v1/internal/users                                           # Create user (user:manage)
+POST /api/v1/internal/api-keys                                        # Create API key (apikey:manage)
 ```
 
 **Versioning:** URL-based (`/api/v1/`)
@@ -332,18 +346,42 @@ logger.error({ err, platform, env }, 'Failed to deploy configuration');
 - Automatic type inference
 - Runtime safety with compile-time types
 
+**Actual schema from @togglebox/core (packages/core/src/schemas.ts):**
 ```typescript
 import { z } from 'zod';
 
-const configSchema = z.object({
-  platformName: z.string().min(1),
-  environmentName: z.string().min(1),
-  version: z.string().regex(/^\d+\.\d+\.\d+$/),
-  config: z.record(z.unknown()),
+// Platform schema - shared across all tiers (configs, flags, experiments)
+export const PlatformSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  createdBy: z.string().optional(),
+  createdAt: z.string(),
 });
 
-// Automatic TypeScript type
-type ConfigInput = z.infer<typeof configSchema>;
+// Environment schema
+export const EnvironmentSchema = z.object({
+  platform: z.string(),
+  environment: z.string(),
+  description: z.string().optional(),
+  createdBy: z.string().optional(),
+  createdAt: z.string(),
+});
+
+// Standardized error response schema
+export const ErrorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+  code: z.string().optional(),       // e.g., "API_LIMIT_EXCEEDED", "VALIDATION_FAILED"
+  timestamp: z.string(),
+  details: z.array(z.string()).optional(),
+  meta: z.record(z.unknown()).optional(), // retryAfter, usage/limit, upgradeUrl, etc.
+});
+
+// Automatic TypeScript types
+export type Platform = z.infer<typeof PlatformSchema>;
+export type Environment = z.infer<typeof EnvironmentSchema>;
+export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 ```
 
 ## Testing Strategy
@@ -460,7 +498,7 @@ packages/*/src/
 
 ---
 
-**Last Updated:** 2026-01-25
+**Last Updated:** 2026-01-26
 
 **Note:** This architecture documentation covers **BOTH monorepos**:
 - **togglebox/** (open source) - Multi-database, multi-platform deployment, optional auth, multi-provider caching

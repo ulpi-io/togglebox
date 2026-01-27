@@ -34,4 +34,21 @@ export interface IUsageRepository {
    * ```
    */
   incrementApiRequests(tenantId: string): Promise<void>;
+
+  /**
+   * Get total API request count for a tenant
+   *
+   * @param tenantId - Tenant identifier (subdomain)
+   * @returns Total API request count
+   *
+   * @remarks
+   * For sharded implementations, this aggregates counts across all shards.
+   *
+   * @example
+   * ```typescript
+   * const count = await db.usage.getApiRequestCount(tenant.subdomain);
+   * console.log(`Tenant has made ${count} API requests`);
+   * ```
+   */
+  getApiRequestCount?(tenantId: string): Promise<number>;
 }

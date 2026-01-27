@@ -82,30 +82,33 @@ The API runs at `http://localhost:3000` and the admin dashboard at `http://local
 ### JavaScript SDK
 
 ```bash
-npm install @togglebox/sdk-js
+npm install @togglebox/sdk
 ```
 
-```javascript
-import { ToggleBox } from '@togglebox/sdk-js';
+```typescript
+import { ToggleBoxClient } from '@togglebox/sdk'
 
-const client = new ToggleBox({
-  apiUrl: 'https://your-api.com',
+const client = new ToggleBoxClient({
   platform: 'web',
   environment: 'production',
-});
+  apiUrl: 'https://your-togglebox-api.com',
+})
 
-await client.initialize();
+// Remote config (Tier 1)
+const config = await client.getConfig()
+const theme = await client.getConfigValue('theme', 'light')
 
-// Remote config
-const theme = client.getConfig('theme');
-
-// Feature flag
-if (client.isEnabled('dark-mode')) {
-  enableDarkMode();
+// Feature flag (Tier 2)
+const showNewUI = await client.isFlagEnabled('new-dashboard', { userId: 'user-123' })
+if (showNewUI) {
+  renderNewDashboard()
 }
 
-// Experiment
-const variant = client.getVariant('checkout-experiment');
+// Experiment (Tier 3)
+const assignment = await client.getVariant('checkout-experiment', { userId: 'user-123' })
+if (assignment?.variationKey === 'one-click') {
+  renderOneClickCheckout()
+}
 ```
 
 ### Next.js SDK
@@ -115,23 +118,31 @@ npm install @togglebox/sdk-nextjs
 ```
 
 ```tsx
-import { ToggleBoxProvider, useFeatureFlag, useExperiment } from '@togglebox/sdk-nextjs';
+import { ToggleBoxProvider, useFlag, useExperiment, useConfig } from '@togglebox/sdk-nextjs'
 
 // Wrap your app
 <ToggleBoxProvider
-  apiUrl="https://your-api.com"
   platform="web"
   environment="production"
+  apiUrl={process.env.NEXT_PUBLIC_TOGGLEBOX_URL!}
 >
   <App />
 </ToggleBoxProvider>
 
 // Use in components
 function PricingPage() {
-  const showNewPricing = useFeatureFlag('new-pricing');
-  const { variant } = useExperiment('pricing-test');
+  const config = useConfig()
+  const { checkEnabled } = useFlag('new-pricing')
+  const { getVariant } = useExperiment('pricing-test', { userId: user.id })
+  const [showNewPricing, setShowNewPricing] = useState(false)
+  const [variant, setVariant] = useState<string | null>(null)
 
-  return showNewPricing ? <NewPricing variant={variant} /> : <OldPricing />;
+  useEffect(() => {
+    checkEnabled().then(setShowNewPricing)
+    getVariant().then(setVariant)
+  }, [checkEnabled, getVariant])
+
+  return showNewPricing ? <NewPricing variant={variant} /> : <OldPricing />
 }
 ```
 
@@ -142,26 +153,68 @@ npm install @togglebox/sdk-expo
 ```
 
 ```tsx
-import { ToggleBoxProvider, useConfig } from '@togglebox/sdk-expo';
+import { ToggleBoxProvider, useConfig, useFlags, useToggleBox } from '@togglebox/sdk-expo'
 
-// Same React hooks API with offline support and AsyncStorage caching
-const config = useConfig();
+// Wrap your app with offline persistence
+<ToggleBoxProvider
+  platform="mobile"
+  environment="production"
+  apiUrl="https://your-togglebox-api.com"
+  persistToStorage={true}
+  storageTTL={86400000}
+>
+  <App />
+</ToggleBoxProvider>
+
+// Use in components
+function HomeScreen() {
+  const config = useConfig()
+  const flags = useFlags()
+  const { isLoading, isOnline, refresh } = useToggleBox()
+
+  // Works offline with cached data
+  return <View>...</View>
+}
 ```
 
 ### Example Apps
 
-See the SDKs in action:
+Both example apps are **kitchen sink** demos with copy-paste ready code:
 
-- **[example-nextjs](./apps/example-nextjs)** - Next.js app showing remote configs, feature flags, and experiments
-- **[example-expo](./apps/example-expo)** - React Native/Expo app with offline support
+#### [Next.js Example](./apps/example-nextjs)
+
+Full-featured Next.js 15 app demonstrating:
+
+| Quick Start | Complete Examples |
+|-------------|-------------------|
+| Provider Setup | Feature Toggle UI |
+| useConfig Hook | A/B Test CTA Buttons |
+| useFlag Hook | Config-Driven Themes |
+| useExperiment Hook | SSR with Hydration |
+| Event Tracking | Polling Updates |
+| SSR Config Fetching | |
 
 ```bash
-# Run the Next.js example
-pnpm dev:example-nextjs
-
-# Run the Expo example
-pnpm dev:example-expo
+pnpm dev:example-nextjs  # http://localhost:3002
 ```
+
+#### [Expo Example](./apps/example-expo)
+
+React Native/Expo app demonstrating:
+
+| Quick Start | Advanced |
+|-------------|----------|
+| Provider Setup | Conversion Tracking |
+| Remote Config | Offline Storage (MMKV) |
+| Feature Flags | Polling & Refresh |
+| Experiments | Health Check |
+| | Error Handling |
+
+```bash
+pnpm dev:example-expo  # Expo Go or simulator
+```
+
+See the [Next.js Example README](./apps/example-nextjs/README.md) and [Expo Example README](./apps/example-expo/README.md) for detailed documentation.
 
 ---
 

@@ -70,7 +70,7 @@ export default function ConfigDetailPage({ params }: ConfigDetailPageProps) {
         `/api/v1/internal/platforms/${platform}/environments/${environment}/versions/${version}`,
         { method: 'DELETE' }
       );
-      router.push(`/platforms/${platform}/environments/${environment}/configs`);
+      router.push(`/configs?platform=${platform}&environment=${environment}`);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete version');
       setIsDeleting(false);
@@ -122,7 +122,7 @@ export default function ConfigDetailPage({ params }: ConfigDetailPageProps) {
               {platform} / {environment} / {version}
             </p>
           </div>
-          <Link href={`/platforms/${platform}/environments/${environment}/configs`}>
+          <Link href={`/configs?platform=${platform}&environment=${environment}`}>
             <Button variant="outline">Back to Configs</Button>
           </Link>
         </div>
@@ -176,7 +176,7 @@ export default function ConfigDetailPage({ params }: ConfigDetailPageProps) {
               {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
           )}
-          <Link href={`/platforms/${platform}/environments/${environment}/configs`}>
+          <Link href={`/configs?platform=${platform}&environment=${environment}`}>
             <Button variant="outline">Back to Configs</Button>
           </Link>
         </div>

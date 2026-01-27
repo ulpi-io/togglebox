@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button, Label } from '@togglebox/ui';
 
 interface JsonEditorProps {
@@ -11,15 +11,10 @@ interface JsonEditorProps {
 }
 
 export function JsonEditor({ name, value, onChange, disabled }: JsonEditorProps) {
+  // Initialize with prop value. Parent can use key prop to reset if needed.
   const [jsonString, setJsonString] = useState(value || '{}');
   const [isValid, setIsValid] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-
-  useEffect(() => {
-    if (value) {
-      setJsonString(value);
-    }
-  }, [value]);
 
   function handleChange(newValue: string) {
     setJsonString(newValue);

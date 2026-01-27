@@ -73,3 +73,37 @@ if (!function_exists('remote_config')) {
         return togglebox()->config($key, $default);
     }
 }
+
+if (!function_exists('track_event')) {
+    /**
+     * Track a custom event.
+     *
+     * @param string $eventName Name of the event
+     * @param string|null $userId User ID (auto-resolved if null)
+     * @param string|null $country Country code for targeting
+     * @param string|null $language Language code for targeting
+     * @param array|null $data Optional event data with 'experimentKey', 'variationKey', 'properties'
+     */
+    function track_event(
+        string $eventName,
+        ?string $userId = null,
+        ?string $country = null,
+        ?string $language = null,
+        ?array $data = null,
+    ): void {
+        togglebox()->trackEvent($eventName, $userId, $country, $language, $data);
+    }
+}
+
+if (!function_exists('check_togglebox')) {
+    /**
+     * Check ToggleBox API connectivity and service health.
+     *
+     * @return array{status: string, uptime?: int}
+     * @throws \ToggleBox\Exceptions\ToggleBoxException If API is unreachable
+     */
+    function check_togglebox(): array
+    {
+        return togglebox()->checkConnection();
+    }
+}

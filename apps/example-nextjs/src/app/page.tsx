@@ -1,136 +1,159 @@
-'use client'
+import Link from 'next/link'
 
-import { useToggleBox } from '@togglebox/sdk-nextjs'
-import { Loading } from '@/components/loading'
+const quickStartItems = [
+  { href: '/quick/provider-setup', title: 'Provider Setup', icon: '⚙️', description: 'Configure the SDK' },
+  { href: '/quick/use-config', title: 'Config Access', icon: '📋', description: 'Read remote config' },
+  { href: '/quick/use-flag', title: 'Feature Flags', icon: '🚩', description: 'Check flags' },
+  { href: '/quick/use-experiment', title: 'Experiments', icon: '🧪', description: 'A/B test variants' },
+  { href: '/quick/track-event', title: 'Event Tracking', icon: '📊', description: 'Track events' },
+  { href: '/quick/ssr-config', title: 'SSR Config', icon: '🖥️', description: 'Server-side fetch' },
+]
 
-export default function DashboardPage() {
-  const { config, flags, experiments, isLoading, error, refresh } = useToggleBox()
+const exampleItems = [
+  { href: '/examples/feature-toggle', title: 'Feature Toggle', icon: '🚩', description: 'With loading & errors' },
+  { href: '/examples/ab-test-cta', title: 'A/B Test CTA', icon: '🧪', description: 'Conversion tracking' },
+  { href: '/examples/config-theme', title: 'Config Theme', icon: '🎨', description: 'Dynamic theming' },
+  { href: '/examples/ssr-hydration', title: 'SSR + Hydration', icon: '🖥️', description: 'No loading flash' },
+  { href: '/examples/polling-updates', title: 'Polling Updates', icon: '🔄', description: 'Real-time updates' },
+]
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-red-800 mb-2">Connection Error</h2>
-        <p className="text-red-600 mb-4">{error.message}</p>
-        <button
-          onClick={() => refresh()}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-        >
-          Retry
-        </button>
-      </div>
-    )
-  }
-
-  if (isLoading) {
-    return <Loading />
-  }
-
+export default function HomePage() {
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">
-          ToggleBox Next.js SDK Example Application
+    <div className="max-w-5xl mx-auto">
+      {/* Hero */}
+      <header className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          ToggleBox SDK Examples
+        </h1>
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          Copy-paste code snippets for integrating ToggleBox into your Next.js application.
+          Each example shows both self-hosted and cloud configurations.
         </p>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-3xl font-bold text-primary-600">
-            {config ? Object.keys(config).length : 0}
+      {/* Auth mode notice */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 mb-8">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-          <div className="text-gray-500 mt-1">Config Keys</div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-3xl font-bold text-green-600">{flags.length}</div>
-          <div className="text-gray-500 mt-1">Feature Flags</div>
-          <div className="text-sm text-green-600 mt-2">
-            {flags.filter((f) => f.enabled).length} enabled
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-3xl font-bold text-purple-600">{experiments.length}</div>
-          <div className="text-gray-500 mt-1">Experiments</div>
-          <div className="text-sm text-purple-600 mt-2">
-            {experiments.filter((e) => e.status === 'running').length} running
+          <div>
+            <h3 className="font-semibold text-blue-900">Two Auth Modes</h3>
+            <p className="text-sm text-blue-700 mt-1">
+              Every example includes code for both <strong>self-hosted</strong> (no auth) and <strong>cloud</strong> (with API key) deployments.
+              The hook code is identical - only the provider configuration differs.
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Flags</h2>
-          {flags.length === 0 ? (
-            <p className="text-gray-500">No flags configured</p>
-          ) : (
-            <ul className="space-y-3">
-              {flags.slice(0, 5).map((flag) => (
-                <li
-                  key={flag.flagKey}
-                  className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
-                >
-                  <span className="font-medium text-gray-900">{flag.flagKey}</span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      flag.enabled
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {flag.enabled ? 'Enabled' : 'Disabled'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Experiments</h2>
-          {experiments.length === 0 ? (
-            <p className="text-gray-500">No experiments configured</p>
-          ) : (
-            <ul className="space-y-3">
-              {experiments.slice(0, 5).map((exp) => (
-                <li
-                  key={exp.experimentKey}
-                  className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
-                >
-                  <span className="font-medium text-gray-900">{exp.experimentKey}</span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      exp.status === 'running'
-                        ? 'bg-green-100 text-green-700'
-                        : exp.status === 'paused'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {exp.status || 'draft'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6">
+      {/* Quick Start Section */}
+      <section className="mb-12">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Configuration Preview</h2>
-          <button
-            onClick={() => refresh()}
-            className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Quick Start</h2>
+            <p className="text-gray-600">Minimal examples to get started in 5 minutes</p>
+          </div>
+          <Link
+            href="/quick"
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1"
           >
-            Refresh
-          </button>
+            View all
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         </div>
-        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-auto max-h-64 text-sm">
-          {JSON.stringify(config, null, 2)}
-        </pre>
-      </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {quickStartItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="group flex flex-col items-center p-4 bg-white border border-gray-200 rounded-lg hover:border-primary-300 hover:shadow-md transition-all text-center"
+            >
+              <span className="text-3xl mb-2">{item.icon}</span>
+              <span className="font-medium text-gray-900 group-hover:text-primary-600 text-sm">
+                {item.title}
+              </span>
+              <span className="text-xs text-gray-500 mt-1">{item.description}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Complete Examples Section */}
+      <section className="mb-12">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Complete Examples</h2>
+            <p className="text-gray-600">Production-ready patterns with best practices</p>
+          </div>
+          <Link
+            href="/examples"
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1"
+          >
+            View all
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {exampleItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="group flex items-start gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:border-primary-300 hover:shadow-md transition-all"
+            >
+              <span className="text-3xl flex-shrink-0">{item.icon}</span>
+              <div>
+                <span className="font-medium text-gray-900 group-hover:text-primary-600 block">
+                  {item.title}
+                </span>
+                <span className="text-sm text-gray-500">{item.description}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Getting Started */}
+      <section className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Getting Started</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="font-semibold text-gray-800 mb-2">1. Install the SDK</h3>
+            <pre className="bg-gray-900 text-gray-100 p-3 rounded text-sm overflow-x-auto">
+              npm install @togglebox/sdk-nextjs
+            </pre>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800 mb-2">2. Wrap your app</h3>
+            <pre className="bg-gray-900 text-gray-100 p-3 rounded text-sm overflow-x-auto">
+{`<ToggleBoxProvider
+  platform="your-platform"
+  environment="production"
+  apiUrl="https://your-api.com"
+>
+  {children}
+</ToggleBoxProvider>`}
+            </pre>
+          </div>
+        </div>
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <Link
+            href="/quick/provider-setup"
+            className="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+          >
+            See full setup guide
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      </section>
     </div>
   )
 }

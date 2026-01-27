@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, type ComponentType } from 'react';
-import { cva, type VariantProps } from 'class-variance-authority';
+import { cva } from 'class-variance-authority';
 import { cn } from '../utils/cn';
 
 // Icons for default use
@@ -100,7 +100,7 @@ export const Steps = forwardRef<HTMLDivElement, StepsProps>(
   ) => {
     const currentIndex = steps.findIndex((s) => s.id === currentStep);
 
-    const getStepState = (step: Step, index: number): 'completed' | 'current' | 'upcoming' => {
+    const getStepState = (step: Step): 'completed' | 'current' | 'upcoming' => {
       if (completedSteps.has(step.id)) return 'completed';
       if (step.id === currentStep) return 'current';
       return 'upcoming';
@@ -117,7 +117,7 @@ export const Steps = forwardRef<HTMLDivElement, StepsProps>(
         {...props}
       >
         {steps.map((step, index) => {
-          const state = getStepState(step, index);
+          const state = getStepState(step);
           const Icon = step.icon;
           const isLast = index === steps.length - 1;
           const isBeforeCurrent = index < currentIndex;

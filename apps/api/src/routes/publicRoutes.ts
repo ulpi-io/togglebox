@@ -1,10 +1,21 @@
 import { Router } from 'express';
-import { asyncHandler } from '@togglebox/shared';
+import { asyncHandler, conditionalAuth } from '@togglebox/shared';
 import { Container } from '../container';
 
 /**
  * Public router for read-only (GET) endpoints
- * These endpoints are publicly accessible and do not modify state
+ *
+ * These endpoints serve configuration data to SDK clients. Authentication behavior
+ * depends on the ENABLE_AUTHENTICATION environment variable:
+ *
+ * - ENABLE_AUTHENTICATION=false (default): No authentication required
+ *   Use this for VPC-isolated deployments with network-level security.
+ *
+ * - ENABLE_AUTHENTICATION=true: Requires JWT token or API key
+ *   Use this for public deployments (Cloudflare Workers, public Docker, etc.)
+ *   SDK clients should provide: X-API-Key: <api-key>
+ *
+ * NOTE: Health check endpoint (/health) is ALWAYS unauthenticated for monitoring.
  */
 const publicRouter: Router = Router();
 
@@ -15,12 +26,15 @@ const experimentController = Container.createExperimentController();
 const statsController = Container.createStatsController();
 
 // ============================================================================
-// HEALTH CHECK
+// HEALTH CHECK (always unauthenticated for monitoring/load balancers)
 // ============================================================================
 
 /**
  * Health check endpoint
  * Returns service status and uptime
+ *
+ * NOTE: This endpoint is intentionally NOT protected by authentication
+ * to allow load balancers and monitoring systems to check service health.
  */
 publicRouter.get('/health', (_req, res) => {
   res.json({
@@ -30,6 +44,22 @@ publicRouter.get('/health', (_req, res) => {
     uptime: process.uptime(),
   });
 });
+
+// ============================================================================
+// CONDITIONAL AUTHENTICATION
+// ============================================================================
+
+/**
+ * Apply conditional authentication to all routes below this point.
+ *
+ * When ENABLE_AUTHENTICATION=true:
+ *   - Requires valid JWT token (Authorization: Bearer <token>)
+ *   - OR valid API key (X-API-Key: <api-key>)
+ *
+ * When ENABLE_AUTHENTICATION=false:
+ *   - No authentication required (relies on network-level security)
+ */
+publicRouter.use(conditionalAuth());
 
 // ============================================================================
 // PLATFORM READ ENDPOINTS

@@ -265,7 +265,7 @@ function FlagsContent() {
           <p className="text-muted-foreground mb-6">
             Create your first feature flag for {environment}
           </p>
-          <Link href={`/platforms/${platform}/environments/${environment}/flags/create`}>
+          <Link href={`/flags/create?platform=${platform}&environment=${environment}`}>
             <Button>Create Flag</Button>
           </Link>
         </CardContent>
@@ -281,7 +281,7 @@ function FlagsContent() {
           value={filter}
           onChange={setFilter}
         />
-        <Link href={`/platforms/${platform}/environments/${environment}/flags/create`}>
+        <Link href={`/flags/create?platform=${platform}&environment=${environment}`}>
           <Button>Create Flag</Button>
         </Link>
       </div>

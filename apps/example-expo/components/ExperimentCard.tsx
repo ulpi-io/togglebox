@@ -55,14 +55,20 @@ export function ExperimentCard({
       <View style={styles.variations}>
         <Text style={styles.variationsLabel}>Variations</Text>
         <View style={styles.variationsList}>
-          {experiment.variations.map((variation) => (
-            <View key={variation.variationKey} style={styles.variationTag}>
-              <Text style={styles.variationName}>
-                {variation.name || variation.variationKey}
-              </Text>
-              <Text style={styles.variationWeight}>{variation.weight}%</Text>
-            </View>
-          ))}
+          {experiment.variations.map((variation) => {
+            const allocation = experiment.trafficAllocation?.find(
+              (t) => t.variationKey === variation.key
+            )
+            const weight = allocation?.percentage ?? 0
+            return (
+              <View key={variation.key} style={styles.variationTag}>
+                <Text style={styles.variationName}>
+                  {variation.name || variation.key}
+                </Text>
+                <Text style={styles.variationWeight}>{weight}%</Text>
+              </View>
+            )
+          })}
         </View>
       </View>
 

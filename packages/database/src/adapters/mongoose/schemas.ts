@@ -28,6 +28,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IPlatformDocument extends Document {
   name: string;
   description?: string;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -41,6 +42,7 @@ export interface IPlatformDocument extends Document {
 const PlatformSchema = new Schema<IPlatformDocument>({
   name: { type: String, required: true, unique: true, index: true },
   description: { type: String, required: false },
+  createdBy: { type: String, required: false },
   createdAt: { type: String, required: true },
 });
 
@@ -57,6 +59,7 @@ export interface IEnvironmentDocument extends Document {
   environment: string;
   platformId: mongoose.Types.ObjectId;
   description?: string;
+  createdBy?: string;
   createdAt: string;
 }
 
@@ -73,6 +76,7 @@ const EnvironmentSchema = new Schema<IEnvironmentDocument>({
   environment: { type: String, required: true },
   platformId: { type: Schema.Types.ObjectId, ref: 'Platform', required: true, index: true },
   description: { type: String, required: false },
+  createdBy: { type: String, required: false },
   createdAt: { type: String, required: true },
 });
 

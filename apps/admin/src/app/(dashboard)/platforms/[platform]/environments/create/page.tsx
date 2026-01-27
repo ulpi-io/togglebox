@@ -69,7 +69,7 @@ export default function CreateEnvironmentPage({ params }: CreateEnvironmentPageP
 
     try {
       await createEnvironmentApi(platform, name.trim(), description.trim() || undefined);
-      router.push(`/platforms/${platform}/environments`);
+      router.push(`/platforms/${platform}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -89,7 +89,7 @@ export default function CreateEnvironmentPage({ params }: CreateEnvironmentPageP
                 : 'Add a new environment to a platform'}
             </p>
           </div>
-          <Link href={`/platforms/${initialPlatform}/environments`}>
+          <Link href={`/platforms/${initialPlatform}`}>
             <Button variant="outline">Cancel</Button>
           </Link>
         </div>
@@ -165,7 +165,7 @@ export default function CreateEnvironmentPage({ params }: CreateEnvironmentPageP
         )}
 
         <div className="flex items-center justify-end gap-3 pt-4">
-          <Link href={`/platforms/${initialPlatform}/environments`}>
+          <Link href={`/platforms/${initialPlatform}`}>
             <Button type="button" variant="outline" disabled={isLoading}>
               Cancel
             </Button>

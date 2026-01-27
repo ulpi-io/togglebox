@@ -87,4 +87,22 @@ export interface IEnvironmentRepository {
    * Use with caution. Consider soft-delete or archiving for production systems.
    */
   deleteEnvironment(platform: string, environment: string): Promise<boolean>;
+
+  /**
+   * Updates an environment's editable fields (description).
+   *
+   * @param platform - Platform name
+   * @param environment - Environment name (slug/identifier)
+   * @param updates - Fields to update (only description is editable)
+   * @returns Updated environment if found, null otherwise
+   *
+   * @remarks
+   * The environment's slug is the identifier and cannot be changed.
+   * Only the description can be updated.
+   */
+  updateEnvironment?(
+    platform: string,
+    environment: string,
+    updates: { description?: string }
+  ): Promise<Environment | null>;
 }

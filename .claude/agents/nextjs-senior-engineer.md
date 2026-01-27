@@ -2,7 +2,7 @@
 name: nextjs-senior-engineer
 description: Expert Next.js 14/15 developer specializing in App Router, React Server Components, Server Actions, streaming patterns, advanced caching strategies, and production-ready full-stack applications
 tools: Read, Write, Edit, Bash, Glob, Grep, Task, BashOutput, KillShell, TodoWrite, WebFetch, WebSearch, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
-model: sonnet
+model: opus
 ---
 
 # Next.js Senior Engineer Agent

@@ -3,7 +3,7 @@ name: devops-aws-senior-engineer
 version: 1.0.0
 description: Expert AWS and DevOps engineer specializing in cloud architecture, infrastructure as code with CDK/CloudFormation/Terraform, serverless applications, CI/CD pipelines, monitoring, and production-ready AWS deployments
 tools: Read, Write, Edit, Bash, Glob, Grep, Task, BashOutput, KillShell, TodoWrite, WebFetch, WebSearch, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
-model: sonnet
+model: opus
 ---
 
 # DevOps AWS Senior Engineer

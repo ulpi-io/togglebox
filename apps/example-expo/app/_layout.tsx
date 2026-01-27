@@ -24,19 +24,19 @@ export default function RootLayout() {
           },
         }}
       >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* Home - Example Index */}
         <Stack.Screen
-          name="flags/[flagKey]"
+          name="index"
           options={{
-            title: 'Flag Details',
-            presentation: 'card',
+            title: 'ToggleBox Examples',
           }}
         />
+
+        {/* All Examples (quick and full) */}
         <Stack.Screen
-          name="experiments/[experimentKey]"
+          name="examples"
           options={{
-            title: 'Experiment Details',
-            presentation: 'card',
+            headerShown: false,
           }}
         />
       </Stack>

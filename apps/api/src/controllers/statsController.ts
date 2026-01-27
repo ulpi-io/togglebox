@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { ThreeTierRepositories } from '@togglebox/database';
 import { logger, withDatabaseContext } from '@togglebox/shared';
-import { StatsEventSchema } from '@togglebox/stats';
+import { StatsEventSchema, checkSRM, getSRMSeverity } from '@togglebox/stats';
+import type { SRMResult } from '@togglebox/stats';
 import { z } from 'zod';
 
 /**
@@ -231,6 +232,8 @@ export class StatsController {
 
   /**
    * Gets stats for an Experiment.
+   * Includes SRM (Sample Ratio Mismatch) detection to identify potential
+   * issues with traffic allocation.
    *
    * GET /platforms/:platform/environments/:environment/experiments/:experimentKey/stats
    */
@@ -241,6 +244,10 @@ export class StatsController {
         environment: string;
         experimentKey: string;
       };
+
+      // Get expected ratios from query params (comma-separated, e.g., "0.5,0.5")
+      // Default to equal distribution if not provided
+      const expectedRatiosParam = req.query['expectedRatios'] as string | undefined;
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
@@ -259,6 +266,7 @@ export class StatsController {
               variations: [],
               metricResults: [],
               dailyData: [],
+              srm: null,
               updatedAt: null,
             },
             timestamp: new Date().toISOString(),
@@ -266,9 +274,52 @@ export class StatsController {
           return;
         }
 
+        // Calculate SRM if we have variation data
+        let srm: (SRMResult & { severity: string }) | null = null;
+
+        if (stats.variations.length >= 2) {
+          // Parse expected ratios or default to equal distribution
+          let expectedRatios: number[];
+
+          if (expectedRatiosParam) {
+            expectedRatios = expectedRatiosParam.split(',').map((r) => parseFloat(r.trim()));
+          } else {
+            // Default to equal distribution
+            const equalRatio = 1 / stats.variations.length;
+            expectedRatios = stats.variations.map(() => equalRatio);
+          }
+
+          // Validate that expected ratios match number of variations
+          if (expectedRatios.length === stats.variations.length) {
+            try {
+              // Convert to VariationData format for checkSRM
+              const variationData = stats.variations.map((v) => ({
+                variationKey: v.variationKey,
+                participants: v.participants,
+                conversions: 0, // Not needed for SRM check
+              }));
+
+              const srmResult = checkSRM(variationData, expectedRatios);
+              srm = {
+                ...srmResult,
+                severity: getSRMSeverity(srmResult.pValue),
+              };
+            } catch (err) {
+              // Log but don't fail the request if SRM calculation fails
+              logger.warn('Failed to calculate SRM', {
+                error: err instanceof Error ? err.message : String(err),
+                experimentKey,
+              });
+            }
+          }
+        }
+
         res.json({
           success: true,
-          data: stats,
+          data: {
+            ...stats,
+            srm,
+          },
           timestamp: new Date().toISOString(),
         });
       });

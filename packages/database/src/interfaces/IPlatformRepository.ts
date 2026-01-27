@@ -92,4 +92,20 @@ export interface IPlatformRepository {
    * Use with caution. Consider soft-delete or archiving for production systems.
    */
   deletePlatform(name: string): Promise<boolean>;
+
+  /**
+   * Updates a platform's editable fields (name, description).
+   *
+   * @param currentName - Current platform name (slug/identifier)
+   * @param updates - Fields to update (only name and description are editable)
+   * @returns Updated platform if found, null otherwise
+   *
+   * @remarks
+   * The platform's slug (currentName) is the identifier and cannot be changed.
+   * Only the display name and description can be updated.
+   */
+  updatePlatform?(
+    currentName: string,
+    updates: { name?: string; description?: string }
+  ): Promise<Platform | null>;
 }
