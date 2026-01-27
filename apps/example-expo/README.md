@@ -64,26 +64,20 @@ EXPO_PUBLIC_API_KEY=your-api-key  # Required if API has auth enabled
 app/
 ├── index.tsx                   # Homepage with example index
 ├── _layout.tsx                 # Root layout with ToggleBoxProvider
-├── quick/                      # Quick Start examples (4)
+├── quick/                      # Quick Start examples (5)
 │   ├── provider-setup.tsx      # How to set up the provider
-│   ├── remote-config.tsx       # Fetch remote configuration
-│   ├── feature-flags.tsx       # Check feature flags
-│   └── experiments.tsx         # Get experiment variants
-├── advanced/                   # Advanced examples (6)
-│   ├── conversion-tracking.tsx # Track experiment conversions
-│   ├── offline-storage.tsx     # MMKV persistence for offline
-│   ├── polling-refresh.tsx     # Auto-refresh & pull-to-refresh
-│   ├── health-check.tsx        # API health monitoring
-│   ├── error-handling.tsx      # Error states & offline fallback
-│   └── full-integration.tsx    # Complete real-world example
-├── playground/                 # Interactive testing
-│   ├── flags.tsx               # Interactive flag testing
-│   ├── experiments.tsx         # Interactive experiment testing
-│   └── config.tsx              # Interactive config viewer
-├── flags/
-│   └── [flagKey].tsx           # Flag detail & evaluation
-└── experiments/
-    └── [experimentKey].tsx     # Experiment detail & assignment
+│   ├── use-config.tsx          # Fetch remote configuration
+│   ├── use-flag.tsx            # Check feature flags
+│   ├── use-experiment.tsx      # Get experiment variants
+│   └── track-event.tsx         # Track events & conversions
+└── examples/                   # Complete examples (7)
+    ├── feature-toggle.tsx      # Full feature flag pattern
+    ├── ab-test-cta.tsx         # A/B test with conversion tracking
+    ├── config-theme.tsx        # Dynamic theming from config
+    ├── polling-updates.tsx     # Real-time updates with polling
+    ├── error-handling.tsx      # Error states & offline fallback
+    ├── health-check.tsx        # API health monitoring
+    └── offline-storage.tsx     # MMKV persistence for offline
 ```
 
 ---
@@ -118,7 +112,7 @@ export default function RootLayout() {
 
 ### 2. Remote Config (useConfig)
 
-**File:** `app/quick/remote-config.tsx`
+**File:** `app/quick/use-config.tsx`
 
 Fetch and display remote configuration:
 
@@ -126,7 +120,7 @@ Fetch and display remote configuration:
 import { View, Text, ActivityIndicator } from 'react-native'
 import { useConfig, useToggleBox } from '@togglebox/sdk-expo'
 
-export default function RemoteConfigScreen() {
+export default function UseConfigScreen() {
   const config = useConfig()
   const { isLoading } = useToggleBox()
 
@@ -141,9 +135,9 @@ export default function RemoteConfigScreen() {
 }
 ```
 
-### 3. Feature Flags (useFlags / isFlagEnabled)
+### 3. Feature Flags (isFlagEnabled)
 
-**File:** `app/quick/feature-flags.tsx`
+**File:** `app/quick/use-flag.tsx`
 
 List flags and evaluate with user context:
 
@@ -152,7 +146,7 @@ import { useState, useEffect } from 'react'
 import { View, Text, FlatList, ActivityIndicator } from 'react-native'
 import { useFlags, useToggleBox } from '@togglebox/sdk-expo'
 
-export default function FeatureFlagsScreen() {
+export default function UseFlagScreen() {
   const flags = useFlags()
   const { isFlagEnabled, isLoading } = useToggleBox()
   const [newDashboardEnabled, setNewDashboardEnabled] = useState(false)
@@ -186,9 +180,9 @@ export default function FeatureFlagsScreen() {
 }
 ```
 
-### 4. Experiments (useExperiments / getVariant)
+### 4. Experiments (getVariant)
 
-**File:** `app/quick/experiments.tsx`
+**File:** `app/quick/use-experiment.tsx`
 
 List experiments and get variant assignment:
 
@@ -197,7 +191,7 @@ import { useState, useEffect } from 'react'
 import { View, Text, FlatList, ActivityIndicator } from 'react-native'
 import { useExperiments, useToggleBox } from '@togglebox/sdk-expo'
 
-export default function ExperimentsScreen() {
+export default function UseExperimentScreen() {
   const experiments = useExperiments()
   const { getVariant, isLoading } = useToggleBox()
   const [variant, setVariant] = useState<string | null>(null)
@@ -225,18 +219,15 @@ export default function ExperimentsScreen() {
 }
 ```
 
----
+### 5. Event Tracking
 
-## Advanced Examples
+**File:** `app/quick/track-event.tsx`
 
-### Conversion Tracking
-
-**File:** `app/advanced/conversion-tracking.tsx`
-
-Track experiment conversions:
+Track custom events and conversions:
 
 ```tsx
-import { TouchableOpacity, Text } from 'react-native'
+import { useState } from 'react'
+import { View, TouchableOpacity, Text } from 'react-native'
 import { ToggleBoxClient } from '@togglebox/sdk-expo'
 
 const client = new ToggleBoxClient({
@@ -245,110 +236,80 @@ const client = new ToggleBoxClient({
   apiUrl: 'https://your-api.example.com/api/v1',
 })
 
-function ConversionExample() {
-  const handlePurchase = async (amount: number) => {
-    await client.trackConversion('checkout-test', { userId: 'user-123' }, {
+export default function TrackEventScreen() {
+  const [clicks, setClicks] = useState(0)
+
+  const handleClick = () => {
+    client.trackEvent('button_click', { userId: 'user-123' }, {
+      properties: { buttonId: 'cta-main' },
+    })
+    setClicks(c => c + 1)
+  }
+
+  const handlePurchase = async () => {
+    await client.trackConversion('pricing-page', { userId: 'user-123' }, {
       metricName: 'purchase',
-      value: amount,
+      value: 99.99,
     })
     await client.flushStats()  // Send immediately
   }
 
   return (
-    <TouchableOpacity onPress={() => handlePurchase(99.99)}>
-      <Text>Complete Purchase</Text>
-    </TouchableOpacity>
-  )
-}
-```
-
-### Offline Storage
-
-**File:** `app/advanced/offline-storage.tsx`
-
-Enable MMKV persistence for offline support:
-
-```tsx
-<ToggleBoxProvider
-  platform="mobile"
-  environment="production"
-  apiUrl="https://your-api.example.com/api/v1"
-  persistToStorage={true}           // Enable MMKV
-  storageTTL={24 * 60 * 60 * 1000}  // 24 hours
->
-  <App />
-</ToggleBoxProvider>
-
-// Benefits:
-// 1. Instant load from MMKV cache
-// 2. Background refresh
-// 3. Works offline
-// 4. Auto-expires stale data
-```
-
-### Polling & Refresh
-
-**File:** `app/advanced/polling-refresh.tsx`
-
-Auto-refresh and pull-to-refresh:
-
-```tsx
-import { FlatList, RefreshControl } from 'react-native'
-import { useToggleBox, useFlags } from '@togglebox/sdk-expo'
-
-function PullToRefreshList() {
-  const flags = useFlags()
-  const { refresh, isLoading } = useToggleBox()
-
-  return (
-    <FlatList
-      data={flags}
-      refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={refresh} />
-      }
-      renderItem={({ item }) => <FlagItem flag={item} />}
-    />
-  )
-}
-```
-
-### Health Check
-
-**File:** `app/advanced/health-check.tsx`
-
-Monitor API health:
-
-```tsx
-import { useState, useEffect } from 'react'
-import { View, Text } from 'react-native'
-import { ToggleBoxClient } from '@togglebox/sdk-expo'
-
-function HealthCheck() {
-  const [healthy, setHealthy] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    const client = new ToggleBoxClient({ ... })
-    client.checkConnection()
-      .then(() => setHealthy(true))
-      .catch(() => setHealthy(false))
-      .finally(() => client.destroy())
-  }, [])
-
-  return (
     <View>
-      <View style={{
-        width: 12, height: 12, borderRadius: 6,
-        backgroundColor: healthy ? '#22c55e' : '#ef4444'
-      }} />
-      <Text>{healthy ? 'API Healthy' : 'API Down'}</Text>
+      <TouchableOpacity onPress={handleClick}>
+        <Text>Click Me ({clicks})</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={handlePurchase}>
+        <Text>Complete Purchase</Text>
+      </TouchableOpacity>
     </View>
   )
 }
 ```
 
+---
+
+## Complete Examples
+
+### Feature Toggle
+
+**File:** `app/examples/feature-toggle.tsx`
+
+Full implementation showing:
+- Flag evaluation with user context
+- Loading states
+- Conditional UI rendering
+
+### A/B Test CTA
+
+**File:** `app/examples/ab-test-cta.tsx`
+
+Complete A/B test implementation:
+- Variant assignment
+- Different CTA buttons per variant
+- Conversion tracking
+
+### Config Theme
+
+**File:** `app/examples/config-theme.tsx`
+
+Theme switching with remote config:
+- Dynamic theme loading
+- Style application
+- Config-driven styling
+
+### Polling Updates
+
+**File:** `app/examples/polling-updates.tsx`
+
+Auto-refresh and pull-to-refresh:
+- Polling interval configuration
+- Manual refresh trigger
+- Pull-to-refresh support
+
 ### Error Handling
 
-**File:** `app/advanced/error-handling.tsx`
+**File:** `app/examples/error-handling.tsx`
 
 Handle errors gracefully with cached data fallback:
 
@@ -384,11 +345,63 @@ function ErrorHandlingExample() {
 }
 ```
 
-### Full Integration
+### Health Check
 
-**File:** `app/advanced/full-integration.tsx`
+**File:** `app/examples/health-check.tsx`
 
-Complete production-ready example combining all features.
+Monitor API health:
+
+```tsx
+import { useState, useEffect } from 'react'
+import { View, Text } from 'react-native'
+import { ToggleBoxClient } from '@togglebox/sdk-expo'
+
+function HealthCheck() {
+  const [healthy, setHealthy] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const client = new ToggleBoxClient({ ... })
+    client.checkConnection()
+      .then(() => setHealthy(true))
+      .catch(() => setHealthy(false))
+      .finally(() => client.destroy())
+  }, [])
+
+  return (
+    <View>
+      <View style={{
+        width: 12, height: 12, borderRadius: 6,
+        backgroundColor: healthy ? '#22c55e' : '#ef4444'
+      }} />
+      <Text>{healthy ? 'API Healthy' : 'API Down'}</Text>
+    </View>
+  )
+}
+```
+
+### Offline Storage
+
+**File:** `app/examples/offline-storage.tsx`
+
+Enable MMKV persistence for offline support:
+
+```tsx
+<ToggleBoxProvider
+  platform="mobile"
+  environment="production"
+  apiUrl="https://your-api.example.com/api/v1"
+  persistToStorage={true}           // Enable MMKV
+  storageTTL={24 * 60 * 60 * 1000}  // 24 hours
+>
+  <App />
+</ToggleBoxProvider>
+
+// Benefits:
+// 1. Instant load from MMKV cache
+// 2. Background refresh
+// 3. Works offline
+// 4. Auto-expires stale data
+```
 
 ---
 

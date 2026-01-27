@@ -36,6 +36,20 @@ const exampleItems = [
     icon: '🔄',
     features: ['Auto-refresh', 'Manual refresh', 'Update listener', 'UI feedback'],
   },
+  {
+    href: '/examples/error-handling',
+    title: 'Error Handling',
+    description: 'Graceful error handling with retry and cached data fallback',
+    icon: '⚠️',
+    features: ['Error states', 'Retry button', 'Cache fallback', 'Loading skeleton'],
+  },
+  {
+    href: '/examples/health-check',
+    title: 'Health Check',
+    description: 'API connectivity monitoring with latency tracking',
+    icon: '🏥',
+    features: ['Connection status', 'Latency display', 'Check history', 'Debug info'],
+  },
 ]
 
 export default function ExamplesPage() {

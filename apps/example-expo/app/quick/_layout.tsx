@@ -18,16 +18,20 @@ export default function QuickLayout() {
         options={{ title: 'Provider Setup' }}
       />
       <Stack.Screen
-        name="remote-config"
-        options={{ title: 'Remote Config' }}
+        name="use-config"
+        options={{ title: 'Use Config' }}
       />
       <Stack.Screen
-        name="feature-flags"
-        options={{ title: 'Feature Flags' }}
+        name="use-flag"
+        options={{ title: 'Use Flag' }}
       />
       <Stack.Screen
-        name="experiments"
-        options={{ title: 'Experiments' }}
+        name="use-experiment"
+        options={{ title: 'Use Experiment' }}
+      />
+      <Stack.Screen
+        name="track-event"
+        options={{ title: 'Track Event' }}
       />
     </Stack>
   )

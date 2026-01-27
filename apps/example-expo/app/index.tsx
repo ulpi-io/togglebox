@@ -67,7 +67,7 @@ export default function HomePage() {
 
       {/* Quick Start */}
       <SectionHeader title="QUICK START" emoji="&#x26A1;" />
-      <Text style={styles.sectionSubtitle}>Simple patterns to get started</Text>
+      <Text style={styles.sectionSubtitle}>Simple patterns to get started (~8 min total)</Text>
       <View style={styles.linkGroup}>
         <ExampleLink
           title="Provider Setup"
@@ -76,76 +76,76 @@ export default function HomePage() {
           icon="settings-outline"
         />
         <ExampleLink
-          title="Remote Config"
-          description="Fetch & display configuration"
-          href="/quick/remote-config"
+          title="Use Config"
+          description="Read remote configuration"
+          href="/quick/use-config"
           icon="cloud-download-outline"
         />
         <ExampleLink
-          title="Feature Flags"
-          description="List flags & evaluate with context"
-          href="/quick/feature-flags"
+          title="Use Flag"
+          description="Check feature flags"
+          href="/quick/use-flag"
           icon="flag-outline"
         />
         <ExampleLink
-          title="Experiments"
-          description="List & assign variants"
-          href="/quick/experiments"
+          title="Use Experiment"
+          description="Get A/B test variants"
+          href="/quick/use-experiment"
           icon="flask-outline"
+        />
+        <ExampleLink
+          title="Track Event"
+          description="Track events & conversions"
+          href="/quick/track-event"
+          icon="analytics-outline"
         />
       </View>
 
-      {/* Advanced */}
-      <SectionHeader title="ADVANCED" emoji="&#x1F527;" />
+      {/* Complete Examples */}
+      <SectionHeader title="COMPLETE EXAMPLES" emoji="&#x1F527;" />
       <Text style={styles.sectionSubtitle}>Production-ready patterns</Text>
       <View style={styles.linkGroup}>
         <ExampleLink
-          title="Conversion Tracking"
-          description="Track experiment conversions"
-          href="/advanced/conversion-tracking"
-          icon="analytics-outline"
+          title="Feature Toggle"
+          description="Full pattern with loading & fallback"
+          href="/examples/feature-toggle"
+          icon="toggle-outline"
         />
         <ExampleLink
-          title="Offline Storage"
-          description="MMKV persistence for offline"
-          href="/advanced/offline-storage"
-          icon="cloud-offline-outline"
+          title="A/B Test CTA"
+          description="Variant rendering & conversion tracking"
+          href="/examples/ab-test-cta"
+          icon="git-branch-outline"
         />
         <ExampleLink
-          title="Polling & Refresh"
-          description="Auto-refresh & pull-to-refresh"
-          href="/advanced/polling-refresh"
+          title="Config Theme"
+          description="Dynamic theming from config"
+          href="/examples/config-theme"
+          icon="color-palette-outline"
+        />
+        <ExampleLink
+          title="Polling Updates"
+          description="Real-time updates with event listeners"
+          href="/examples/polling-updates"
           icon="sync-outline"
-        />
-        <ExampleLink
-          title="Health Check"
-          description="API health monitoring"
-          href="/advanced/health-check"
-          icon="pulse-outline"
         />
         <ExampleLink
           title="Error Handling"
           description="Error states & offline fallback"
-          href="/advanced/error-handling"
+          href="/examples/error-handling"
           icon="warning-outline"
         />
         <ExampleLink
-          title="Full Integration"
-          description="Complete real-world example"
-          href="/advanced/full-integration"
-          icon="rocket-outline"
+          title="Health Check"
+          description="API health monitoring"
+          href="/examples/health-check"
+          icon="pulse-outline"
         />
-      </View>
-
-      {/* Playground */}
-      <SectionHeader title="PLAYGROUND" emoji="&#x1F3AE;" />
-      <Text style={styles.sectionSubtitle}>Interactive testing</Text>
-      <View style={styles.linkGroup}>
         <ExampleLink
-          title="Interactive Testing"
-          description="Test flags, experiments, config"
-          href="/playground"
-          icon="game-controller-outline"
+          title="Offline Storage"
+          description="MMKV persistence for offline"
+          href="/examples/offline-storage"
+          icon="cloud-offline-outline"
         />
       </View>
 

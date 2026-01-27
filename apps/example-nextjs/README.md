@@ -71,12 +71,14 @@ src/app/
 │   ├── use-experiment/         # Get experiment variants
 │   ├── track-event/            # Track analytics events
 │   └── ssr-config/             # Server-side config fetching
-└── examples/                   # Complete Examples (5)
+└── examples/                   # Complete Examples (7)
     ├── feature-toggle/         # Full feature flag implementation
     ├── ab-test-cta/            # A/B test with CTA buttons
     ├── config-theme/           # Theme switching with config
     ├── ssr-hydration/          # SSR with client hydration
-    └── polling-updates/        # Auto-refresh with polling
+    ├── polling-updates/        # Auto-refresh with polling
+    ├── error-handling/         # Error states & retry
+    └── health-check/           # API health monitoring
 ```
 
 ---
@@ -335,6 +337,26 @@ Auto-refresh configuration:
 - Polling interval configuration
 - Manual refresh trigger
 - Real-time updates display
+
+### Error Handling
+
+**File:** `src/app/examples/error-handling/page.tsx`
+
+Graceful error handling with:
+- Error state detection
+- Retry button
+- Cached data fallback
+- Loading skeletons
+
+### Health Check
+
+**File:** `src/app/examples/health-check/page.tsx`
+
+API connectivity monitoring:
+- Connection status display
+- Latency measurement
+- Check history tracking
+- Debug information
 
 ---
 

@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router'
 
-export default function AdvancedLayout() {
+export default function ExamplesLayout() {
   return (
     <Stack
       screenOptions={{
@@ -14,28 +14,32 @@ export default function AdvancedLayout() {
       }}
     >
       <Stack.Screen
-        name="conversion-tracking"
-        options={{ title: 'Conversion Tracking' }}
+        name="feature-toggle"
+        options={{ title: 'Feature Toggle' }}
       />
       <Stack.Screen
-        name="offline-storage"
-        options={{ title: 'Offline Storage' }}
+        name="ab-test-cta"
+        options={{ title: 'A/B Test CTA' }}
       />
       <Stack.Screen
-        name="polling-refresh"
-        options={{ title: 'Polling & Refresh' }}
+        name="config-theme"
+        options={{ title: 'Config Theme' }}
       />
       <Stack.Screen
-        name="health-check"
-        options={{ title: 'Health Check' }}
+        name="polling-updates"
+        options={{ title: 'Polling Updates' }}
       />
       <Stack.Screen
         name="error-handling"
         options={{ title: 'Error Handling' }}
       />
       <Stack.Screen
-        name="full-integration"
-        options={{ title: 'Full Integration' }}
+        name="health-check"
+        options={{ title: 'Health Check' }}
+      />
+      <Stack.Screen
+        name="offline-storage"
+        options={{ title: 'Offline Storage' }}
       />
     </Stack>
   )

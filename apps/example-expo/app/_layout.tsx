@@ -32,7 +32,7 @@ export default function RootLayout() {
           }}
         />
 
-        {/* Quick Examples */}
+        {/* Quick Start Examples */}
         <Stack.Screen
           name="quick"
           options={{
@@ -40,35 +40,11 @@ export default function RootLayout() {
           }}
         />
 
-        {/* Advanced Examples */}
+        {/* Complete Examples */}
         <Stack.Screen
-          name="advanced"
+          name="examples"
           options={{
             headerShown: false,
-          }}
-        />
-
-        {/* Playground (Tabs) */}
-        <Stack.Screen
-          name="playground"
-          options={{
-            headerShown: false,
-          }}
-        />
-
-        {/* Detail Screens */}
-        <Stack.Screen
-          name="flags/[flagKey]"
-          options={{
-            title: 'Flag Details',
-            presentation: 'card',
-          }}
-        />
-        <Stack.Screen
-          name="experiments/[experimentKey]"
-          options={{
-            title: 'Experiment Details',
-            presentation: 'card',
           }}
         />
       </Stack>
