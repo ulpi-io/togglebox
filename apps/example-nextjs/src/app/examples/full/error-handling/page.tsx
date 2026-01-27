@@ -3,12 +3,61 @@
 import { useFlags } from '@togglebox/sdk-nextjs'
 
 /**
- * Error Handling Example
+ * Error Handling Example (Full Implementation)
  *
- * Shows how to handle API errors gracefully.
- * Includes loading state, error UI with retry, and cached data fallback.
+ * This example shows how to:
+ *   1. Access error state from useFlags() hook
+ *   2. Display user-friendly error messages
+ *   3. Provide retry functionality
+ *   4. Fall back to cached data when errors occur
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * ERROR STATES IN TOGGLEBOX HOOKS
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * All data hooks (useFlags, useConfig, useExperiments) return:
+ *   - error: Error | null - The error if request failed
+ *   - isLoading: boolean - True while fetching
+ *   - refresh: () => void - Function to retry the request
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * BEST PRACTICES FOR ERROR HANDLING
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * 1. ALWAYS check for errors:
+ *    if (error) { show error UI with retry button }
+ *
+ * 2. Use cached data when available:
+ *    Even on error, flags may contain cached data from previous successful fetch
+ *
+ * 3. Provide clear error messages:
+ *    Show what went wrong and how to fix it (retry, check connection, etc.)
+ *
+ * 4. Don't crash on errors:
+ *    Your app should continue working (with defaults) even if ToggleBox is down
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * COMMON ERROR TYPES
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * - Network Error: Device offline or API unreachable
+ *   → Show offline banner, use cached data
+ *
+ * - 401 Unauthorized: Invalid API key
+ *   → Check NEXT_PUBLIC_API_KEY configuration
+ *
+ * - 429 Rate Limit: Too many requests
+ *   → Wait and retry with exponential backoff
+ *
+ * - 500 Server Error: ToggleBox API issue
+ *   → Display error message, suggest retry later
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
 export default function ErrorHandling() {
+  // useFlags() returns error state along with data
+  // error: The error object if the request failed
+  // refresh: Function to retry the request
   const { flags, error, isLoading, refresh } = useFlags()
 
   // Error state - show error UI with retry

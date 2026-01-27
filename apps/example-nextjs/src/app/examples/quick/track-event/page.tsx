@@ -3,102 +3,126 @@
 /**
  * Event Tracking Example
  *
+ * This example shows how to track user events and experiment conversions.
+ *
  * ═══════════════════════════════════════════════════════════════════════════════
- * WHY EVENT TRACKING IS SEPARATE FROM CONFIGS, FLAGS & EXPERIMENTS
+ * DATA FLOW: TRACKING vs. CONFIGS/FLAGS/EXPERIMENTS
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * ToggleBox has THREE TIERS of functionality with different data flow patterns:
+ * CONFIGS, FLAGS, EXPERIMENTS (READ operations):
+ *   Server ──────> SDK ──────> Your App
+ *   • Data flows FROM server TO your app
+ *   • Determines WHAT to show users
  *
- * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ TIER 1-3: CONFIGS, FLAGS, EXPERIMENTS (READ operations)                     │
- * │                                                                             │
- * │   Server ──────> SDK ──────> Your App                                       │
- * │                                                                             │
- * │   • Data flows FROM the server TO your app                                  │
- * │   • Can be fetched server-side (SSR) or client-side                         │
- * │   • Determines WHAT to show users                                           │
- * │   • Examples: feature toggles, A/B test variants, remote config             │
- * └─────────────────────────────────────────────────────────────────────────────┘
+ * EVENT TRACKING (WRITE operations):
+ *   Your App ──────> SDK ──────> Server
+ *   • Data flows FROM your app TO the server
+ *   • Records WHAT users do
  *
- * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ EVENT TRACKING (WRITE operations)                                           │
- * │                                                                             │
- * │   Your App ──────> SDK ──────> Server                                       │
- * │                                                                             │
- * │   • Data flows FROM your app TO the server                                  │
- * │   • Primarily client-side (browser interactions)                            │
- * │   • Records WHAT users do                                                   │
- * │   • Examples: clicks, page views, purchases, conversions                    │
- * └─────────────────────────────────────────────────────────────────────────────┘
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * CLIENT vs. SERVER TRACKING
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * WHY CLIENT-SIDE BY DEFAULT?
- * ───────────────────────────
- * Event tracking captures user interactions that happen in the browser:
- *   • Button clicks, form submissions, scroll depth
- *   • User session context (device, browser, timezone)
- *   • Real-time interaction timestamps
+ * CLIENT-SIDE (useAnalytics hook):
+ *   Use for browser interactions:
+ *     • Button clicks, form submissions, scroll events
+ *     • Page views, UI interactions
+ *     • Real-time user engagement
  *
- * For server-side tracking (API routes, webhooks, background jobs),
- * see the "Server-Side Tracking" section below with Server Actions.
+ * SERVER-SIDE (ToggleBoxClient in Server Actions):
+ *   Use for server-originated events:
+ *     • Payment webhooks (Stripe, PayPal)
+ *     • Cron job completions
+ *     • API callbacks, background jobs
+ *     • Events requiring security/validation
  *
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 import { useAnalytics } from '@togglebox/sdk-nextjs'
 import { useState } from 'react'
+import { useUserContext } from '@/lib/user-context'
 import { trackServerEvent, trackServerConversion } from './actions'
 
 export default function TrackEvent() {
+  // Get user context from your auth provider
+  const userContext = useUserContext()
+
+  // useAnalytics provides trackEvent and trackConversion
   const { trackEvent, trackConversion } = useAnalytics()
+
   const [clicks, setClicks] = useState(0)
   const [serverResult, setServerResult] = useState<string | null>(null)
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CLIENT-SIDE TRACKING (Browser interactions)
+  // CLIENT-SIDE TRACKING
   // ═══════════════════════════════════════════════════════════════════════════
-  // Use this for tracking user interactions in the browser:
-  //   • Button clicks, form submissions
-  //   • Page views, scroll events
-  //   • UI interactions that happen in real-time
-  //
-  // The SDK batches events and sends them efficiently to reduce network calls.
 
+  /**
+   * Track a generic event (button click)
+   *
+   * trackEvent() is for general analytics:
+   *   - Page views, button clicks, form submissions
+   *   - Not tied to a specific experiment
+   *   - Useful for understanding user behavior
+   */
   const handleButtonClick = () => {
-    trackEvent('button_click', { userId: 'user-123' }, {
-      properties: {
-        buttonId: 'cta-main',
-        page: '/pricing',
-      },
-    })
+    trackEvent(
+      'button_click',     // eventName - descriptive name for the action
+      userContext,        // context - links event to user for analytics
+      {
+        properties: {
+          buttonId: 'cta-main',
+          page: '/pricing',
+        },
+      }
+    )
     setClicks(c => c + 1)
   }
 
+  /**
+   * Track an experiment conversion
+   *
+   * trackConversion() links the action to an experiment:
+   *   - Used to calculate A/B test results
+   *   - Links user action to the variant they saw
+   *   - value can be revenue, count, or any metric
+   */
   const handlePurchase = async () => {
-    // trackConversion links this event to an experiment for A/B test analysis
-    await trackConversion('pricing-page', { userId: 'user-123' }, {
-      metricName: 'purchase',
-      value: 99.99,
-    })
-    alert('Purchase tracked!')
+    await trackConversion(
+      'pricing-page',     // experimentKey - which experiment to attribute to
+      userContext,        // context - links to user for attribution
+      {
+        metricName: 'purchase',  // goal name
+        value: 99.99,            // metric value (revenue, count, etc.)
+      }
+    )
+    alert('Purchase conversion tracked!')
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SERVER-SIDE TRACKING (API routes, webhooks, background jobs)
+  // SERVER-SIDE TRACKING (via Server Actions)
   // ═══════════════════════════════════════════════════════════════════════════
-  // Use Server Actions or API Routes when tracking events that:
-  //   • Originate from server-side logic (webhooks, cron jobs)
-  //   • Need to be tracked securely (payment confirmations)
-  //   • Don't involve direct user interaction
-  //
-  // See actions.ts for the Server Action implementation.
 
+  /**
+   * Track event from server (Server Action)
+   *
+   * Use server-side tracking when:
+   *   - Event originates from backend (webhooks, cron)
+   *   - Need to validate before tracking (payment confirmation)
+   *   - Security-sensitive events
+   */
   const handleServerTracking = async () => {
-    const result = await trackServerEvent('user-123', 'server_action_demo')
+    const result = await trackServerEvent(userContext.userId, 'server_action_demo')
     setServerResult(result.success ? 'Server event tracked!' : 'Failed')
   }
 
   const handleServerConversion = async () => {
-    const result = await trackServerConversion('user-123', 'checkout-experiment', 149.99)
+    const result = await trackServerConversion(
+      userContext.userId,
+      'checkout-experiment',
+      149.99
+    )
     setServerResult(result.success ? 'Server conversion tracked!' : 'Failed')
   }
 
@@ -151,13 +175,12 @@ export default function TrackEvent() {
         )}
       </div>
 
-      {/* Explanation */}
+      {/* User Context Display */}
       <div className="p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-bold mb-2">When to use each?</h3>
-        <div className="text-sm text-gray-600 space-y-2">
-          <p><strong>Client-side (useAnalytics):</strong> Button clicks, page views, form submissions, UI interactions</p>
-          <p><strong>Server-side (Server Actions):</strong> Payment webhooks, cron jobs, API callbacks, secure events</p>
-        </div>
+        <h3 className="font-bold mb-2">Current User Context</h3>
+        <pre className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+          {JSON.stringify(userContext, null, 2)}
+        </pre>
       </div>
     </div>
   )

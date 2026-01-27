@@ -4,27 +4,75 @@ import { useConfig, useFlags, useToggleBoxClient } from '@togglebox/sdk-nextjs'
 import { useState, useEffect } from 'react'
 
 /**
- * Real-time Polling Updates
+ * Real-time Polling Updates Example
  *
- * Listens for config/flag updates and reacts to changes.
- * Uses event listeners to show when data refreshes.
+ * This example shows how to:
+ *   1. Access the underlying ToggleBoxClient with useToggleBoxClient()
+ *   2. Listen for polling update events with client.on('update')
+ *   3. Manually refresh data with refresh()
+ *   4. Show real-time update indicators
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * HOW POLLING WORKS
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * When you configure ToggleBoxProvider with pollingInterval:
+ *
+ *   <ToggleBoxProvider pollingInterval={30000}>  // 30 seconds
+ *
+ * The SDK automatically:
+ *   1. Fetches fresh data every 30 seconds
+ *   2. Emits an 'update' event when data changes
+ *   3. Updates all hooks (useConfig, useFlags, useExperiments) automatically
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * useToggleBoxClient() HOOK
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Returns the underlying ToggleBoxClient instance from the Provider.
+ * Use it when you need:
+ *   - Event listeners (on/off)
+ *   - Direct API access
+ *   - Low-level SDK control
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * EVENT LISTENERS
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Available events:
+ *   - 'update': Fired when data is refreshed (polling or manual)
+ *   - 'error': Fired when a request fails
+ *
+ * Usage:
+ *   client.on('update', () => console.log('Data refreshed!'))
+ *   client.off('update', handler)  // Remove listener
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
 export default function PollingUpdates() {
+  // useConfig() provides refresh() for manual data refresh
   const { config, refresh, isLoading } = useConfig()
   const { flags } = useFlags()
+
+  // useToggleBoxClient() returns the underlying client from the Provider
+  // Use this to access event listeners and low-level SDK features
   const client = useToggleBoxClient()
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
-  // Listen for polling updates
+  // Listen for polling updates using the client's event system
   useEffect(() => {
     if (!client) return
 
+    // Handler called whenever data is refreshed (by polling or manually)
     const handleUpdate = () => {
       setLastUpdate(new Date())
       console.log('Config updated via polling')
     }
 
+    // Subscribe to update events
     client.on('update', handleUpdate)
+
+    // IMPORTANT: Unsubscribe on cleanup to prevent memory leaks
     return () => client.off('update', handleUpdate)
   }, [client])
 

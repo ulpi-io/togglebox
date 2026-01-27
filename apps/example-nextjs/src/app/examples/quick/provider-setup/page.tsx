@@ -5,9 +5,16 @@ import { useConfig, useFlags, useExperiments } from '@togglebox/sdk-nextjs'
 /**
  * Provider Setup Example
  *
- * This page demonstrates that the ToggleBoxProvider is working.
- * In your app, wrap your root layout with ToggleBoxProvider:
+ * This page demonstrates that the ToggleBoxProvider is working correctly.
+ * It shows the data from all three tiers: Configs, Flags, and Experiments.
  *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * HOW TO SET UP THE PROVIDER
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Wrap your root layout with ToggleBoxProvider:
+ *
+ * ```tsx
  * // app/layout.tsx
  * import { ToggleBoxProvider } from '@togglebox/sdk-nextjs'
  *
@@ -16,11 +23,11 @@ import { useConfig, useFlags, useExperiments } from '@togglebox/sdk-nextjs'
  *     <html>
  *       <body>
  *         <ToggleBoxProvider
- *           platform="web"
- *           environment="production"
+ *           platform="web"              // Your platform name
+ *           environment="production"    // Your environment (staging, prod, etc.)
  *           apiUrl="https://your-api.com/api/v1"
- *           apiKey={process.env.NEXT_PUBLIC_API_KEY}
- *           pollingInterval={30000}
+ *           apiKey={process.env.NEXT_PUBLIC_API_KEY}  // Optional: for write ops
+ *           pollingInterval={30000}     // Optional: auto-refresh every 30s
  *         >
  *           {children}
  *         </ToggleBoxProvider>
@@ -28,8 +35,36 @@ import { useConfig, useFlags, useExperiments } from '@togglebox/sdk-nextjs'
  *     </html>
  *   )
  * }
+ * ```
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * PROVIDER PROPS
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Required:
+ *   - platform: string - Your platform name (matches ToggleBox admin)
+ *   - environment: string - Your environment (production, staging, etc.)
+ *   - apiUrl: string - Your ToggleBox API URL
+ *
+ * Optional:
+ *   - apiKey: string - API key for write operations (set via env var)
+ *   - pollingInterval: number - Auto-refresh interval in ms (0 = disabled)
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * WHAT THE PROVIDER DOES
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * 1. Creates a ToggleBoxClient instance
+ * 2. Fetches configs, flags, and experiments from the API
+ * 3. Provides data to all child components via React Context
+ * 4. Handles polling/refresh automatically
+ * 5. Cleans up resources on unmount
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
 export default function ProviderSetup() {
+  // These hooks access data provided by ToggleBoxProvider
+  // They work because this component is wrapped by the provider
   const { config, isLoading, refresh } = useConfig()
   const { flags } = useFlags()
   const { experiments } = useExperiments()

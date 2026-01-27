@@ -1,22 +1,55 @@
 import { getServerSideConfig } from '@togglebox/sdk-nextjs'
 
 /**
- * SSR Config Example
+ * Server-Side Rendering (SSR) Configuration Example
  *
- * Fetch configuration on the server for instant page loads.
- * No loading spinner - data is pre-rendered in HTML.
+ * This example shows how to:
+ *   1. Fetch config on the server with getServerSideConfig()
+ *   2. Pre-render data in HTML (no loading spinner)
+ *   3. Get configs, flags, AND experiments in a single server call
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * WHY getServerSideConfig?
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Benefits of server-side fetching:
+ *   - Instant page load (data in HTML, no client-side fetch)
+ *   - Better SEO (content visible to crawlers)
+ *   - No loading spinners or content flashes
+ *   - Single API call gets configs, flags, and experiments together
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * WHEN TO USE
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Use SSR for:
+ *   - Landing pages where speed matters
+ *   - Pages with SEO requirements
+ *   - Initial page load optimization
+ *
+ * Use client-side (useConfig) for:
+ *   - Real-time updates (polling)
+ *   - Personalized content based on client state
+ *   - After user interactions
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * NOTE: This is a Server Component (no 'use client' directive)
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
 
+// Configuration from environment variables
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
 const PLATFORM = process.env.NEXT_PUBLIC_PLATFORM || 'web'
 const ENVIRONMENT = process.env.NEXT_PUBLIC_ENVIRONMENT || 'production'
 
 export default async function SSRConfig() {
-  // Fetch on server - no client-side loading
+  // getServerSideConfig() fetches ALL data in one call on the server
+  // This happens BEFORE the page is sent to the browser
+  // Returns: { config, flags, experiments }
   const { config, flags, experiments } = await getServerSideConfig(
-    PLATFORM,
-    ENVIRONMENT,
-    API_URL
+    PLATFORM,     // Your platform name (e.g., 'web', 'mobile', 'api')
+    ENVIRONMENT,  // Your environment (e.g., 'production', 'staging')
+    API_URL       // Your ToggleBox API URL
   )
 
   const configKeys = Object.keys(config?.config || {})

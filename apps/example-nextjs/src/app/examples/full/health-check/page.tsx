@@ -3,18 +3,59 @@
 import { useState, useRef, useEffect } from 'react'
 import { ToggleBoxClient } from '@togglebox/sdk-nextjs'
 
-// Configuration - uses environment variables
+/**
+ * API Health Check Example
+ *
+ * This example shows how to:
+ *   1. Create a ToggleBoxClient instance directly
+ *   2. Use checkConnection() to verify API connectivity
+ *   3. Measure API latency for monitoring
+ *   4. Properly clean up the client on unmount
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * WHY ToggleBoxClient?
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * The ToggleBoxClient is the core SDK class. You can use it:
+ *   - When you need direct API access (not using Provider context)
+ *   - For server-side operations (Server Actions, API routes)
+ *   - For health checks and debugging
+ *   - When you need fine-grained control over the SDK
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * checkConnection() METHOD
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * checkConnection() verifies the API is reachable and returns:
+ *   - { message: string } on success
+ *   - Throws an error on failure
+ *
+ * Use cases:
+ *   - Health check endpoints in your app
+ *   - Debugging connectivity issues
+ *   - Monitoring dashboards
+ *   - Connection status indicators
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * IMPORTANT: CLEANUP
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * When creating ToggleBoxClient manually, ALWAYS call destroy() on cleanup:
+ *   useEffect(() => {
+ *     const client = new ToggleBoxClient(...)
+ *     return () => client.destroy()  // Clean up timers and listeners
+ *   }, [])
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ */
+
+// Configuration from environment variables
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
 const PLATFORM = process.env.NEXT_PUBLIC_PLATFORM || 'web'
 const ENVIRONMENT = process.env.NEXT_PUBLIC_ENVIRONMENT || 'production'
 
-/**
- * Health Check Example
- *
- * Shows how to check API connectivity and latency.
- * Useful for debugging and monitoring.
- */
 export default function HealthCheck() {
+  // Store client in ref to persist across renders
   const clientRef = useRef<ToggleBoxClient | null>(null)
   const [checking, setChecking] = useState(false)
   const [health, setHealth] = useState<{
@@ -24,23 +65,32 @@ export default function HealthCheck() {
   } | null>(null)
   const [history, setHistory] = useState<Array<{ ok: boolean; latency: number; time: Date }>>([])
 
-  // Create client on mount
+  // Create ToggleBoxClient on mount, destroy on unmount
+  // This pattern is required when using ToggleBoxClient directly
   useEffect(() => {
     clientRef.current = new ToggleBoxClient({
       platform: PLATFORM,
       environment: ENVIRONMENT,
       apiUrl: API_URL,
     })
+    // IMPORTANT: Always destroy the client to clean up timers and event listeners
     return () => clientRef.current?.destroy()
   }, [])
 
-  // Check API health
+  /**
+   * Check API health using checkConnection()
+   *
+   * This method pings the ToggleBox API health endpoint
+   * and returns the response time (latency)
+   */
   const checkHealth = async () => {
     if (!clientRef.current) return
     setChecking(true)
 
     const start = Date.now()
     try {
+      // checkConnection() returns { message: string } on success
+      // or throws an error on failure
       const response = await clientRef.current.checkConnection()
       const latency = Date.now() - start
       const result = {

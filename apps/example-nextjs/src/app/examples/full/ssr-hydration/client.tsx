@@ -9,10 +9,42 @@ interface Props {
 }
 
 /**
- * Client component that hydrates with SSR data.
- * Data is available immediately - no loading state.
+ * Client Component for SSR Hydration
+ *
+ * This component receives server-rendered data as props and compares it
+ * with client-side data from hooks. This demonstrates:
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * HOW CLIENT HOOKS WORK WITH SSR
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * 1. Server component fetches data → passes as props
+ * 2. Client component renders immediately (no loading state)
+ * 3. useConfig(), useFlags(), useExperiments() hydrate from ToggleBoxProvider
+ * 4. Data should match (server and client fetched same data)
+ * 5. Client hooks can then poll for updates
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * HOOKS USED
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * useConfig():
+ *   - Returns { config, isLoading, error, refresh }
+ *   - Config is the raw JSON object from your ToggleBox config
+ *
+ * useFlags():
+ *   - Returns { flags, isLoading, error, refresh }
+ *   - flags is an array of all feature flags
+ *
+ * useExperiments():
+ *   - Returns { experiments, isLoading, error, refresh }
+ *   - experiments is an array of all experiments
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
 export function SSRHydrationClient({ serverConfigKeys, serverFlags, serverExperiments }: Props) {
+  // Client-side hooks that provide real-time data
+  // These sync with the ToggleBoxProvider and can poll for updates
   const { config, refresh, isLoading } = useConfig()
   const { flags } = useFlags()
   const { experiments } = useExperiments()
