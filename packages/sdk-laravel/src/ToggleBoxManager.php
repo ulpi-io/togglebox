@@ -12,7 +12,9 @@ use ToggleBox\ToggleBoxClient;
 use ToggleBox\Types\CacheOptions;
 use ToggleBox\Types\ClientOptions;
 use ToggleBox\Types\ConversionData;
+use ToggleBox\Types\Experiment;
 use ToggleBox\Types\ExperimentContext;
+use ToggleBox\Types\Flag;
 use ToggleBox\Types\FlagContext;
 use ToggleBox\Types\FlagResult;
 use ToggleBox\Types\VariantAssignment;
@@ -187,6 +189,56 @@ class ToggleBoxManager
         return $this->client()->getExperiments();
     }
 
+    /**
+     * Get a specific experiment's metadata without assignment.
+     */
+    public function experimentInfo(string $experimentKey): ?Experiment
+    {
+        return $this->client()->getExperimentInfo($experimentKey);
+    }
+
+    /**
+     * Track a custom event.
+     *
+     * @param string $eventName Name of the event
+     * @param string|null $userId User ID (auto-resolved if null)
+     * @param string|null $country Country code for targeting
+     * @param string|null $language Language code for targeting
+     * @param array|null $data Optional event data with 'experimentKey', 'variationKey', 'properties'
+     */
+    public function trackEvent(
+        string $eventName,
+        ?string $userId = null,
+        ?string $country = null,
+        ?string $language = null,
+        ?array $data = null,
+    ): void {
+        $context = $this->buildExperimentContext($userId, $country, $language);
+        $this->client()->trackEvent($eventName, $context, $data);
+    }
+
+    // ==================== TIER 1 EXTENDED METHODS ====================
+
+    /**
+     * List all configuration versions.
+     *
+     * @return array<array{version: string, isStable: bool, createdAt: string}>
+     */
+    public function configVersions(): array
+    {
+        return $this->client()->getConfigVersions();
+    }
+
+    // ==================== TIER 2 EXTENDED METHODS ====================
+
+    /**
+     * Get flag metadata without evaluation.
+     */
+    public function flagInfo(string $flagKey): ?Flag
+    {
+        return $this->client()->getFlagInfo($flagKey);
+    }
+
     // ==================== UTILITY METHODS ====================
 
     /**
@@ -211,6 +263,17 @@ class ToggleBoxManager
     public function clearCache(): void
     {
         $this->client()->clearCache();
+    }
+
+    /**
+     * Check API connectivity and service health.
+     *
+     * @return array{status: string, uptime?: int}
+     * @throws \ToggleBox\Exceptions\ToggleBoxException If API is unreachable
+     */
+    public function checkConnection(): array
+    {
+        return $this->client()->checkConnection();
     }
 
     // ==================== CONTEXT BUILDERS ====================
