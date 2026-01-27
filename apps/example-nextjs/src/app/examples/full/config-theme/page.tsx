@@ -10,7 +10,7 @@ import { useEffect, useMemo } from 'react'
  * Falls back to defaults if config not available.
  */
 export default function ConfigTheme() {
-  const config = useConfig()
+  const { config, isLoading } = useConfig()
 
   const defaultTheme = useMemo(() => ({
     primaryColor: '#3b82f6',
@@ -28,12 +28,17 @@ export default function ConfigTheme() {
 
   // Apply theme to CSS variables
   useEffect(() => {
+    if (isLoading) return
     const root = document.documentElement
     root.style.setProperty('--color-primary', theme.primaryColor)
     root.style.setProperty('--color-secondary', theme.secondaryColor)
     root.style.setProperty('--color-accent', theme.accentColor)
     root.style.setProperty('--border-radius', theme.borderRadius)
-  }, [theme])
+  }, [theme, isLoading])
+
+  if (isLoading) {
+    return <div className="animate-pulse">Loading theme...</div>
+  }
 
   return (
     <div className="space-y-4">
