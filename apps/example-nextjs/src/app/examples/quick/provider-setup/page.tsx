@@ -1,6 +1,6 @@
 'use client'
 
-import { useToggleBox, useConfig, useFlags, useExperiments } from '@togglebox/sdk-nextjs'
+import { useConfig, useFlags, useExperiments } from '@togglebox/sdk-nextjs'
 
 /**
  * Provider Setup Example
@@ -30,10 +30,9 @@ import { useToggleBox, useConfig, useFlags, useExperiments } from '@togglebox/sd
  * }
  */
 export default function ProviderSetup() {
-  const { isLoading, refresh } = useToggleBox()
-  const config = useConfig()
-  const flags = useFlags()
-  const experiments = useExperiments()
+  const { config, isLoading, refresh } = useConfig()
+  const { flags } = useFlags()
+  const { experiments } = useExperiments()
 
   if (isLoading) {
     return <div>Loading...</div>

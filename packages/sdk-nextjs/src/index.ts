@@ -3,12 +3,13 @@ export { ToggleBoxProvider, useToggleBoxContext } from './provider'
 
 // Hooks
 export {
-  useToggleBox,
   useConfig,
   useFlags,
   useFlag,
   useExperiments,
   useExperiment,
+  useAnalytics,
+  useToggleBoxClient,
 } from './hooks'
 
 // Server-side helpers
@@ -20,6 +21,10 @@ export type {
   ToggleBoxContextValue,
   ConversionData,
   EventData,
+  UseConfigResult,
+  UseFlagsResult,
+  UseExperimentsResult,
+  UseAnalyticsResult,
 } from './types'
 
 // Re-export from sdk for convenience

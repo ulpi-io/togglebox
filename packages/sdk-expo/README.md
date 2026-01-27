@@ -89,12 +89,11 @@ Remote configs are **versioned, immutable snapshots** of application settings. U
 ### Using Configuration
 
 ```tsx
-import { useConfig, useToggleBox } from '@togglebox/sdk-expo'
+import { useConfig } from '@togglebox/sdk-expo'
 import { View, Text, ActivityIndicator } from 'react-native'
 
 function SettingsScreen() {
-  const config = useConfig()
-  const { isLoading } = useToggleBox()
+  const { config, isLoading } = useConfig()
 
   if (isLoading && !config) return <ActivityIndicator size="large" />
 
@@ -113,12 +112,11 @@ function SettingsScreen() {
 ### Theming with Config
 
 ```tsx
-import { useConfig, useToggleBox } from '@togglebox/sdk-expo'
+import { useConfig } from '@togglebox/sdk-expo'
 import { ThemeProvider } from '@react-navigation/native'
 
 function AppTheme({ children }: { children: React.ReactNode }) {
-  const config = useConfig()
-  const { isLoading } = useToggleBox()
+  const { config, isLoading } = useConfig()
 
   if (isLoading && !config) return <SplashScreen />
 
@@ -157,7 +155,7 @@ Feature flags are **2-value switches** (A or B) with targeting rules. Use them f
 ### Check Flag Enabled
 
 ```tsx
-import { useFlag, useToggleBox } from '@togglebox/sdk-expo'
+import { useFlag, useFlags } from '@togglebox/sdk-expo'
 import { View } from 'react-native'
 
 function HomeScreen() {
@@ -181,7 +179,7 @@ import { useFlags } from '@togglebox/sdk-expo'
 import { View, Text, FlatList } from 'react-native'
 
 function FeatureFlagDebugger() {
-  const flags = useFlags()
+  const { flags } = useFlags()
 
   return (
     <FlatList
@@ -241,21 +239,16 @@ function OnboardingFlow() {
 Track user conversions to measure experiment effectiveness:
 
 ```tsx
-import { ToggleBoxClient } from '@togglebox/sdk-expo'
-
-// Create a client instance for conversion tracking
-const client = new ToggleBoxClient({
-  platform: 'mobile',
-  environment: __DEV__ ? 'development' : 'production',
-  apiUrl: 'https://api.yourcompany.com',
-})
+import { useAnalytics } from '@togglebox/sdk-expo'
 
 function PurchaseButton({ userId, cartTotal }: { userId: string; cartTotal: number }) {
+  const { trackConversion, flushStats } = useAnalytics()
+
   const handlePurchase = async () => {
     // Process payment...
 
     // Track the conversion
-    await client.trackConversion(
+    await trackConversion(
       'checkout-experiment',
       { userId },
       {
@@ -263,6 +256,9 @@ function PurchaseButton({ userId, cartTotal }: { userId: string; cartTotal: numb
         value: cartTotal,
       }
     )
+
+    // Optionally flush stats immediately
+    await flushStats()
   }
 
   return (
@@ -274,19 +270,14 @@ function PurchaseButton({ userId, cartTotal }: { userId: string; cartTotal: numb
 ### Complete A/B Test Example
 
 ```tsx
-import { useExperiment, ToggleBoxClient } from '@togglebox/sdk-expo'
+import { useExperiment, useAnalytics } from '@togglebox/sdk-expo'
 import { View, Button, Text } from 'react-native'
-
-const client = new ToggleBoxClient({
-  platform: 'mobile',
-  environment: __DEV__ ? 'development' : 'production',
-  apiUrl: 'https://api.yourcompany.com',
-})
 
 function SignupButton() {
   const { user } = useAuth()
   const context = { userId: user?.id || 'anonymous' }
   const { getVariant } = useExperiment('signup-cta-experiment', context)
+  const { trackConversion } = useAnalytics()
   const [variant, setVariant] = useState<string | null>(null)
 
   useEffect(() => {
@@ -295,7 +286,7 @@ function SignupButton() {
 
   const handleSignup = async () => {
     // Track the conversion
-    await client.trackConversion('signup-cta-experiment', context, {
+    await trackConversion('signup-cta-experiment', context, {
       metricName: 'signup_click',
     })
 
@@ -324,7 +315,7 @@ Context is used for targeting rules in flags and experiments. Update it when use
 ### Dynamic Context Updates
 
 ```tsx
-import { useToggleBox } from '@togglebox/sdk-expo'
+import { useFlags } from '@togglebox/sdk-expo'
 import { useAuth } from './auth'
 import { useLocale } from './locale'
 import * as Application from 'expo-application'
@@ -333,7 +324,7 @@ import { Platform } from 'react-native'
 function ContextManager({ children }: { children: React.ReactNode }) {
   const { user, isLoading: authLoading } = useAuth()
   const locale = useLocale()
-  const { isFlagEnabled } = useToggleBox()
+  const { isFlagEnabled } = useFlags()
 
   // NOTE: The provider doesn't expose setContext directly
   // Context is passed per-evaluation instead
@@ -480,11 +471,11 @@ With persistence enabled:
 
 ```tsx
 import NetInfo from '@react-native-community/netinfo'
-import { useToggleBox } from '@togglebox/sdk-expo'
+import { useConfig } from '@togglebox/sdk-expo'
 import { View, Text } from 'react-native'
 
 function OfflineBanner() {
-  const { config } = useToggleBox()
+  const { config } = useConfig()
   const [isOnline, setIsOnline] = useState(true)
 
   useEffect(() => {
@@ -519,39 +510,32 @@ We use [react-native-mmkv](https://github.com/mrousavy/react-native-mmkv) instea
 
 ## React Hooks API
 
-### useToggleBox
+### useConfig
 
-Full access to ToggleBox context:
+Access configuration with methods:
 
 ```tsx
 const {
-  config,           // Current configuration (Tier 1)
-  flags,            // Feature flags array (Tier 2)
-  experiments,      // Experiments array (Tier 3)
-  isLoading,        // Loading state
-  error,            // Error state
-  refresh,          // Manually refresh all data
-  isFlagEnabled,    // Check if flag is enabled
-  getVariant,       // Get experiment variant
-} = useToggleBox()
-```
-
-### useConfig
-
-Access configuration object:
-
-```tsx
-const config = useConfig()
-// Returns Config | null
+  config,           // Config | null
+  getConfigValue,   // <T>(key: string, defaultValue: T) => Promise<T>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useConfig()
 ```
 
 ### useFlags
 
-Access all feature flags:
+Access all feature flags with evaluation:
 
 ```tsx
-const flags = useFlags()
-// Returns Flag[]
+const {
+  flags,            // Flag[]
+  isFlagEnabled,    // (flagKey: string, context?: FlagContext) => Promise<boolean>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useFlags()
 ```
 
 ### useFlag
@@ -568,11 +552,16 @@ const { flag, exists, isLoading, checkEnabled } = useFlag('my-flag')
 
 ### useExperiments
 
-Access all experiments:
+Access all experiments with variant assignment:
 
 ```tsx
-const experiments = useExperiments()
-// Returns Experiment[]
+const {
+  experiments,      // Experiment[]
+  getVariant,       // (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useExperiments()
 ```
 
 ### useExperiment
@@ -587,6 +576,27 @@ const { experiment, exists, isLoading, getVariant } = useExperiment('my-experime
 // exists: boolean
 // isLoading: boolean
 // getVariant: () => Promise<string | null>
+```
+
+### useAnalytics
+
+Access analytics and event tracking:
+
+```tsx
+const {
+  trackEvent,       // (eventName: string, context: ExperimentContext, data?: EventData) => void
+  trackConversion,  // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
+  flushStats,       // () => Promise<void>
+} = useAnalytics()
+```
+
+### useToggleBoxClient
+
+Access the raw ToggleBox client for advanced use cases:
+
+```tsx
+const client = useToggleBoxClient()
+// Returns ToggleBoxClient | null
 ```
 
 ---
@@ -612,10 +622,10 @@ const { experiment, exists, isLoading, getVariant } = useExperiment('my-experime
 
 ```tsx
 import { RefreshControl, ScrollView } from 'react-native'
-import { useToggleBox } from '@togglebox/sdk-expo'
+import { useConfig } from '@togglebox/sdk-expo'
 
 function MyScreen() {
-  const { refresh, isLoading } = useToggleBox()
+  const { refresh, isLoading } = useConfig()
 
   return (
     <ScrollView
@@ -636,10 +646,10 @@ function MyScreen() {
 
 ```tsx
 import { View, Text, Button, ActivityIndicator } from 'react-native'
-import { useToggleBox } from '@togglebox/sdk-expo'
+import { useConfig } from '@togglebox/sdk-expo'
 
 function ConfigLoader({ children }: { children: React.ReactNode }) {
-  const { config, isLoading, error, refresh } = useToggleBox()
+  const { config, isLoading, error, refresh } = useConfig()
 
   if (isLoading && !config) {
     return (
@@ -670,10 +680,10 @@ Target specific app versions with feature flags:
 ```tsx
 import * as Application from 'expo-application'
 import { Platform } from 'react-native'
-import { useToggleBox } from '@togglebox/sdk-expo'
+import { useFlags } from '@togglebox/sdk-expo'
 
 function VersionTargetedFeature() {
-  const { isFlagEnabled } = useToggleBox()
+  const { isFlagEnabled } = useFlags()
   const [showFeature, setShowFeature] = useState(false)
 
   useEffect(() => {
@@ -696,10 +706,10 @@ function VersionTargetedFeature() {
 ### Percentage-Based Rollout
 
 ```tsx
-import { useToggleBox } from '@togglebox/sdk-expo'
+import { useFlags } from '@togglebox/sdk-expo'
 
 function CheckoutScreen() {
-  const { isFlagEnabled } = useToggleBox()
+  const { isFlagEnabled } = useFlags()
   const { user } = useAuth()
   const [useNewCheckout, setUseNewCheckout] = useState(false)
 
@@ -745,11 +755,11 @@ function FeatureCard({ featureName }: { featureName: string }) {
 ### Multiple Flags Evaluation
 
 ```tsx
-import { useToggleBox } from '@togglebox/sdk-expo'
+import { useFlags } from '@togglebox/sdk-expo'
 import { View } from 'react-native'
 
 function FeatureSection() {
-  const { isFlagEnabled } = useToggleBox()
+  const { isFlagEnabled } = useFlags()
   const { user } = useAuth()
   const [features, setFeatures] = useState({
     darkMode: false,
@@ -812,22 +822,17 @@ export default function App() {
 }
 
 // HomeScreen.tsx
-import { useConfig, useFlag, useExperiment, ToggleBoxClient } from '@togglebox/sdk-expo'
+import { useConfig, useFlag, useExperiment, useAnalytics } from '@togglebox/sdk-expo'
 import * as Application from 'expo-application'
-
-const client = new ToggleBoxClient({
-  platform: 'mobile',
-  environment: __DEV__ ? 'development' : 'production',
-  apiUrl: process.env.EXPO_PUBLIC_TOGGLEBOX_URL!,
-})
 
 function HomeScreen() {
   const { user } = useAuth()
-  const config = useConfig()
+  const { config } = useConfig()
   const { checkEnabled: checkNewUI } = useFlag('new-home-ui')
   const { getVariant } = useExperiment('home-layout-experiment', {
     userId: user?.id || 'anonymous',
   })
+  const { trackConversion } = useAnalytics()
 
   const [showNewUI, setShowNewUI] = useState(false)
   const [layoutVariant, setLayoutVariant] = useState<string | null>(null)
@@ -842,7 +847,7 @@ function HomeScreen() {
 
   const handleCTAClick = async () => {
     // Track conversion for the experiment
-    await client.trackConversion(
+    await trackConversion(
       'home-layout-experiment',
       { userId: user?.id || 'anonymous' },
       { metricName: 'cta_click' }
@@ -882,19 +887,24 @@ Full TypeScript support included:
 import {
   ToggleBoxProvider,
   ToggleBoxClient,
-  useToggleBox,
   useToggleBoxContext,
   useConfig,
   useFlags,
   useFlag,
   useExperiments,
   useExperiment,
+  useAnalytics,
+  useToggleBoxClient,
   Storage,
 } from '@togglebox/sdk-expo'
 
 import type {
   ToggleBoxProviderProps,
   ToggleBoxContextValue,
+  UseConfigResult,
+  UseFlagsResult,
+  UseExperimentsResult,
+  UseAnalyticsResult,
   StoredData,
   StorageAdapter,
   ClientOptions,

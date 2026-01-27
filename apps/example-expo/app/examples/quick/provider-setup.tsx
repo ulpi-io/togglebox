@@ -6,7 +6,7 @@
  * Copy this pattern and adapt to your app.
  */
 import { View, Text, StyleSheet } from 'react-native'
-import { useToggleBox } from '@togglebox/sdk-expo'
+import { useConfig } from '@togglebox/sdk-expo'
 
 // Your _layout.tsx should look like this:
 //
@@ -29,7 +29,7 @@ import { useToggleBox } from '@togglebox/sdk-expo'
 // }
 
 export default function ProviderSetupScreen() {
-  const { isLoading, error } = useToggleBox()
+  const { isLoading, error } = useConfig()
 
   return (
     <View style={styles.container}>

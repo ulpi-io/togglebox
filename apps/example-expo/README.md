@@ -122,11 +122,10 @@ Fetch and display remote configuration:
 
 ```tsx
 import { View, Text, ActivityIndicator } from 'react-native'
-import { useConfig, useToggleBox } from '@togglebox/sdk-expo'
+import { useConfig } from '@togglebox/sdk-expo'
 
 export default function UseConfigScreen() {
-  const config = useConfig()
-  const { isLoading } = useToggleBox()
+  const { config, isLoading } = useConfig()
 
   if (isLoading) return <ActivityIndicator />
 
@@ -148,11 +147,10 @@ List flags and evaluate with user context:
 ```tsx
 import { useState, useEffect } from 'react'
 import { View, Text, FlatList, ActivityIndicator } from 'react-native'
-import { useFlags, useToggleBox } from '@togglebox/sdk-expo'
+import { useFlags } from '@togglebox/sdk-expo'
 
 export default function UseFlagScreen() {
-  const flags = useFlags()
-  const { isFlagEnabled, isLoading } = useToggleBox()
+  const { flags, isFlagEnabled, isLoading } = useFlags()
   const [newDashboardEnabled, setNewDashboardEnabled] = useState(false)
 
   useEffect(() => {
@@ -193,11 +191,10 @@ List experiments and get variant assignment:
 ```tsx
 import { useState, useEffect } from 'react'
 import { View, Text, FlatList, ActivityIndicator } from 'react-native'
-import { useExperiments, useToggleBox } from '@togglebox/sdk-expo'
+import { useExperiments } from '@togglebox/sdk-expo'
 
 export default function UseExperimentScreen() {
-  const experiments = useExperiments()
-  const { getVariant, isLoading } = useToggleBox()
+  const { experiments, getVariant, isLoading } = useExperiments()
   const [variant, setVariant] = useState<string | null>(null)
 
   useEffect(() => {
@@ -319,11 +316,10 @@ Handle errors gracefully with cached data fallback:
 
 ```tsx
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
-import { useToggleBox, useFlags } from '@togglebox/sdk-expo'
+import { useFlags } from '@togglebox/sdk-expo'
 
 function ErrorHandlingExample() {
-  const flags = useFlags()
-  const { error, isLoading, refresh } = useToggleBox()
+  const { flags, error, isLoading, refresh } = useFlags()
 
   if (error) {
     return (
@@ -414,35 +410,53 @@ Enable MMKV persistence for offline support:
 ### useConfig()
 
 ```tsx
-const config = useConfig()  // Returns Config | null
+const {
+  config,           // Config | null
+  getConfigValue,   // <T>(key: string, defaultValue: T) => Promise<T>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useConfig()
 ```
 
 ### useFlags()
 
 ```tsx
-const flags = useFlags()  // Returns Flag[]
+const {
+  flags,            // Flag[]
+  isFlagEnabled,    // (flagKey: string, context?: FlagContext) => Promise<boolean>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useFlags()
 ```
 
 ### useExperiments()
 
 ```tsx
-const experiments = useExperiments()  // Returns Experiment[]
+const {
+  experiments,      // Experiment[]
+  getVariant,       // (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useExperiments()
 ```
 
-### useToggleBox()
+### useAnalytics()
 
 ```tsx
 const {
-  // State
-  isLoading,
-  error,
+  trackEvent,       // (eventName: string, context: ExperimentContext, data?: EventData) => void
+  trackConversion,  // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
+  flushStats,       // () => Promise<void>
+} = useAnalytics()
+```
 
-  // Methods
-  isFlagEnabled,    // (flagKey, context) => Promise<boolean>
-  getVariant,       // (experimentKey, context) => Promise<string | null>
-  trackEvent,       // (event, properties) => void
-  refresh,          // () => Promise<void>
-} = useToggleBox()
+### useToggleBoxClient()
+
+```tsx
+const client = useToggleBoxClient()  // ToggleBoxClient | null
 ```
 
 ---

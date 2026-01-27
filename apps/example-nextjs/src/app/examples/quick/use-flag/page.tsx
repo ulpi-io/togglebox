@@ -1,6 +1,6 @@
 'use client'
 
-import { useToggleBox } from '@togglebox/sdk-nextjs'
+import { useFlags } from '@togglebox/sdk-nextjs'
 import { useState, useEffect } from 'react'
 
 /**
@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react'
  * Pass user context for targeting rules.
  */
 export default function UseFlag() {
-  const { isFlagEnabled, isLoading } = useToggleBox()
+  const { isFlagEnabled, isLoading } = useFlags()
   const [darkModeEnabled, setDarkModeEnabled] = useState(false)
   const [checked, setChecked] = useState(false)
 

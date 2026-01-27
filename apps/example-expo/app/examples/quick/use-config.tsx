@@ -5,11 +5,10 @@
  * Copy this file and adapt to your app.
  */
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
-import { useConfig, useToggleBox } from '@togglebox/sdk-expo'
+import { useConfig } from '@togglebox/sdk-expo'
 
 export default function RemoteConfigScreen() {
-  const config = useConfig()
-  const { isLoading } = useToggleBox()
+  const { config, isLoading } = useConfig()
 
   if (isLoading) {
     return (

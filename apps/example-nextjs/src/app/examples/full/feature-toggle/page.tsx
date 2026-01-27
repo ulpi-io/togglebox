@@ -1,6 +1,6 @@
 'use client'
 
-import { useToggleBox } from '@togglebox/sdk-nextjs'
+import { useFlags } from '@togglebox/sdk-nextjs'
 import { useState, useEffect } from 'react'
 
 /**
@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react'
  * Includes loading state and error handling.
  */
 export default function FeatureToggle() {
-  const { isFlagEnabled, isLoading } = useToggleBox()
+  const { isFlagEnabled, isLoading } = useFlags()
   const [showFeature, setShowFeature] = useState(false)
   const [checked, setChecked] = useState(false)
 

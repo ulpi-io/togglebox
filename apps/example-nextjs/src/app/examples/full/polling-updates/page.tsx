@@ -1,6 +1,6 @@
 'use client'
 
-import { useToggleBox, useConfig, useFlags } from '@togglebox/sdk-nextjs'
+import { useConfig, useFlags, useToggleBoxClient } from '@togglebox/sdk-nextjs'
 import { useState, useEffect } from 'react'
 
 /**
@@ -10,14 +10,13 @@ import { useState, useEffect } from 'react'
  * Uses event listeners to show when data refreshes.
  */
 export default function PollingUpdates() {
-  const { refresh, isLoading, getClient } = useToggleBox()
-  const config = useConfig()
-  const flags = useFlags()
+  const { config, refresh, isLoading } = useConfig()
+  const { flags } = useFlags()
+  const client = useToggleBoxClient()
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   // Listen for polling updates
   useEffect(() => {
-    const client = getClient()
     if (!client) return
 
     const handleUpdate = () => {
@@ -27,7 +26,7 @@ export default function PollingUpdates() {
 
     client.on('update', handleUpdate)
     return () => client.off('update', handleUpdate)
-  }, [getClient])
+  }, [client])
 
   const handleManualRefresh = async () => {
     await refresh()

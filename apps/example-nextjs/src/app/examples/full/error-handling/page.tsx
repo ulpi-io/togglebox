@@ -1,6 +1,6 @@
 'use client'
 
-import { useToggleBox, useFlags } from '@togglebox/sdk-nextjs'
+import { useFlags } from '@togglebox/sdk-nextjs'
 
 /**
  * Error Handling Example
@@ -9,8 +9,7 @@ import { useToggleBox, useFlags } from '@togglebox/sdk-nextjs'
  * Includes loading state, error UI with retry, and cached data fallback.
  */
 export default function ErrorHandling() {
-  const { error, isLoading, refresh } = useToggleBox()
-  const flags = useFlags()
+  const { flags, error, isLoading, refresh } = useFlags()
 
   // Error state - show error UI with retry
   if (error) {

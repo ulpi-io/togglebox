@@ -145,11 +145,11 @@ Check if a feature flag is enabled:
 ```tsx
 'use client'
 
-import { useToggleBox } from '@togglebox/sdk-nextjs'
+import { useFlags } from '@togglebox/sdk-nextjs'
 import { useState, useEffect } from 'react'
 
 export default function FlagExample() {
-  const { isFlagEnabled, isLoading } = useToggleBox()
+  const { isFlagEnabled, isLoading } = useFlags()
   const [darkModeEnabled, setDarkModeEnabled] = useState(false)
 
   useEffect(() => {
@@ -180,11 +180,11 @@ Get assigned variant for an experiment:
 ```tsx
 'use client'
 
-import { useToggleBox } from '@togglebox/sdk-nextjs'
+import { useExperiments } from '@togglebox/sdk-nextjs'
 import { useState, useEffect } from 'react'
 
 export default function ExperimentExample() {
-  const { getVariant, isLoading } = useToggleBox()
+  const { getVariant, isLoading } = useExperiments()
   const [variant, setVariant] = useState<string | null>(null)
 
   useEffect(() => {
@@ -216,16 +216,16 @@ Track analytics events:
 ```tsx
 'use client'
 
-import { useToggleBox } from '@togglebox/sdk-nextjs'
+import { useAnalytics } from '@togglebox/sdk-nextjs'
 
 export default function TrackingExample() {
-  const { trackEvent } = useToggleBox()
+  const { trackEvent } = useAnalytics()
 
   const handlePurchase = () => {
     trackEvent('purchase_completed', {
       userId: 'user-123',
-      value: 99.99,
-      currency: 'USD',
+    }, {
+      properties: { value: 99.99, currency: 'USD' },
     })
   }
 
@@ -392,35 +392,53 @@ The `ToggleBoxProvider` accepts these props:
 ### useConfig()
 
 ```tsx
-const { config, isLoading, error, refresh } = useConfig()
+const {
+  config,           // Config | null
+  getConfigValue,   // <T>(key: string, defaultValue: T) => Promise<T>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useConfig()
 ```
 
 ### useFlags()
 
 ```tsx
-const { flags, isLoading, error, refresh } = useFlags()
+const {
+  flags,            // Flag[]
+  isFlagEnabled,    // (flagKey: string, context?: FlagContext) => Promise<boolean>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useFlags()
 ```
 
 ### useExperiments()
 
 ```tsx
-const { experiments, isLoading, error, refresh } = useExperiments()
+const {
+  experiments,      // Experiment[]
+  getVariant,       // (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useExperiments()
 ```
 
-### useToggleBox()
+### useAnalytics()
 
 ```tsx
 const {
-  // State
-  isLoading,
-  error,
+  trackEvent,       // (eventName: string, context: ExperimentContext, data?: EventData) => void
+  trackConversion,  // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
+  flushStats,       // () => Promise<void>
+} = useAnalytics()
+```
 
-  // Methods
-  isFlagEnabled,    // (flagKey, context) => Promise<boolean>
-  getVariant,       // (experimentKey, context) => Promise<string | null>
-  trackEvent,       // (event, properties) => void
-  refresh,          // () => Promise<void>
-} = useToggleBox()
+### useToggleBoxClient()
+
+```tsx
+const client = useToggleBoxClient()  // ToggleBoxClient | null
 ```
 
 ---

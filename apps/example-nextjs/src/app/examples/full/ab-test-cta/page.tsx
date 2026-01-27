@@ -1,6 +1,6 @@
 'use client'
 
-import { useExperiment, useToggleBox } from '@togglebox/sdk-nextjs'
+import { useExperiment, useAnalytics } from '@togglebox/sdk-nextjs'
 import { useState, useEffect } from 'react'
 
 /**
@@ -13,7 +13,7 @@ export default function ABTestCTA() {
   const { experiment, isLoading, getVariant } = useExperiment('cta-experiment', {
     userId: 'user-123', // Replace with actual user ID
   })
-  const { trackConversion, trackEvent } = useToggleBox()
+  const { trackConversion, trackEvent } = useAnalytics()
   const [variant, setVariant] = useState<string | null>(null)
 
   // Assign variant and track impression on mount

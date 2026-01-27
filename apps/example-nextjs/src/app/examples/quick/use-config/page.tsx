@@ -1,15 +1,14 @@
 'use client'
 
-import { useConfig, useToggleBox } from '@togglebox/sdk-nextjs'
+import { useConfig } from '@togglebox/sdk-nextjs'
 
 /**
  * Config Access Example
  *
  * Use useConfig to access your remote configuration object.
  */
-export default function UseConfig() {
-  const config = useConfig()
-  const { isLoading } = useToggleBox()
+export default function UseConfigExample() {
+  const { config, isLoading } = useConfig()
 
   if (isLoading) {
     return <div>Loading config...</div>

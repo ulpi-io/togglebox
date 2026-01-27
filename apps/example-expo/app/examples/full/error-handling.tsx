@@ -5,11 +5,10 @@
  * Copy this file and adapt to your app.
  */
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
-import { useToggleBox, useFlags } from '@togglebox/sdk-expo'
+import { useFlags } from '@togglebox/sdk-expo'
 
 export default function ErrorHandlingScreen() {
-  const { error, isLoading, refresh } = useToggleBox()
-  const flags = useFlags()
+  const { flags, error, isLoading, refresh } = useFlags()
 
   // Error state - show error UI with retry
   if (error) {

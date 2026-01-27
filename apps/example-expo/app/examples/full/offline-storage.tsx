@@ -6,7 +6,7 @@
  * Copy this file and adapt to your app.
  */
 import { View, Text, StyleSheet } from 'react-native'
-import { useToggleBox, useFlags, useConfig, useExperiments } from '@togglebox/sdk-expo'
+import { useFlags, useConfig, useExperiments } from '@togglebox/sdk-expo'
 
 // Provider configuration for offline support:
 //
@@ -21,10 +21,9 @@ import { useToggleBox, useFlags, useConfig, useExperiments } from '@togglebox/sd
 // </ToggleBoxProvider>
 
 export default function OfflineStorageScreen() {
-  const { isLoading, error } = useToggleBox()
-  const flags = useFlags()
-  const config = useConfig()
-  const experiments = useExperiments()
+  const { flags, isLoading, error } = useFlags()
+  const { config } = useConfig()
+  const { experiments } = useExperiments()
 
   // Count cached data
   const flagCount = flags.length

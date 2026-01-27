@@ -6,7 +6,7 @@
  */
 import { useState, useCallback } from 'react'
 import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, ActivityIndicator } from 'react-native'
-import { useToggleBox, useFlags } from '@togglebox/sdk-expo'
+import { useFlags } from '@togglebox/sdk-expo'
 
 // Provider configuration for polling:
 //
@@ -20,8 +20,7 @@ import { useToggleBox, useFlags } from '@togglebox/sdk-expo'
 // </ToggleBoxProvider>
 
 export default function PollingRefreshScreen() {
-  const { refresh, isLoading } = useToggleBox()
-  const flags = useFlags()
+  const { flags, refresh, isLoading } = useFlags()
 
   const [refreshCount, setRefreshCount] = useState(0)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)

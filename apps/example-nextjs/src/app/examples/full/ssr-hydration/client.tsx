@@ -1,6 +1,6 @@
 'use client'
 
-import { useConfig, useFlags, useExperiments, useToggleBox } from '@togglebox/sdk-nextjs'
+import { useConfig, useFlags, useExperiments } from '@togglebox/sdk-nextjs'
 
 interface Props {
   serverConfigKeys: number
@@ -13,10 +13,9 @@ interface Props {
  * Data is available immediately - no loading state.
  */
 export function SSRHydrationClient({ serverConfigKeys, serverFlags, serverExperiments }: Props) {
-  const config = useConfig()
-  const flags = useFlags()
-  const experiments = useExperiments()
-  const { refresh, isLoading } = useToggleBox()
+  const { config, refresh, isLoading } = useConfig()
+  const { flags } = useFlags()
+  const { experiments } = useExperiments()
 
   const clientConfigKeys = Object.keys(config || {}).length
 

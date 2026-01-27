@@ -71,11 +71,10 @@ ToggleBox provides three complementary systems:
 ### Using Configuration
 
 ```tsx
-import { useConfig, useToggleBox } from '@togglebox/sdk-nextjs'
+import { useConfig } from '@togglebox/sdk-nextjs'
 
 function ThemeWrapper({ children }: { children: React.ReactNode }) {
-  const config = useConfig()
-  const { isLoading } = useToggleBox()
+  const { config, isLoading } = useConfig()
 
   if (isLoading && !config) return <LoadingScreen />
 
@@ -95,7 +94,7 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
 }
 
 function SettingsDisplay() {
-  const config = useConfig()
+  const { config } = useConfig()
 
   return (
     <div>
@@ -114,7 +113,7 @@ function SettingsDisplay() {
 ### Check Flag Enabled
 
 ```tsx
-import { useFlag, useToggleBox } from '@togglebox/sdk-nextjs'
+import { useFlag, useFlags } from '@togglebox/sdk-nextjs'
 
 function Dashboard() {
   const { flag, isLoading, checkEnabled } = useFlag('new-dashboard')
@@ -136,7 +135,7 @@ function Dashboard() {
 import { useFlags } from '@togglebox/sdk-nextjs'
 
 function FeatureFlagDebugger() {
-  const flags = useFlags()
+  const { flags } = useFlags()
 
   return (
     <ul>
@@ -157,7 +156,7 @@ function FeatureFlagDebugger() {
 ### Get Experiment Variant
 
 ```tsx
-import { useExperiment, useToggleBox } from '@togglebox/sdk-nextjs'
+import { useExperiment, useExperiments } from '@togglebox/sdk-nextjs'
 
 function CheckoutPage() {
   const { user } = useAuth()
@@ -186,21 +185,16 @@ function CheckoutPage() {
 ### Track Conversions
 
 ```tsx
-import { ToggleBoxClient } from '@togglebox/sdk-nextjs'
-
-// Create a client instance for conversion tracking
-const client = new ToggleBoxClient({
-  platform: 'web',
-  environment: process.env.NEXT_PUBLIC_ENV || 'production',
-  apiUrl: process.env.NEXT_PUBLIC_TOGGLEBOX_URL!,
-})
+import { useAnalytics } from '@togglebox/sdk-nextjs'
 
 function PurchaseButton({ userId, cartTotal }: { userId: string; cartTotal: number }) {
+  const { trackConversion, flushStats } = useAnalytics()
+
   const handlePurchase = async () => {
     // Process payment...
 
     // Track the conversion
-    await client.trackConversion(
+    await trackConversion(
       'checkout-experiment',
       { userId },
       {
@@ -208,6 +202,9 @@ function PurchaseButton({ userId, cartTotal }: { userId: string; cartTotal: numb
         value: cartTotal,
       }
     )
+
+    // Optionally flush stats immediately
+    await flushStats()
   }
 
   return <button onClick={handlePurchase}>Complete Purchase</button>
@@ -297,39 +294,32 @@ interface ToggleBoxProviderProps {
 
 ## React Hooks API
 
-### useToggleBox
+### useConfig
 
-Full access to ToggleBox context:
+Access configuration with methods:
 
 ```tsx
 const {
-  config,           // Current configuration (Tier 1)
-  flags,            // Feature flags array (Tier 2)
-  experiments,      // Experiments array (Tier 3)
-  isLoading,        // Loading state
-  error,            // Error state
-  refresh,          // Manually refresh all data
-  isFlagEnabled,    // Check if flag is enabled
-  getVariant,       // Get experiment variant
-} = useToggleBox()
-```
-
-### useConfig
-
-Access configuration object:
-
-```tsx
-const config = useConfig()
-// Returns Config | null
+  config,           // Config | null
+  getConfigValue,   // <T>(key: string, defaultValue: T) => Promise<T>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useConfig()
 ```
 
 ### useFlags
 
-Access all feature flags:
+Access all feature flags with evaluation:
 
 ```tsx
-const flags = useFlags()
-// Returns Flag[]
+const {
+  flags,            // Flag[]
+  isFlagEnabled,    // (flagKey: string, context?: FlagContext) => Promise<boolean>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useFlags()
 ```
 
 ### useFlag
@@ -346,11 +336,16 @@ const { flag, exists, isLoading, checkEnabled } = useFlag('my-flag')
 
 ### useExperiments
 
-Access all experiments:
+Access all experiments with variant assignment:
 
 ```tsx
-const experiments = useExperiments()
-// Returns Experiment[]
+const {
+  experiments,      // Experiment[]
+  getVariant,       // (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+  isLoading,        // boolean
+  error,            // Error | null
+  refresh,          // () => Promise<void>
+} = useExperiments()
 ```
 
 ### useExperiment
@@ -365,6 +360,27 @@ const { experiment, exists, isLoading, getVariant } = useExperiment('my-experime
 // exists: boolean
 // isLoading: boolean
 // getVariant: () => Promise<string | null>
+```
+
+### useAnalytics
+
+Access analytics and event tracking:
+
+```tsx
+const {
+  trackEvent,       // (eventName: string, context: ExperimentContext, data?: EventData) => void
+  trackConversion,  // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
+  flushStats,       // () => Promise<void>
+} = useAnalytics()
+```
+
+### useToggleBoxClient
+
+Access the raw ToggleBox client for advanced use cases:
+
+```tsx
+const client = useToggleBoxClient()
+// Returns ToggleBoxClient | null
 ```
 
 ---
@@ -640,7 +656,7 @@ export async function POST(request: NextRequest) {
 
 ```tsx
 function RefreshButton() {
-  const { refresh, isLoading } = useToggleBox()
+  const { refresh, isLoading } = useConfig()
 
   return (
     <button onClick={refresh} disabled={isLoading}>
@@ -654,7 +670,7 @@ function RefreshButton() {
 
 ```tsx
 function ConfigLoader({ children }: { children: React.ReactNode }) {
-  const { config, isLoading, error, refresh } = useToggleBox()
+  const { config, isLoading, error, refresh } = useConfig()
 
   if (isLoading && !config) {
     return <LoadingScreen />
@@ -677,7 +693,7 @@ function ConfigLoader({ children }: { children: React.ReactNode }) {
 
 ```tsx
 function CheckoutPage() {
-  const { isFlagEnabled } = useToggleBox()
+  const { isFlagEnabled } = useFlags()
   const { user } = useAuth()
   const [useNewCheckout, setUseNewCheckout] = useState(false)
 
@@ -728,12 +744,13 @@ Full TypeScript support included:
 import {
   ToggleBoxProvider,
   ToggleBoxClient,
-  useToggleBox,
   useConfig,
   useFlags,
   useFlag,
   useExperiments,
   useExperiment,
+  useAnalytics,
+  useToggleBoxClient,
   getServerSideConfig,
   getStaticConfig,
 } from '@togglebox/sdk-nextjs'
@@ -741,6 +758,10 @@ import {
 import type {
   ToggleBoxProviderProps,
   ToggleBoxContextValue,
+  UseConfigResult,
+  UseFlagsResult,
+  UseExperimentsResult,
+  UseAnalyticsResult,
   ClientOptions,
   Config,
   Flag,

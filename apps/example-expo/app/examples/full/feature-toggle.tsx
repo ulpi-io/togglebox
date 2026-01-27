@@ -7,10 +7,10 @@
  */
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
-import { useToggleBox } from '@togglebox/sdk-expo'
+import { useFlags } from '@togglebox/sdk-expo'
 
 export default function FeatureToggleScreen() {
-  const { isFlagEnabled, isLoading } = useToggleBox()
+  const { isFlagEnabled, isLoading } = useFlags()
   const [showFeature, setShowFeature] = useState(false)
   const [checked, setChecked] = useState(false)
 

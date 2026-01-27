@@ -6,11 +6,10 @@
  */
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native'
-import { useExperiments, useToggleBox } from '@togglebox/sdk-expo'
+import { useExperiments } from '@togglebox/sdk-expo'
 
 export default function ExperimentsScreen() {
-  const experiments = useExperiments()
-  const { getVariant, isLoading } = useToggleBox()
+  const { experiments, getVariant, isLoading } = useExperiments()
 
   const userId = 'user-123' // Get from your auth system
   const [assignedVariant, setAssignedVariant] = useState<string | null>(null)

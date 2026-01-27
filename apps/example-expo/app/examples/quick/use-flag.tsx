@@ -6,11 +6,10 @@
  */
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native'
-import { useFlags, useToggleBox } from '@togglebox/sdk-expo'
+import { useFlags } from '@togglebox/sdk-expo'
 
 export default function FeatureFlagsScreen() {
-  const flags = useFlags()
-  const { isFlagEnabled, isLoading } = useToggleBox()
+  const { flags, isFlagEnabled, isLoading } = useFlags()
 
   // Example: evaluate a specific flag for a user
   const [newDashboardEnabled, setNewDashboardEnabled] = useState(false)

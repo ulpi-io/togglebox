@@ -185,3 +185,103 @@ export interface ToggleBoxContextValue {
    */
   getClient: () => ToggleBoxClient | null
 }
+
+// ============================================================================
+// Hook Result Types
+// ============================================================================
+
+/**
+ * Result type for useConfig() hook
+ */
+export interface UseConfigResult {
+  /** Current configuration (Tier 1) */
+  config: Config | null
+
+  /** Get a typed config value with a default fallback */
+  getConfigValue: <T>(key: string, defaultValue: T) => Promise<T>
+
+  /** Loading state */
+  isLoading: boolean
+
+  /** Error state */
+  error: Error | null
+
+  /** Manually refresh config */
+  refresh: () => Promise<void>
+}
+
+/**
+ * Result type for useFlags() hook
+ */
+export interface UseFlagsResult {
+  /** Current feature flags (Tier 2) */
+  flags: Flag[]
+
+  /** Check if a flag is enabled */
+  isFlagEnabled: (flagKey: string, context?: FlagContext) => Promise<boolean>
+
+  /** Loading state */
+  isLoading: boolean
+
+  /** Error state */
+  error: Error | null
+
+  /** Manually refresh flags */
+  refresh: () => Promise<void>
+}
+
+/**
+ * Result type for useExperiments() hook
+ */
+export interface UseExperimentsResult {
+  /** Current experiments (Tier 3) */
+  experiments: Experiment[]
+
+  /** Get experiment variant for a user */
+  getVariant: (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+
+  /** Loading state */
+  isLoading: boolean
+
+  /** Error state */
+  error: Error | null
+
+  /** Manually refresh experiments */
+  refresh: () => Promise<void>
+}
+
+/**
+ * Result type for useAnalytics() hook
+ */
+export interface UseAnalyticsResult {
+  /**
+   * Track a custom event.
+   *
+   * @param eventName - Name of the event
+   * @param context - User context (userId required)
+   * @param data - Optional event data
+   */
+  trackEvent: (
+    eventName: string,
+    context: ExperimentContext,
+    data?: EventData
+  ) => void
+
+  /**
+   * Track a conversion event for an experiment.
+   *
+   * @param experimentKey - The experiment key
+   * @param context - Experiment context (userId required)
+   * @param data - Conversion data (metricName, optional value)
+   */
+  trackConversion: (
+    experimentKey: string,
+    context: ExperimentContext,
+    data: ConversionData
+  ) => Promise<void>
+
+  /**
+   * Immediately flush pending stats events.
+   */
+  flushStats: () => Promise<void>
+}

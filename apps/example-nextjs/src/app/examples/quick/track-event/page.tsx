@@ -44,12 +44,12 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import { useToggleBox } from '@togglebox/sdk-nextjs'
+import { useAnalytics } from '@togglebox/sdk-nextjs'
 import { useState } from 'react'
 import { trackServerEvent, trackServerConversion } from './actions'
 
 export default function TrackEvent() {
-  const { trackEvent, trackConversion } = useToggleBox()
+  const { trackEvent, trackConversion } = useAnalytics()
   const [clicks, setClicks] = useState(0)
   const [serverResult, setServerResult] = useState<string | null>(null)
 
@@ -155,7 +155,7 @@ export default function TrackEvent() {
       <div className="p-4 bg-gray-50 rounded-lg">
         <h3 className="font-bold mb-2">When to use each?</h3>
         <div className="text-sm text-gray-600 space-y-2">
-          <p><strong>Client-side (useToggleBox):</strong> Button clicks, page views, form submissions, UI interactions</p>
+          <p><strong>Client-side (useAnalytics):</strong> Button clicks, page views, form submissions, UI interactions</p>
           <p><strong>Server-side (Server Actions):</strong> Payment webhooks, cron jobs, API callbacks, secure events</p>
         </div>
       </div>
