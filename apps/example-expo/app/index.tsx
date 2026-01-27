@@ -67,84 +67,84 @@ export default function HomePage() {
 
       {/* Quick Start */}
       <SectionHeader title="QUICK START" emoji="&#x26A1;" />
-      <Text style={styles.sectionSubtitle}>Simple patterns to get started (~8 min total)</Text>
+      <Text style={styles.sectionSubtitle}>Simple patterns to get started (~2 min each)</Text>
       <View style={styles.linkGroup}>
         <ExampleLink
           title="Provider Setup"
           description="Configure ToggleBoxProvider"
-          href="/quick/provider-setup"
+          href="/examples/quick/provider-setup"
           icon="settings-outline"
         />
         <ExampleLink
           title="Use Config"
           description="Read remote configuration"
-          href="/quick/use-config"
+          href="/examples/quick/use-config"
           icon="cloud-download-outline"
         />
         <ExampleLink
           title="Use Flag"
           description="Check feature flags"
-          href="/quick/use-flag"
+          href="/examples/quick/use-flag"
           icon="flag-outline"
         />
         <ExampleLink
           title="Use Experiment"
           description="Get A/B test variants"
-          href="/quick/use-experiment"
+          href="/examples/quick/use-experiment"
           icon="flask-outline"
         />
         <ExampleLink
           title="Track Event"
           description="Track events & conversions"
-          href="/quick/track-event"
+          href="/examples/quick/track-event"
           icon="analytics-outline"
         />
       </View>
 
-      {/* Complete Examples */}
-      <SectionHeader title="COMPLETE EXAMPLES" emoji="&#x1F527;" />
+      {/* Full Examples */}
+      <SectionHeader title="FULL EXAMPLES" emoji="&#x1F527;" />
       <Text style={styles.sectionSubtitle}>Production-ready patterns</Text>
       <View style={styles.linkGroup}>
         <ExampleLink
           title="Feature Toggle"
           description="Full pattern with loading & fallback"
-          href="/examples/feature-toggle"
+          href="/examples/full/feature-toggle"
           icon="toggle-outline"
         />
         <ExampleLink
           title="A/B Test CTA"
           description="Variant rendering & conversion tracking"
-          href="/examples/ab-test-cta"
+          href="/examples/full/ab-test-cta"
           icon="git-branch-outline"
         />
         <ExampleLink
           title="Config Theme"
           description="Dynamic theming from config"
-          href="/examples/config-theme"
+          href="/examples/full/config-theme"
           icon="color-palette-outline"
         />
         <ExampleLink
           title="Polling Updates"
           description="Real-time updates with event listeners"
-          href="/examples/polling-updates"
+          href="/examples/full/polling-updates"
           icon="sync-outline"
         />
         <ExampleLink
           title="Error Handling"
           description="Error states & offline fallback"
-          href="/examples/error-handling"
+          href="/examples/full/error-handling"
           icon="warning-outline"
         />
         <ExampleLink
           title="Health Check"
           description="API health monitoring"
-          href="/examples/health-check"
+          href="/examples/full/health-check"
           icon="pulse-outline"
         />
         <ExampleLink
           title="Offline Storage"
           description="MMKV persistence for offline"
-          href="/examples/offline-storage"
+          href="/examples/full/offline-storage"
           icon="cloud-offline-outline"
         />
       </View>

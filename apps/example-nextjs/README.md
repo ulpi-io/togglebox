@@ -61,24 +61,26 @@ NEXT_PUBLIC_TOGGLEBOX_API_KEY=your-api-key  # Required if API has auth enabled
 
 ```
 src/app/
-├── page.tsx                    # Homepage with example index
-├── layout.tsx                  # Root layout
-├── providers.tsx               # ToggleBoxProvider configuration
-├── quick/                      # Quick Start examples (6)
-│   ├── provider-setup/         # How to set up the provider
-│   ├── use-config/             # Fetch remote configuration
-│   ├── use-flag/               # Check feature flags
-│   ├── use-experiment/         # Get experiment variants
-│   ├── track-event/            # Track analytics events
-│   └── ssr-config/             # Server-side config fetching
-└── examples/                   # Complete Examples (7)
-    ├── feature-toggle/         # Full feature flag implementation
-    ├── ab-test-cta/            # A/B test with CTA buttons
-    ├── config-theme/           # Theme switching with config
-    ├── ssr-hydration/          # SSR with client hydration
-    ├── polling-updates/        # Auto-refresh with polling
-    ├── error-handling/         # Error states & retry
-    └── health-check/           # API health monitoring
+├── page.tsx                        # Homepage
+├── layout.tsx                      # Root layout
+├── providers.tsx                   # ToggleBoxProvider configuration
+└── examples/
+    ├── page.tsx                    # Examples index
+    ├── quick/                      # Quick Start examples (6)
+    │   ├── provider-setup/         # How to set up the provider
+    │   ├── use-config/             # Fetch remote configuration
+    │   ├── use-flag/               # Check feature flags
+    │   ├── use-experiment/         # Get experiment variants
+    │   ├── track-event/            # Track events (client + server)
+    │   └── ssr-config/             # Server-side config fetching
+    └── full/                       # Full Examples (7)
+        ├── feature-toggle/         # Full feature flag implementation
+        ├── ab-test-cta/            # A/B test with CTA buttons
+        ├── config-theme/           # Theme switching with config
+        ├── ssr-hydration/          # SSR with client hydration
+        ├── polling-updates/        # Auto-refresh with polling
+        ├── error-handling/         # Error states & retry
+        └── health-check/           # API health monitoring
 ```
 
 ---
@@ -87,7 +89,7 @@ src/app/
 
 ### 1. Provider Setup
 
-**File:** `src/app/quick/provider-setup/page.tsx`
+**File:** `src/app/examples/quick/provider-setup/page.tsx`
 
 Wrap your app with `ToggleBoxProvider`:
 
@@ -111,7 +113,7 @@ export default function RootLayout({ children }) {
 
 ### 2. Remote Config (useConfig)
 
-**File:** `src/app/quick/use-config/page.tsx`
+**File:** `src/app/examples/quick/use-config/page.tsx`
 
 Fetch and display remote configuration:
 
@@ -136,7 +138,7 @@ export default function ConfigExample() {
 
 ### 3. Feature Flags (useFlag)
 
-**File:** `src/app/quick/use-flag/page.tsx`
+**File:** `src/app/examples/quick/use-flag/page.tsx`
 
 Check if a feature flag is enabled:
 
@@ -171,7 +173,7 @@ export default function FlagExample() {
 
 ### 4. Experiments (useExperiment)
 
-**File:** `src/app/quick/use-experiment/page.tsx`
+**File:** `src/app/examples/quick/use-experiment/page.tsx`
 
 Get assigned variant for an experiment:
 
@@ -207,7 +209,7 @@ export default function ExperimentExample() {
 
 ### 5. Event Tracking
 
-**File:** `src/app/quick/track-event/page.tsx`
+**File:** `src/app/examples/quick/track-event/page.tsx`
 
 Track analytics events:
 
@@ -233,7 +235,7 @@ export default function TrackingExample() {
 
 ### 6. Server-Side Config
 
-**File:** `src/app/quick/ssr-config/page.tsx`
+**File:** `src/app/examples/quick/ssr-config/page.tsx`
 
 Fetch config on the server for SSR:
 
@@ -262,7 +264,7 @@ export default async function SSRPage() {
 
 ### Feature Toggle
 
-**File:** `src/app/examples/feature-toggle/page.tsx`
+**File:** `src/app/examples/full/feature-toggle/page.tsx`
 
 Full implementation showing:
 - Flag evaluation with user context
@@ -271,7 +273,7 @@ Full implementation showing:
 
 ### A/B Test CTA
 
-**File:** `src/app/examples/ab-test-cta/page.tsx`
+**File:** `src/app/examples/full/ab-test-cta/page.tsx`
 
 Complete A/B test implementation:
 - Variant assignment
@@ -280,7 +282,7 @@ Complete A/B test implementation:
 
 ### Config Theme
 
-**File:** `src/app/examples/config-theme/page.tsx`
+**File:** `src/app/examples/full/config-theme/page.tsx`
 
 Theme switching with remote config:
 - Dynamic theme loading
@@ -289,7 +291,7 @@ Theme switching with remote config:
 
 ### SSR Hydration
 
-**File:** `src/app/examples/ssr-hydration/page.tsx`
+**File:** `src/app/examples/full/ssr-hydration/page.tsx`
 
 Server-side rendering with client hydration:
 - Fetch config/flags on server
@@ -331,7 +333,7 @@ export function ClientComponent({ initialConfig, initialFlags }) {
 
 ### Polling Updates
 
-**File:** `src/app/examples/polling-updates/page.tsx`
+**File:** `src/app/examples/full/polling-updates/page.tsx`
 
 Auto-refresh configuration:
 - Polling interval configuration
@@ -340,7 +342,7 @@ Auto-refresh configuration:
 
 ### Error Handling
 
-**File:** `src/app/examples/error-handling/page.tsx`
+**File:** `src/app/examples/full/error-handling/page.tsx`
 
 Graceful error handling with:
 - Error state detection
@@ -350,7 +352,7 @@ Graceful error handling with:
 
 ### Health Check
 
-**File:** `src/app/examples/health-check/page.tsx`
+**File:** `src/app/examples/full/health-check/page.tsx`
 
 API connectivity monitoring:
 - Connection status display

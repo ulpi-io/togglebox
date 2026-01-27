@@ -62,22 +62,26 @@ EXPO_PUBLIC_API_KEY=your-api-key  # Required if API has auth enabled
 
 ```
 app/
-├── index.tsx                   # Homepage with example index
-├── _layout.tsx                 # Root layout with ToggleBoxProvider
-├── quick/                      # Quick Start examples (5)
-│   ├── provider-setup.tsx      # How to set up the provider
-│   ├── use-config.tsx          # Fetch remote configuration
-│   ├── use-flag.tsx            # Check feature flags
-│   ├── use-experiment.tsx      # Get experiment variants
-│   └── track-event.tsx         # Track events & conversions
-└── examples/                   # Complete examples (7)
-    ├── feature-toggle.tsx      # Full feature flag pattern
-    ├── ab-test-cta.tsx         # A/B test with conversion tracking
-    ├── config-theme.tsx        # Dynamic theming from config
-    ├── polling-updates.tsx     # Real-time updates with polling
-    ├── error-handling.tsx      # Error states & offline fallback
-    ├── health-check.tsx        # API health monitoring
-    └── offline-storage.tsx     # MMKV persistence for offline
+├── index.tsx                        # Homepage with example index
+├── _layout.tsx                      # Root layout with ToggleBoxProvider
+└── examples/
+    ├── _layout.tsx                  # Examples layout
+    ├── quick/                       # Quick Start examples (5)
+    │   ├── _layout.tsx              # Quick examples navigation
+    │   ├── provider-setup.tsx       # How to set up the provider
+    │   ├── use-config.tsx           # Fetch remote configuration
+    │   ├── use-flag.tsx             # Check feature flags
+    │   ├── use-experiment.tsx       # Get experiment variants
+    │   └── track-event.tsx          # Track events & conversions
+    └── full/                        # Complete examples (7)
+        ├── _layout.tsx              # Full examples navigation
+        ├── feature-toggle.tsx       # Full feature flag pattern
+        ├── ab-test-cta.tsx          # A/B test with conversion tracking
+        ├── config-theme.tsx         # Dynamic theming from config
+        ├── polling-updates.tsx      # Real-time updates with polling
+        ├── error-handling.tsx       # Error states & offline fallback
+        ├── health-check.tsx         # API health monitoring
+        └── offline-storage.tsx      # MMKV persistence for offline
 ```
 
 ---
@@ -112,7 +116,7 @@ export default function RootLayout() {
 
 ### 2. Remote Config (useConfig)
 
-**File:** `app/quick/use-config.tsx`
+**File:** `app/examples/quick/use-config.tsx`
 
 Fetch and display remote configuration:
 
@@ -137,7 +141,7 @@ export default function UseConfigScreen() {
 
 ### 3. Feature Flags (isFlagEnabled)
 
-**File:** `app/quick/use-flag.tsx`
+**File:** `app/examples/quick/use-flag.tsx`
 
 List flags and evaluate with user context:
 
@@ -182,7 +186,7 @@ export default function UseFlagScreen() {
 
 ### 4. Experiments (getVariant)
 
-**File:** `app/quick/use-experiment.tsx`
+**File:** `app/examples/quick/use-experiment.tsx`
 
 List experiments and get variant assignment:
 
@@ -221,7 +225,7 @@ export default function UseExperimentScreen() {
 
 ### 5. Event Tracking
 
-**File:** `app/quick/track-event.tsx`
+**File:** `app/examples/quick/track-event.tsx`
 
 Track custom events and conversions:
 
@@ -273,7 +277,7 @@ export default function TrackEventScreen() {
 
 ### Feature Toggle
 
-**File:** `app/examples/feature-toggle.tsx`
+**File:** `app/examples/full/feature-toggle.tsx`
 
 Full implementation showing:
 - Flag evaluation with user context
@@ -282,7 +286,7 @@ Full implementation showing:
 
 ### A/B Test CTA
 
-**File:** `app/examples/ab-test-cta.tsx`
+**File:** `app/examples/full/ab-test-cta.tsx`
 
 Complete A/B test implementation:
 - Variant assignment
@@ -291,7 +295,7 @@ Complete A/B test implementation:
 
 ### Config Theme
 
-**File:** `app/examples/config-theme.tsx`
+**File:** `app/examples/full/config-theme.tsx`
 
 Theme switching with remote config:
 - Dynamic theme loading
@@ -300,7 +304,7 @@ Theme switching with remote config:
 
 ### Polling Updates
 
-**File:** `app/examples/polling-updates.tsx`
+**File:** `app/examples/full/polling-updates.tsx`
 
 Auto-refresh and pull-to-refresh:
 - Polling interval configuration
@@ -309,7 +313,7 @@ Auto-refresh and pull-to-refresh:
 
 ### Error Handling
 
-**File:** `app/examples/error-handling.tsx`
+**File:** `app/examples/full/error-handling.tsx`
 
 Handle errors gracefully with cached data fallback:
 
@@ -347,7 +351,7 @@ function ErrorHandlingExample() {
 
 ### Health Check
 
-**File:** `app/examples/health-check.tsx`
+**File:** `app/examples/full/health-check.tsx`
 
 Monitor API health:
 
@@ -381,7 +385,7 @@ function HealthCheck() {
 
 ### Offline Storage
 
-**File:** `app/examples/offline-storage.tsx`
+**File:** `app/examples/full/offline-storage.tsx`
 
 Enable MMKV persistence for offline support:
 

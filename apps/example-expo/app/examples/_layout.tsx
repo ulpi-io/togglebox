@@ -13,33 +13,20 @@ export default function ExamplesLayout() {
         },
       }}
     >
+      {/* Quick Start Examples */}
       <Stack.Screen
-        name="feature-toggle"
-        options={{ title: 'Feature Toggle' }}
+        name="quick"
+        options={{
+          headerShown: false,
+        }}
       />
+
+      {/* Full Examples */}
       <Stack.Screen
-        name="ab-test-cta"
-        options={{ title: 'A/B Test CTA' }}
-      />
-      <Stack.Screen
-        name="config-theme"
-        options={{ title: 'Config Theme' }}
-      />
-      <Stack.Screen
-        name="polling-updates"
-        options={{ title: 'Polling Updates' }}
-      />
-      <Stack.Screen
-        name="error-handling"
-        options={{ title: 'Error Handling' }}
-      />
-      <Stack.Screen
-        name="health-check"
-        options={{ title: 'Health Check' }}
-      />
-      <Stack.Screen
-        name="offline-storage"
-        options={{ title: 'Offline Storage' }}
+        name="full"
+        options={{
+          headerShown: false,
+        }}
       />
     </Stack>
   )

@@ -32,15 +32,7 @@ export default function RootLayout() {
           }}
         />
 
-        {/* Quick Start Examples */}
-        <Stack.Screen
-          name="quick"
-          options={{
-            headerShown: false,
-          }}
-        />
-
-        {/* Complete Examples */}
+        {/* All Examples (quick and full) */}
         <Stack.Screen
           name="examples"
           options={{
