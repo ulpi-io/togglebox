@@ -268,20 +268,20 @@ $this->mock(ToggleBoxManager::class, function ($mock) {
 
 ## Configuration Reference
 
-| Key | Environment Variable | Default | Description |
-|-----|---------------------|---------|-------------|
-| `platform` | `TOGGLEBOX_PLATFORM` | `web` | Platform identifier |
-| `environment` | `TOGGLEBOX_ENVIRONMENT` | `APP_ENV` | Environment name |
-| `api_url` | `TOGGLEBOX_API_URL` | `null` | Self-hosted API URL |
-| `tenant_subdomain` | `TOGGLEBOX_TENANT_SUBDOMAIN` | `null` | Cloud tenant subdomain |
-| `api_key` | `TOGGLEBOX_API_KEY` | `null` | API key |
-| `config_version` | `TOGGLEBOX_CONFIG_VERSION` | `stable` | Default config version |
-| `cache.enabled` | `TOGGLEBOX_CACHE_ENABLED` | `true` | Enable caching |
-| `cache.ttl` | `TOGGLEBOX_CACHE_TTL` | `300` | Cache TTL (seconds) |
-| `cache.store` | `TOGGLEBOX_CACHE_STORE` | `null` | Laravel cache store |
-| `stats.enabled` | `TOGGLEBOX_STATS_ENABLED` | `true` | Enable stats |
-| `stats.flush_on_terminate` | `TOGGLEBOX_STATS_FLUSH_ON_TERMINATE` | `true` | Auto-flush stats |
-| `blade_directives` | `TOGGLEBOX_BLADE_DIRECTIVES` | `true` | Enable Blade directives |
+| Key                        | Environment Variable                 | Default   | Description             |
+| -------------------------- | ------------------------------------ | --------- | ----------------------- |
+| `platform`                 | `TOGGLEBOX_PLATFORM`                 | `web`     | Platform identifier     |
+| `environment`              | `TOGGLEBOX_ENVIRONMENT`              | `APP_ENV` | Environment name        |
+| `api_url`                  | `TOGGLEBOX_API_URL`                  | `null`    | Self-hosted API URL     |
+| `tenant_subdomain`         | `TOGGLEBOX_TENANT_SUBDOMAIN`         | `null`    | Cloud tenant subdomain  |
+| `api_key`                  | `TOGGLEBOX_API_KEY`                  | `null`    | API key                 |
+| `config_version`           | `TOGGLEBOX_CONFIG_VERSION`           | `stable`  | Default config version  |
+| `cache.enabled`            | `TOGGLEBOX_CACHE_ENABLED`            | `true`    | Enable caching          |
+| `cache.ttl`                | `TOGGLEBOX_CACHE_TTL`                | `300`     | Cache TTL (seconds)     |
+| `cache.store`              | `TOGGLEBOX_CACHE_STORE`              | `null`    | Laravel cache store     |
+| `stats.enabled`            | `TOGGLEBOX_STATS_ENABLED`            | `true`    | Enable stats            |
+| `stats.flush_on_terminate` | `TOGGLEBOX_STATS_FLUSH_ON_TERMINATE` | `true`    | Auto-flush stats        |
+| `blade_directives`         | `TOGGLEBOX_BLADE_DIRECTIVES`         | `true`    | Enable Blade directives |
 
 ## Requirements
 

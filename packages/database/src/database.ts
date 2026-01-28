@@ -24,9 +24,9 @@
  * - With prefix: "tenant_abc123_togglebox-users"
  */
 
-import { AsyncLocalStorage } from 'async_hooks';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { AsyncLocalStorage } from "async_hooks";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
 /**
  * Table name constants for the DynamoDB tables.
@@ -55,18 +55,23 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
  * - togglebox-usage: API usage tracking per tenant
  */
 const TABLE_NAMES = {
-  USERS: process.env['DYNAMODB_USERS_TABLE'] || 'togglebox-users',
-  API_KEYS: process.env['DYNAMODB_API_KEYS_TABLE'] || 'togglebox-api-keys',
-  PASSWORD_RESETS: process.env['DYNAMODB_PASSWORD_RESETS_TABLE'] || 'togglebox-password-resets',
-  PLATFORMS: process.env['DYNAMODB_PLATFORMS_TABLE'] || 'togglebox-platforms',
-  ENVIRONMENTS: process.env['DYNAMODB_ENVIRONMENTS_TABLE'] || 'togglebox-environments',
-  CONFIGS: process.env['DYNAMODB_CONFIGS_TABLE'] || 'togglebox-configs',
+  USERS: process.env["DYNAMODB_USERS_TABLE"] || "togglebox-users",
+  API_KEYS: process.env["DYNAMODB_API_KEYS_TABLE"] || "togglebox-api-keys",
+  PASSWORD_RESETS:
+    process.env["DYNAMODB_PASSWORD_RESETS_TABLE"] ||
+    "togglebox-password-resets",
+  PLATFORMS: process.env["DYNAMODB_PLATFORMS_TABLE"] || "togglebox-platforms",
+  ENVIRONMENTS:
+    process.env["DYNAMODB_ENVIRONMENTS_TABLE"] || "togglebox-environments",
+  CONFIGS: process.env["DYNAMODB_CONFIGS_TABLE"] || "togglebox-configs",
   // Three-tier architecture tables
-  REMOTE_CONFIGS: process.env['DYNAMODB_REMOTE_CONFIGS_TABLE'] || 'togglebox-remote-configs',
-  FLAGS: process.env['DYNAMODB_FLAGS_TABLE'] || 'togglebox-flags',
-  EXPERIMENTS: process.env['DYNAMODB_EXPERIMENTS_TABLE'] || 'togglebox-experiments',
-  STATS: process.env['DYNAMODB_STATS_TABLE'] || 'togglebox-stats',
-  USAGE: process.env['DYNAMODB_USAGE_TABLE'] || 'togglebox-usage',
+  REMOTE_CONFIGS:
+    process.env["DYNAMODB_REMOTE_CONFIGS_TABLE"] || "togglebox-remote-configs",
+  FLAGS: process.env["DYNAMODB_FLAGS_TABLE"] || "togglebox-flags",
+  EXPERIMENTS:
+    process.env["DYNAMODB_EXPERIMENTS_TABLE"] || "togglebox-experiments",
+  STATS: process.env["DYNAMODB_STATS_TABLE"] || "togglebox-stats",
+  USAGE: process.env["DYNAMODB_USAGE_TABLE"] || "togglebox-usage",
 };
 
 /**
@@ -85,7 +90,7 @@ const tablePrefixStorage = new AsyncLocalStorage<string>();
  * Used when no AsyncLocalStorage context is active (e.g., CLI scripts, tests).
  * Read-only value from TABLE_PREFIX environment variable.
  */
-const FALLBACK_TABLE_PREFIX = process.env['TABLE_PREFIX'] || '';
+const FALLBACK_TABLE_PREFIX = process.env["TABLE_PREFIX"] || "";
 
 /**
  * Helper function to get table name with prefix applied.
@@ -344,7 +349,7 @@ export function getUsageTableName(): string {
  */
 export async function withTablePrefix<T>(
   prefix: string,
-  operation: () => Promise<T>
+  operation: () => Promise<T>,
 ): Promise<T> {
   return tablePrefixStorage.run(prefix, operation);
 }
@@ -364,7 +369,7 @@ export async function withTablePrefix<T>(
  * ```
  */
 export function resetTablePrefix(): void {
-  tablePrefixStorage.enterWith('');
+  tablePrefixStorage.enterWith("");
 }
 
 /**
@@ -379,7 +384,6 @@ export function resetTablePrefix(): void {
 export function getTablePrefixStorage(): AsyncLocalStorage<string> {
   return tablePrefixStorage;
 }
-
 
 /**
  * Pre-configured DynamoDB DocumentClient instance (AWS SDK v3).
@@ -431,8 +435,10 @@ export function getTablePrefixStorage(): AsyncLocalStorage<string> {
  * ```
  */
 const client = new DynamoDBClient({
-  region: process.env['AWS_REGION'] || 'us-east-1',
-  ...(process.env['DYNAMODB_ENDPOINT'] && { endpoint: process.env['DYNAMODB_ENDPOINT'] }),
+  region: process.env["AWS_REGION"] || "us-east-1",
+  ...(process.env["DYNAMODB_ENDPOINT"] && {
+    endpoint: process.env["DYNAMODB_ENDPOINT"],
+  }),
 });
 
 export const dynamoDBClient = DynamoDBDocumentClient.from(client);

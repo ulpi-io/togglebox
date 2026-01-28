@@ -3,7 +3,7 @@ export interface User {
   id: string;
   name?: string;
   email: string;
-  role: 'admin' | 'developer' | 'viewer';
+  role: "admin" | "developer" | "viewer";
   createdAt: string;
   updatedAt: string;
 }
@@ -33,7 +33,7 @@ export interface Environment {
 }
 
 // Config Parameter types (Firebase-style individual parameters)
-export type ConfigValueType = 'string' | 'number' | 'boolean' | 'json';
+export type ConfigValueType = "string" | "number" | "boolean" | "json";
 
 export interface ConfigParameter {
   platform: string;
@@ -53,17 +53,17 @@ export interface ConfigParameter {
  * Flag types - Three-Tier Architecture, Tier 2: Feature Flags
  * 2-value model (valueA/valueB) with country/language targeting.
  */
-export type FlagType = 'boolean' | 'string' | 'number';
+export type FlagType = "boolean" | "string" | "number";
 export type FlagValue = boolean | string | number;
 
 export interface FlagLanguageTarget {
   language: string;
-  serveValue: 'A' | 'B';
+  serveValue: "A" | "B";
 }
 
 export interface FlagCountryTarget {
   country: string;
-  serveValue: 'A' | 'B';
+  serveValue: "A" | "B";
   languages?: FlagLanguageTarget[];
 }
 
@@ -84,7 +84,7 @@ export interface Flag {
   valueA: FlagValue;
   valueB: FlagValue;
   targeting: FlagTargeting;
-  defaultValue: 'A' | 'B';
+  defaultValue: "A" | "B";
   // Rollout settings for gradual feature rollouts
   rolloutEnabled?: boolean;
   rolloutPercentageA?: number; // 0-100
@@ -106,7 +106,7 @@ export interface EvaluationContext {
 export interface FlagEvaluationResult {
   flagKey: string;
   enabled: boolean;
-  variant: 'A' | 'B';
+  variant: "A" | "B";
   value: FlagValue;
   reason: string;
 }
@@ -123,7 +123,8 @@ export interface ApiKey {
   createdAt: string;
 }
 
-export interface ApiKeyWithPlaintext extends Omit<ApiKey, 'keyPrefix' | 'keyLast4'> {
+export interface ApiKeyWithPlaintext
+  extends Omit<ApiKey, "keyPrefix" | "keyLast4"> {
   key: string; // Full plaintext key (shown once)
 }
 
@@ -137,7 +138,7 @@ export interface CacheInvalidation {
 
 export interface InvalidationStatus {
   id: string;
-  status: 'InProgress' | 'Completed';
+  status: "InProgress" | "Completed";
   createTime: string;
   paths: string[];
 }
@@ -146,10 +147,19 @@ export interface InvalidationStatus {
  * Experiment types - Three-Tier Architecture, Tier 3: A/B Testing
  * Multi-variant experiments with statistical analysis.
  */
-export type ExperimentStatus = 'draft' | 'running' | 'paused' | 'completed' | 'archived';
-export type MetricType = 'conversion' | 'count' | 'sum' | 'average';
-export type SuccessDirection = 'increase' | 'decrease';
-export type ResultStatus = 'collecting' | 'significant' | 'not_significant' | 'inconclusive';
+export type ExperimentStatus =
+  | "draft"
+  | "running"
+  | "paused"
+  | "completed"
+  | "archived";
+export type MetricType = "conversion" | "count" | "sum" | "average";
+export type SuccessDirection = "increase" | "decrease";
+export type ResultStatus =
+  | "collecting"
+  | "significant"
+  | "not_significant"
+  | "inconclusive";
 
 export interface ExperimentVariation {
   key: string;

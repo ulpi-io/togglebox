@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import * as TabsPrimitive from '@radix-ui/react-tabs';
-import { cn } from '../utils/cn';
+import * as React from "react";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { cn } from "../utils/cn";
 
 const Tabs = TabsPrimitive.Root;
 
@@ -13,8 +13,8 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex h-12 items-center justify-center rounded-xl bg-white/80 backdrop-blur-sm p-1.5 border border-black/10 shadow-glass',
-      className
+      "inline-flex h-12 items-center justify-center rounded-xl bg-white/80 backdrop-blur-sm p-1.5 border border-black/10 shadow-glass",
+      className,
     )}
     {...props}
   />
@@ -28,14 +28,14 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium',
-      'transition-all duration-200',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2',
-      'disabled:pointer-events-none disabled:opacity-50',
-      'data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-sm',
-      'data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:bg-black/5 data-[state=inactive]:hover:text-foreground',
-      'touch-target',
-      className
+      "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium",
+      "transition-all duration-200",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2",
+      "disabled:pointer-events-none disabled:opacity-50",
+      "data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-sm",
+      "data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:bg-black/5 data-[state=inactive]:hover:text-foreground",
+      "touch-target",
+      className,
     )}
     {...props}
   />
@@ -49,9 +49,9 @@ const TabsContent = React.forwardRef<
   <TabsPrimitive.Content
     ref={ref}
     className={cn(
-      'mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2',
-      'data-[state=inactive]:hidden',
-      className
+      "mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2",
+      "data-[state=inactive]:hidden",
+      className,
     )}
     {...props}
   />

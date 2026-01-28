@@ -12,9 +12,12 @@ import type {
   UpdateExperiment,
   ExperimentStatus,
   TrafficAllocation,
-} from '@togglebox/experiments';
-import type { IExperimentRepository, ExperimentPage } from '@togglebox/experiments';
-import { parseCursor, encodeCursor } from '../../utils/cursor';
+} from "@togglebox/experiments";
+import type {
+  IExperimentRepository,
+  ExperimentPage,
+} from "@togglebox/experiments";
+import { parseCursor, encodeCursor } from "../../utils/cursor";
 
 /**
  * Safely parse JSON with fallback for malformed data.
@@ -60,8 +63,8 @@ export class D1ExperimentRepository implements IExperimentRepository {
    */
   async create(data: CreateExperiment): Promise<Experiment> {
     const now = new Date().toISOString();
-    const version = '1.0.0';
-    const status: ExperimentStatus = 'draft';
+    const version = "1.0.0";
+    const status: ExperimentStatus = "draft";
 
     const experiment: Experiment = {
       platform: data.platform,
@@ -104,7 +107,7 @@ export class D1ExperimentRepository implements IExperimentRepository {
       .prepare(
         `INSERT INTO experiments
         (platform, environment, experimentKey, name, description, hypothesis, status, variations, controlVariation, trafficAllocation, targeting, primaryMetric, secondaryMetrics, confidenceLevel, minimumDetectableEffect, minimumSampleSize, scheduledStartAt, scheduledEndAt, version, isActive, createdBy, createdAt, updatedAt)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)`
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)`,
       )
       .bind(
         experiment.platform,
@@ -129,7 +132,7 @@ export class D1ExperimentRepository implements IExperimentRepository {
         experiment.isActive ? 1 : 0,
         experiment.createdBy,
         experiment.createdAt,
-        experiment.updatedAt
+        experiment.updatedAt,
       )
       .run();
 
@@ -143,14 +146,14 @@ export class D1ExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    data: UpdateExperiment
+    data: UpdateExperiment,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'draft') {
+    if (current.status !== "draft") {
       throw new Error(`Cannot update experiment in ${current.status} status`);
     }
 
@@ -168,7 +171,8 @@ export class D1ExperimentRepository implements IExperimentRepository {
       primaryMetric: data.primaryMetric ?? current.primaryMetric,
       secondaryMetrics: data.secondaryMetrics ?? current.secondaryMetrics,
       confidenceLevel: data.confidenceLevel ?? current.confidenceLevel,
-      minimumDetectableEffect: data.minimumDetectableEffect ?? current.minimumDetectableEffect,
+      minimumDetectableEffect:
+        data.minimumDetectableEffect ?? current.minimumDetectableEffect,
       minimumSampleSize: data.minimumSampleSize ?? current.minimumSampleSize,
       scheduledStartAt: data.scheduledStartAt ?? current.scheduledStartAt,
       scheduledEndAt: data.scheduledEndAt ?? current.scheduledEndAt,
@@ -177,10 +181,14 @@ export class D1ExperimentRepository implements IExperimentRepository {
 
     // Serialize JSON fields
     const variationsJson = JSON.stringify(updatedExperiment.variations);
-    const trafficAllocationJson = JSON.stringify(updatedExperiment.trafficAllocation);
+    const trafficAllocationJson = JSON.stringify(
+      updatedExperiment.trafficAllocation,
+    );
     const targetingJson = JSON.stringify(updatedExperiment.targeting);
     const primaryMetricJson = JSON.stringify(updatedExperiment.primaryMetric);
-    const secondaryMetricsJson = JSON.stringify(updatedExperiment.secondaryMetrics);
+    const secondaryMetricsJson = JSON.stringify(
+      updatedExperiment.secondaryMetrics,
+    );
 
     await this.db
       .prepare(
@@ -189,7 +197,7 @@ export class D1ExperimentRepository implements IExperimentRepository {
         trafficAllocation = ?6, targeting = ?7, primaryMetric = ?8, secondaryMetrics = ?9,
         confidenceLevel = ?10, minimumDetectableEffect = ?11, minimumSampleSize = ?12,
         scheduledStartAt = ?13, scheduledEndAt = ?14, updatedAt = ?15
-        WHERE platform = ?16 AND environment = ?17 AND experimentKey = ?18 AND version = ?19`
+        WHERE platform = ?16 AND environment = ?17 AND experimentKey = ?18 AND version = ?19`,
       )
       .bind(
         updatedExperiment.name,
@@ -210,7 +218,7 @@ export class D1ExperimentRepository implements IExperimentRepository {
         platform,
         environment,
         experimentKey,
-        current.version
+        current.version,
       )
       .run();
 
@@ -224,14 +232,14 @@ export class D1ExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    startedBy: string
+    startedBy: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'draft') {
+    if (current.status !== "draft") {
       throw new Error(`Cannot start experiment in ${current.status} status`);
     }
 
@@ -240,14 +248,23 @@ export class D1ExperimentRepository implements IExperimentRepository {
     await this.db
       .prepare(
         `UPDATE experiments SET status = ?1, startedAt = ?2, startedBy = ?3, updatedAt = ?4
-        WHERE platform = ?5 AND environment = ?6 AND experimentKey = ?7 AND version = ?8`
+        WHERE platform = ?5 AND environment = ?6 AND experimentKey = ?7 AND version = ?8`,
       )
-      .bind('running', now, startedBy, now, platform, environment, experimentKey, current.version)
+      .bind(
+        "running",
+        now,
+        startedBy,
+        now,
+        platform,
+        environment,
+        experimentKey,
+        current.version,
+      )
       .run();
 
     return {
       ...current,
-      status: 'running',
+      status: "running",
       startedAt: now,
       updatedAt: now,
     };
@@ -259,14 +276,14 @@ export class D1ExperimentRepository implements IExperimentRepository {
   async pause(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'running') {
+    if (current.status !== "running") {
       throw new Error(`Cannot pause experiment in ${current.status} status`);
     }
 
@@ -275,14 +292,21 @@ export class D1ExperimentRepository implements IExperimentRepository {
     await this.db
       .prepare(
         `UPDATE experiments SET status = ?1, updatedAt = ?2
-        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`
+        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`,
       )
-      .bind('paused', now, platform, environment, experimentKey, current.version)
+      .bind(
+        "paused",
+        now,
+        platform,
+        environment,
+        experimentKey,
+        current.version,
+      )
       .run();
 
     return {
       ...current,
-      status: 'paused',
+      status: "paused",
       updatedAt: now,
     };
   }
@@ -293,14 +317,14 @@ export class D1ExperimentRepository implements IExperimentRepository {
   async resume(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'paused') {
+    if (current.status !== "paused") {
       throw new Error(`Cannot resume experiment in ${current.status} status`);
     }
 
@@ -309,14 +333,21 @@ export class D1ExperimentRepository implements IExperimentRepository {
     await this.db
       .prepare(
         `UPDATE experiments SET status = ?1, updatedAt = ?2
-        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`
+        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`,
       )
-      .bind('running', now, platform, environment, experimentKey, current.version)
+      .bind(
+        "running",
+        now,
+        platform,
+        environment,
+        experimentKey,
+        current.version,
+      )
       .run();
 
     return {
       ...current,
-      status: 'running',
+      status: "running",
       updatedAt: now,
     };
   }
@@ -329,14 +360,14 @@ export class D1ExperimentRepository implements IExperimentRepository {
     environment: string,
     experimentKey: string,
     winner: string | undefined,
-    completedBy: string
+    completedBy: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'running' && current.status !== 'paused') {
+    if (current.status !== "running" && current.status !== "paused") {
       throw new Error(`Cannot complete experiment in ${current.status} status`);
     }
 
@@ -345,14 +376,24 @@ export class D1ExperimentRepository implements IExperimentRepository {
     await this.db
       .prepare(
         `UPDATE experiments SET status = ?1, winner = ?2, completedAt = ?3, completedBy = ?4, updatedAt = ?5
-        WHERE platform = ?6 AND environment = ?7 AND experimentKey = ?8 AND version = ?9`
+        WHERE platform = ?6 AND environment = ?7 AND experimentKey = ?8 AND version = ?9`,
       )
-      .bind('completed', winner || null, now, completedBy, now, platform, environment, experimentKey, current.version)
+      .bind(
+        "completed",
+        winner || null,
+        now,
+        completedBy,
+        now,
+        platform,
+        environment,
+        experimentKey,
+        current.version,
+      )
       .run();
 
     return {
       ...current,
-      status: 'completed',
+      status: "completed",
       winner,
       completedAt: now,
       updatedAt: now,
@@ -365,14 +406,14 @@ export class D1ExperimentRepository implements IExperimentRepository {
   async archive(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'completed') {
+    if (current.status !== "completed") {
       throw new Error(`Cannot archive experiment in ${current.status} status`);
     }
 
@@ -381,14 +422,21 @@ export class D1ExperimentRepository implements IExperimentRepository {
     await this.db
       .prepare(
         `UPDATE experiments SET status = ?1, updatedAt = ?2
-        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`
+        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`,
       )
-      .bind('archived', now, platform, environment, experimentKey, current.version)
+      .bind(
+        "archived",
+        now,
+        platform,
+        environment,
+        experimentKey,
+        current.version,
+      )
       .run();
 
     return {
       ...current,
-      status: 'archived',
+      status: "archived",
       updatedAt: now,
     };
   }
@@ -399,13 +447,13 @@ export class D1ExperimentRepository implements IExperimentRepository {
   async get(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment | null> {
     const result = await this.db
       .prepare(
         `SELECT * FROM experiments
         WHERE platform = ?1 AND environment = ?2 AND experimentKey = ?3 AND isActive = 1
-        LIMIT 1`
+        LIMIT 1`,
       )
       .bind(platform, environment, experimentKey)
       .first();
@@ -425,7 +473,7 @@ export class D1ExperimentRepository implements IExperimentRepository {
     environment: string,
     status?: ExperimentStatus,
     limit: number = 100,
-    cursor?: string
+    cursor?: string,
   ): Promise<ExperimentPage> {
     // Parse cursor as offset (validates and throws on malformed cursors)
     const offset = parseCursor(cursor);
@@ -453,7 +501,9 @@ export class D1ExperimentRepository implements IExperimentRepository {
       .all();
 
     const items = result.results
-      ? result.results.map(row => this.rowToExperiment(row as Record<string, unknown>))
+      ? result.results.map((row) =>
+          this.rowToExperiment(row as Record<string, unknown>),
+        )
       : [];
 
     const hasMore = items.length === limit;
@@ -471,19 +521,21 @@ export class D1ExperimentRepository implements IExperimentRepository {
    */
   async listRunning(
     platform: string,
-    environment: string
+    environment: string,
   ): Promise<Experiment[]> {
     const result = await this.db
       .prepare(
         `SELECT * FROM experiments
         WHERE platform = ?1 AND environment = ?2 AND status = ?3 AND isActive = 1
-        ORDER BY createdAt DESC`
+        ORDER BY createdAt DESC`,
       )
-      .bind(platform, environment, 'running')
+      .bind(platform, environment, "running")
       .all();
 
     return result.results
-      ? result.results.map(row => this.rowToExperiment(row as Record<string, unknown>))
+      ? result.results.map((row) =>
+          this.rowToExperiment(row as Record<string, unknown>),
+        )
       : [];
   }
 
@@ -493,20 +545,20 @@ export class D1ExperimentRepository implements IExperimentRepository {
   async delete(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<void> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status === 'running') {
-      throw new Error('Cannot delete running experiment');
+    if (current.status === "running") {
+      throw new Error("Cannot delete running experiment");
     }
 
     await this.db
       .prepare(
-        'DELETE FROM experiments WHERE platform = ?1 AND environment = ?2 AND experimentKey = ?3'
+        "DELETE FROM experiments WHERE platform = ?1 AND environment = ?2 AND experimentKey = ?3",
       )
       .bind(platform, environment, experimentKey)
       .run();
@@ -518,7 +570,7 @@ export class D1ExperimentRepository implements IExperimentRepository {
   async exists(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<boolean> {
     const experiment = await this.get(platform, environment, experimentKey);
     return experiment !== null;
@@ -531,7 +583,7 @@ export class D1ExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    results: Experiment['results']
+    results: Experiment["results"],
   ): Promise<void> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
@@ -544,9 +596,16 @@ export class D1ExperimentRepository implements IExperimentRepository {
     await this.db
       .prepare(
         `UPDATE experiments SET results = ?1, updatedAt = ?2
-        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`
+        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`,
       )
-      .bind(resultsJson, now, platform, environment, experimentKey, current.version)
+      .bind(
+        resultsJson,
+        now,
+        platform,
+        environment,
+        experimentKey,
+        current.version,
+      )
       .run();
   }
 
@@ -557,7 +616,7 @@ export class D1ExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    trafficAllocation: TrafficAllocation[]
+    trafficAllocation: TrafficAllocation[],
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
@@ -565,18 +624,29 @@ export class D1ExperimentRepository implements IExperimentRepository {
     }
 
     // Only allow updating traffic allocation for draft, running, or paused experiments
-    if (current.status !== 'running' && current.status !== 'paused' && current.status !== 'draft') {
-      throw new Error(`Cannot update traffic allocation for experiment in ${current.status} status`);
+    if (
+      current.status !== "running" &&
+      current.status !== "paused" &&
+      current.status !== "draft"
+    ) {
+      throw new Error(
+        `Cannot update traffic allocation for experiment in ${current.status} status`,
+      );
     }
 
     // Validate traffic allocation sums to 100%
-    const totalPercentage = trafficAllocation.reduce((sum, t) => sum + t.percentage, 0);
+    const totalPercentage = trafficAllocation.reduce(
+      (sum, t) => sum + t.percentage,
+      0,
+    );
     if (totalPercentage !== 100) {
-      throw new Error(`Traffic allocation must sum to 100%, got ${totalPercentage}%`);
+      throw new Error(
+        `Traffic allocation must sum to 100%, got ${totalPercentage}%`,
+      );
     }
 
     // Validate all variation keys exist
-    const variationKeys = new Set(current.variations.map(v => v.key));
+    const variationKeys = new Set(current.variations.map((v) => v.key));
     for (const allocation of trafficAllocation) {
       if (!variationKeys.has(allocation.variationKey)) {
         throw new Error(`Unknown variation key: ${allocation.variationKey}`);
@@ -589,9 +659,16 @@ export class D1ExperimentRepository implements IExperimentRepository {
     await this.db
       .prepare(
         `UPDATE experiments SET trafficAllocation = ?1, updatedAt = ?2
-        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`
+        WHERE platform = ?3 AND environment = ?4 AND experimentKey = ?5 AND version = ?6`,
       )
-      .bind(trafficAllocationJson, now, platform, environment, experimentKey, current.version)
+      .bind(
+        trafficAllocationJson,
+        now,
+        platform,
+        environment,
+        experimentKey,
+        current.version,
+      )
       .run();
 
     return {
@@ -606,33 +683,45 @@ export class D1ExperimentRepository implements IExperimentRepository {
    */
   private rowToExperiment(row: Record<string, unknown>): Experiment {
     return {
-      platform: row['platform'] as string,
-      environment: row['environment'] as string,
-      experimentKey: row['experimentKey'] as string,
-      name: row['name'] as string,
-      description: row['description'] as string | undefined,
-      hypothesis: row['hypothesis'] as string,
-      status: row['status'] as ExperimentStatus,
-      startedAt: row['startedAt'] as string | undefined,
-      completedAt: row['completedAt'] as string | undefined,
-      scheduledStartAt: row['scheduledStartAt'] as string | undefined,
-      scheduledEndAt: row['scheduledEndAt'] as string | undefined,
-      variations: safeParse(row['variations'] as string, []),
-      controlVariation: row['controlVariation'] as string,
-      trafficAllocation: safeParse(row['trafficAllocation'] as string, []),
-      targeting: safeParse(row['targeting'] as string, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
-      primaryMetric: safeParse(row['primaryMetric'] as string, { id: '', name: '', eventName: '', metricType: 'conversion', successDirection: 'increase' }),
-      secondaryMetrics: safeParse(row['secondaryMetrics'] as string, undefined),
-      confidenceLevel: row['confidenceLevel'] as number,
-      minimumDetectableEffect: row['minimumDetectableEffect'] as number | undefined,
-      minimumSampleSize: row['minimumSampleSize'] as number | undefined,
-      results: safeParse(row['results'] as string, undefined),
-      winner: row['winner'] as string | undefined,
-      version: row['version'] as string,
-      isActive: Boolean(row['isActive']),
-      createdBy: row['createdBy'] as string,
-      createdAt: row['createdAt'] as string,
-      updatedAt: row['updatedAt'] as string,
+      platform: row["platform"] as string,
+      environment: row["environment"] as string,
+      experimentKey: row["experimentKey"] as string,
+      name: row["name"] as string,
+      description: row["description"] as string | undefined,
+      hypothesis: row["hypothesis"] as string,
+      status: row["status"] as ExperimentStatus,
+      startedAt: row["startedAt"] as string | undefined,
+      completedAt: row["completedAt"] as string | undefined,
+      scheduledStartAt: row["scheduledStartAt"] as string | undefined,
+      scheduledEndAt: row["scheduledEndAt"] as string | undefined,
+      variations: safeParse(row["variations"] as string, []),
+      controlVariation: row["controlVariation"] as string,
+      trafficAllocation: safeParse(row["trafficAllocation"] as string, []),
+      targeting: safeParse(row["targeting"] as string, {
+        countries: [],
+        forceIncludeUsers: [],
+        forceExcludeUsers: [],
+      }),
+      primaryMetric: safeParse(row["primaryMetric"] as string, {
+        id: "",
+        name: "",
+        eventName: "",
+        metricType: "conversion",
+        successDirection: "increase",
+      }),
+      secondaryMetrics: safeParse(row["secondaryMetrics"] as string, undefined),
+      confidenceLevel: row["confidenceLevel"] as number,
+      minimumDetectableEffect: row["minimumDetectableEffect"] as
+        | number
+        | undefined,
+      minimumSampleSize: row["minimumSampleSize"] as number | undefined,
+      results: safeParse(row["results"] as string, undefined),
+      winner: row["winner"] as string | undefined,
+      version: row["version"] as string,
+      isActive: Boolean(row["isActive"]),
+      createdBy: row["createdBy"] as string,
+      createdAt: row["createdAt"] as string,
+      updatedAt: row["updatedAt"] as string,
     };
   }
 }

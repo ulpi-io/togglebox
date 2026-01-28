@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { createPlatformApi } from '@/lib/api/platforms';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createPlatformApi } from "@/lib/api/platforms";
 import {
   Button,
   Input,
@@ -13,13 +13,13 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
 export default function CreatePlatformPage() {
   const router = useRouter();
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,16 +29,16 @@ export default function CreatePlatformPage() {
     setIsLoading(true);
 
     if (!name?.trim()) {
-      setError('Platform name is required');
+      setError("Platform name is required");
       setIsLoading(false);
       return;
     }
 
     try {
       await createPlatformApi(name.trim(), description.trim() || undefined);
-      router.push('/platforms');
+      router.push("/platforms");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -94,11 +94,7 @@ export default function CreatePlatformPage() {
           </CardContent>
         </Card>
 
-        {error && (
-          <Alert variant="destructive">
-            {error}
-          </Alert>
-        )}
+        {error && <Alert variant="destructive">{error}</Alert>}
 
         <div className="flex items-center justify-end gap-3 pt-4">
           <Link href="/platforms">
@@ -107,7 +103,7 @@ export default function CreatePlatformPage() {
             </Button>
           </Link>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Create Platform'}
+            {isLoading ? "Creating..." : "Create Platform"}
           </Button>
         </div>
       </form>

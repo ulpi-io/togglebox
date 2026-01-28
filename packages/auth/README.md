@@ -24,10 +24,10 @@ pnpm add @config/auth
 
 ```typescript
 // apps/api/src/app.ts
-import { createAuthRouter } from '@config/auth';
+import { createAuthRouter } from "@config/auth";
 
 const authRouter = createAuthRouter();
-app.use('/api/v1', authRouter);
+app.use("/api/v1", authRouter);
 ```
 
 ### 2. Configure Environment Variables
@@ -55,15 +55,18 @@ DB_TYPE=dynamodb  # or mysql, postgresql, mongodb, sqlite, d1
 ### 3. Initialize Database Schema
 
 #### DynamoDB
+
 Uses the same table as your config data. No additional setup needed.
 
 #### MySQL/PostgreSQL/SQLite
+
 ```bash
 cd packages/auth
 npx prisma migrate deploy
 ```
 
 #### MongoDB
+
 No migrations needed - schemas created automatically.
 
 ## API Endpoints
@@ -126,6 +129,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -153,6 +157,7 @@ curl -X POST http://localhost:3000/api/v1/api-keys \
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -178,21 +183,23 @@ curl -X GET http://localhost:3000/api/v1/internal/platforms \
 
 The auth module supports the same databases as Togglebox:
 
-| Database | Adapter | Status | Notes |
-|----------|---------|--------|-------|
-| DynamoDB | AWS SDK | ✅ Ready | Uses same table, PK/SK pattern |
-| MySQL | Prisma | ✅ Ready | Requires migrations (`npx prisma migrate deploy`) |
-| PostgreSQL | Prisma | ✅ Ready | Requires migrations (`npx prisma migrate deploy`) |
-| SQLite | Prisma | ✅ Ready | Requires migrations (`npx prisma migrate deploy`) |
-| MongoDB | Mongoose | ✅ Ready | Auto-connect, no migrations needed |
-| D1 | Cloudflare | 🚧 Coming Soon | Will use Prisma with D1 connector |
+| Database   | Adapter    | Status         | Notes                                             |
+| ---------- | ---------- | -------------- | ------------------------------------------------- |
+| DynamoDB   | AWS SDK    | ✅ Ready       | Uses same table, PK/SK pattern                    |
+| MySQL      | Prisma     | ✅ Ready       | Requires migrations (`npx prisma migrate deploy`) |
+| PostgreSQL | Prisma     | ✅ Ready       | Requires migrations (`npx prisma migrate deploy`) |
+| SQLite     | Prisma     | ✅ Ready       | Requires migrations (`npx prisma migrate deploy`) |
+| MongoDB    | Mongoose   | ✅ Ready       | Auto-connect, no migrations needed                |
+| D1         | Cloudflare | 🚧 Coming Soon | Will use Prisma with D1 connector                 |
 
 ### Database Setup
 
 #### DynamoDB
+
 No additional setup needed - uses the same table as config data with different PK/SK patterns.
 
 #### Prisma (MySQL/PostgreSQL/SQLite)
+
 ```bash
 cd packages/auth
 npx prisma generate
@@ -200,12 +207,15 @@ npx prisma migrate deploy
 ```
 
 #### MongoDB
+
 Set `MONGODB_URI` environment variable:
+
 ```bash
 MONGODB_URI=mongodb://localhost:27017/togglebox-auth
 ```
 
 #### D1 (Cloudflare)
+
 Coming soon - will support Prisma's D1 connector.
 
 ## Security Features
@@ -219,11 +229,11 @@ Coming soon - will support Prisma's D1 connector.
 
 ## Roles & Permissions
 
-| Role | Permissions |
-|------|-------------|
-| `admin` | All permissions |
+| Role        | Permissions                                                        |
+| ----------- | ------------------------------------------------------------------ |
+| `admin`     | All permissions                                                    |
 | `developer` | `config:read`, `config:write`, `config:update`, `cache:invalidate` |
-| `viewer` | `config:read` only |
+| `viewer`    | `config:read` only                                                 |
 
 ## Development
 

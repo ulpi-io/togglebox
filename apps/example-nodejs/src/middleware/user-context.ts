@@ -1,11 +1,11 @@
-import { Request, Response, NextFunction } from 'express'
-import type { UserContext } from '../types'
+import { Request, Response, NextFunction } from "express";
+import type { UserContext } from "../types";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      userContext?: UserContext
+      userContext?: UserContext;
     }
   }
 }
@@ -21,25 +21,25 @@ declare global {
 export function userContextMiddleware(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void {
-  const userId = req.headers['x-user-id'] as string
-  const country = req.headers['x-country'] as string | undefined
-  const language = req.headers['x-language'] as string | undefined
+  const userId = req.headers["x-user-id"] as string;
+  const country = req.headers["x-country"] as string | undefined;
+  const language = req.headers["x-language"] as string | undefined;
 
   if (!userId) {
     res.status(400).json({
-      error: 'Missing X-User-Id header',
-      hint: 'Add X-User-Id header with a unique user identifier',
-    })
-    return
+      error: "Missing X-User-Id header",
+      hint: "Add X-User-Id header with a unique user identifier",
+    });
+    return;
   }
 
   req.userContext = {
     userId,
     ...(country && { country }),
     ...(language && { language }),
-  }
+  };
 
-  next()
+  next();
 }

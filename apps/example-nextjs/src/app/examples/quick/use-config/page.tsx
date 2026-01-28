@@ -1,16 +1,16 @@
-'use client'
+"use client";
 
-import { useConfig } from '@togglebox/sdk-nextjs'
+import { useConfig } from "@togglebox/sdk-nextjs";
 
 export default function Page() {
-  const { config, isLoading, error, refresh } = useConfig()
+  const { config, isLoading, error, refresh } = useConfig();
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -21,11 +21,11 @@ export default function Page() {
           <p className="text-red-600 text-sm">{error.message}</p>
         </div>
       </div>
-    )
+    );
   }
 
-  const theme = (config?.theme as string) ?? 'light'
-  const apiTimeout = (config?.apiTimeout as number) ?? 5000
+  const theme = (config?.theme as string) ?? "light";
+  const apiTimeout = (config?.apiTimeout as number) ?? 5000;
 
   return (
     <div className="min-h-screen p-8">
@@ -50,5 +50,5 @@ export default function Page() {
         </button>
       </div>
     </div>
-  )
+  );
 }

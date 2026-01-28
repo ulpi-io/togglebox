@@ -16,9 +16,9 @@
  * - Request/response tracking with AWS request IDs
  */
 
-import serverless from 'serverless-http';
-import app from './app';
-import { logger } from '@togglebox/shared';
+import serverless from "serverless-http";
+import app from "./app";
+import { logger } from "@togglebox/shared";
 
 /**
  * Serverless-http handler wrapping the Express app.
@@ -27,7 +27,7 @@ import { logger } from '@togglebox/shared';
  * Configures binary response support and adds Lambda context to requests.
  */
 const handler = serverless(app, {
-  binary: ['image/*', 'application/pdf'],
+  binary: ["image/*", "application/pdf"],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- serverless-http callback types are not properly typed
   request: (request: any, event: any, context: any) => {
     // Add Lambda context to request for access in controllers/middleware
@@ -37,7 +37,7 @@ const handler = serverless(app, {
       requestId: context.awsRequestId,
     };
 
-    logger.info('Lambda request received', {
+    logger.info("Lambda request received", {
       requestId: context.awsRequestId,
       functionName: context.functionName,
       functionVersion: context.functionVersion,
@@ -46,7 +46,7 @@ const handler = serverless(app, {
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- serverless-http callback types are not properly typed
   response: (response: any, _event: any, context: any) => {
-    logger.info('Lambda response sent', {
+    logger.info("Lambda response sent", {
       requestId: context.awsRequestId,
       statusCode: response.statusCode,
     });
@@ -67,7 +67,7 @@ const handler = serverless(app, {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- AWS Lambda event/context types vary by trigger
 export const lambdaHandler = async (event: any, context: any) => {
   try {
-    logger.info('Lambda function invoked', {
+    logger.info("Lambda function invoked", {
       requestId: context.awsRequestId,
       functionName: context.functionName,
       functionVersion: context.functionVersion,
@@ -77,15 +77,15 @@ export const lambdaHandler = async (event: any, context: any) => {
 
     const result = await handler(event, context);
 
-    logger.info('Lambda function completed', {
+    logger.info("Lambda function completed", {
       requestId: context.awsRequestId,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- serverless-http result type varies
-      statusCode: (result as any).statusCode || 'unknown',
+      statusCode: (result as any).statusCode || "unknown",
     });
 
     return result;
   } catch (error) {
-    logger.fatal('Lambda function failed', error);
+    logger.fatal("Lambda function failed", error);
     throw error;
   }
 };

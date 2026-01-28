@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Select } from '@togglebox/ui';
-import { getPlatformsApi, getEnvironmentsApi } from '@/lib/api/platforms';
-import type { Platform, Environment } from '@/lib/api/types';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Select } from "@togglebox/ui";
+import { getPlatformsApi, getEnvironmentsApi } from "@/lib/api/platforms";
+import type { Platform, Environment } from "@/lib/api/types";
 
-const STORAGE_KEY = 'togglebox-platform-env-filter';
+const STORAGE_KEY = "togglebox-platform-env-filter";
 
 interface StoredFilter {
   platform: string | null;
@@ -14,7 +14,10 @@ interface StoredFilter {
 }
 
 interface PlatformEnvFilterProps {
-  onFilterChange?: (platform: string | null, environment: string | null) => void;
+  onFilterChange?: (
+    platform: string | null,
+    environment: string | null,
+  ) => void;
   requireSelection?: boolean;
 }
 
@@ -29,7 +32,9 @@ export function PlatformEnvFilter({
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
-  const [selectedEnvironment, setSelectedEnvironment] = useState<string | null>(null);
+  const [selectedEnvironment, setSelectedEnvironment] = useState<string | null>(
+    null,
+  );
   const [isLoadingPlatforms, setIsLoadingPlatforms] = useState(true);
   const [isLoadingEnvironments, setIsLoadingEnvironments] = useState(false);
 
@@ -41,7 +46,7 @@ export function PlatformEnvFilter({
         const data = await getPlatformsApi();
         setPlatforms(data);
       } catch (err) {
-        console.error('Failed to load platforms:', err);
+        console.error("Failed to load platforms:", err);
       } finally {
         setIsLoadingPlatforms(false);
       }
@@ -51,8 +56,8 @@ export function PlatformEnvFilter({
 
   // Initialize from URL or localStorage
   useEffect(() => {
-    const urlPlatform = searchParams.get('platform');
-    const urlEnvironment = searchParams.get('environment');
+    const urlPlatform = searchParams.get("platform");
+    const urlEnvironment = searchParams.get("environment");
 
     if (urlPlatform) {
       setSelectedPlatform(urlPlatform);
@@ -100,7 +105,7 @@ export function PlatformEnvFilter({
           return current;
         });
       } catch (err) {
-        console.error('Failed to load environments:', err);
+        console.error("Failed to load environments:", err);
         setEnvironments([]);
       } finally {
         setIsLoadingEnvironments(false);
@@ -114,7 +119,10 @@ export function PlatformEnvFilter({
     (platform: string | null, environment: string | null) => {
       // Update localStorage (wrapped in try/catch for Safari private mode)
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ platform, environment }));
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ platform, environment }),
+        );
       } catch {
         // Ignore storage errors (Safari private mode, quota exceeded, etc.)
       }
@@ -122,20 +130,22 @@ export function PlatformEnvFilter({
       // Update URL
       const params = new URLSearchParams(searchParams.toString());
       if (platform) {
-        params.set('platform', platform);
+        params.set("platform", platform);
       } else {
-        params.delete('platform');
+        params.delete("platform");
       }
       if (environment) {
-        params.set('environment', environment);
+        params.set("environment", environment);
       } else {
-        params.delete('environment');
+        params.delete("environment");
       }
 
-      const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+      const newUrl = params.toString()
+        ? `${pathname}?${params.toString()}`
+        : pathname;
       router.replace(newUrl, { scroll: false });
     },
-    [pathname, router, searchParams]
+    [pathname, router, searchParams],
   );
 
   // Handle platform change
@@ -162,7 +172,8 @@ export function PlatformEnvFilter({
     }
   }, [selectedPlatform, selectedEnvironment, onFilterChange]);
 
-  const showMissingSelection = requireSelection && (!selectedPlatform || !selectedEnvironment);
+  const showMissingSelection =
+    requireSelection && (!selectedPlatform || !selectedEnvironment);
 
   return (
     <div className="space-y-4">
@@ -170,7 +181,7 @@ export function PlatformEnvFilter({
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-bold mb-2">Platform</label>
           <Select
-            value={selectedPlatform || ''}
+            value={selectedPlatform || ""}
             onChange={handlePlatformChange}
             disabled={isLoadingPlatforms}
           >
@@ -186,7 +197,7 @@ export function PlatformEnvFilter({
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-bold mb-2">Environment</label>
           <Select
-            value={selectedEnvironment || ''}
+            value={selectedEnvironment || ""}
             onChange={handleEnvironmentChange}
             disabled={!selectedPlatform || isLoadingEnvironments}
           >
@@ -217,15 +228,15 @@ export function usePlatformEnvFilter() {
   const searchParams = useSearchParams();
 
   const { platform, environment } = useMemo(() => {
-    const urlPlatform = searchParams.get('platform');
-    const urlEnvironment = searchParams.get('environment');
+    const urlPlatform = searchParams.get("platform");
+    const urlEnvironment = searchParams.get("environment");
 
     if (urlPlatform && urlEnvironment) {
       return { platform: urlPlatform, environment: urlEnvironment };
     }
 
     // Try localStorage (only runs on client, wrapped in try/catch for Safari private mode)
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {

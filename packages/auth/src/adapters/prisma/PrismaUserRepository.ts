@@ -18,10 +18,15 @@
  * Converts between Prisma models and domain models via `mapToUser()`.
  */
 
-import { IUserRepository } from '../../interfaces/IUserRepository';
-import { User, CreateUserData, UpdateUserData, UserRole } from '../../models/User';
-import { prisma } from './database';
-import type { User as PrismaUserModel } from '.prisma/client-auth';
+import { IUserRepository } from "../../interfaces/IUserRepository";
+import {
+  User,
+  CreateUserData,
+  UpdateUserData,
+  UserRole,
+} from "../../models/User";
+import { prisma } from "./database";
+import type { User as PrismaUserModel } from ".prisma/client-auth";
 
 /**
  * Prisma user repository implementation.
@@ -93,7 +98,7 @@ export class PrismaUserRepository implements IUserRepository {
         where,
         take: options?.limit || 20,
         skip: options?.offset || 0,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       prisma.user.count({ where }),
     ]);

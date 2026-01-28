@@ -41,9 +41,9 @@
  * - Correlation IDs for tracing requests across services
  */
 
-import pino from 'pino';
-import pinoHttp from 'pino-http';
-import type { IncomingMessage, ServerResponse } from 'http';
+import pino from "pino";
+import pinoHttp from "pino-http";
+import type { IncomingMessage, ServerResponse } from "http";
 
 /**
  * Structured logging service with Pino.
@@ -82,14 +82,14 @@ export class LoggerService {
    * Sensitive fields are automatically removed from all logs.
    */
   constructor() {
-    const isDevelopment = process.env['NODE_ENV'] === 'development';
-    const logLevel = process.env['LOG_LEVEL'] || 'info';
+    const isDevelopment = process.env["NODE_ENV"] === "development";
+    const logLevel = process.env["LOG_LEVEL"] || "info";
 
     const baseConfig = {
       level: logLevel,
       timestamp: pino.stdTimeFunctions.isoTime,
       redact: {
-        paths: ['password', 'apiKey', 'secret', 'token', 'authorization'],
+        paths: ["password", "apiKey", "secret", "token", "authorization"],
         remove: true,
       },
     };
@@ -98,11 +98,11 @@ export class LoggerService {
       this.logger = pino({
         ...baseConfig,
         transport: {
-          target: 'pino-pretty',
+          target: "pino-pretty",
           options: {
             colorize: true,
-            translateTime: 'SYS:standard',
-            ignore: 'pid,hostname',
+            translateTime: "SYS:standard",
+            ignore: "pid,hostname",
           },
         },
       });
@@ -114,25 +114,42 @@ export class LoggerService {
       logger: this.logger,
       // Generate request ID if not present
       genReqId: (req: IncomingMessage) => {
-        const headers = (req as IncomingMessage & { headers: Record<string, string | string[] | undefined> }).headers;
-        return headers['x-request-id'] as string || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const headers = (
+          req as IncomingMessage & {
+            headers: Record<string, string | string[] | undefined>;
+          }
+        ).headers;
+        return (
+          (headers["x-request-id"] as string) ||
+          `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        );
       },
       customSuccessMessage: (req: IncomingMessage, res: ServerResponse) => {
-        const httpReq = req as IncomingMessage & { method?: string; url?: string };
+        const httpReq = req as IncomingMessage & {
+          method?: string;
+          url?: string;
+        };
         const httpRes = res as ServerResponse & { statusCode: number };
-        return `${httpReq.method} ${httpReq.url} ${httpRes.statusCode} - ${httpRes.getHeader('content-length') || 0}b`;
+        return `${httpReq.method} ${httpReq.url} ${httpRes.statusCode} - ${httpRes.getHeader("content-length") || 0}b`;
       },
-      customErrorMessage: (req: IncomingMessage, res: ServerResponse, error: Error) => {
-        const httpReq = req as IncomingMessage & { method?: string; url?: string };
+      customErrorMessage: (
+        req: IncomingMessage,
+        res: ServerResponse,
+        error: Error,
+      ) => {
+        const httpReq = req as IncomingMessage & {
+          method?: string;
+          url?: string;
+        };
         const httpRes = res as ServerResponse & { statusCode: number };
         return `${httpReq.method} ${httpReq.url} ${httpRes.statusCode} - ${error.message}`;
       },
       customAttributeKeys: {
-        req: 'request',
-        res: 'response',
-        err: 'error',
-        responseTime: 'responseTimeMs',
-        reqId: 'requestId',
+        req: "request",
+        res: "response",
+        err: "error",
+        responseTime: "responseTimeMs",
+        reqId: "requestId",
       },
     });
   }
@@ -346,16 +363,26 @@ export class LoggerService {
    * logger.logApiRequest('GET', '/api/v1/platforms', 200, 45, 'curl/7.64.1', 'req-123');
    * ```
    */
-  logApiRequest(method: string, path: string, statusCode: number, duration: number, userAgent?: string, requestId?: string): void {
-    this.logger.info({
-      type: 'api_request',
-      requestId,
-      method,
-      path,
-      statusCode,
-      duration,
-      userAgent,
-    }, 'API Request');
+  logApiRequest(
+    method: string,
+    path: string,
+    statusCode: number,
+    duration: number,
+    userAgent?: string,
+    requestId?: string,
+  ): void {
+    this.logger.info(
+      {
+        type: "api_request",
+        requestId,
+        method,
+        path,
+        statusCode,
+        duration,
+        userAgent,
+      },
+      "API Request",
+    );
   }
 
   /**
@@ -372,15 +399,24 @@ export class LoggerService {
    * logger.logCacheOperation('get', 'config:web:production', true, 2, 'req-123');
    * ```
    */
-  logCacheOperation(operation: string, key: string, hit: boolean, duration: number, requestId?: string): void {
-    this.logger.info({
-      type: 'cache_operation',
-      requestId,
-      operation,
-      key,
-      hit,
-      duration,
-    }, 'Cache Operation');
+  logCacheOperation(
+    operation: string,
+    key: string,
+    hit: boolean,
+    duration: number,
+    requestId?: string,
+  ): void {
+    this.logger.info(
+      {
+        type: "cache_operation",
+        requestId,
+        operation,
+        key,
+        hit,
+        duration,
+      },
+      "Cache Operation",
+    );
   }
 
   /**
@@ -397,15 +433,24 @@ export class LoggerService {
    * logger.logDatabaseOperation('query', 'platforms', 15, true, 'req-123');
    * ```
    */
-  logDatabaseOperation(operation: string, table: string, duration: number, success: boolean, requestId?: string): void {
-    this.logger.info({
-      type: 'database_operation',
-      requestId,
-      operation,
-      table,
-      duration,
-      success,
-    }, 'Database Operation');
+  logDatabaseOperation(
+    operation: string,
+    table: string,
+    duration: number,
+    success: boolean,
+    requestId?: string,
+  ): void {
+    this.logger.info(
+      {
+        type: "database_operation",
+        requestId,
+        operation,
+        table,
+        duration,
+        success,
+      },
+      "Database Operation",
+    );
   }
 
   /**
@@ -421,14 +466,22 @@ export class LoggerService {
    * logger.logCloudFrontInvalidation('INV123', ['/api/v1/platforms/*'], true, 'req-123');
    * ```
    */
-  logCloudFrontInvalidation(invalidationId: string, paths: string[], success: boolean, requestId?: string): void {
-    this.logger.info({
-      type: 'cloudfront_invalidation',
-      requestId,
-      invalidationId,
-      paths,
-      success,
-    }, 'CloudFront Invalidation');
+  logCloudFrontInvalidation(
+    invalidationId: string,
+    paths: string[],
+    success: boolean,
+    requestId?: string,
+  ): void {
+    this.logger.info(
+      {
+        type: "cloudfront_invalidation",
+        requestId,
+        invalidationId,
+        paths,
+        success,
+      },
+      "CloudFront Invalidation",
+    );
   }
 
   /**
@@ -448,14 +501,22 @@ export class LoggerService {
    * **Security:**
    * Never log passwords, tokens, or API keys.
    */
-  logAuthentication(userId: string, success: boolean, method: string, requestId?: string): void {
-    this.logger.info({
-      type: 'authentication',
-      requestId,
-      userId,
-      success,
-      method,
-    }, 'Authentication');
+  logAuthentication(
+    userId: string,
+    success: boolean,
+    method: string,
+    requestId?: string,
+  ): void {
+    this.logger.info(
+      {
+        type: "authentication",
+        requestId,
+        userId,
+        success,
+        method,
+      },
+      "Authentication",
+    );
   }
 
   /**
@@ -472,15 +533,24 @@ export class LoggerService {
    * logger.logAuthorization('user-123', 'platform:web', 'config:write', true, 'req-123');
    * ```
    */
-  logAuthorization(userId: string, resource: string, action: string, granted: boolean, requestId?: string): void {
-    this.logger.info({
-      type: 'authorization',
-      requestId,
-      userId,
-      resource,
-      action,
-      granted,
-    }, 'Authorization');
+  logAuthorization(
+    userId: string,
+    resource: string,
+    action: string,
+    granted: boolean,
+    requestId?: string,
+  ): void {
+    this.logger.info(
+      {
+        type: "authorization",
+        requestId,
+        userId,
+        resource,
+        action,
+        granted,
+      },
+      "Authorization",
+    );
   }
 }
 

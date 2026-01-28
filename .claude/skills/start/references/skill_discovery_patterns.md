@@ -70,17 +70,21 @@ If YES to any → STOP. Use the skill.
 ### Current Skills (Based on Available Agent Descriptions)
 
 #### 1. start
+
 **Domain:** Workflow management, task initialization
 **Triggers:**
+
 - ANY conversation start
 - ANY new task
 - Before ANY code writing
 - Before ANY implementation
 
 **Indicators:**
+
 - Literally everything (this skill is universal)
 
 **Pattern Match:**
+
 - User says ANYTHING that requires action
 
 **Confidence:** 100% (always applicable at conversation start)
@@ -88,8 +92,10 @@ If YES to any → STOP. Use the skill.
 ---
 
 #### 2. run-parallel-agents-feature-build
+
 **Domain:** Parallel feature development
 **Triggers:**
+
 - "Build X, Y, and Z"
 - "Implement multiple features"
 - "Create several independent modules"
@@ -97,22 +103,26 @@ If YES to any → STOP. Use the skill.
 - "Run in parallel"
 
 **Indicators:**
+
 - 3+ independent features/tasks mentioned
 - No shared state between tasks
 - Can be understood independently
 - No execution dependencies
 
 **Pattern Match:**
+
 - User lists multiple features
 - Task list has 3+ unrelated items
 - Request includes multiple unrelated scopes
 
 **Confidence:**
+
 - High: 3+ clearly independent tasks
 - Medium: Multiple tasks but unclear if independent
 - Low: Tasks might have dependencies
 
 **Example Triggers:**
+
 ```
 ✅ "Build wishlist API, checkout page, and user dashboard"
 ✅ "Implement authentication, payment processing, and email notifications"
@@ -124,30 +134,36 @@ If YES to any → STOP. Use the skill.
 ---
 
 #### 3. run-parallel-agents-feature-debug
+
 **Domain:** Parallel debugging
 **Triggers:**
+
 - "Fix these failing tests"
 - "Debug these errors"
 - "Multiple bugs to fix"
 - "Several issues in different subsystems"
 
 **Indicators:**
+
 - 3+ unrelated bugs/failures
 - Different error messages/patterns
 - Isolated to different modules
 - No shared root cause
 
 **Pattern Match:**
+
 - Multiple test failures across frameworks
 - Bugs in independent subsystems
 - Different error types (not cascading failures)
 
 **Confidence:**
+
 - High: 3+ clearly independent bugs
 - Medium: Multiple bugs but might be related
 - Low: Might be single root cause
 
 **Example Triggers:**
+
 ```
 ✅ "Laravel test fails (factory issue), Next.js test fails (mock data), NestJS test fails (timeout)"
 ✅ "Cart calculation bug, User auth bug, Email sending bug"
@@ -162,42 +178,52 @@ If YES to any → STOP. Use the skill.
 These aren't separate skills but agent personas invoked via Task tool:
 
 #### laravel-senior-engineer
+
 **Triggers:** Laravel backend work
 **Indicators:** `*.php`, `/app/`, Eloquent, migrations
 
 #### nextjs-senior-engineer
+
 **Triggers:** Next.js frontend work
 **Indicators:** `*.tsx`, `/app/`, Server Components, Server Actions
 
 #### nestjs-senior-engineer
+
 **Triggers:** NestJS backend work
 **Indicators:** `*.ts`, `@nestjs/*`, DI patterns
 
 #### remix-senior-engineer
+
 **Triggers:** Remix full-stack work
 **Indicators:** `remix.config.*`, loaders/actions
 
 #### express-senior-engineer
+
 **Triggers:** Express.js backend work
 **Indicators:** `express` imports, middleware
 
 #### expo-react-native-senior-engineer
+
 **Triggers:** Expo mobile work
 **Indicators:** `app.json`, Expo modules
 
 #### flutter-senior-engineer
+
 **Triggers:** Flutter mobile work
 **Indicators:** `*.dart`, `pubspec.yaml`
 
 #### magento-senior-engineer
+
 **Triggers:** Magento e-commerce work
 **Indicators:** `/app/code/`, `module.xml`
 
 #### general-purpose
+
 **Triggers:** Non-framework work, exploration
 **Indicators:** No specific framework detected
 
 #### Explore (subagent)
+
 **Triggers:** Codebase exploration, discovery
 **Indicators:** "Find...", "Search...", "Locate...", "Explore..."
 
@@ -270,10 +296,12 @@ def is_exploration_task(request):
 **User Request:** "Run parallel agents to build these features"
 
 **Detection:**
+
 - User explicitly mentions "parallel agents"
 - Clear indication of which skill to use
 
 **Action:**
+
 1. Announce: "I'm using the run-parallel-agents-feature-build skill"
 2. Use Skill tool to invoke the skill
 3. Follow skill workflow exactly
@@ -285,11 +313,13 @@ def is_exploration_task(request):
 **User Request:** "Build user auth, payment API, and email notifications"
 
 **Detection:**
+
 - 3 independent features listed
 - "Build" indicates feature work (not debugging)
 - Matches `run-parallel-agents-feature-build` triggers
 
 **Action:**
+
 1. Recognize pattern: "This matches the parallel agents feature build skill"
 2. Announce: "I've identified 3 independent features. I'm using the run-parallel-agents-feature-build skill"
 3. Use Skill tool to invoke
@@ -302,11 +332,13 @@ def is_exploration_task(request):
 **User Request:** "Fix the cart calculation, auth middleware, and email sending - all different issues"
 
 **Detection:**
+
 - 3 different bugs mentioned
 - User clarifies "all different issues" (independent)
 - Matches `run-parallel-agents-feature-debug` triggers
 
 **Action:**
+
 1. Recognize pattern: "Multiple independent bugs - matches parallel debugging skill"
 2. Announce: "I'm using the run-parallel-agents-feature-debug skill for these independent bugs"
 3. Use Skill tool to invoke
@@ -319,10 +351,12 @@ def is_exploration_task(request):
 **User Request:** ANY task at conversation start
 
 **Detection:**
+
 - New conversation OR new task
 - `start` skill is always applicable
 
 **Action:**
+
 1. Immediately invoke `start` skill (you're reading this, so you already did!)
 2. Follow `start` workflow
 3. Check for other applicable skills within the start workflow
@@ -386,17 +420,21 @@ def is_exploration_task(request):
 When multiple skills might apply, use this priority:
 
 ### Priority 1: Universal Skills (Always First)
+
 - `start` skill → ALWAYS at conversation/task start
 
 ### Priority 2: Parallel Work Skills (If Applicable)
+
 - `run-parallel-agents-feature-build` → If 3+ independent features
 - `run-parallel-agents-feature-debug` → If 3+ independent bugs
 
 ### Priority 3: Domain-Specific Skills (If Applicable)
+
 - Framework-specific work → Delegate to appropriate agent
 - Specialized workflows → Use specialized skills
 
 ### Priority 4: General Execution (Fallback)
+
 - Simple tasks → Direct execution (after start workflow)
 - Exploration → Explore agent
 
@@ -411,11 +449,13 @@ Always announce skill usage to the user:
 ```
 
 **Examples:**
+
 - "I'm using the start skill to plan this task."
 - "I'm using the run-parallel-agents-feature-build skill to build these three independent features concurrently."
 - "I'm using the run-parallel-agents-feature-debug skill to debug these unrelated issues in parallel."
 
 **Why Announce:**
+
 - Transparency for user
 - Confirms you're following workflows
 - Helps user understand process
@@ -499,6 +539,7 @@ Before proceeding with ANY task, ask yourself:
 ## Skill Matching Confidence Levels
 
 ### High Confidence (90-100%): USE THE SKILL
+
 - Clear keyword match
 - Domain perfectly aligns
 - Trigger pattern matches exactly
@@ -507,6 +548,7 @@ Before proceeding with ANY task, ask yourself:
 **Action:** Immediately use Skill tool to invoke
 
 ### Medium Confidence (60-89%): USE THE SKILL
+
 - Partial keyword match
 - Domain mostly aligns
 - Trigger pattern loosely matches
@@ -514,6 +556,7 @@ Before proceeding with ANY task, ask yourself:
 **Action:** Use Skill tool to invoke, mention assumption to user
 
 ### Low Confidence (30-59%): INVESTIGATE
+
 - Weak indicators
 - Might be applicable
 - Could go either way
@@ -521,6 +564,7 @@ Before proceeding with ANY task, ask yourself:
 **Action:** Re-read skill description, check if it applies, use if it does
 
 ### Very Low (<30%): SKIP (but verify)
+
 - No clear match
 - Different domain
 
@@ -535,6 +579,7 @@ The start skill includes skill discovery as a mandatory step:
 ### Start Skill Integration Points
 
 **Within Start Workflow:**
+
 ```
 Step 0 (Before Step 1): Check for Other Applicable Skills
 ├─ Scan available skills
@@ -544,6 +589,7 @@ Step 0 (Before Step 1): Check for Other Applicable Skills
 ```
 
 **Example Flow:**
+
 ```
 User: "Build API endpoints for users, products, and orders"
 
@@ -566,6 +612,7 @@ Start skill begins:
 **Scenario:** Started a task, discovered it's actually 3 independent subtasks
 
 **Action:**
+
 1. Stop current approach
 2. Announce: "I've identified this should use the [SKILL] skill"
 3. Invoke skill
@@ -578,6 +625,7 @@ Start skill begins:
 **Scenario:** Both parallel agents AND specialized framework skill apply
 
 **Action:**
+
 1. Use higher priority skill (parallel agents in this case)
 2. Within that skill, delegate to specialized agents as needed
 3. Skills can nest/compose
@@ -589,6 +637,7 @@ Start skill begins:
 **Scenario:** Can't determine if tasks are independent enough for parallel agents
 
 **Action:**
+
 1. Use AskUserQuestion to clarify
 2. Ask: "Are these features independent, or do they share state/dependencies?"
 3. Based on answer, decide skill applicability

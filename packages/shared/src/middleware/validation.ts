@@ -45,9 +45,9 @@
  * - XSS protection: React/Vue auto-escape on render; use DOMPurify if rendering raw HTML
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
-import { ValidationError } from './errorHandler';
+import { Request, Response, NextFunction } from "express";
+import { z } from "zod";
+import { ValidationError } from "./errorHandler";
 
 /**
  * Validation function type for clean, testable validation logic.
@@ -65,15 +65,17 @@ type ValidationFn<T = unknown> = (data: unknown) => T;
  * Used internally by validation middleware.
  * Not exported - use {@link validateRequest}, {@link validateQuery}, or {@link validateParams} instead.
  */
-const createValidator = <T = unknown>(schema: z.ZodSchema<T>): ValidationFn<T> => {
+const createValidator = <T = unknown>(
+  schema: z.ZodSchema<T>,
+): ValidationFn<T> => {
   return (data: unknown): T => {
     try {
       return schema.parse(data);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const errorMessage = error.errors
-          .map(err => `${err.path.join('.')}: ${err.message}`)
-          .join(', ');
+          .map((err) => `${err.path.join(".")}: ${err.message}`)
+          .join(", ");
         throw new ValidationError(`Validation failed: ${errorMessage}`);
       }
       throw error;
@@ -116,7 +118,7 @@ const createValidator = <T = unknown>(schema: z.ZodSchema<T>): ValidationFn<T> =
  */
 export const validateRequest = (schema: z.ZodSchema) => {
   const validator = createValidator(schema);
-  
+
   return (req: Request, _: Response, next: NextFunction): void => {
     try {
       req.body = validator(req.body);
@@ -204,15 +206,19 @@ export const validateParams = (schema: z.ZodSchema) => {
  * - If you render user content as raw HTML (dangerouslySetInnerHTML), sanitize at render time
  *   using a library like DOMPurify
  */
-export const sanitizeInput = (req: Request, _: Response, next: NextFunction): void => {
+export const sanitizeInput = (
+  req: Request,
+  _: Response,
+  next: NextFunction,
+): void => {
   const sanitizeValue = (value: unknown): unknown => {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       return value.trim();
     }
     if (Array.isArray(value)) {
       return value.map(sanitizeValue);
     }
-    if (typeof value === 'object' && value !== null) {
+    if (typeof value === "object" && value !== null) {
       const result: Record<string, unknown> = {};
       for (const key of Object.keys(value)) {
         result[key] = sanitizeValue((value as Record<string, unknown>)[key]);
@@ -222,15 +228,15 @@ export const sanitizeInput = (req: Request, _: Response, next: NextFunction): vo
     return value;
   };
 
-  if (req.body && typeof req.body === 'object') {
+  if (req.body && typeof req.body === "object") {
     req.body = sanitizeValue(req.body);
   }
 
-  if (req.query && typeof req.query === 'object') {
+  if (req.query && typeof req.query === "object") {
     req.query = sanitizeValue(req.query) as typeof req.query;
   }
 
-  if (req.params && typeof req.params === 'object') {
+  if (req.params && typeof req.params === "object") {
     req.params = sanitizeValue(req.params) as typeof req.params;
   }
 
@@ -238,11 +244,14 @@ export const sanitizeInput = (req: Request, _: Response, next: NextFunction): vo
 };
 
 // Rate limiting - uses req and res for response
-export const rateLimitByIP = (windowMs: number = 60000, maxRequests: number = 100) => {
+export const rateLimitByIP = (
+  windowMs: number = 60000,
+  maxRequests: number = 100,
+) => {
   const requests = new Map<string, { count: number; resetTime: number }>();
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const ip = req.ip || req.connection.remoteAddress || "unknown";
     const now = Date.now();
 
     const current = requests.get(ip);
@@ -252,8 +261,8 @@ export const rateLimitByIP = (windowMs: number = 60000, maxRequests: number = 10
       if (current.count > maxRequests) {
         res.status(429).json({
           success: false,
-          error: 'Too many requests',
-          code: 'RATE_LIMIT_EXCEEDED',
+          error: "Too many requests",
+          code: "RATE_LIMIT_EXCEEDED",
           timestamp: new Date().toISOString(),
           meta: {
             retryAfter: Math.ceil((current.resetTime - now) / 1000),
@@ -283,16 +292,26 @@ export const rateLimitByIP = (windowMs: number = 60000, maxRequests: number = 10
  * This middleware is useful for simple deployments where the full `cors`
  * package is not needed.
  */
-export const corsHeaders = (req: Request, res: Response, next: NextFunction): void => {
+export const corsHeaders = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
   // Use configured CORS origin from environment, fall back to * only if explicitly set
-  const corsOrigin = process.env['CORS_ORIGIN'] || '*';
+  const corsOrigin = process.env["CORS_ORIGIN"] || "*";
 
-  res.header('Access-Control-Allow-Origin', corsOrigin);
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key');
-  res.header('Access-Control-Max-Age', '86400');
+  res.header("Access-Control-Allow-Origin", corsOrigin);
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  );
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key",
+  );
+  res.header("Access-Control-Max-Age", "86400");
 
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     res.sendStatus(200);
     return;
   }
@@ -302,21 +321,33 @@ export const corsHeaders = (req: Request, res: Response, next: NextFunction): vo
 
 // Security headers - uses res
 // Note: CSP should be configured via Helmet in app.ts, not here
-export const securityHeaders = (_: Request, res: Response, next: NextFunction): void => {
-  res.header('X-Content-Type-Options', 'nosniff');
-  res.header('X-Frame-Options', 'DENY');
-  res.header('X-XSS-Protection', '1; mode=block');
-  res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+export const securityHeaders = (
+  _: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
+  res.header("X-Content-Type-Options", "nosniff");
+  res.header("X-Frame-Options", "DENY");
+  res.header("X-XSS-Protection", "1; mode=block");
+  res.header(
+    "Strict-Transport-Security",
+    "max-age=31536000; includeSubDomains",
+  );
   next();
 };
 
 // Request ID - uses both req and res
-export const requestId = (req: Request, res: Response, next: NextFunction): void => {
-  const requestId = req.headers['x-request-id'] || 
+export const requestId = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
+  const requestId =
+    req.headers["x-request-id"] ||
     `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  
-  req.headers['x-request-id'] = requestId;
-  res.header('X-Request-ID', requestId);
-  
+
+  req.headers["x-request-id"] = requestId;
+  res.header("X-Request-ID", requestId);
+
   next();
 };

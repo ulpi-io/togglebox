@@ -14,8 +14,8 @@
  * - Tokens are hashed with bcrypt before storage
  */
 
-import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import crypto from "crypto";
+import bcrypt from "bcrypt";
 
 /**
  * Generate a secure random token for password reset.
@@ -47,7 +47,7 @@ import bcrypt from 'bcrypt';
  * ```
  */
 export function generateSecureToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString("hex");
 }
 
 /**
@@ -102,7 +102,10 @@ export async function hashToken(token: string): Promise<string> {
  * }
  * ```
  */
-export async function verifyToken(token: string, hash: string): Promise<boolean> {
+export async function verifyToken(
+  token: string,
+  hash: string,
+): Promise<boolean> {
   return bcrypt.compare(token, hash);
 }
 
@@ -137,7 +140,7 @@ export async function verifyToken(token: string, hash: string): Promise<boolean>
  * ```
  */
 export function hashApiKey(key: string): string {
-  return crypto.createHash('sha256').update(key).digest('hex');
+  return crypto.createHash("sha256").update(key).digest("hex");
 }
 
 /**
@@ -171,8 +174,8 @@ export function hashApiKey(key: string): string {
  * const keyLast4 = getApiKeyLast4(liveKey);    // "7364"
  * ```
  */
-export function generateApiKey(prefix: 'live' | 'test' = 'live'): string {
-  const randomPart = crypto.randomBytes(16).toString('hex'); // 32 chars
+export function generateApiKey(prefix: "live" | "test" = "live"): string {
+  const randomPart = crypto.randomBytes(16).toString("hex"); // 32 chars
   return `tbx_${prefix}_${randomPart}`;
 }
 

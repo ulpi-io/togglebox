@@ -4,10 +4,10 @@ Complete guide for deploying the ToggleBox API to Cloudflare Workers or AWS Lamb
 
 ## Quick Start
 
-| Platform | Database | Command |
-|----------|----------|---------|
-| Cloudflare Workers | D1 (SQLite) | `wrangler deploy` |
-| AWS Lambda | DynamoDB | `serverless deploy` |
+| Platform           | Database    | Command             |
+| ------------------ | ----------- | ------------------- |
+| Cloudflare Workers | D1 (SQLite) | `wrangler deploy`   |
+| AWS Lambda         | DynamoDB    | `serverless deploy` |
 
 ---
 
@@ -48,6 +48,7 @@ database_id = "YOUR_DATABASE_ID_HERE"  # <-- Paste here
 ```
 
 For environment-specific databases, update each environment section:
+
 - `[[env.dev.d1_databases]]` - Development
 - `[[env.staging.d1_databases]]` - Staging
 - `[[env.production.d1_databases]]` - Production
@@ -63,6 +64,7 @@ wrangler d1 execute remote-config-db --command="SELECT name FROM sqlite_master W
 ```
 
 Expected tables:
+
 - platforms, environments, config_versions
 - feature_flags, flags, experiments
 - config_stats, flag_stats, flag_stats_daily, flag_stats_by_country
@@ -272,32 +274,32 @@ serverless offline                     # Start local server
 
 ### Required for Both Platforms
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `JWT_SECRET` | Secret for JWT signing (32+ chars) | `your-super-secret-jwt-key-here-32chars` |
-| `API_KEY_SECRET` | Secret for API key hashing | `your-api-key-secret-32-chars-minimum` |
+| Variable         | Description                        | Example                                  |
+| ---------------- | ---------------------------------- | ---------------------------------------- |
+| `JWT_SECRET`     | Secret for JWT signing (32+ chars) | `your-super-secret-jwt-key-here-32chars` |
+| `API_KEY_SECRET` | Secret for API key hashing         | `your-api-key-secret-32-chars-minimum`   |
 
 ### Optional Configuration
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NODE_ENV` | Environment mode | `development` |
-| `LOG_LEVEL` | Logging verbosity | `info` |
-| `CORS_ORIGIN` | Allowed CORS origins | `*` |
-| `ENABLE_AUTHENTICATION` | Enable auth middleware | `true` |
-| `CLOUDFRONT_DISTRIBUTION_ID` | For cache invalidation | (empty) |
+| Variable                     | Description            | Default       |
+| ---------------------------- | ---------------------- | ------------- |
+| `NODE_ENV`                   | Environment mode       | `development` |
+| `LOG_LEVEL`                  | Logging verbosity      | `info`        |
+| `CORS_ORIGIN`                | Allowed CORS origins   | `*`           |
+| `ENABLE_AUTHENTICATION`      | Enable auth middleware | `true`        |
+| `CLOUDFRONT_DISTRIBUTION_ID` | For cache invalidation | (empty)       |
 
 ### DynamoDB Table Names (AWS Only)
 
 Set via serverless.yml. Override if using external tables:
 
-| Variable | Default |
-|----------|---------|
-| `DYNAMODB_USERS_TABLE` | `togglebox-users-{stage}` |
-| `DYNAMODB_API_KEYS_TABLE` | `togglebox-api-keys-{stage}` |
+| Variable                   | Default                       |
+| -------------------------- | ----------------------------- |
+| `DYNAMODB_USERS_TABLE`     | `togglebox-users-{stage}`     |
+| `DYNAMODB_API_KEYS_TABLE`  | `togglebox-api-keys-{stage}`  |
 | `DYNAMODB_PLATFORMS_TABLE` | `togglebox-platforms-{stage}` |
-| `DYNAMODB_FLAGS_TABLE` | `togglebox-flags-{stage}` |
-| ... | ... |
+| `DYNAMODB_FLAGS_TABLE`     | `togglebox-flags-{stage}`     |
+| ...                        | ...                           |
 
 ---
 
@@ -329,25 +331,30 @@ Set via serverless.yml. Override if using external tables:
 ### Cloudflare Workers
 
 **Error: "D1 database not found"**
+
 - Ensure `database_id` is set correctly in wrangler.toml
 - Verify database exists: `wrangler d1 list`
 
 **Error: "Secrets not set"**
+
 - Run `wrangler secret list` to verify secrets
 - Re-add missing secrets with `wrangler secret put <NAME>`
 
 ### AWS Lambda
 
 **Error: "ResourceNotFoundException" for DynamoDB**
+
 - Verify tables exist: `aws dynamodb list-tables`
 - Check table names match environment variables
 - Ensure IAM role has permissions to all tables
 
 **Error: "Invalid JWT secret"**
+
 - Verify SSM parameter exists: `aws ssm get-parameter --name "/togglebox/dev/jwt-secret"`
 - Check SSM parameter name matches serverless.yml
 
 **Error: "Access Denied" on DynamoDB operations**
+
 - Review IAM role permissions in serverless.yml
 - Verify table ARNs in IAM policy include `/index/*` for GSI access
 

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { LogOut, User, Settings, ChevronDown } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { LogOut, User, Settings, ChevronDown } from "lucide-react";
 import {
   cn,
   Button,
@@ -13,8 +13,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@togglebox/ui';
-import type { User as UserType } from '@/lib/api/types';
+} from "@togglebox/ui";
+import type { User as UserType } from "@/lib/api/types";
 
 interface UserMenuProps {
   user: UserType;
@@ -28,12 +28,13 @@ export function UserMenu({ user }: UserMenuProps) {
     setIsLoggingOut(true);
 
     try {
-      await fetch('/api/logout', { method: 'POST' });
-      document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-      window.location.href = '/login';
+      await fetch("/api/logout", { method: "POST" });
+      document.cookie =
+        "auth-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+      window.location.href = "/login";
     } catch (error) {
-      console.error('Logout error:', error);
-      window.location.href = '/login';
+      console.error("Logout error:", error);
+      window.location.href = "/login";
     }
   }
 
@@ -42,10 +43,12 @@ export function UserMenu({ user }: UserMenuProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="glass" className="gap-2 px-3">
           <div className="hidden sm:block text-left">
-            <div className="text-sm font-medium truncate max-w-[150px]">{user.name || user.email}</div>
+            <div className="text-sm font-medium truncate max-w-[150px]">
+              {user.name || user.email}
+            </div>
           </div>
           <Badge
-            role={user.role as 'admin' | 'developer' | 'editor' | 'viewer'}
+            role={user.role as "admin" | "developer" | "editor" | "viewer"}
             size="sm"
             className="hidden xs:inline-flex"
           >
@@ -64,7 +67,7 @@ export function UserMenu({ user }: UserMenuProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push('/profile')}>
+        <DropdownMenuItem onClick={() => router.push("/profile")}>
           <User className="mr-2 h-4 w-4" />
           <span>Profile Settings</span>
         </DropdownMenuItem>
@@ -75,7 +78,7 @@ export function UserMenu({ user }: UserMenuProps) {
           destructive
         >
           <LogOut className="mr-2 h-4 w-4" />
-          <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+          <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

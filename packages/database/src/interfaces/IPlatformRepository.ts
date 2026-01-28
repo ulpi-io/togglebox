@@ -18,8 +18,12 @@
  * - `D1PlatformRepository` - Cloudflare D1
  */
 
-import { Platform } from '@togglebox/core';
-import { OffsetPaginationParams, TokenPaginationParams, PaginatedResult } from './IPagination';
+import { Platform } from "@togglebox/core";
+import {
+  OffsetPaginationParams,
+  TokenPaginationParams,
+  PaginatedResult,
+} from "./IPagination";
 
 /**
  * Platform repository interface for database operations.
@@ -32,7 +36,7 @@ export interface IPlatformRepository {
    * @returns Created platform with generated ID
    * @throws {Error} If platform with same name already exists
    */
-  createPlatform(platform: Omit<Platform, 'id'>): Promise<Platform>;
+  createPlatform(platform: Omit<Platform, "id">): Promise<Platform>;
 
   /**
    * Retrieves a platform by name.
@@ -73,7 +77,7 @@ export interface IPlatformRepository {
    * ```
    */
   listPlatforms(
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<PaginatedResult<Platform>>;
 
   /**
@@ -106,6 +110,6 @@ export interface IPlatformRepository {
    */
   updatePlatform?(
     currentName: string,
-    updates: { name?: string; description?: string }
+    updates: { name?: string; description?: string },
   ): Promise<Platform | null>;
 }

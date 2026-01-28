@@ -12,8 +12,12 @@ import {
   ConfigParameter,
   CreateConfigParameter,
   UpdateConfigParameter,
-} from '@togglebox/configs';
-import { OffsetPaginationParams, TokenPaginationParams, PaginatedResult } from './IPagination';
+} from "@togglebox/configs";
+import {
+  OffsetPaginationParams,
+  TokenPaginationParams,
+  PaginatedResult,
+} from "./IPagination";
 
 export interface IConfigRepository {
   // ============================================================================
@@ -26,7 +30,7 @@ export interface IConfigRepository {
    */
   getConfigs(
     platform: string,
-    environment: string
+    environment: string,
   ): Promise<Record<string, unknown>>;
 
   // ============================================================================
@@ -45,7 +49,7 @@ export interface IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    updates: UpdateConfigParameter
+    updates: UpdateConfigParameter,
   ): Promise<ConfigParameter>;
 
   /**
@@ -54,7 +58,7 @@ export interface IConfigRepository {
   delete(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<boolean>;
 
   /**
@@ -63,7 +67,7 @@ export interface IConfigRepository {
   getActive(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<ConfigParameter | null>;
 
   /**
@@ -72,7 +76,7 @@ export interface IConfigRepository {
   listActive(
     platform: string,
     environment: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<PaginatedResult<ConfigParameter>>;
 
   /**
@@ -81,7 +85,7 @@ export interface IConfigRepository {
   listVersions(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<ConfigParameter[]>;
 
   /**
@@ -91,7 +95,7 @@ export interface IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    version: string
+    version: string,
   ): Promise<ConfigParameter | null>;
 
   /**

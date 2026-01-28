@@ -3,29 +3,24 @@ import type {
   EvaluationContext as FlagContext,
   EvaluationResult as FlagResult,
   FlagValue,
-} from '@togglebox/flags'
+} from "@togglebox/flags";
 import type {
   Experiment,
   ExperimentContext,
   ExperimentVariation,
   VariantAssignment,
-} from '@togglebox/experiments'
-import type { StatsEvent } from '@togglebox/stats'
+} from "@togglebox/experiments";
+import type { StatsEvent } from "@togglebox/stats";
 
 // Tier 1: Remote Configs (Firebase-style key-value)
 /**
  * Remote config object - key-value pairs with typed values.
  * All values are parsed from their stored type (string, number, boolean, json).
  */
-export type Config = Record<string, unknown>
+export type Config = Record<string, unknown>;
 
 // Tier 2: Feature Flags (2-value model)
-export type {
-  Flag,
-  FlagContext,
-  FlagResult,
-  FlagValue,
-}
+export type { Flag, FlagContext, FlagResult, FlagValue };
 
 // Tier 3: Experiments
 export type {
@@ -33,29 +28,29 @@ export type {
   ExperimentContext,
   ExperimentVariation,
   VariantAssignment,
-}
+};
 
 // Stats
-export type { StatsEvent }
+export type { StatsEvent };
 
 /**
  * Stats configuration options
  */
 export interface StatsOptions {
   /** Enable stats collection (default: true) */
-  enabled?: boolean
+  enabled?: boolean;
 
   /** Number of events to batch before sending (default: 20) */
-  batchSize?: number
+  batchSize?: number;
 
   /** Flush interval in milliseconds (default: 10000) */
-  flushIntervalMs?: number
+  flushIntervalMs?: number;
 
   /** Maximum retry attempts for failed sends (default: 3) */
-  maxRetries?: number
+  maxRetries?: number;
 
   /** Maximum queue size to prevent unbounded memory growth (default: 1000) */
-  maxQueueSize?: number
+  maxQueueSize?: number;
 }
 
 /**
@@ -63,10 +58,10 @@ export interface StatsOptions {
  */
 export interface ClientOptions {
   /** Platform name (e.g., 'web', 'mobile') */
-  platform: string
+  platform: string;
 
   /** Environment name (e.g., 'production', 'staging') */
-  environment: string
+  environment: string;
 
   /**
    * API base URL
@@ -74,7 +69,7 @@ export interface ClientOptions {
    * For open source self-hosted: https://your-domain.com
    * For cloud multi-tenant: Use tenantSubdomain instead
    */
-  apiUrl?: string
+  apiUrl?: string;
 
   /**
    * Tenant subdomain for cloud deployments (optional)
@@ -83,22 +78,22 @@ export interface ClientOptions {
    * Mutually exclusive with apiUrl - use one or the other
    * @example 'acme' → https://acme.togglebox.io
    */
-  tenantSubdomain?: string
+  tenantSubdomain?: string;
 
   /** API key for authentication (optional for open source, required for cloud) */
-  apiKey?: string
+  apiKey?: string;
 
   /** Cache configuration */
-  cache?: CacheOptions
+  cache?: CacheOptions;
 
   /** Auto-refresh polling interval in milliseconds (0 to disable) */
-  pollingInterval?: number
+  pollingInterval?: number;
 
   /** Custom fetch implementation (defaults to global fetch) */
-  fetchImpl?: typeof fetch
+  fetchImpl?: typeof fetch;
 
   /** Stats configuration */
-  stats?: StatsOptions
+  stats?: StatsOptions;
 }
 
 /**
@@ -106,10 +101,10 @@ export interface ClientOptions {
  */
 export interface CacheOptions {
   /** Enable caching */
-  enabled: boolean
+  enabled: boolean;
 
   /** Cache TTL in milliseconds */
-  ttl: number
+  ttl: number;
 }
 
 /**
@@ -120,40 +115,40 @@ export interface CacheOptions {
  */
 export interface ConfigResponse {
   /** Key-value config object */
-  data: Config
+  data: Config;
 }
 
 /**
  * Feature flags response from API
  */
 export interface FlagsResponse {
-  flags: Flag[]
+  flags: Flag[];
 }
 
 /**
  * Experiments response from API
  */
 export interface ExperimentsResponse {
-  experiments: Experiment[]
+  experiments: Experiment[];
 }
 
 /**
  * Event types emitted by the client
  */
-export type ClientEvent = 'update' | 'error' | 'statsFlush'
+export type ClientEvent = "update" | "error" | "statsFlush";
 
 /**
  * Event listener callback
  */
-export type EventListener = (data: unknown) => void
+export type EventListener = (data: unknown) => void;
 
 /**
  * Retry configuration
  */
 export interface RetryOptions {
-  maxRetries: number
-  initialDelay: number
-  maxDelay: number
+  maxRetries: number;
+  initialDelay: number;
+  maxDelay: number;
 }
 
 /**
@@ -161,10 +156,10 @@ export interface RetryOptions {
  */
 export interface ConversionData {
   /** Metric identifier (e.g., 'purchase', 'signup') - must match metric ID in experiment config */
-  metricId: string
+  metricId: string;
 
   /** Optional value for sum/average metrics (e.g., revenue amount) */
-  value?: number
+  value?: number;
 }
 
 /**
@@ -172,13 +167,13 @@ export interface ConversionData {
  */
 export interface EventData {
   /** Associated experiment key (optional) */
-  experimentKey?: string
+  experimentKey?: string;
 
   /** Variation key for conversion attribution (required if experimentKey provided) */
-  variationKey?: string
+  variationKey?: string;
 
   /** Custom properties */
-  properties?: Record<string, unknown>
+  properties?: Record<string, unknown>;
 }
 
 /**
@@ -186,12 +181,11 @@ export interface EventData {
  */
 export interface HealthCheckResponse {
   /** Whether the API is healthy */
-  success: boolean
+  success: boolean;
 
   /** Health status message */
-  message: string
+  message: string;
 
   /** API uptime in seconds */
-  uptime: number
+  uptime: number;
 }
-

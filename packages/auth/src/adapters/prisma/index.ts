@@ -36,15 +36,15 @@
  * ```
  */
 
-import { PrismaUserRepository } from './PrismaUserRepository';
-import { PrismaApiKeyRepository } from './PrismaApiKeyRepository';
-import { PrismaPasswordResetRepository } from './PrismaPasswordResetRepository';
-import { AuthRepositories } from '../dynamodb';
+import { PrismaUserRepository } from "./PrismaUserRepository";
+import { PrismaApiKeyRepository } from "./PrismaApiKeyRepository";
+import { PrismaPasswordResetRepository } from "./PrismaPasswordResetRepository";
+import { AuthRepositories } from "../dynamodb";
 
-export * from './PrismaUserRepository';
-export * from './PrismaApiKeyRepository';
-export * from './PrismaPasswordResetRepository';
-export * from './database';
+export * from "./PrismaUserRepository";
+export * from "./PrismaApiKeyRepository";
+export * from "./PrismaPasswordResetRepository";
+export * from "./database";
 
 /**
  * Create Prisma auth repository collection.

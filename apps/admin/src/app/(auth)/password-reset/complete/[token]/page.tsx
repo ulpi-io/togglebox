@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { completePasswordResetApi } from '@/lib/api/auth';
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { completePasswordResetApi } from "@/lib/api/auth";
 import {
   Button,
   Input,
@@ -13,7 +13,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
 export default function CompletePasswordResetPage() {
   const params = useParams();
@@ -28,13 +28,13 @@ export default function CompletePasswordResetPage() {
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const newPassword = formData.get('newPassword') as string;
+    const newPassword = formData.get("newPassword") as string;
 
     try {
       await completePasswordResetApi(token, newPassword);
-      router.push('/login');
+      router.push("/login");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reset password');
+      setError(err instanceof Error ? err.message : "Failed to reset password");
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +71,7 @@ export default function CompletePasswordResetPage() {
 
         <CardFooter>
           <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? 'Resetting password...' : 'Reset Password'}
+            {isLoading ? "Resetting password..." : "Reset Password"}
           </Button>
         </CardFooter>
       </form>

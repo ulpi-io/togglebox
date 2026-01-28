@@ -20,24 +20,24 @@
  * ```
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Database type options
  */
 const DatabaseTypeSchema = z.enum([
-  'mysql',
-  'postgresql',
-  'sqlite',
-  'mongodb',
-  'dynamodb',
-  'd1',
+  "mysql",
+  "postgresql",
+  "sqlite",
+  "mongodb",
+  "dynamodb",
+  "d1",
 ]);
 
 /**
  * Node environment options
  */
-const NodeEnvSchema = z.enum(['development', 'staging', 'production', 'test']);
+const NodeEnvSchema = z.enum(["development", "staging", "production", "test"]);
 
 /**
  * JWT algorithm options (HMAC-based only for secret key auth)
@@ -54,9 +54,9 @@ const NodeEnvSchema = z.enum(['development', 'staging', 'production', 'test']);
  * See auth middleware for enforcement: packages/shared/src/middleware/auth.ts
  */
 const JWTAlgorithmSchema = z.enum([
-  'HS256',  // SHA-256 HMAC (default, widely supported)
-  'HS384',  // SHA-384 HMAC (stronger)
-  'HS512',  // SHA-512 HMAC (strongest)
+  "HS256", // SHA-256 HMAC (default, widely supported)
+  "HS384", // SHA-384 HMAC (stronger)
+  "HS512", // SHA-512 HMAC (strongest)
 ]);
 
 /**
@@ -64,40 +64,44 @@ const JWTAlgorithmSchema = z.enum([
  */
 const BaseEnvSchema = z.object({
   // Server configuration
-  NODE_ENV: NodeEnvSchema.default('development'),
-  PORT: z.string().regex(/^\d+$/).transform(Number).default('3000'),
+  NODE_ENV: NodeEnvSchema.default("development"),
+  PORT: z.string().regex(/^\d+$/).transform(Number).default("3000"),
 
   // CORS
-  CORS_ORIGIN: z.string().default('*'),
+  CORS_ORIGIN: z.string().default("*"),
 
   // Database type selection
   DB_TYPE: DatabaseTypeSchema.optional(),
 
   // Logging
   LOG_LEVEL: z
-    .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
-    .default('info'),
+    .enum(["trace", "debug", "info", "warn", "error", "fatal"])
+    .default("info"),
 
   // Rate limiting
   RATE_LIMIT_WINDOW_MS: z.string().regex(/^\d+$/).transform(Number).optional(),
-  RATE_LIMIT_MAX_REQUESTS: z.string().regex(/^\d+$/).transform(Number).optional(),
+  RATE_LIMIT_MAX_REQUESTS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .optional(),
 });
 
 /**
  * Weak/placeholder secret patterns to reject
  */
 const WEAK_SECRET_PATTERNS = [
-  /^<.*>$/,                                    // <GENERATE_...> placeholders
-  /your.?secret/i,                             // "your-secret", "your_secret"
-  /change.?this/i,                             // "change-this", "change_this"
-  /replace.?me/i,                              // "replace-me", "replace_me"
-  /example/i,                                  // "example"
-  /test.?secret/i,                             // "test-secret", "test_secret"
-  /default/i,                                  // "default"
-  /placeholder/i,                              // "placeholder"
-  /1234567890/,                                // Repeated digits
-  /^a+$/,                                      // Repeated single character
-  /^(secret|password|key|token)$/i,           // Common weak words
+  /^<.*>$/, // <GENERATE_...> placeholders
+  /your.?secret/i, // "your-secret", "your_secret"
+  /change.?this/i, // "change-this", "change_this"
+  /replace.?me/i, // "replace-me", "replace_me"
+  /example/i, // "example"
+  /test.?secret/i, // "test-secret", "test_secret"
+  /default/i, // "default"
+  /placeholder/i, // "placeholder"
+  /1234567890/, // Repeated digits
+  /^a+$/, // Repeated single character
+  /^(secret|password|key|token)$/i, // Common weak words
 ];
 
 /**
@@ -106,7 +110,9 @@ const WEAK_SECRET_PATTERNS = [
 function validateSecret(value: string, fieldName: string): boolean {
   // Check minimum length
   if (value.length < 32) {
-    throw new Error(`${fieldName} must be at least 32 characters (got ${value.length})`);
+    throw new Error(
+      `${fieldName} must be at least 32 characters (got ${value.length})`,
+    );
   }
 
   // Check against weak patterns
@@ -114,8 +120,8 @@ function validateSecret(value: string, fieldName: string): boolean {
     if (pattern.test(value)) {
       throw new Error(
         `${fieldName} appears to be a placeholder or weak secret.\n` +
-        `Detected pattern: ${pattern}\n` +
-        `Generate a strong secret with: openssl rand -base64 32`
+          `Detected pattern: ${pattern}\n` +
+          `Generate a strong secret with: openssl rand -base64 32`,
       );
     }
   }
@@ -130,20 +136,20 @@ function validateSecret(value: string, fieldName: string): boolean {
 const AuthEnvSchema = z.object({
   ENABLE_AUTHENTICATION: z
     .string()
-    .transform((val) => val === 'true')
+    .transform((val) => val === "true")
     .optional(),
 
   JWT_SECRET: z
     .string()
-    .min(32, 'JWT_SECRET must be at least 32 characters')
-    .refine((val) => validateSecret(val, 'JWT_SECRET'), {
-      message: 'JWT_SECRET is weak or a placeholder value',
+    .min(32, "JWT_SECRET must be at least 32 characters")
+    .refine((val) => validateSecret(val, "JWT_SECRET"), {
+      message: "JWT_SECRET is weak or a placeholder value",
     })
     .optional(),
 
-  JWT_EXPIRES_IN: z.string().default('24h'),
+  JWT_EXPIRES_IN: z.string().default("24h"),
 
-  JWT_ALGORITHM: JWTAlgorithmSchema.default('HS256'),
+  JWT_ALGORITHM: JWTAlgorithmSchema.default("HS256"),
 
   JWT_ISSUER: z.string().optional(),
 
@@ -151,27 +157,33 @@ const AuthEnvSchema = z.object({
 
   API_KEY_SECRET: z
     .string()
-    .min(32, 'API_KEY_SECRET must be at least 32 characters')
-    .refine((val) => validateSecret(val, 'API_KEY_SECRET'), {
-      message: 'API_KEY_SECRET is weak or a placeholder value',
+    .min(32, "API_KEY_SECRET must be at least 32 characters")
+    .refine((val) => validateSecret(val, "API_KEY_SECRET"), {
+      message: "API_KEY_SECRET is weak or a placeholder value",
     })
     .optional(),
 
-  API_KEY_EXPIRES_IN: z.string().default('365d'),
+  API_KEY_EXPIRES_IN: z.string().default("365d"),
 });
 
 /**
  * MySQL database environment schema
  */
 const MySQLEnvSchema = z.object({
-  MYSQL_URL: z.string().url().or(z.string().regex(/^mysql:\/\/.+/)),
+  MYSQL_URL: z
+    .string()
+    .url()
+    .or(z.string().regex(/^mysql:\/\/.+/)),
 });
 
 /**
  * PostgreSQL database environment schema
  */
 const PostgreSQLEnvSchema = z.object({
-  POSTGRES_URL: z.string().url().or(z.string().regex(/^postgresql:\/\/.+/)),
+  POSTGRES_URL: z
+    .string()
+    .url()
+    .or(z.string().regex(/^postgresql:\/\/.+/)),
 });
 
 /**
@@ -179,14 +191,17 @@ const PostgreSQLEnvSchema = z.object({
  */
 const MongoDBEnvSchema = z.object({
   MONGO_URL: z.string().or(z.string().regex(/^mongodb:\/\/.+/)),
-  MONGODB_URI: z.string().or(z.string().regex(/^mongodb:\/\/.+/)).optional(),
+  MONGODB_URI: z
+    .string()
+    .or(z.string().regex(/^mongodb:\/\/.+/))
+    .optional(),
 });
 
 /**
  * SQLite database environment schema
  */
 const SQLiteEnvSchema = z.object({
-  SQLITE_FILE: z.string().default('./data/config.db'),
+  SQLITE_FILE: z.string().default("./data/config.db"),
 });
 
 /**
@@ -251,18 +266,22 @@ const GrafanaEnvSchema = z.object({
  */
 function validateStripePriceId(value: string, fieldName: string): boolean {
   // Check for placeholder patterns
-  if (/^<.*>$/.test(value) || /placeholder/i.test(value) || /required/i.test(value)) {
+  if (
+    /^<.*>$/.test(value) ||
+    /placeholder/i.test(value) ||
+    /required/i.test(value)
+  ) {
     throw new Error(
       `${fieldName} appears to be a placeholder value.\n` +
-      `Create a price in Stripe Dashboard and copy the price ID (starts with price_)`
+        `Create a price in Stripe Dashboard and copy the price ID (starts with price_)`,
     );
   }
 
   // Validate Stripe price ID format
-  if (!value.startsWith('price_')) {
+  if (!value.startsWith("price_")) {
     throw new Error(
       `${fieldName} must start with "price_" (got: ${value}).\n` +
-      `Get valid price IDs from: https://dashboard.stripe.com/products`
+        `Get valid price IDs from: https://dashboard.stripe.com/products`,
     );
   }
 
@@ -276,43 +295,51 @@ const StripeEnvSchema = z.object({
   STRIPE_SECRET_KEY: z
     .string()
     .refine(
-      (val) => val.startsWith('sk_test_') || val.startsWith('sk_live_'),
-      'STRIPE_SECRET_KEY must start with sk_test_ or sk_live_'
+      (val) => val.startsWith("sk_test_") || val.startsWith("sk_live_"),
+      "STRIPE_SECRET_KEY must start with sk_test_ or sk_live_",
     ),
   STRIPE_WEBHOOK_SECRET: z
     .string()
     .refine(
-      (val) => val.startsWith('whsec_'),
-      'STRIPE_WEBHOOK_SECRET must start with whsec_'
+      (val) => val.startsWith("whsec_"),
+      "STRIPE_WEBHOOK_SECRET must start with whsec_",
     ),
   STRIPE_PRICE_PRO_MONTHLY: z
     .string()
-    .refine((val) => validateStripePriceId(val, 'STRIPE_PRICE_PRO_MONTHLY'), {
-      message: 'STRIPE_PRICE_PRO_MONTHLY must be a valid Stripe price ID',
+    .refine((val) => validateStripePriceId(val, "STRIPE_PRICE_PRO_MONTHLY"), {
+      message: "STRIPE_PRICE_PRO_MONTHLY must be a valid Stripe price ID",
     })
     .optional(),
   STRIPE_PRICE_PRO_YEARLY: z
     .string()
-    .refine((val) => validateStripePriceId(val, 'STRIPE_PRICE_PRO_YEARLY'), {
-      message: 'STRIPE_PRICE_PRO_YEARLY must be a valid Stripe price ID',
+    .refine((val) => validateStripePriceId(val, "STRIPE_PRICE_PRO_YEARLY"), {
+      message: "STRIPE_PRICE_PRO_YEARLY must be a valid Stripe price ID",
     })
     .optional(),
   STRIPE_PRICE_ENTERPRISE_MONTHLY: z
     .string()
-    .refine((val) => validateStripePriceId(val, 'STRIPE_PRICE_ENTERPRISE_MONTHLY'), {
-      message: 'STRIPE_PRICE_ENTERPRISE_MONTHLY must be a valid Stripe price ID',
-    })
+    .refine(
+      (val) => validateStripePriceId(val, "STRIPE_PRICE_ENTERPRISE_MONTHLY"),
+      {
+        message:
+          "STRIPE_PRICE_ENTERPRISE_MONTHLY must be a valid Stripe price ID",
+      },
+    )
     .optional(),
   STRIPE_PRICE_ENTERPRISE_YEARLY: z
     .string()
-    .refine((val) => validateStripePriceId(val, 'STRIPE_PRICE_ENTERPRISE_YEARLY'), {
-      message: 'STRIPE_PRICE_ENTERPRISE_YEARLY must be a valid Stripe price ID',
-    })
+    .refine(
+      (val) => validateStripePriceId(val, "STRIPE_PRICE_ENTERPRISE_YEARLY"),
+      {
+        message:
+          "STRIPE_PRICE_ENTERPRISE_YEARLY must be a valid Stripe price ID",
+      },
+    )
     .optional(),
   STRIPE_PRICE_API_REQUESTS: z
     .string()
-    .refine((val) => validateStripePriceId(val, 'STRIPE_PRICE_API_REQUESTS'), {
-      message: 'STRIPE_PRICE_API_REQUESTS must be a valid Stripe price ID',
+    .refine((val) => validateStripePriceId(val, "STRIPE_PRICE_API_REQUESTS"), {
+      message: "STRIPE_PRICE_API_REQUESTS must be a valid Stripe price ID",
     })
     .optional(),
 });
@@ -323,7 +350,10 @@ const StripeEnvSchema = z.object({
 const ResendEnvSchema = z.object({
   RESEND_API_KEY: z
     .string()
-    .refine((val) => val.startsWith('re_'), 'RESEND_API_KEY must start with re_'),
+    .refine(
+      (val) => val.startsWith("re_"),
+      "RESEND_API_KEY must start with re_",
+    ),
   FROM_EMAIL: z.string().email(),
   FROM_NAME: z.string(),
 });
@@ -406,14 +436,16 @@ export function validateEnv(options: ValidationOptions = {}): void {
     const parsed = EnvSchema.safeParse(process.env);
 
     if (!parsed.success) {
-      const errors = parsed.error.errors.map((err) => {
-        return `  - ${err.path.join('.')}: ${err.message}`;
-      }).join('\n');
+      const errors = parsed.error.errors
+        .map((err) => {
+          return `  - ${err.path.join(".")}: ${err.message}`;
+        })
+        .join("\n");
 
       throw new Error(
         `Environment variable validation failed:\n${errors}\n\n` +
-          'Please check your .env file and ensure all required variables are set.\n' +
-          'See .env.example for reference.'
+          "Please check your .env file and ensure all required variables are set.\n" +
+          "See .env.example for reference.",
       );
     }
 
@@ -423,8 +455,8 @@ export function validateEnv(options: ValidationOptions = {}): void {
     if (options.requireAuth) {
       if (!env.JWT_SECRET || !env.API_KEY_SECRET) {
         throw new Error(
-          'Authentication is required but JWT_SECRET or API_KEY_SECRET is missing.\n' +
-            'Generate secrets with: openssl rand -base64 32'
+          "Authentication is required but JWT_SECRET or API_KEY_SECRET is missing.\n" +
+            "Generate secrets with: openssl rand -base64 32",
         );
       }
     }
@@ -432,28 +464,33 @@ export function validateEnv(options: ValidationOptions = {}): void {
     if (options.requireStripe) {
       if (!env.STRIPE_SECRET_KEY || !env.STRIPE_WEBHOOK_SECRET) {
         throw new Error(
-          'Stripe billing is required but STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET is missing.\n' +
-            'Get these from: https://dashboard.stripe.com/apikeys'
+          "Stripe billing is required but STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET is missing.\n" +
+            "Get these from: https://dashboard.stripe.com/apikeys",
         );
       }
 
       // Validate all required price IDs are set
       const missingPriceIds: string[] = [];
-      if (!env.STRIPE_PRICE_PRO_MONTHLY) missingPriceIds.push('STRIPE_PRICE_PRO_MONTHLY');
-      if (!env.STRIPE_PRICE_PRO_YEARLY) missingPriceIds.push('STRIPE_PRICE_PRO_YEARLY');
-      if (!env.STRIPE_PRICE_ENTERPRISE_MONTHLY) missingPriceIds.push('STRIPE_PRICE_ENTERPRISE_MONTHLY');
-      if (!env.STRIPE_PRICE_ENTERPRISE_YEARLY) missingPriceIds.push('STRIPE_PRICE_ENTERPRISE_YEARLY');
-      if (!env.STRIPE_PRICE_API_REQUESTS) missingPriceIds.push('STRIPE_PRICE_API_REQUESTS');
+      if (!env.STRIPE_PRICE_PRO_MONTHLY)
+        missingPriceIds.push("STRIPE_PRICE_PRO_MONTHLY");
+      if (!env.STRIPE_PRICE_PRO_YEARLY)
+        missingPriceIds.push("STRIPE_PRICE_PRO_YEARLY");
+      if (!env.STRIPE_PRICE_ENTERPRISE_MONTHLY)
+        missingPriceIds.push("STRIPE_PRICE_ENTERPRISE_MONTHLY");
+      if (!env.STRIPE_PRICE_ENTERPRISE_YEARLY)
+        missingPriceIds.push("STRIPE_PRICE_ENTERPRISE_YEARLY");
+      if (!env.STRIPE_PRICE_API_REQUESTS)
+        missingPriceIds.push("STRIPE_PRICE_API_REQUESTS");
 
       if (missingPriceIds.length > 0) {
         throw new Error(
           `Stripe billing is required but the following price IDs are missing:\n` +
-            `  ${missingPriceIds.join('\n  ')}\n\n` +
+            `  ${missingPriceIds.join("\n  ")}\n\n` +
             `Create prices in Stripe Dashboard:\n` +
             `  1. Go to https://dashboard.stripe.com/products\n` +
             `  2. Create products for each plan (Pro Monthly, Pro Yearly, etc.)\n` +
             `  3. Copy the price IDs (they start with "price_")\n` +
-            `  4. Add them to your .env file`
+            `  4. Add them to your .env file`,
         );
       }
     }
@@ -461,8 +498,8 @@ export function validateEnv(options: ValidationOptions = {}): void {
     if (options.requireResend) {
       if (!env.RESEND_API_KEY || !env.FROM_EMAIL) {
         throw new Error(
-          'Resend email service is required but RESEND_API_KEY or FROM_EMAIL is missing.\n' +
-            'Get API key from: https://resend.com/api-keys'
+          "Resend email service is required but RESEND_API_KEY or FROM_EMAIL is missing.\n" +
+            "Get API key from: https://resend.com/api-keys",
         );
       }
     }
@@ -478,18 +515,20 @@ export function validateEnv(options: ValidationOptions = {}): void {
     }
 
     // Log successful validation in development
-    if (env.NODE_ENV === 'development') {
-      const { logger } = require('../logger');
-      logger.info('Environment variables validated successfully', {
+    if (env.NODE_ENV === "development") {
+      const { logger } = require("../logger");
+      logger.info("Environment variables validated successfully", {
         nodeEnv: env.NODE_ENV,
-        dbType: env.DB_TYPE || 'not set',
-        authEnabled: env.ENABLE_AUTHENTICATION || false
+        dbType: env.DB_TYPE || "not set",
+        authEnabled: env.ENABLE_AUTHENTICATION || false,
       });
     }
   } catch (error) {
     if (error instanceof Error) {
-      const { logger } = require('../logger');
-      logger.error('Environment variable validation error', { message: error.message });
+      const { logger } = require("../logger");
+      logger.error("Environment variable validation error", {
+        message: error.message,
+      });
     }
     throw error;
   }
@@ -500,62 +539,62 @@ export function validateEnv(options: ValidationOptions = {}): void {
  */
 function validateDatabaseConfig(dbType: string, env: Env): void {
   switch (dbType) {
-    case 'mysql':
+    case "mysql":
       if (!env.MYSQL_URL) {
         throw new Error(
           'DB_TYPE is set to "mysql" but MYSQL_URL is missing.\n' +
-            'Example: MYSQL_URL=mysql://user:password@localhost:3306/database'
+            "Example: MYSQL_URL=mysql://user:password@localhost:3306/database",
         );
       }
       break;
 
-    case 'postgresql':
+    case "postgresql":
       if (!env.POSTGRES_URL) {
         throw new Error(
           'DB_TYPE is set to "postgresql" but POSTGRES_URL is missing.\n' +
-            'Example: POSTGRES_URL=postgresql://user:password@localhost:5432/database'
+            "Example: POSTGRES_URL=postgresql://user:password@localhost:5432/database",
         );
       }
       break;
 
-    case 'mongodb':
+    case "mongodb":
       if (!env.MONGO_URL && !env.MONGODB_URI) {
         throw new Error(
           'DB_TYPE is set to "mongodb" but MONGO_URL is missing.\n' +
-            'Example: MONGO_URL=mongodb://localhost:27017/database'
+            "Example: MONGO_URL=mongodb://localhost:27017/database",
         );
       }
       break;
 
-    case 'sqlite':
+    case "sqlite":
       // SQLITE_FILE has a default value, so no validation needed
       break;
 
-    case 'dynamodb':
+    case "dynamodb":
       if (!env.AWS_REGION) {
         throw new Error(
           'DB_TYPE is set to "dynamodb" but AWS_REGION is missing.\n' +
-            'Example: AWS_REGION=us-east-1\n' +
-            'Note: Use AWS_REGION (not DYNAMODB_REGION) for consistency with AWS SDK'
+            "Example: AWS_REGION=us-east-1\n" +
+            "Note: Use AWS_REGION (not DYNAMODB_REGION) for consistency with AWS SDK",
         );
       }
       if (!env.DYNAMODB_TABLE) {
         throw new Error(
           'DB_TYPE is set to "dynamodb" but DYNAMODB_TABLE is missing.\n' +
-            'Example: DYNAMODB_TABLE=configurations\n' +
-            'Note: Use DYNAMODB_TABLE (not DYNAMODB_TABLE_NAME) for consistency with runtime'
+            "Example: DYNAMODB_TABLE=configurations\n" +
+            "Note: Use DYNAMODB_TABLE (not DYNAMODB_TABLE_NAME) for consistency with runtime",
         );
       }
       break;
 
-    case 'd1':
+    case "d1":
       // D1 configuration is handled by Cloudflare Workers runtime
       break;
 
     default:
       throw new Error(
         `Unknown DB_TYPE: ${dbType}\n` +
-          'Valid options: mysql, postgresql, sqlite, mongodb, dynamodb, d1'
+          "Valid options: mysql, postgresql, sqlite, mongodb, dynamodb, d1",
       );
   }
 }
@@ -577,7 +616,7 @@ function validateDatabaseConfig(dbType: string, env: Env): void {
 export function getEnv<K extends keyof Env>(key: K): Env[K] {
   if (!env) {
     throw new Error(
-      'Environment variables not validated. Call validateEnv() first.'
+      "Environment variables not validated. Call validateEnv() first.",
     );
   }
   return env[key];
@@ -587,14 +626,14 @@ export function getEnv<K extends keyof Env>(key: K): Env[K] {
  * Checks if the application is running in production
  */
 export function isProduction(): boolean {
-  return env?.NODE_ENV === 'production';
+  return env?.NODE_ENV === "production";
 }
 
 /**
  * Checks if the application is running in development
  */
 export function isDevelopment(): boolean {
-  return env?.NODE_ENV === 'development';
+  return env?.NODE_ENV === "development";
 }
 
 /**

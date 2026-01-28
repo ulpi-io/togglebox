@@ -6,19 +6,19 @@
  * Each parameter has version history; only one version is active at a time.
  */
 
-import { PrismaClient } from '.prisma/client-database';
+import { PrismaClient } from ".prisma/client-database";
 import {
   ConfigParameter,
   CreateConfigParameter,
   UpdateConfigParameter,
   parseConfigValue,
-} from '@togglebox/configs';
+} from "@togglebox/configs";
 import {
   IConfigRepository,
   OffsetPaginationParams,
   TokenPaginationParams,
   PaginatedResult,
-} from '../../interfaces';
+} from "../../interfaces";
 
 /**
  * Prisma implementation of config parameter repository.
@@ -39,7 +39,7 @@ export class PrismaConfigRepository implements IConfigRepository {
    */
   async getConfigs(
     platform: string,
-    environment: string
+    environment: string,
   ): Promise<Record<string, unknown>> {
     const params = await this.prisma.configParameter.findMany({
       where: {
@@ -53,7 +53,7 @@ export class PrismaConfigRepository implements IConfigRepository {
     for (const param of params) {
       configs[param.parameterKey] = parseConfigValue(
         param.defaultValue,
-        param.valueType as 'string' | 'number' | 'boolean' | 'json'
+        param.valueType as "string" | "number" | "boolean" | "json",
       );
     }
 
@@ -69,7 +69,7 @@ export class PrismaConfigRepository implements IConfigRepository {
    */
   async create(param: CreateConfigParameter): Promise<ConfigParameter> {
     const timestamp = new Date().toISOString();
-    const version = '1';
+    const version = "1";
 
     try {
       const created = await this.prisma.configParameter.create({
@@ -90,9 +90,9 @@ export class PrismaConfigRepository implements IConfigRepository {
 
       return this.mapToConfigParameter(created);
     } catch (error: unknown) {
-      if ((error as { code?: string }).code === 'P2002') {
+      if ((error as { code?: string }).code === "P2002") {
         throw new Error(
-          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`
+          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`,
         );
       }
       throw error;
@@ -106,7 +106,7 @@ export class PrismaConfigRepository implements IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    updates: UpdateConfigParameter
+    updates: UpdateConfigParameter,
   ): Promise<ConfigParameter> {
     // Use transaction for atomicity
     return this.prisma.$transaction(async (tx) => {
@@ -122,7 +122,7 @@ export class PrismaConfigRepository implements IConfigRepository {
 
       if (!current) {
         throw new Error(
-          `Parameter ${parameterKey} not found in ${platform}/${environment}`
+          `Parameter ${parameterKey} not found in ${platform}/${environment}`,
         );
       }
 
@@ -152,12 +152,14 @@ export class PrismaConfigRepository implements IConfigRepository {
           version: nextVersion,
           valueType: updates.valueType ?? current.valueType,
           defaultValue: updates.defaultValue ?? current.defaultValue,
-          description: updates.description !== undefined
-            ? (updates.description ?? null)
-            : current.description,
-          parameterGroup: updates.parameterGroup !== undefined
-            ? (updates.parameterGroup ?? null)
-            : current.parameterGroup,
+          description:
+            updates.description !== undefined
+              ? (updates.description ?? null)
+              : current.description,
+          parameterGroup:
+            updates.parameterGroup !== undefined
+              ? (updates.parameterGroup ?? null)
+              : current.parameterGroup,
           isActive: true,
           createdBy: updates.createdBy,
           createdAt: timestamp,
@@ -174,7 +176,7 @@ export class PrismaConfigRepository implements IConfigRepository {
   async delete(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<boolean> {
     const result = await this.prisma.configParameter.deleteMany({
       where: {
@@ -193,7 +195,7 @@ export class PrismaConfigRepository implements IConfigRepository {
   async getActive(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<ConfigParameter | null> {
     const param = await this.prisma.configParameter.findFirst({
       where: {
@@ -213,7 +215,7 @@ export class PrismaConfigRepository implements IConfigRepository {
   async listActive(
     platform: string,
     environment: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<PaginatedResult<ConfigParameter>> {
     // Get total count
     const total = await this.prisma.configParameter.count({
@@ -234,11 +236,13 @@ export class PrismaConfigRepository implements IConfigRepository {
         environment,
         isActive: true,
       },
-      orderBy: { parameterKey: 'asc' },
-      ...(offsetPagination ? {
-        skip: offsetPagination.offset ?? 0,
-        take: offsetPagination.limit,
-      } : {}),
+      orderBy: { parameterKey: "asc" },
+      ...(offsetPagination
+        ? {
+            skip: offsetPagination.offset ?? 0,
+            take: offsetPagination.limit,
+          }
+        : {}),
     });
 
     return {
@@ -253,7 +257,7 @@ export class PrismaConfigRepository implements IConfigRepository {
   async listVersions(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<ConfigParameter[]> {
     const params = await this.prisma.configParameter.findMany({
       where: {
@@ -261,7 +265,7 @@ export class PrismaConfigRepository implements IConfigRepository {
         environment,
         parameterKey,
       },
-      orderBy: { version: 'desc' },
+      orderBy: { version: "desc" },
     });
 
     return params.map((p) => this.mapToConfigParameter(p));
@@ -274,7 +278,7 @@ export class PrismaConfigRepository implements IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    version: string
+    version: string,
   ): Promise<ConfigParameter | null> {
     return this.prisma.$transaction(async (tx) => {
       // 1. Check target version exists
@@ -378,7 +382,7 @@ export class PrismaConfigRepository implements IConfigRepository {
       environment: param.environment,
       parameterKey: param.parameterKey,
       version: param.version,
-      valueType: param.valueType as 'string' | 'number' | 'boolean' | 'json',
+      valueType: param.valueType as "string" | "number" | "boolean" | "json",
       defaultValue: param.defaultValue,
       description: param.description ?? undefined,
       parameterGroup: param.parameterGroup ?? undefined,

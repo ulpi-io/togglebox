@@ -1,8 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { invalidateCacheApi, invalidateAllCacheApi, CacheInvalidationResult } from '@/lib/api/cache';
-import { getPlatformsApi, getEnvironmentsApi } from '@/lib/api/platforms';
+import { useState, useEffect } from "react";
+import {
+  invalidateCacheApi,
+  invalidateAllCacheApi,
+  CacheInvalidationResult,
+} from "@/lib/api/cache";
+import { getPlatformsApi, getEnvironmentsApi } from "@/lib/api/platforms";
 import {
   Alert,
   Card,
@@ -13,13 +17,13 @@ import {
   Label,
   Button,
   Select,
-} from '@togglebox/ui';
-import type { Platform, Environment } from '@/lib/api/types';
+} from "@togglebox/ui";
+import type { Platform, Environment } from "@/lib/api/types";
 
 export default function CachePage() {
   // Selection states
-  const [platform, setPlatform] = useState('');
-  const [environment, setEnvironment] = useState('');
+  const [platform, setPlatform] = useState("");
+  const [environment, setEnvironment] = useState("");
 
   // Data states
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -40,7 +44,7 @@ export default function CachePage() {
         const data = await getPlatformsApi();
         setPlatforms(data);
       } catch (err) {
-        console.error('Failed to load platforms:', err);
+        console.error("Failed to load platforms:", err);
       } finally {
         setIsLoadingPlatforms(false);
       }
@@ -52,7 +56,7 @@ export default function CachePage() {
   useEffect(() => {
     if (!platform) {
       setEnvironments([]);
-      setEnvironment('');
+      setEnvironment("");
       return;
     }
 
@@ -61,9 +65,9 @@ export default function CachePage() {
       try {
         const data = await getEnvironmentsApi(platform);
         setEnvironments(data);
-        setEnvironment('');
+        setEnvironment("");
       } catch (err) {
-        console.error('Failed to load environments:', err);
+        console.error("Failed to load environments:", err);
         setEnvironments([]);
       } finally {
         setIsLoadingEnvironments(false);
@@ -80,18 +84,24 @@ export default function CachePage() {
     try {
       const response = await invalidateCacheApi(
         platform || undefined,
-        environment || undefined
+        environment || undefined,
       );
       setResult(response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to invalidate cache');
+      setError(
+        err instanceof Error ? err.message : "Failed to invalidate cache",
+      );
     } finally {
       setIsInvalidating(false);
     }
   }
 
   async function handleInvalidateAll() {
-    if (!confirm('Are you sure you want to invalidate ALL caches? This will affect all platforms and environments.')) {
+    if (
+      !confirm(
+        "Are you sure you want to invalidate ALL caches? This will affect all platforms and environments.",
+      )
+    ) {
       return;
     }
 
@@ -103,7 +113,9 @@ export default function CachePage() {
       const response = await invalidateAllCacheApi();
       setResult(response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to invalidate all caches');
+      setError(
+        err instanceof Error ? err.message : "Failed to invalidate all caches",
+      );
     } finally {
       setIsInvalidating(false);
     }
@@ -137,7 +149,9 @@ export default function CachePage() {
                 disabled={isInvalidating || isLoadingPlatforms}
               >
                 <option value="">
-                  {isLoadingPlatforms ? 'Loading platforms...' : 'All platforms'}
+                  {isLoadingPlatforms
+                    ? "Loading platforms..."
+                    : "All platforms"}
                 </option>
                 {platforms.map((p) => (
                   <option key={p.name} value={p.name}>
@@ -157,10 +171,10 @@ export default function CachePage() {
               >
                 <option value="">
                   {!platform
-                    ? 'Select a platform first'
+                    ? "Select a platform first"
                     : isLoadingEnvironments
-                      ? 'Loading environments...'
-                      : 'All environments'}
+                      ? "Loading environments..."
+                      : "All environments"}
                 </option>
                 {environments.map((e) => (
                   <option key={e.environment} value={e.environment}>
@@ -175,12 +189,19 @@ export default function CachePage() {
               <ul className="list-disc list-inside space-y-1">
                 <li>No selection: Invalidate all config caches</li>
                 <li>Platform only: Invalidate all caches for that platform</li>
-                <li>Platform + Environment: Invalidate that environment&apos;s config cache</li>
+                <li>
+                  Platform + Environment: Invalidate that environment&apos;s
+                  config cache
+                </li>
               </ul>
             </div>
 
-            <Button onClick={handleInvalidate} disabled={isInvalidating} className="w-full">
-              {isInvalidating ? 'Invalidating...' : 'Invalidate Cache'}
+            <Button
+              onClick={handleInvalidate}
+              disabled={isInvalidating}
+              className="w-full"
+            >
+              {isInvalidating ? "Invalidating..." : "Invalidate Cache"}
             </Button>
           </CardContent>
         </Card>
@@ -189,12 +210,15 @@ export default function CachePage() {
         <Card>
           <CardHeader>
             <CardTitle>Invalidation Result</CardTitle>
-            <CardDescription>Status of cache invalidation request</CardDescription>
+            <CardDescription>
+              Status of cache invalidation request
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {!result && !error && (
               <div className="text-center py-12 text-muted-foreground">
-                Configure invalidation settings and click &quot;Invalidate Cache&quot;
+                Configure invalidation settings and click &quot;Invalidate
+                Cache&quot;
               </div>
             )}
 
@@ -216,20 +240,26 @@ export default function CachePage() {
                     </div>
                   </div>
 
-                  {result.invalidatedPaths && result.invalidatedPaths.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-success/20">
-                      <div className="text-sm font-bold mb-2">Invalidated Paths:</div>
-                      <ul className="list-disc list-inside text-xs font-mono space-y-1 opacity-80">
-                        {result.invalidatedPaths.map((path: string, index: number) => (
-                          <li key={index}>{path}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {result.invalidatedPaths &&
+                    result.invalidatedPaths.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-success/20">
+                        <div className="text-sm font-bold mb-2">
+                          Invalidated Paths:
+                        </div>
+                        <ul className="list-disc list-inside text-xs font-mono space-y-1 opacity-80">
+                          {result.invalidatedPaths.map(
+                            (path: string, index: number) => (
+                              <li key={index}>{path}</li>
+                            ),
+                          )}
+                        </ul>
+                      </div>
+                    )}
                 </Alert>
 
                 <div className="text-xs text-muted-foreground">
-                  Cache invalidation may take 1-2 minutes to propagate to all edge locations.
+                  Cache invalidation may take 1-2 minutes to propagate to all
+                  edge locations.
                 </div>
               </div>
             )}
@@ -242,7 +272,8 @@ export default function CachePage() {
         <CardHeader>
           <CardTitle>Global Cache Invalidation</CardTitle>
           <CardDescription>
-            WARNING: This will invalidate ALL caches across all platforms and environments
+            WARNING: This will invalidate ALL caches across all platforms and
+            environments
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -252,7 +283,7 @@ export default function CachePage() {
             disabled={isInvalidating}
             className="w-full"
           >
-            {isInvalidating ? 'Invalidating All...' : 'Invalidate All Caches'}
+            {isInvalidating ? "Invalidating All..." : "Invalidate All Caches"}
           </Button>
         </CardContent>
       </Card>

@@ -9,7 +9,7 @@
 import type {
   PasswordResetToken,
   CreatePasswordResetTokenData,
-} from '../models/PasswordResetToken';
+} from "../models/PasswordResetToken";
 
 /**
  * Password Reset Token repository interface.

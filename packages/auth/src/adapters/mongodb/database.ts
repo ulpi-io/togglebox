@@ -37,8 +37,8 @@
  * Call `disconnectMongoDB()` in shutdown handlers to close connections cleanly.
  */
 
-import mongoose from 'mongoose';
-import { logger } from '@togglebox/shared';
+import mongoose from "mongoose";
+import { logger } from "@togglebox/shared";
 
 /**
  * MongoDB connection URI from environment or default.
@@ -48,7 +48,8 @@ import { logger } from '@togglebox/shared';
  * Connection string may contain credentials - never log the raw URI.
  * Use sanitized version (credentials masked) for logging.
  */
-const MONGODB_URI = process.env['MONGODB_URI'] || 'mongodb://localhost:27017/togglebox-auth';
+const MONGODB_URI =
+  process.env["MONGODB_URI"] || "mongodb://localhost:27017/togglebox-auth";
 
 /**
  * Connect to MongoDB using Mongoose.
@@ -76,7 +77,10 @@ const MONGODB_URI = process.env['MONGODB_URI'] || 'mongodb://localhost:27017/tog
 export async function connectMongoDB(): Promise<void> {
   if (mongoose.connection.readyState === 0) {
     await mongoose.connect(MONGODB_URI);
-    logger.info('Connected to MongoDB', { database: 'auth', uri: MONGODB_URI.replace(/\/\/.*@/, '//<credentials>@') });
+    logger.info("Connected to MongoDB", {
+      database: "auth",
+      uri: MONGODB_URI.replace(/\/\/.*@/, "//<credentials>@"),
+    });
   }
 }
 
@@ -103,7 +107,7 @@ export async function connectMongoDB(): Promise<void> {
 export async function disconnectMongoDB(): Promise<void> {
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
-    logger.info('Disconnected from MongoDB', { database: 'auth' });
+    logger.info("Disconnected from MongoDB", { database: "auth" });
   }
 }
 

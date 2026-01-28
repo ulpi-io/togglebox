@@ -64,17 +64,21 @@
  */
 
 // Types
-export type { CacheProvider, CacheConfig, CacheHeadersOptions } from './types/CacheProvider';
+export type {
+  CacheProvider,
+  CacheConfig,
+  CacheHeadersOptions,
+} from "./types/CacheProvider";
 
 // Providers
 export {
   CloudFrontCacheProvider,
   CloudflareCacheProvider,
   NoOpCacheProvider,
-} from './providers';
+} from "./providers";
 
 // Factory
-export { createCacheProvider } from './factory';
+export { createCacheProvider } from "./factory";
 
 // Middleware
-export { cacheHeaders, noCacheHeaders } from './middleware';
+export { cacheHeaders, noCacheHeaders } from "./middleware";

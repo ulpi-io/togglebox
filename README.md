@@ -32,14 +32,14 @@ Track flag evaluations, experiment exposures, and configuration fetches. Know wh
 
 ## Why ToggleBox?
 
-| Feature | ToggleBox |
-|---------|-----------|
-| **Self-Hostable** | Deploy on your infrastructure with full control |
-| **Multi-Database** | DynamoDB, PostgreSQL, MySQL, MongoDB, SQLite, Cloudflare D1 |
-| **Multi-Platform** | AWS Lambda, Cloudflare Workers, Docker, Netlify |
-| **Type-Safe SDKs** | JavaScript, Next.js, Expo/React Native |
-| **Open Source** | Inspect the code, contribute, customize |
-| **Hosted Option** | [ToggleBox Cloud](https://togglebox.dev) for zero maintenance |
+| Feature            | ToggleBox                                                     |
+| ------------------ | ------------------------------------------------------------- |
+| **Self-Hostable**  | Deploy on your infrastructure with full control               |
+| **Multi-Database** | DynamoDB, PostgreSQL, MySQL, MongoDB, SQLite, Cloudflare D1   |
+| **Multi-Platform** | AWS Lambda, Cloudflare Workers, Docker, Netlify               |
+| **Type-Safe SDKs** | JavaScript, Next.js, Expo/React Native                        |
+| **Open Source**    | Inspect the code, contribute, customize                       |
+| **Hosted Option**  | [ToggleBox Cloud](https://togglebox.dev) for zero maintenance |
 
 ---
 
@@ -89,15 +89,15 @@ pnpm dev:api
 
 The seed script creates:
 
-| Resource | Description |
-|----------|-------------|
-| **Demo Admin User** | `admin@togglebox.com` / `Parola123!` |
-| **API Key** | Full permissions for authenticated requests |
-| **Platforms** | `web`, `mobile`, `ecommerce` |
-| **Environments** | `staging` (web/mobile), `development` (ecommerce) |
-| **Config Parameters** | `theme`, `apiTimeout` per platform |
-| **Feature Flags** | `dark-mode`, `new-checkout-flow`, `beta-features`, `biometric-auth` |
-| **Experiments** | `checkout-test`, `cta-test`, `checkout-button-test`, `pricing-display-test` |
+| Resource              | Description                                                                 |
+| --------------------- | --------------------------------------------------------------------------- |
+| **Demo Admin User**   | `admin@togglebox.com` / `Parola123!`                                        |
+| **API Key**           | Full permissions for authenticated requests                                 |
+| **Platforms**         | `web`, `mobile`, `ecommerce`                                                |
+| **Environments**      | `staging` (web/mobile), `development` (ecommerce)                           |
+| **Config Parameters** | `theme`, `apiTimeout` per platform                                          |
+| **Feature Flags**     | `dark-mode`, `new-checkout-flow`, `beta-features`, `biometric-auth`         |
+| **Experiments**       | `checkout-test`, `cta-test`, `checkout-button-test`, `pricing-display-test` |
 
 All experiments are automatically started and in "running" status.
 
@@ -112,28 +112,32 @@ npm install @togglebox/sdk
 ```
 
 ```typescript
-import { ToggleBoxClient } from '@togglebox/sdk'
+import { ToggleBoxClient } from "@togglebox/sdk";
 
 const client = new ToggleBoxClient({
-  platform: 'web',
-  environment: 'production',
-  apiUrl: 'https://your-togglebox-api.com',
-})
+  platform: "web",
+  environment: "production",
+  apiUrl: "https://your-togglebox-api.com",
+});
 
 // Remote config (Tier 1)
-const config = await client.getConfig()
-const theme = await client.getConfigValue('theme', 'light')
+const config = await client.getConfig();
+const theme = await client.getConfigValue("theme", "light");
 
 // Feature flag (Tier 2)
-const showNewUI = await client.isFlagEnabled('new-dashboard', { userId: 'user-123' })
+const showNewUI = await client.isFlagEnabled("new-dashboard", {
+  userId: "user-123",
+});
 if (showNewUI) {
-  renderNewDashboard()
+  renderNewDashboard();
 }
 
 // Experiment (Tier 3)
-const assignment = await client.getVariant('checkout-experiment', { userId: 'user-123' })
-if (assignment?.variationKey === 'one-click') {
-  renderOneClickCheckout()
+const assignment = await client.getVariant("checkout-experiment", {
+  userId: "user-123",
+});
+if (assignment?.variationKey === "one-click") {
+  renderOneClickCheckout();
 }
 ```
 
@@ -144,7 +148,12 @@ npm install @togglebox/sdk-nextjs
 ```
 
 ```tsx
-import { ToggleBoxProvider, useFlag, useExperiment, useConfig } from '@togglebox/sdk-nextjs'
+import {
+  ToggleBoxProvider,
+  useFlag,
+  useExperiment,
+  useConfig,
+} from "@togglebox/sdk-nextjs";
 
 // Wrap your app
 <ToggleBoxProvider
@@ -153,22 +162,22 @@ import { ToggleBoxProvider, useFlag, useExperiment, useConfig } from '@togglebox
   apiUrl={process.env.NEXT_PUBLIC_TOGGLEBOX_URL!}
 >
   <App />
-</ToggleBoxProvider>
+</ToggleBoxProvider>;
 
 // Use in components
 function PricingPage() {
-  const config = useConfig()
-  const { checkEnabled } = useFlag('new-pricing')
-  const { getVariant } = useExperiment('pricing-test', { userId: user.id })
-  const [showNewPricing, setShowNewPricing] = useState(false)
-  const [variant, setVariant] = useState<string | null>(null)
+  const config = useConfig();
+  const { checkEnabled } = useFlag("new-pricing");
+  const { getVariant } = useExperiment("pricing-test", { userId: user.id });
+  const [showNewPricing, setShowNewPricing] = useState(false);
+  const [variant, setVariant] = useState<string | null>(null);
 
   useEffect(() => {
-    checkEnabled().then(setShowNewPricing)
-    getVariant().then(setVariant)
-  }, [checkEnabled, getVariant])
+    checkEnabled().then(setShowNewPricing);
+    getVariant().then(setVariant);
+  }, [checkEnabled, getVariant]);
 
-  return showNewPricing ? <NewPricing variant={variant} /> : <OldPricing />
+  return showNewPricing ? <NewPricing variant={variant} /> : <OldPricing />;
 }
 ```
 
@@ -179,7 +188,12 @@ npm install @togglebox/sdk-expo
 ```
 
 ```tsx
-import { ToggleBoxProvider, useConfig, useFlags, useToggleBox } from '@togglebox/sdk-expo'
+import {
+  ToggleBoxProvider,
+  useConfig,
+  useFlags,
+  useToggleBox,
+} from "@togglebox/sdk-expo";
 
 // Wrap your app with offline persistence
 <ToggleBoxProvider
@@ -190,16 +204,16 @@ import { ToggleBoxProvider, useConfig, useFlags, useToggleBox } from '@togglebox
   storageTTL={86400000}
 >
   <App />
-</ToggleBoxProvider>
+</ToggleBoxProvider>;
 
 // Use in components
 function HomeScreen() {
-  const config = useConfig()
-  const flags = useFlags()
-  const { isLoading, isOnline, refresh } = useToggleBox()
+  const config = useConfig();
+  const flags = useFlags();
+  const { isLoading, isOnline, refresh } = useToggleBox();
 
   // Works offline with cached data
-  return <View>...</View>
+  return <View>...</View>;
 }
 ```
 
@@ -211,14 +225,14 @@ Both example apps are **kitchen sink** demos with copy-paste ready code:
 
 Full-featured Next.js 15 app demonstrating:
 
-| Quick Start | Complete Examples |
-|-------------|-------------------|
-| Provider Setup | Feature Toggle UI |
-| useConfig Hook | A/B Test CTA Buttons |
-| useFlag Hook | Config-Driven Themes |
-| useExperiment Hook | SSR with Hydration |
-| Event Tracking | Polling Updates |
-| SSR Config Fetching | |
+| Quick Start         | Complete Examples    |
+| ------------------- | -------------------- |
+| Provider Setup      | Feature Toggle UI    |
+| useConfig Hook      | A/B Test CTA Buttons |
+| useFlag Hook        | Config-Driven Themes |
+| useExperiment Hook  | SSR with Hydration   |
+| Event Tracking      | Polling Updates      |
+| SSR Config Fetching |                      |
 
 ```bash
 pnpm dev:example-nextjs  # http://localhost:3002
@@ -228,13 +242,13 @@ pnpm dev:example-nextjs  # http://localhost:3002
 
 React Native/Expo app demonstrating:
 
-| Quick Start | Advanced |
-|-------------|----------|
-| Provider Setup | Conversion Tracking |
-| Remote Config | Offline Storage (MMKV) |
-| Feature Flags | Polling & Refresh |
-| Experiments | Health Check |
-| | Error Handling |
+| Quick Start    | Advanced               |
+| -------------- | ---------------------- |
+| Provider Setup | Conversion Tracking    |
+| Remote Config  | Offline Storage (MMKV) |
+| Feature Flags  | Polling & Refresh      |
+| Experiments    | Health Check           |
+|                | Error Handling         |
 
 ```bash
 pnpm dev:example-expo  # Expo Go or simulator
@@ -283,14 +297,14 @@ Deploy on any Node.js environment with your preferred database.
 
 ## Database Support
 
-| Database | Best For |
-|----------|----------|
-| **DynamoDB** | AWS Lambda, serverless |
-| **Cloudflare D1** | Cloudflare Workers, edge |
-| **PostgreSQL** | Self-hosted, full SQL |
-| **MySQL** | Self-hosted, enterprise |
-| **MongoDB** | Document-oriented workloads |
-| **SQLite** | Local development, testing |
+| Database          | Best For                    |
+| ----------------- | --------------------------- |
+| **DynamoDB**      | AWS Lambda, serverless      |
+| **Cloudflare D1** | Cloudflare Workers, edge    |
+| **PostgreSQL**    | Self-hosted, full SQL       |
+| **MySQL**         | Self-hosted, enterprise     |
+| **MongoDB**       | Document-oriented workloads |
+| **SQLite**        | Local development, testing  |
 
 Configure via `DB_TYPE` environment variable:
 

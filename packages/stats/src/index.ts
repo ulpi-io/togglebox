@@ -14,14 +14,14 @@
  */
 
 // Export types
-export * from './types';
+export * from "./types";
 
 // Export statistical calculations
-export * from './significance';
-export * from './srm';
+export * from "./significance";
+export * from "./srm";
 
 // Export repository interface
-export * from './repository';
+export * from "./repository";
 
 // Export collector for SDK use
-export * from './collector';
+export * from "./collector";

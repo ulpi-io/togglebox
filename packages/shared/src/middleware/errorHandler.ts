@@ -44,9 +44,9 @@
  * - Logs all errors with correlation IDs for tracing
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { logger } from '../logger';
-import { ErrorResponse } from '@togglebox/core';
+import { Request, Response, NextFunction } from "express";
+import { logger } from "../logger";
+import { ErrorResponse } from "@togglebox/core";
 
 /**
  * Application error interface with HTTP status and operational flag.
@@ -103,7 +103,7 @@ export class CustomError extends Error implements AppError {
     isOperational: boolean = true,
     code?: string,
     details?: string[],
-    meta?: Record<string, unknown>
+    meta?: Record<string, unknown>,
   ) {
     super(message);
     this.statusCode = statusCode;
@@ -179,7 +179,7 @@ export class ConflictError extends CustomError {
  * ```
  */
 export class UnauthorizedError extends CustomError {
-  constructor(message: string = 'Unauthorized') {
+  constructor(message: string = "Unauthorized") {
     super(message, 401);
   }
 }
@@ -196,7 +196,7 @@ export class UnauthorizedError extends CustomError {
  * ```
  */
 export class ForbiddenError extends CustomError {
-  constructor(message: string = 'Forbidden') {
+  constructor(message: string = "Forbidden") {
     super(message, 403);
   }
 }
@@ -230,7 +230,7 @@ export class BadRequestError extends CustomError {
  * ```
  */
 export class InternalServerError extends CustomError {
-  constructor(message: string = 'Internal Server Error') {
+  constructor(message: string = "Internal Server Error") {
     super(message, 500);
   }
 }
@@ -277,17 +277,17 @@ export const errorHandler = (
   err: AppError,
   req: Request,
   res: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ): void => {
   const { method, url, headers, body } = req;
-  const userAgent = headers['user-agent'];
-  const ip = req.ip || req.connection.remoteAddress || 'unknown';
-  const requestId = headers['x-request-id'] as string;
+  const userAgent = headers["user-agent"];
+  const ip = req.ip || req.connection.remoteAddress || "unknown";
+  const requestId = headers["x-request-id"] as string;
 
   let { statusCode = 500, message, code, details, meta } = err;
 
   // Log error with correlation ID for tracing
-  logger.error('Request failed', {
+  logger.error("Request failed", {
     requestId,
     method,
     url,
@@ -297,13 +297,13 @@ export const errorHandler = (
     stack: err.stack,
     userAgent,
     ip,
-    body: process.env['NODE_ENV'] === 'development' ? body : undefined,
+    body: process.env["NODE_ENV"] === "development" ? body : undefined,
   });
 
-  if (process.env['NODE_ENV'] === 'production') {
+  if (process.env["NODE_ENV"] === "production") {
     if (!err.isOperational) {
       statusCode = 500;
-      message = 'Something went wrong';
+      message = "Something went wrong";
       code = undefined;
       details = undefined;
       meta = undefined;
@@ -325,7 +325,7 @@ export const errorHandler = (
     requestId,
   };
 
-  if (process.env['NODE_ENV'] === 'development' && err.stack) {
+  if (process.env["NODE_ENV"] === "development" && err.stack) {
     response.meta = { ...response.meta, stack: err.stack };
   }
 
@@ -351,18 +351,18 @@ export const errorHandler = (
  * Returns 404 status with standardized error response.
  */
 export const notFoundHandler = (req: Request, res: Response): void => {
-  const requestId = req.headers['x-request-id'] as string;
+  const requestId = req.headers["x-request-id"] as string;
 
   logger.warn(`Route not found: ${req.method} ${req.originalUrl}`, {
     requestId,
     method: req.method,
     url: req.originalUrl,
-    ip: req.ip || req.connection.remoteAddress || 'unknown',
+    ip: req.ip || req.connection.remoteAddress || "unknown",
   });
 
   res.status(404).json({
     success: false,
-    error: 'Route not found',
+    error: "Route not found",
     timestamp: new Date().toISOString(),
     meta: {
       requestId,
@@ -412,9 +412,10 @@ export const notFoundHandler = (req: Request, res: Response): void => {
  * }));
  * ```
  */
-export const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+export const asyncHandler =
+  (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 
 /**
  * Helper functions for creating standardized error responses.
@@ -445,7 +446,7 @@ export function createErrorResponse(
     code?: string;
     details?: string[];
     meta?: Record<string, unknown>;
-  }
+  },
 ): ErrorResponse {
   const response: ErrorResponse = {
     success: false,
@@ -454,7 +455,8 @@ export function createErrorResponse(
   };
 
   if (options?.code) response.code = options.code;
-  if (options?.details && options.details.length > 0) response.details = options.details;
+  if (options?.details && options.details.length > 0)
+    response.details = options.details;
   if (options?.meta) response.meta = options.meta;
 
   return response;
@@ -465,14 +467,14 @@ export function createErrorResponse(
  */
 export function sendValidationError(
   res: Response,
-  message: string = 'Validation failed',
-  details?: string[]
+  message: string = "Validation failed",
+  details?: string[],
 ): void {
   res.status(400).json(
     createErrorResponse(message, {
-      code: 'VALIDATION_FAILED',
+      code: "VALIDATION_FAILED",
       details,
-    })
+    }),
   );
 }
 
@@ -481,12 +483,12 @@ export function sendValidationError(
  */
 export function sendUnauthorizedError(
   res: Response,
-  message: string = 'Unauthorized'
+  message: string = "Unauthorized",
 ): void {
   res.status(401).json(
     createErrorResponse(message, {
-      code: 'UNAUTHORIZED',
-    })
+      code: "UNAUTHORIZED",
+    }),
   );
 }
 
@@ -495,14 +497,14 @@ export function sendUnauthorizedError(
  */
 export function sendForbiddenError(
   res: Response,
-  message: string = 'Forbidden',
-  meta?: { requiredPermission?: string; requiredRole?: string }
+  message: string = "Forbidden",
+  meta?: { requiredPermission?: string; requiredRole?: string },
 ): void {
   res.status(403).json(
     createErrorResponse(message, {
-      code: 'FORBIDDEN',
+      code: "FORBIDDEN",
       meta,
-    })
+    }),
   );
 }
 
@@ -511,12 +513,12 @@ export function sendForbiddenError(
  */
 export function sendNotFoundError(
   res: Response,
-  message: string = 'Resource not found'
+  message: string = "Resource not found",
 ): void {
   res.status(404).json(
     createErrorResponse(message, {
-      code: 'NOT_FOUND',
-    })
+      code: "NOT_FOUND",
+    }),
   );
 }
 
@@ -525,12 +527,12 @@ export function sendNotFoundError(
  */
 export function sendConflictError(
   res: Response,
-  message: string = 'Resource already exists'
+  message: string = "Resource already exists",
 ): void {
   res.status(409).json(
     createErrorResponse(message, {
-      code: 'CONFLICT',
-    })
+      code: "CONFLICT",
+    }),
   );
 }
 
@@ -539,14 +541,14 @@ export function sendConflictError(
  */
 export function sendRateLimitError(
   res: Response,
-  message: string = 'Too many requests',
-  retryAfter?: number
+  message: string = "Too many requests",
+  retryAfter?: number,
 ): void {
   res.status(429).json(
     createErrorResponse(message, {
-      code: 'RATE_LIMIT_EXCEEDED',
+      code: "RATE_LIMIT_EXCEEDED",
       meta: retryAfter ? { retryAfter } : undefined,
-    })
+    }),
   );
 }
 
@@ -558,17 +560,17 @@ export function sendUsageLimitError(
   message: string,
   usage: number,
   limit: number,
-  upgradeUrl?: string
+  upgradeUrl?: string,
 ): void {
   res.status(429).json(
     createErrorResponse(message, {
-      code: 'API_LIMIT_EXCEEDED',
+      code: "API_LIMIT_EXCEEDED",
       meta: {
         usage,
         limit,
         ...(upgradeUrl && { upgradeUrl }),
       },
-    })
+    }),
   );
 }
 
@@ -577,11 +579,11 @@ export function sendUsageLimitError(
  */
 export function sendInternalServerError(
   res: Response,
-  message: string = 'Internal server error'
+  message: string = "Internal server error",
 ): void {
   res.status(500).json(
     createErrorResponse(message, {
-      code: 'INTERNAL_SERVER_ERROR',
-    })
+      code: "INTERNAL_SERVER_ERROR",
+    }),
   );
 }

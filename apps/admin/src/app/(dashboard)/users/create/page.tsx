@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { createUserApi } from '@/lib/api/users';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createUserApi } from "@/lib/api/users";
 import {
   Button,
   Input,
@@ -14,14 +14,14 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
 export default function CreateUserPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'developer' | 'viewer'>('viewer');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "developer" | "viewer">("viewer");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,13 +31,13 @@ export default function CreateUserPage() {
     setIsLoading(true);
 
     if (!email?.trim()) {
-      setError('Email is required');
+      setError("Email is required");
       setIsLoading(false);
       return;
     }
 
     if (!password) {
-      setError('Password is required');
+      setError("Password is required");
       setIsLoading(false);
       return;
     }
@@ -47,16 +47,16 @@ export default function CreateUserPage() {
     const hasLowercase = /[a-z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     if (!hasUppercase || !hasLowercase || !hasNumber) {
-      setError('Password must contain uppercase, lowercase, and number');
+      setError("Password must contain uppercase, lowercase, and number");
       setIsLoading(false);
       return;
     }
 
     try {
       await createUserApi(email.trim(), password, role);
-      router.push('/users');
+      router.push("/users");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -68,9 +68,7 @@ export default function CreateUserPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-black mb-2">Create User</h1>
-            <p className="text-muted-foreground">
-              Add a new user to ToggleBox
-            </p>
+            <p className="text-muted-foreground">Add a new user to ToggleBox</p>
           </div>
           <Link href="/users">
             <Button variant="outline">Cancel</Button>
@@ -126,7 +124,9 @@ export default function CreateUserPage() {
               <Select
                 id="role"
                 value={role}
-                onChange={(e) => setRole(e.target.value as 'admin' | 'developer' | 'viewer')}
+                onChange={(e) =>
+                  setRole(e.target.value as "admin" | "developer" | "viewer")
+                }
                 disabled={isLoading}
                 required
               >
@@ -135,17 +135,14 @@ export default function CreateUserPage() {
                 <option value="admin">Admin (Full access)</option>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Viewers can only view configs and flags. Developers can create and modify. Admins have full access including user management.
+                Viewers can only view configs and flags. Developers can create
+                and modify. Admins have full access including user management.
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {error && (
-          <Alert variant="destructive">
-            {error}
-          </Alert>
-        )}
+        {error && <Alert variant="destructive">{error}</Alert>}
 
         <div className="flex items-center justify-end gap-3 pt-4">
           <Link href="/users">
@@ -154,7 +151,7 @@ export default function CreateUserPage() {
             </Button>
           </Link>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Create User'}
+            {isLoading ? "Creating..." : "Create User"}
           </Button>
         </div>
       </form>

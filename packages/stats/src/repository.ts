@@ -14,7 +14,7 @@ import type {
   ExperimentMetricStats,
   CustomEventStats,
   StatsEvent,
-} from './types';
+} from "./types";
 
 /**
  * Repository interface for statistics operations.
@@ -35,7 +35,7 @@ export interface IStatsRepository {
     platform: string,
     environment: string,
     configKey: string,
-    clientId?: string
+    clientId?: string,
   ): Promise<void>;
 
   /**
@@ -44,7 +44,7 @@ export interface IStatsRepository {
   getConfigStats(
     platform: string,
     environment: string,
-    configKey: string
+    configKey: string,
   ): Promise<ConfigStats | null>;
 
   // =========================================================================
@@ -62,9 +62,9 @@ export interface IStatsRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    value: 'A' | 'B',
+    value: "A" | "B",
     userId: string,
-    country?: string
+    country?: string,
   ): Promise<void>;
 
   /**
@@ -73,7 +73,7 @@ export interface IStatsRepository {
   getFlagStats(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<FlagStats | null>;
 
   /**
@@ -82,7 +82,7 @@ export interface IStatsRepository {
   getFlagStatsByCountry(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<FlagStatsByCountry[]>;
 
   /**
@@ -94,7 +94,7 @@ export interface IStatsRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    days?: number
+    days?: number,
   ): Promise<FlagStatsDaily[]>;
 
   // =========================================================================
@@ -109,7 +109,7 @@ export interface IStatsRepository {
     environment: string,
     experimentKey: string,
     variationKey: string,
-    userId: string
+    userId: string,
   ): Promise<void>;
 
   /**
@@ -124,7 +124,7 @@ export interface IStatsRepository {
     metricId: string,
     variationKey: string,
     userId: string,
-    value?: number
+    value?: number,
   ): Promise<void>;
 
   /**
@@ -133,7 +133,7 @@ export interface IStatsRepository {
   getExperimentStats(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<ExperimentStats | null>;
 
   /**
@@ -144,7 +144,7 @@ export interface IStatsRepository {
     environment: string,
     experimentKey: string,
     variationKey: string,
-    metricId: string
+    metricId: string,
   ): Promise<ExperimentMetricStats[]>;
 
   // =========================================================================
@@ -159,7 +159,7 @@ export interface IStatsRepository {
     environment: string,
     eventName: string,
     userId?: string,
-    properties?: Record<string, unknown>
+    properties?: Record<string, unknown>,
   ): Promise<void>;
 
   /**
@@ -171,7 +171,7 @@ export interface IStatsRepository {
     platform: string,
     environment: string,
     eventName?: string,
-    limit?: number
+    limit?: number,
   ): Promise<CustomEventStats[]>;
 
   // =========================================================================
@@ -185,7 +185,7 @@ export interface IStatsRepository {
   processBatch(
     platform: string,
     environment: string,
-    events: StatsEvent[]
+    events: StatsEvent[],
   ): Promise<void>;
 
   // =========================================================================
@@ -198,7 +198,7 @@ export interface IStatsRepository {
   deleteConfigStats(
     platform: string,
     environment: string,
-    configKey: string
+    configKey: string,
   ): Promise<void>;
 
   /**
@@ -207,7 +207,7 @@ export interface IStatsRepository {
   deleteFlagStats(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<void>;
 
   /**
@@ -216,6 +216,6 @@ export interface IStatsRepository {
   deleteExperimentStats(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<void>;
 }

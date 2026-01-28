@@ -23,8 +23,16 @@
  * - `AWS_REGION` - AWS region (default: us-east-1)
  */
 
-import { CloudFrontClient, CreateInvalidationCommand, GetInvalidationCommand, ListInvalidationsCommand } from '@aws-sdk/client-cloudfront';
-import type { Invalidation, InvalidationList } from '@aws-sdk/client-cloudfront';
+import {
+  CloudFrontClient,
+  CreateInvalidationCommand,
+  GetInvalidationCommand,
+  ListInvalidationsCommand,
+} from "@aws-sdk/client-cloudfront";
+import type {
+  Invalidation,
+  InvalidationList,
+} from "@aws-sdk/client-cloudfront";
 
 /**
  * Service for managing AWS CloudFront cache invalidations.
@@ -47,10 +55,12 @@ export class CloudFrontService {
    *
    * @throws {Error} If distribution ID is not provided and environment variable is not set
    */
-  constructor(distributionId: string = process.env['CLOUDFRONT_DISTRIBUTION_ID'] || '') {
+  constructor(
+    distributionId: string = process.env["CLOUDFRONT_DISTRIBUTION_ID"] || "",
+  ) {
     this.distributionId = distributionId;
     this.cloudfront = new CloudFrontClient({
-      region: process.env['AWS_REGION'] || 'us-east-1',
+      region: process.env["AWS_REGION"] || "us-east-1",
     });
   }
 
@@ -70,11 +80,11 @@ export class CloudFrontService {
    */
   async invalidateCache(paths: string[]): Promise<string> {
     if (!this.distributionId) {
-      throw new Error('CloudFront distribution ID is not configured');
+      throw new Error("CloudFront distribution ID is not configured");
     }
 
     if (paths.length === 0) {
-      throw new Error('At least one path must be specified for invalidation');
+      throw new Error("At least one path must be specified for invalidation");
     }
 
     const params = {
@@ -89,8 +99,10 @@ export class CloudFrontService {
     };
 
     try {
-      const result = await this.cloudfront.send(new CreateInvalidationCommand(params));
-      return result.Invalidation?.Id || '';
+      const result = await this.cloudfront.send(
+        new CreateInvalidationCommand(params),
+      );
+      return result.Invalidation?.Id || "";
     } catch (error) {
       throw new Error(`Failed to create CloudFront invalidation: ${error}`);
     }
@@ -105,7 +117,7 @@ export class CloudFrontService {
    * Invalidates all cached content across the entire distribution (path: /*)
    */
   async invalidateGlobalCache(): Promise<string> {
-    return this.invalidateCache(['/*']);
+    return this.invalidateCache(["/*"]);
   }
 
   /**
@@ -131,8 +143,13 @@ export class CloudFrontService {
    * @remarks
    * Invalidates all configuration versions within the specified environment.
    */
-  async invalidateEnvironmentCache(platform: string, environment: string): Promise<string> {
-    return this.invalidateCache([`/platforms/${platform}/environments/${environment}/*`]);
+  async invalidateEnvironmentCache(
+    platform: string,
+    environment: string,
+  ): Promise<string> {
+    return this.invalidateCache([
+      `/platforms/${platform}/environments/${environment}/*`,
+    ]);
   }
 
   /**
@@ -146,7 +163,11 @@ export class CloudFrontService {
    * @remarks
    * Invalidates both the exact version path and all subpaths under it.
    */
-  async invalidateVersionCache(platform: string, environment: string, version: string): Promise<string> {
+  async invalidateVersionCache(
+    platform: string,
+    environment: string,
+    version: string,
+  ): Promise<string> {
     return this.invalidateCache([
       `/platforms/${platform}/environments/${environment}/versions/${version}`,
       `/platforms/${platform}/environments/${environment}/versions/${version}/*`,
@@ -164,8 +185,13 @@ export class CloudFrontService {
    * Invalidates all feature flags within the specified environment.
    * Useful when multiple flags have been updated or when deploying flag changes.
    */
-  async invalidateAllFlagsCache(platform: string, environment: string): Promise<string> {
-    return this.invalidateCache([`/platforms/${platform}/environments/${environment}/flags/*`]);
+  async invalidateAllFlagsCache(
+    platform: string,
+    environment: string,
+  ): Promise<string> {
+    return this.invalidateCache([
+      `/platforms/${platform}/environments/${environment}/flags/*`,
+    ]);
   }
 
   /**
@@ -180,7 +206,11 @@ export class CloudFrontService {
    * Invalidates the specific feature flag endpoint.
    * Should be called when a flag is toggled or updated.
    */
-  async invalidateFlagCache(platform: string, environment: string, flagKey: string): Promise<string> {
+  async invalidateFlagCache(
+    platform: string,
+    environment: string,
+    flagKey: string,
+  ): Promise<string> {
     return this.invalidateCache([
       `/platforms/${platform}/environments/${environment}/flags/${flagKey}`,
       `/platforms/${platform}/environments/${environment}/flags/${flagKey}/*`,
@@ -197,8 +227,13 @@ export class CloudFrontService {
    * @remarks
    * Invalidates all experiments within the specified environment.
    */
-  async invalidateAllExperimentsCache(platform: string, environment: string): Promise<string> {
-    return this.invalidateCache([`/platforms/${platform}/environments/${environment}/experiments/*`]);
+  async invalidateAllExperimentsCache(
+    platform: string,
+    environment: string,
+  ): Promise<string> {
+    return this.invalidateCache([
+      `/platforms/${platform}/environments/${environment}/experiments/*`,
+    ]);
   }
 
   /**
@@ -212,7 +247,11 @@ export class CloudFrontService {
    * @remarks
    * Invalidates the specific experiment endpoint.
    */
-  async invalidateExperimentCache(platform: string, environment: string, experimentKey: string): Promise<string> {
+  async invalidateExperimentCache(
+    platform: string,
+    environment: string,
+    experimentKey: string,
+  ): Promise<string> {
     return this.invalidateCache([
       `/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`,
       `/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/*`,
@@ -229,7 +268,10 @@ export class CloudFrontService {
    * @remarks
    * Invalidates all stats endpoints within the specified environment.
    */
-  async invalidateStatsCache(platform: string, environment: string): Promise<string> {
+  async invalidateStatsCache(
+    platform: string,
+    environment: string,
+  ): Promise<string> {
     return this.invalidateCache([
       `/platforms/${platform}/environments/${environment}/*/stats`,
       `/platforms/${platform}/environments/${environment}/*/stats/*`,
@@ -255,11 +297,15 @@ export class CloudFrontService {
    *
    * Invalid: environment without platform, or version without environment
    */
-  generateCachePaths(platform?: string, environment?: string, version?: string): string[] {
+  generateCachePaths(
+    platform?: string,
+    environment?: string,
+    version?: string,
+  ): string[] {
     const paths: string[] = [];
 
     if (!platform && !environment && !version) {
-      paths.push('/*');
+      paths.push("/*");
       return paths;
     }
 
@@ -274,12 +320,18 @@ export class CloudFrontService {
     }
 
     if (platform && environment && version) {
-      paths.push(`/platforms/${platform}/environments/${environment}/versions/${version}`);
-      paths.push(`/platforms/${platform}/environments/${environment}/versions/${version}/*`);
+      paths.push(
+        `/platforms/${platform}/environments/${environment}/versions/${version}`,
+      );
+      paths.push(
+        `/platforms/${platform}/environments/${environment}/versions/${version}/*`,
+      );
       return paths;
     }
 
-    throw new Error('Invalid combination of platform, environment, and version parameters');
+    throw new Error(
+      "Invalid combination of platform, environment, and version parameters",
+    );
   }
 
   /**
@@ -296,7 +348,7 @@ export class CloudFrontService {
    */
   async getInvalidation(invalidationId: string): Promise<Invalidation> {
     if (!this.distributionId) {
-      throw new Error('CloudFront distribution ID is not configured');
+      throw new Error("CloudFront distribution ID is not configured");
     }
 
     const params = {
@@ -305,7 +357,9 @@ export class CloudFrontService {
     };
 
     try {
-      const result = await this.cloudfront.send(new GetInvalidationCommand(params));
+      const result = await this.cloudfront.send(
+        new GetInvalidationCommand(params),
+      );
       return result.Invalidation as Invalidation;
     } catch (error) {
       throw new Error(`Failed to get CloudFront invalidation: ${error}`);
@@ -327,7 +381,7 @@ export class CloudFrontService {
    */
   async listInvalidations(maxItems?: number): Promise<InvalidationList> {
     if (!this.distributionId) {
-      throw new Error('CloudFront distribution ID is not configured');
+      throw new Error("CloudFront distribution ID is not configured");
     }
 
     const params = {
@@ -336,7 +390,9 @@ export class CloudFrontService {
     };
 
     try {
-      const result = await this.cloudfront.send(new ListInvalidationsCommand(params));
+      const result = await this.cloudfront.send(
+        new ListInvalidationsCommand(params),
+      );
       return result.InvalidationList as InvalidationList;
     } catch (error) {
       throw new Error(`Failed to list CloudFront invalidations: ${error}`);

@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { Button, Card, CardContent } from '@togglebox/ui';
+import Link from "next/link";
+import { Button, Card, CardContent } from "@togglebox/ui";
 
 export default function NotFound() {
   return (

@@ -22,6 +22,7 @@ model: opus
 ## Personality
 
 ### Role
+
 Expert Next.js developer with deep knowledge of App Router, React Server Components, Server Actions, streaming patterns, caching strategies, and production-ready patterns
 
 ### Expertise
@@ -204,12 +205,14 @@ Expert Next.js developer with deep knowledge of App Router, React Server Compone
 **Description**: Implement Next.js features following App Router best practices, Server Components, streaming patterns, and production-ready architecture
 
 **Inputs**:
+
 - `feature_specification` (text, required): Feature requirements and specifications
 - `deployment_target` (string, optional): Deployment target (vercel, docker, node, static-export)
 - `requires_auth` (boolean, optional): Whether feature requires authentication
 - `database_type` (string, optional): Database technology (postgres, mysql, mongodb, planetscale, neon)
 
 **Process**:
+
 1. Analyze feature requirements and identify data fetching needs
 2. Determine which components should be Server vs Client Components
 3. Design route structure (file-based routing, dynamic routes, route groups)
@@ -335,6 +338,7 @@ Expert Next.js developer with deep knowledge of App Router, React Server Compone
 **Input**: Create a blog post list page that fetches posts from database with caching and revalidation every 60 seconds
 
 **Output**:
+
 ```typescript
 app/blog/page.tsx:
 - Create async Server Component (export default async function BlogPage())
@@ -369,6 +373,7 @@ When to revalidate:
 **Input**: Create a create-post form with Server Action that validates input, saves to database, and revalidates cache
 
 **Output**:
+
 ```typescript
 app/blog/new/page.tsx:
 - Create form with action={createPost} (Server Action)
@@ -407,6 +412,7 @@ Error handling:
 **Input**: Create a dashboard with multiple data sources that load independently with Suspense
 
 **Output**:
+
 ```typescript
 app/dashboard/page.tsx:
 - Create async Server Component for layout
@@ -446,6 +452,7 @@ loading.tsx:
 **Input**: Create middleware that protects routes and redirects unauthenticated users to login
 
 **Output**:
+
 ```typescript
 middleware.ts (or proxy.ts in Next.js 16+):
 - Export config with matcher for protected routes: matcher: ['/dashboard/:path*', '/profile/:path*']
@@ -482,6 +489,7 @@ Performance:
 **Input**: Create dashboard with parallel routes for main content, sidebar analytics, and notifications panel
 
 **Output**:
+
 ```typescript
 app/dashboard/layout.tsx:
 - Accept children, analytics, notifications from parallel routes
@@ -522,6 +530,7 @@ Use cases:
 **Input**: Create error boundary that catches errors in route segment and provides retry functionality
 
 **Output**:
+
 ```typescript
 app/dashboard/error.tsx:
 - 'use client' directive (error boundaries must be Client Components)
@@ -559,6 +568,7 @@ Production considerations:
 **Input**: Create Dockerfile and docker-compose.yml for production deployment with PostgreSQL database
 
 **Output**:
+
 ```typescript
 Dockerfile:
 - Multi-stage build (dependencies, builder, runner)

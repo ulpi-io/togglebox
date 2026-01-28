@@ -16,10 +16,13 @@
  * Converts between Prisma models and domain models via `mapToApiKey()`.
  */
 
-import { IApiKeyRepository, CreateApiKeyRepositoryData } from '../../interfaces/IApiKeyRepository';
-import { ApiKey, PublicApiKey } from '../../models/ApiKey';
-import { prisma } from './database';
-import type { ApiKey as PrismaApiKeyModel } from '.prisma/client-auth';
+import {
+  IApiKeyRepository,
+  CreateApiKeyRepositoryData,
+} from "../../interfaces/IApiKeyRepository";
+import { ApiKey, PublicApiKey } from "../../models/ApiKey";
+import { prisma } from "./database";
+import type { ApiKey as PrismaApiKeyModel } from ".prisma/client-auth";
 
 /**
  * Prisma API key repository implementation.
@@ -66,7 +69,7 @@ export class PrismaApiKeyRepository implements IApiKeyRepository {
   async listByUser(userId: string): Promise<PublicApiKey[]> {
     const apiKeys = await prisma.apiKey.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return apiKeys.map((apiKey: PrismaApiKeyModel) => {

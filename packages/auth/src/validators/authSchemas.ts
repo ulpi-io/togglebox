@@ -21,7 +21,7 @@
  * - At least one number
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * User registration validation schema.
@@ -46,20 +46,20 @@ import { z } from 'zod';
 export const registerSchema = z.object({
   name: z
     .string()
-    .min(1, 'Name is required')
-    .max(100, 'Name must not exceed 100 characters'),
+    .min(1, "Name is required")
+    .max(100, "Name must not exceed 100 characters"),
   email: z
     .string()
-    .email('Invalid email address')
-    .min(5, 'Email must be at least 5 characters')
-    .max(255, 'Email must not exceed 255 characters'),
+    .email("Invalid email address")
+    .min(5, "Email must be at least 5 characters")
+    .max(255, "Email must not exceed 255 characters"),
   password: z
     .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(128, 'Password must not exceed 128 characters')
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must not exceed 128 characters")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+      "Password must contain at least one uppercase letter, one lowercase letter, and one number",
     ),
   // SECURITY: Role is NOT allowed in public registration - all users start as 'viewer'
   // Only admins can change roles via the admin endpoints
@@ -83,9 +83,9 @@ export type RegisterData = z.infer<typeof registerSchema>;
 export const loginSchema = z.object({
   email: z
     .string()
-    .email('Invalid email address')
-    .min(5, 'Email must be at least 5 characters'),
-  password: z.string().min(1, 'Password is required'),
+    .email("Invalid email address")
+    .min(5, "Email must be at least 5 characters"),
+  password: z.string().min(1, "Password is required"),
 });
 
 /**
@@ -104,14 +104,14 @@ export type LoginData = z.infer<typeof loginSchema>;
  * Used for authenticated password changes (not forgot password flow).
  */
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
+  currentPassword: z.string().min(1, "Current password is required"),
   newPassword: z
     .string()
-    .min(8, 'New password must be at least 8 characters')
-    .max(128, 'New password must not exceed 128 characters')
+    .min(8, "New password must be at least 8 characters")
+    .max(128, "New password must not exceed 128 characters")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'New password must contain at least one uppercase letter, one lowercase letter, and one number'
+      "New password must contain at least one uppercase letter, one lowercase letter, and one number",
     ),
 });
 
@@ -133,8 +133,8 @@ export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 export const updateProfileSchema = z.object({
   name: z
     .string()
-    .min(1, 'Name cannot be empty')
-    .max(100, 'Name must not exceed 100 characters')
+    .min(1, "Name cannot be empty")
+    .max(100, "Name must not exceed 100 characters")
     .optional(),
   // SECURITY: Role is NOT allowed in self-update - prevents privilege escalation
   // Use admin endpoint PATCH /users/:id/role for role changes
@@ -150,10 +150,10 @@ export const updateProfileSchema = z.object({
 export const adminUpdateUserSchema = z.object({
   name: z
     .string()
-    .min(1, 'Name cannot be empty')
-    .max(100, 'Name must not exceed 100 characters')
+    .min(1, "Name cannot be empty")
+    .max(100, "Name must not exceed 100 characters")
     .optional(),
-  role: z.enum(['admin', 'developer', 'viewer']).optional(),
+  role: z.enum(["admin", "developer", "viewer"]).optional(),
 });
 
 /**
@@ -164,7 +164,7 @@ export const adminUpdateUserSchema = z.object({
  * Only accessible via admin endpoints with user:manage permission.
  */
 export const adminCreateUserSchema = registerSchema.extend({
-  role: z.enum(['admin', 'developer', 'viewer']).optional(),
+  role: z.enum(["admin", "developer", "viewer"]).optional(),
 });
 
 /**
@@ -185,13 +185,15 @@ export type UpdateProfileData = z.infer<typeof updateProfileSchema>;
  * User provides email to receive reset link.
  */
 export const passwordResetRequestSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email("Invalid email address"),
 });
 
 /**
  * Type-safe password reset request data inferred from schema.
  */
-export type PasswordResetRequestData = z.infer<typeof passwordResetRequestSchema>;
+export type PasswordResetRequestData = z.infer<
+  typeof passwordResetRequestSchema
+>;
 
 /**
  * Password reset verification schema.
@@ -203,10 +205,7 @@ export type PasswordResetRequestData = z.infer<typeof passwordResetRequestSchema
  * Token is 64-char hex string from {@link generateSecureToken}.
  */
 export const passwordResetVerifySchema = z.object({
-  token: z
-    .string()
-    .min(32, 'Invalid token')
-    .max(256, 'Invalid token'),
+  token: z.string().min(32, "Invalid token").max(256, "Invalid token"),
 });
 
 /**
@@ -226,24 +225,23 @@ export type PasswordResetVerifyData = z.infer<typeof passwordResetVerifySchema>;
  * - New password must meet strength requirements
  */
 export const passwordResetCompleteSchema = z.object({
-  token: z
-    .string()
-    .min(32, 'Invalid token')
-    .max(256, 'Invalid token'),
+  token: z.string().min(32, "Invalid token").max(256, "Invalid token"),
   newPassword: z
     .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(128, 'Password must not exceed 128 characters')
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must not exceed 128 characters")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+      "Password must contain at least one uppercase letter, one lowercase letter, and one number",
     ),
 });
 
 /**
  * Type-safe password reset completion data inferred from schema.
  */
-export type PasswordResetCompleteData = z.infer<typeof passwordResetCompleteSchema>;
+export type PasswordResetCompleteData = z.infer<
+  typeof passwordResetCompleteSchema
+>;
 
 /**
  * Create API key validation schema.
@@ -271,12 +269,12 @@ export type PasswordResetCompleteData = z.infer<typeof passwordResetCompleteSche
 export const createApiKeySchema = z.object({
   name: z
     .string()
-    .min(1, 'Name is required')
-    .max(100, 'Name must not exceed 100 characters'),
+    .min(1, "Name is required")
+    .max(100, "Name must not exceed 100 characters"),
   permissions: z
     .array(z.string())
-    .min(1, 'At least one permission is required')
-    .max(50, 'Too many permissions'),
+    .min(1, "At least one permission is required")
+    .max(50, "Too many permissions"),
   expiresAt: z
     .string()
     .datetime()
@@ -347,9 +345,9 @@ export function validate(schema: z.ZodSchema) {
       if (error instanceof z.ZodError) {
         response.status(422).json({
           success: false,
-          error: 'Validation failed',
+          error: "Validation failed",
           details: error.errors.map((err) => ({
-            field: err.path.join('.'),
+            field: err.path.join("."),
             message: err.message,
           })),
           timestamp: new Date().toISOString(),

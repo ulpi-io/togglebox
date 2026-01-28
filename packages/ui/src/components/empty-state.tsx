@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { cn } from '../utils/cn';
-import type { LucideIcon } from 'lucide-react';
+import * as React from "react";
+import { cn } from "../utils/cn";
+import type { LucideIcon } from "lucide-react";
 
 interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
   icon?: LucideIcon;
@@ -22,8 +22,8 @@ function EmptyState({
   return (
     <div
       className={cn(
-        'glass-card flex flex-col items-center justify-center p-8 sm:p-12 text-center',
-        className
+        "glass-card flex flex-col items-center justify-center p-8 sm:p-12 text-center",
+        className,
       )}
       {...props}
     >
@@ -34,7 +34,9 @@ function EmptyState({
       )}
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
       {description && (
-        <p className="mt-2 text-sm text-muted-foreground max-w-sm">{description}</p>
+        <p className="mt-2 text-sm text-muted-foreground max-w-sm">
+          {description}
+        </p>
       )}
       {action && <div className="mt-6">{action}</div>}
     </div>

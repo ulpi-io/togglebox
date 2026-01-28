@@ -17,10 +17,20 @@
  * This enables efficient querying of all environments for a platform in a single query.
  */
 
-import { Environment } from '@togglebox/core';
-import { dynamoDBClient, getEnvironmentsTableName } from './database';
-import { TokenPaginationParams, TokenPaginatedResult } from './interfaces/IPagination';
-import { PutCommand, GetCommand, QueryCommand, QueryCommandInput, DeleteCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { Environment } from "@togglebox/core";
+import { dynamoDBClient, getEnvironmentsTableName } from "./database";
+import {
+  TokenPaginationParams,
+  TokenPaginatedResult,
+} from "./interfaces/IPagination";
+import {
+  PutCommand,
+  GetCommand,
+  QueryCommand,
+  QueryCommandInput,
+  DeleteCommand,
+  UpdateCommand,
+} from "@aws-sdk/lib-dynamodb";
 
 /**
  * Type guard for DynamoDB errors with a name property.
@@ -30,7 +40,7 @@ import { PutCommand, GetCommand, QueryCommand, QueryCommandInput, DeleteCommand,
  * @returns True if error is an Error with a name property
  */
 function isDynamoDBError(error: unknown): error is Error & { name: string } {
-  return error instanceof Error && typeof error.name === 'string';
+  return error instanceof Error && typeof error.name === "string";
 }
 
 /**
@@ -70,7 +80,7 @@ function isDynamoDBError(error: unknown): error is Error & { name: string } {
  * ```
  */
 export async function createEnvironment(
-  environment: Omit<Environment, 'createdAt'>
+  environment: Omit<Environment, "createdAt">,
 ): Promise<Environment> {
   const timestamp = new Date().toISOString();
   const environmentWithTimestamp: Environment = {
@@ -85,16 +95,20 @@ export async function createEnvironment(
       SK: `ENV#${environment.environment}`,
       ...environmentWithTimestamp,
     },
-    ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
+    ConditionExpression:
+      "attribute_not_exists(PK) AND attribute_not_exists(SK)",
   };
 
   try {
     await dynamoDBClient.send(new PutCommand(params));
     return environmentWithTimestamp;
   } catch (error: unknown) {
-    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
+    if (
+      isDynamoDBError(error) &&
+      error.name === "ConditionalCheckFailedException"
+    ) {
       throw new Error(
-        `Environment ${environment.environment} already exists for platform ${environment.platform}`
+        `Environment ${environment.environment} already exists for platform ${environment.platform}`,
       );
     }
     throw error;
@@ -138,7 +152,7 @@ export async function createEnvironment(
  */
 export async function getEnvironment(
   platform: string,
-  environment: string
+  environment: string,
 ): Promise<Environment | null> {
   const params = {
     TableName: getEnvironmentsTableName(),
@@ -201,7 +215,7 @@ export async function getEnvironment(
  */
 export async function listEnvironments(
   platform: string,
-  pagination?: TokenPaginationParams
+  pagination?: TokenPaginationParams,
 ): Promise<TokenPaginatedResult<Environment>> {
   // If no pagination requested, fetch ALL items
   if (!pagination) {
@@ -224,10 +238,10 @@ export async function listEnvironments(
   // Explicit pagination: return single page
   const params: QueryCommandInput = {
     TableName: getEnvironmentsTableName(),
-    KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+    KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
     ExpressionAttributeValues: {
-      ':pk': `PLATFORM#${platform}`,
-      ':sk': 'ENV#',
+      ":pk": `PLATFORM#${platform}`,
+      ":sk": "ENV#",
     },
     Limit: pagination.limit,
   };
@@ -235,22 +249,24 @@ export async function listEnvironments(
   // Add ExclusiveStartKey for pagination (if provided)
   if (pagination.nextToken) {
     try {
-      params['ExclusiveStartKey'] = JSON.parse(
-        Buffer.from(pagination.nextToken, 'base64').toString('utf-8')
+      params["ExclusiveStartKey"] = JSON.parse(
+        Buffer.from(pagination.nextToken, "base64").toString("utf-8"),
       );
     } catch (error) {
-      throw new Error('Invalid pagination token');
+      throw new Error("Invalid pagination token");
     }
   }
 
   const result = await dynamoDBClient.send(new QueryCommand(params));
   const items = result.Items
-    ? result.Items.map((item) => mapToEnvironment(item as Record<string, unknown>))
+    ? result.Items.map((item) =>
+        mapToEnvironment(item as Record<string, unknown>),
+      )
     : [];
 
   // Encode LastEvaluatedKey as base64 token for next page
   const nextToken = result.LastEvaluatedKey
-    ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+    ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString("base64")
     : undefined;
 
   return {
@@ -297,14 +313,17 @@ export async function listEnvironments(
  * }
  * ```
  */
-export async function deleteEnvironment(platform: string, environment: string): Promise<boolean> {
+export async function deleteEnvironment(
+  platform: string,
+  environment: string,
+): Promise<boolean> {
   const params = {
     TableName: getEnvironmentsTableName(),
     Key: {
       PK: `PLATFORM#${platform}`,
       SK: `ENV#${environment}`,
     },
-    ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
+    ConditionExpression: "attribute_exists(PK) AND attribute_exists(SK)",
   };
 
   try {
@@ -312,7 +331,10 @@ export async function deleteEnvironment(platform: string, environment: string): 
     return true;
   } catch (error: unknown) {
     // Environment not found (condition failed)
-    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
+    if (
+      isDynamoDBError(error) &&
+      error.name === "ConditionalCheckFailedException"
+    ) {
       return false;
     }
     // Other errors (network, permissions, etc.)
@@ -371,7 +393,7 @@ function mapToEnvironment(item: Record<string, unknown>): Environment {
 export async function updateEnvironment(
   platform: string,
   environment: string,
-  updates: { description?: string }
+  updates: { description?: string },
 ): Promise<Environment | null> {
   // Build update expression dynamically
   const updateExpressions: string[] = [];
@@ -379,9 +401,9 @@ export async function updateEnvironment(
   const expressionAttributeValues: Record<string, unknown> = {};
 
   if (updates.description !== undefined) {
-    updateExpressions.push('#description = :description');
-    expressionAttributeNames['#description'] = 'description';
-    expressionAttributeValues[':description'] = updates.description;
+    updateExpressions.push("#description = :description");
+    expressionAttributeNames["#description"] = "description";
+    expressionAttributeValues[":description"] = updates.description;
   }
 
   // If no fields to update, just return the existing environment
@@ -395,18 +417,23 @@ export async function updateEnvironment(
       PK: `PLATFORM#${platform}`,
       SK: `ENV#${environment}`,
     },
-    UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+    UpdateExpression: `SET ${updateExpressions.join(", ")}`,
     ExpressionAttributeNames: expressionAttributeNames,
     ExpressionAttributeValues: expressionAttributeValues,
-    ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK)',
-    ReturnValues: 'ALL_NEW' as const,
+    ConditionExpression: "attribute_exists(PK) AND attribute_exists(SK)",
+    ReturnValues: "ALL_NEW" as const,
   };
 
   try {
     const result = await dynamoDBClient.send(new UpdateCommand(params));
-    return result.Attributes ? mapToEnvironment(result.Attributes as Record<string, unknown>) : null;
+    return result.Attributes
+      ? mapToEnvironment(result.Attributes as Record<string, unknown>)
+      : null;
   } catch (error: unknown) {
-    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
+    if (
+      isDynamoDBError(error) &&
+      error.name === "ConditionalCheckFailedException"
+    ) {
       return null;
     }
     throw error;

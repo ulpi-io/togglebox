@@ -1,11 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { use } from 'react';
-import Link from 'next/link';
-import { getFlagStatsApi, getFlagStatsByCountryApi, getFlagStatsDailyApi } from '@/lib/api/stats';
-import { getFlagApi } from '@/lib/api/flags';
-import type { FlagStats, FlagCountryStats, FlagDailyStats, Flag } from '@/lib/api/types';
+import { useState, useEffect, useCallback } from "react";
+import { use } from "react";
+import Link from "next/link";
+import {
+  getFlagStatsApi,
+  getFlagStatsByCountryApi,
+  getFlagStatsDailyApi,
+} from "@/lib/api/stats";
+import { getFlagApi } from "@/lib/api/flags";
+import type {
+  FlagStats,
+  FlagCountryStats,
+  FlagDailyStats,
+  Flag,
+} from "@/lib/api/types";
 import {
   Button,
   Card,
@@ -20,8 +29,8 @@ import {
   TableHeader,
   TableRow,
   Badge,
-} from '@togglebox/ui';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+} from "@togglebox/ui";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 
 interface FlagStatsPageProps {
   params: Promise<{
@@ -49,8 +58,12 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
       const [flagData, statsData, countryData, dailyData] = await Promise.all([
         getFlagApi(platform, environment, flagKey).catch(() => null),
         getFlagStatsApi(platform, environment, flagKey),
-        getFlagStatsByCountryApi(platform, environment, flagKey).catch(() => []),
-        getFlagStatsDailyApi(platform, environment, flagKey, 14).catch(() => []),
+        getFlagStatsByCountryApi(platform, environment, flagKey).catch(
+          () => [],
+        ),
+        getFlagStatsDailyApi(platform, environment, flagKey, 14).catch(
+          () => [],
+        ),
       ]);
 
       setFlag(flagData);
@@ -58,7 +71,7 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
       setCountryStats(countryData);
       setDailyStats(dailyData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load stats');
+      setError(err instanceof Error ? err.message : "Failed to load stats");
     } finally {
       setIsLoading(false);
     }
@@ -73,20 +86,20 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
     });
   };
 
   const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    if (!dateString) return "Never";
+    return new Date(dateString).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -101,7 +114,9 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
                 {platform} / {environment} / {flagKey}
               </p>
             </div>
-            <Link href={`/flags?platform=${platform}&environment=${environment}`}>
+            <Link
+              href={`/flags?platform=${platform}&environment=${environment}`}
+            >
               <Button variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Flags
@@ -148,7 +163,9 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
                 {platform} / {environment} / {flagKey}
               </p>
             </div>
-            <Link href={`/flags?platform=${platform}&environment=${environment}`}>
+            <Link
+              href={`/flags?platform=${platform}&environment=${environment}`}
+            >
               <Button variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Flags
@@ -175,8 +192,14 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
   const totalEvaluations = stats?.totalEvaluations ?? 0;
   const valueACount = stats?.valueACount ?? 0;
   const valueBCount = stats?.valueBCount ?? 0;
-  const valueAPercent = totalEvaluations > 0 ? ((valueACount / totalEvaluations) * 100).toFixed(1) : '0';
-  const valueBPercent = totalEvaluations > 0 ? ((valueBCount / totalEvaluations) * 100).toFixed(1) : '0';
+  const valueAPercent =
+    totalEvaluations > 0
+      ? ((valueACount / totalEvaluations) * 100).toFixed(1)
+      : "0";
+  const valueBPercent =
+    totalEvaluations > 0
+      ? ((valueBCount / totalEvaluations) * 100).toFixed(1)
+      : "0";
 
   return (
     <div>
@@ -193,7 +216,9 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
-            <Link href={`/flags?platform=${platform}&environment=${environment}`}>
+            <Link
+              href={`/flags?platform=${platform}&environment=${environment}`}
+            >
               <Button variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Flags
@@ -209,9 +234,11 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="font-bold text-lg">{flag.name || flag.flagKey}</span>
-                <Badge variant={flag.enabled ? 'default' : 'secondary'}>
-                  {flag.enabled ? 'ENABLED' : 'DISABLED'}
+                <span className="font-bold text-lg">
+                  {flag.name || flag.flagKey}
+                </span>
+                <Badge variant={flag.enabled ? "default" : "secondary"}>
+                  {flag.enabled ? "ENABLED" : "DISABLED"}
                 </Badge>
                 <Badge variant="outline">{flag.flagType.toUpperCase()}</Badge>
               </div>
@@ -227,14 +254,20 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="py-6">
-            <div className="text-3xl font-black">{formatNumber(totalEvaluations)}</div>
-            <div className="text-muted-foreground text-sm">Total Evaluations</div>
+            <div className="text-3xl font-black">
+              {formatNumber(totalEvaluations)}
+            </div>
+            <div className="text-muted-foreground text-sm">
+              Total Evaluations
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="py-6">
-            <div className="text-3xl font-black text-blue-600">{formatNumber(valueACount)}</div>
+            <div className="text-3xl font-black text-blue-600">
+              {formatNumber(valueACount)}
+            </div>
             <div className="text-muted-foreground text-sm">
               Value A ({valueAPercent}%)
             </div>
@@ -243,7 +276,9 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
 
         <Card>
           <CardContent className="py-6">
-            <div className="text-3xl font-black text-green-600">{formatNumber(valueBCount)}</div>
+            <div className="text-3xl font-black text-green-600">
+              {formatNumber(valueBCount)}
+            </div>
             <div className="text-muted-foreground text-sm">
               Value B ({valueBPercent}%)
             </div>
@@ -253,9 +288,13 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
         <Card>
           <CardContent className="py-6">
             <div className="text-3xl font-black">
-              {formatNumber((stats?.uniqueUsersA24h ?? 0) + (stats?.uniqueUsersB24h ?? 0))}
+              {formatNumber(
+                (stats?.uniqueUsersA24h ?? 0) + (stats?.uniqueUsersB24h ?? 0),
+              )}
             </div>
-            <div className="text-muted-foreground text-sm">Unique Users (24h)</div>
+            <div className="text-muted-foreground text-sm">
+              Unique Users (24h)
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -284,7 +323,9 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
                 <TableBody>
                   {countryStats.slice(0, 10).map((country) => (
                     <TableRow key={country.country}>
-                      <TableCell className="font-medium">{country.country}</TableCell>
+                      <TableCell className="font-medium">
+                        {country.country}
+                      </TableCell>
                       <TableCell className="text-right">
                         {formatNumber(country.totalEvaluations)}
                       </TableCell>
@@ -325,7 +366,9 @@ export default function FlagStatsPage({ params }: FlagStatsPageProps) {
                 <TableBody>
                   {dailyStats.map((day) => (
                     <TableRow key={day.date}>
-                      <TableCell className="font-medium">{formatDate(day.date)}</TableCell>
+                      <TableCell className="font-medium">
+                        {formatDate(day.date)}
+                      </TableCell>
                       <TableCell className="text-right">
                         {formatNumber(day.totalEvaluations)}
                       </TableCell>

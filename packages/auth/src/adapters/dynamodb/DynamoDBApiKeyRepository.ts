@@ -1,6 +1,9 @@
-import { IApiKeyRepository, CreateApiKeyRepositoryData } from '../../interfaces/IApiKeyRepository';
-import { ApiKey, PublicApiKey } from '../../models/ApiKey';
-import * as apiKeyService from './apiKeyService';
+import {
+  IApiKeyRepository,
+  CreateApiKeyRepositoryData,
+} from "../../interfaces/IApiKeyRepository";
+import { ApiKey, PublicApiKey } from "../../models/ApiKey";
+import * as apiKeyService from "./apiKeyService";
 
 /**
  * DynamoDB implementation of API key repository.

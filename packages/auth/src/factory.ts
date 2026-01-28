@@ -35,22 +35,25 @@
  * ```
  */
 
-import { Router } from 'express';
-import { createDynamoDBAuthRepositories, AuthRepositories } from './adapters/dynamodb';
-import { UserService } from './services/UserService';
-import { PasswordResetService } from './services/PasswordResetService';
-import { ApiKeyService } from './services/ApiKeyService';
-import { EmailService, createEmailService } from './services/EmailService';
-import { AuthController } from './controllers/AuthController';
-import { UserController } from './controllers/UserController';
-import { PasswordResetController } from './controllers/PasswordResetController';
-import { ApiKeyController } from './controllers/ApiKeyController';
-import { createAuthMiddleware, AuthMiddleware } from './middleware/auth';
-import { createAuthRoutes } from './routes/authRoutes';
-import { createUserRoutes } from './routes/userRoutes';
-import { createPasswordResetRoutes } from './routes/passwordResetRoutes';
-import { createApiKeyRoutes } from './routes/apiKeyRoutes';
-import { logger } from '@togglebox/shared';
+import { Router } from "express";
+import {
+  createDynamoDBAuthRepositories,
+  AuthRepositories,
+} from "./adapters/dynamodb";
+import { UserService } from "./services/UserService";
+import { PasswordResetService } from "./services/PasswordResetService";
+import { ApiKeyService } from "./services/ApiKeyService";
+import { EmailService, createEmailService } from "./services/EmailService";
+import { AuthController } from "./controllers/AuthController";
+import { UserController } from "./controllers/UserController";
+import { PasswordResetController } from "./controllers/PasswordResetController";
+import { ApiKeyController } from "./controllers/ApiKeyController";
+import { createAuthMiddleware, AuthMiddleware } from "./middleware/auth";
+import { createAuthRoutes } from "./routes/authRoutes";
+import { createUserRoutes } from "./routes/userRoutes";
+import { createPasswordResetRoutes } from "./routes/passwordResetRoutes";
+import { createApiKeyRoutes } from "./routes/apiKeyRoutes";
+import { logger } from "@togglebox/shared";
 
 /**
  * Supported database types for authentication storage.
@@ -64,7 +67,13 @@ import { logger } from '@togglebox/shared';
  * - `mongodb` - MongoDB via Mongoose (4.0+)
  * - `d1` - Cloudflare D1 (coming soon, SQLite at edge)
  */
-export type DatabaseType = 'dynamodb' | 'mysql' | 'postgresql' | 'mongodb' | 'sqlite' | 'd1';
+export type DatabaseType =
+  | "dynamodb"
+  | "mysql"
+  | "postgresql"
+  | "mongodb"
+  | "sqlite"
+  | "d1";
 
 /**
  * Configuration options for authentication module.
@@ -148,33 +157,36 @@ export interface AuthModuleConfig {
  */
 export function createAuthRepositories(dbType: DatabaseType): AuthRepositories {
   switch (dbType) {
-    case 'dynamodb':
+    case "dynamodb":
       return createDynamoDBAuthRepositories();
 
-    case 'mysql':
-    case 'postgresql':
-    case 'sqlite': {
+    case "mysql":
+    case "postgresql":
+    case "sqlite": {
       // Prisma adapter supports MySQL, PostgreSQL, and SQLite
-      const { createPrismaAuthRepositories } = require('./adapters/prisma');
+      const { createPrismaAuthRepositories } = require("./adapters/prisma");
       return createPrismaAuthRepositories();
     }
 
-    case 'mongodb': {
+    case "mongodb": {
       // MongoDB adapter with Mongoose
-      const { createMongoDBAuthRepositories, connectMongoDB } = require('./adapters/mongodb');
+      const {
+        createMongoDBAuthRepositories,
+        connectMongoDB,
+      } = require("./adapters/mongodb");
       // Auto-connect to MongoDB
       connectMongoDB().catch((err: Error) => {
-        logger.error('Failed to connect to MongoDB', err);
+        logger.error("Failed to connect to MongoDB", err);
       });
       return createMongoDBAuthRepositories();
     }
 
-    case 'd1':
+    case "d1":
       // D1 is Cloudflare's SQLite-based database
       // Can use Prisma adapter with D1 connector
       throw new Error(
         `Database type 'd1' not yet implemented for auth module. ` +
-        `D1 support coming soon - will use Prisma with D1 connector.`
+          `D1 support coming soon - will use Prisma with D1 connector.`,
       );
 
     default:
@@ -246,7 +258,9 @@ export function createAuthRepositories(dbType: DatabaseType): AuthRepositories {
  */
 export function createAuthRouter(config: AuthModuleConfig = {}): Router {
   // Determine database type
-  const dbType = (config.dbType || process.env['DB_TYPE'] || 'dynamodb') as DatabaseType;
+  const dbType = (config.dbType ||
+    process.env["DB_TYPE"] ||
+    "dynamodb") as DatabaseType;
 
   // Create repositories
   const repositories = createAuthRepositories(dbType);
@@ -259,9 +273,12 @@ export function createAuthRouter(config: AuthModuleConfig = {}): Router {
   const passwordResetService = new PasswordResetService(
     repositories.user,
     repositories.passwordReset,
-    emailService
+    emailService,
   );
-  const apiKeyService = new ApiKeyService(repositories.apiKey, repositories.user);
+  const apiKeyService = new ApiKeyService(
+    repositories.apiKey,
+    repositories.user,
+  );
 
   // Create auth middleware
   const authMiddleware = createAuthMiddleware({
@@ -273,23 +290,27 @@ export function createAuthRouter(config: AuthModuleConfig = {}): Router {
   // Create controllers
   const authController = new AuthController(userService);
   const userController = new UserController(userService);
-  const passwordResetController = new PasswordResetController(passwordResetService);
+  const passwordResetController = new PasswordResetController(
+    passwordResetService,
+  );
   const apiKeyController = new ApiKeyController(apiKeyService);
 
   // Create routes
   const authRoutes = createAuthRoutes(authController, authMiddleware);
   const userRoutes = createUserRoutes(userController, authMiddleware);
-  const passwordResetRoutes = createPasswordResetRoutes(passwordResetController);
+  const passwordResetRoutes = createPasswordResetRoutes(
+    passwordResetController,
+  );
   const apiKeyRoutes = createApiKeyRoutes(apiKeyController, authMiddleware);
 
   // Combine all routes
   const router = Router();
 
   // Mount routes
-  router.use('/auth', authRoutes);
-  router.use('/users', userRoutes);
-  router.use('/auth/password-reset', passwordResetRoutes);
-  router.use('/api-keys', apiKeyRoutes);
+  router.use("/auth", authRoutes);
+  router.use("/users", userRoutes);
+  router.use("/auth/password-reset", passwordResetRoutes);
+  router.use("/api-keys", apiKeyRoutes);
 
   return router;
 }
@@ -343,12 +364,19 @@ export function createAuthRouter(config: AuthModuleConfig = {}): Router {
  * );
  * ```
  */
-export function createAuthMiddlewareForApp(config: AuthModuleConfig = {}): AuthMiddleware {
-  const dbType = (config.dbType || process.env['DB_TYPE'] || 'dynamodb') as DatabaseType;
+export function createAuthMiddlewareForApp(
+  config: AuthModuleConfig = {},
+): AuthMiddleware {
+  const dbType = (config.dbType ||
+    process.env["DB_TYPE"] ||
+    "dynamodb") as DatabaseType;
   const repositories = createAuthRepositories(dbType);
 
   const userService = new UserService(repositories.user);
-  const apiKeyService = new ApiKeyService(repositories.apiKey, repositories.user);
+  const apiKeyService = new ApiKeyService(
+    repositories.apiKey,
+    repositories.user,
+  );
 
   return createAuthMiddleware({
     apiKeyService,

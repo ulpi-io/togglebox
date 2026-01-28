@@ -54,8 +54,5 @@
     "deny": [],
     "ask": []
   },
-  "enabledMcpjsonServers": [
-    "context7",
-    "chrome-devtools"
-  ]
+  "enabledMcpjsonServers": ["context7", "chrome-devtools"]
 }

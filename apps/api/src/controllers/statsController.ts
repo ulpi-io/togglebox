@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import { ThreeTierRepositories } from '@togglebox/database';
-import { logger, withDatabaseContext } from '@togglebox/shared';
-import { StatsEventSchema, checkSRM, getSRMSeverity } from '@togglebox/stats';
-import type { SRMResult } from '@togglebox/stats';
-import { z } from 'zod';
+import { Request, Response, NextFunction } from "express";
+import { ThreeTierRepositories } from "@togglebox/database";
+import { logger, withDatabaseContext } from "@togglebox/shared";
+import { StatsEventSchema, checkSRM, getSRMSeverity } from "@togglebox/stats";
+import type { SRMResult } from "@togglebox/stats";
+import { z } from "zod";
 
 /**
  * Schema for batch events request.
@@ -35,9 +35,16 @@ export class StatsController {
    *
    * POST /platforms/:platform/environments/:environment/stats/events
    */
-  processBatch = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  processBatch = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { platform, environment } = req.params as { platform: string; environment: string };
+      const { platform, environment } = req.params as {
+        platform: string;
+        environment: string;
+      };
 
       const { events } = BatchEventsSchema.parse(req.body);
 
@@ -46,8 +53,10 @@ export class StatsController {
         await this.repos.stats.processBatch(platform, environment, events);
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('processBatch', 'stats', duration, true);
-        logger.info(`Processed ${events.length} events for ${platform}/${environment}`);
+        logger.logDatabaseOperation("processBatch", "stats", duration, true);
+        logger.info(
+          `Processed ${events.length} events for ${platform}/${environment}`,
+        );
 
         res.json({
           success: true,
@@ -61,9 +70,11 @@ export class StatsController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
@@ -77,7 +88,11 @@ export class StatsController {
    *
    * GET /platforms/:platform/environments/:environment/configs/:configKey/stats
    */
-  getConfigStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getConfigStats = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, configKey } = req.params as {
         platform: string;
@@ -87,10 +102,14 @@ export class StatsController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const stats = await this.repos.stats.getConfigStats(platform, environment, configKey);
+        const stats = await this.repos.stats.getConfigStats(
+          platform,
+          environment,
+          configKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getConfigStats', 'stats', duration, true);
+        logger.logDatabaseOperation("getConfigStats", "stats", duration, true);
 
         if (!stats) {
           res.json({
@@ -124,7 +143,11 @@ export class StatsController {
    *
    * GET /platforms/:platform/environments/:environment/flags/:flagKey/stats
    */
-  getFlagStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getFlagStats = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -134,10 +157,14 @@ export class StatsController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const stats = await this.repos.stats.getFlagStats(platform, environment, flagKey);
+        const stats = await this.repos.stats.getFlagStats(
+          platform,
+          environment,
+          flagKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getFlagStats', 'stats', duration, true);
+        logger.logDatabaseOperation("getFlagStats", "stats", duration, true);
 
         if (!stats) {
           res.json({
@@ -174,7 +201,11 @@ export class StatsController {
    *
    * GET /platforms/:platform/environments/:environment/flags/:flagKey/stats/by-country
    */
-  getFlagStatsByCountry = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getFlagStatsByCountry = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -184,10 +215,19 @@ export class StatsController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const stats = await this.repos.stats.getFlagStatsByCountry(platform, environment, flagKey);
+        const stats = await this.repos.stats.getFlagStatsByCountry(
+          platform,
+          environment,
+          flagKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getFlagStatsByCountry', 'stats', duration, true);
+        logger.logDatabaseOperation(
+          "getFlagStatsByCountry",
+          "stats",
+          duration,
+          true,
+        );
 
         res.json({
           success: true,
@@ -205,7 +245,11 @@ export class StatsController {
    *
    * GET /platforms/:platform/environments/:environment/flags/:flagKey/stats/daily
    */
-  getFlagStatsDaily = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getFlagStatsDaily = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -213,15 +257,25 @@ export class StatsController {
         flagKey: string;
       };
       // Validate days: minimum 1, maximum 365, default 30
-      const rawDays = parseInt(req.query['days'] as string) || 30;
+      const rawDays = parseInt(req.query["days"] as string) || 30;
       const days = Math.min(Math.max(rawDays, 1), 365);
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const stats = await this.repos.stats.getFlagStatsDaily(platform, environment, flagKey, days);
+        const stats = await this.repos.stats.getFlagStatsDaily(
+          platform,
+          environment,
+          flagKey,
+          days,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getFlagStatsDaily', 'stats', duration, true);
+        logger.logDatabaseOperation(
+          "getFlagStatsDaily",
+          "stats",
+          duration,
+          true,
+        );
 
         res.json({
           success: true,
@@ -241,7 +295,11 @@ export class StatsController {
    *
    * GET /platforms/:platform/environments/:environment/experiments/:experimentKey/stats
    */
-  getExperimentStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getExperimentStats = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, experimentKey } = req.params as {
         platform: string;
@@ -251,14 +309,25 @@ export class StatsController {
 
       // Get expected ratios from query params (comma-separated, e.g., "0.5,0.5")
       // Default to equal distribution if not provided
-      const expectedRatiosParam = req.query['expectedRatios'] as string | undefined;
+      const expectedRatiosParam = req.query["expectedRatios"] as
+        | string
+        | undefined;
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const stats = await this.repos.stats.getExperimentStats(platform, environment, experimentKey);
+        const stats = await this.repos.stats.getExperimentStats(
+          platform,
+          environment,
+          experimentKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getExperimentStats', 'stats', duration, true);
+        logger.logDatabaseOperation(
+          "getExperimentStats",
+          "stats",
+          duration,
+          true,
+        );
 
         if (!stats) {
           res.json({
@@ -279,7 +348,11 @@ export class StatsController {
         }
 
         // Fetch experiment to get metric IDs and traffic allocation
-        const experiment = await this.repos.experiment.get(platform, environment, experimentKey);
+        const experiment = await this.repos.experiment.get(
+          platform,
+          environment,
+          experimentKey,
+        );
 
         // Populate metricResults from experiment metrics
         let metricResults = stats.metricResults;
@@ -298,9 +371,9 @@ export class StatsController {
                   environment,
                   experimentKey,
                   v.variationKey,
-                  metricId
-                )
-              )
+                  metricId,
+                ),
+              ),
             );
 
             const allMetricStats = await Promise.all(metricStatsPromises);
@@ -317,10 +390,14 @@ export class StatsController {
 
           if (expectedRatiosParam) {
             // Use explicit ratios from query param
-            expectedRatios = expectedRatiosParam.split(',').map((r) => parseFloat(r.trim()));
+            expectedRatios = expectedRatiosParam
+              .split(",")
+              .map((r) => parseFloat(r.trim()));
           } else if (experiment?.trafficAllocation?.length) {
             // Use configured traffic allocation (convert from percentage to ratio)
-            expectedRatios = experiment.trafficAllocation.map((t) => t.percentage / 100);
+            expectedRatios = experiment.trafficAllocation.map(
+              (t) => t.percentage / 100,
+            );
           } else {
             // Default to equal distribution
             const equalRatio = 1 / stats.variations.length;
@@ -344,7 +421,7 @@ export class StatsController {
               };
             } catch (err) {
               // Log but don't fail the request if SRM calculation fails
-              logger.warn('Failed to calculate SRM', {
+              logger.warn("Failed to calculate SRM", {
                 error: err instanceof Error ? err.message : String(err),
                 experimentKey,
               });
@@ -372,7 +449,11 @@ export class StatsController {
    *
    * POST /platforms/:platform/environments/:environment/experiments/:experimentKey/conversions
    */
-  recordConversion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  recordConversion = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, experimentKey } = req.params as {
         platform: string;
@@ -381,35 +462,42 @@ export class StatsController {
       };
 
       const ConversionSchema = z.object({
-        metricId: z.string().min(1, 'metricId is required'),
-        variationKey: z.string().min(1, 'variationKey is required'),
-        userId: z.string().min(1, 'userId is required'),
+        metricId: z.string().min(1, "metricId is required"),
+        variationKey: z.string().min(1, "variationKey is required"),
+        userId: z.string().min(1, "userId is required"),
         value: z.number().optional(),
       });
 
-      const { metricId, variationKey, userId, value } = ConversionSchema.parse(req.body);
+      const { metricId, variationKey, userId, value } = ConversionSchema.parse(
+        req.body,
+      );
 
       await withDatabaseContext(req, async () => {
         // Validate that metricId and variationKey belong to the experiment
-        const experiment = await this.repos.experiment.get(platform, environment, experimentKey);
+        const experiment = await this.repos.experiment.get(
+          platform,
+          environment,
+          experimentKey,
+        );
 
         if (!experiment) {
           res.status(404).json({
             success: false,
             error: `Experiment not found: ${experimentKey}`,
-            code: 'EXPERIMENT_NOT_FOUND',
+            code: "EXPERIMENT_NOT_FOUND",
             timestamp: new Date().toISOString(),
           });
           return;
         }
 
         // Validate variationKey belongs to experiment
-        const validVariationKeys = experiment.variations?.map((v) => v.key) ?? [];
+        const validVariationKeys =
+          experiment.variations?.map((v) => v.key) ?? [];
         if (!validVariationKeys.includes(variationKey)) {
           res.status(422).json({
             success: false,
-            error: `Invalid variationKey: ${variationKey}. Valid keys: ${validVariationKeys.join(', ')}`,
-            code: 'INVALID_VARIATION_KEY',
+            error: `Invalid variationKey: ${variationKey}. Valid keys: ${validVariationKeys.join(", ")}`,
+            code: "INVALID_VARIATION_KEY",
             timestamp: new Date().toISOString(),
           });
           return;
@@ -424,8 +512,8 @@ export class StatsController {
         if (!validMetricIds.includes(metricId)) {
           res.status(422).json({
             success: false,
-            error: `Invalid metricId: ${metricId}. Valid IDs: ${validMetricIds.join(', ')}`,
-            code: 'INVALID_METRIC_ID',
+            error: `Invalid metricId: ${metricId}. Valid IDs: ${validMetricIds.join(", ")}`,
+            code: "INVALID_METRIC_ID",
             timestamp: new Date().toISOString(),
           });
           return;
@@ -439,12 +527,19 @@ export class StatsController {
           metricId,
           variationKey,
           userId,
-          value
+          value,
         );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('recordConversion', 'stats', duration, true);
-        logger.info(`Recorded conversion for ${experimentKey}/${variationKey}/${metricId}`);
+        logger.logDatabaseOperation(
+          "recordConversion",
+          "stats",
+          duration,
+          true,
+        );
+        logger.info(
+          `Recorded conversion for ${experimentKey}/${variationKey}/${metricId}`,
+        );
 
         res.json({
           success: true,
@@ -458,9 +553,11 @@ export class StatsController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;

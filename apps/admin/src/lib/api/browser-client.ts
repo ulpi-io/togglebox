@@ -13,10 +13,10 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     public message: string,
-    public details?: string[]
+    public details?: string[],
   ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
   }
 }
 
@@ -26,7 +26,7 @@ export class ApiError extends Error {
  * @returns JWT token or null if not found
  */
 function getAuthToken(): string | null {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return null;
   }
 
@@ -62,53 +62,53 @@ function getAuthToken(): string | null {
  */
 export async function browserApiClient<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
   // Fail fast in production if API URL is not configured
   if (!baseUrl) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new ApiError(500, 'NEXT_PUBLIC_API_URL is required in production');
+    if (process.env.NODE_ENV === "production") {
+      throw new ApiError(500, "NEXT_PUBLIC_API_URL is required in production");
     }
     // Fall back to localhost only in development
   }
 
-  const apiUrl = baseUrl || 'http://localhost:3000';
+  const apiUrl = baseUrl || "http://localhost:3000";
   const token = getAuthToken();
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
 
   // Add existing headers from options
   if (options.headers) {
     Object.entries(options.headers).forEach(([key, value]) => {
-      if (typeof value === 'string') {
+      if (typeof value === "string") {
         headers[key] = value;
       }
     });
   }
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await fetch(`${apiUrl}${endpoint}`, {
     ...options,
     headers,
     // Bypass browser cache to ensure fresh data
-    cache: 'no-store',
+    cache: "no-store",
   });
 
   if (!response.ok) {
     // Check Content-Type to determine how to parse the error
-    const contentType = response.headers.get('content-type') || '';
+    const contentType = response.headers.get("content-type") || "";
     let errorMessage = `HTTP ${response.status}`;
     let errorDetails: string[] = [];
 
     try {
-      if (contentType.includes('application/json')) {
+      if (contentType.includes("application/json")) {
         // JSON response - parse structured error
         const error = await response.json();
         errorMessage = error.error || error.message || errorMessage;
@@ -121,7 +121,7 @@ export async function browserApiClient<T>(
           errorMessage = `${errorMessage}: ${text.slice(0, 200)}`;
         } else if (text && text.length >= 500) {
           // Long responses (HTML pages, etc.) - just indicate the type
-          errorMessage = `${errorMessage} (${contentType || 'unknown'} response)`;
+          errorMessage = `${errorMessage} (${contentType || "unknown"} response)`;
         }
       }
     } catch (parseError) {

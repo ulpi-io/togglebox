@@ -21,9 +21,9 @@
  * ```
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { UserService } from '../services/UserService';
-import { AuthRequest } from '../middleware/auth';
+import { Request, Response, NextFunction } from "express";
+import { UserService } from "../services/UserService";
+import { AuthRequest } from "../middleware/auth";
 
 /**
  * Authentication controller class.
@@ -76,7 +76,11 @@ export class AuthController {
    * - Password is hashed before storage (never stored in plaintext)
    * - PublicUser response excludes passwordHash
    */
-  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  register = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { name, email, password, role } = req.body;
 
@@ -94,7 +98,7 @@ export class AuthController {
       });
     } catch (error: unknown) {
       const err = error as { message?: string };
-      if (err.message?.includes('already exists')) {
+      if (err.message?.includes("already exists")) {
         res.status(409).json({
           success: false,
           error: err.message,
@@ -152,7 +156,11 @@ export class AuthController {
    * Authorization: Bearer <token>
    * ```
    */
-  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  login = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { email, password } = req.body;
 
@@ -168,10 +176,10 @@ export class AuthController {
       });
     } catch (error: unknown) {
       const err = error as { message?: string };
-      if (err.message?.includes('Invalid email or password')) {
+      if (err.message?.includes("Invalid email or password")) {
         res.status(401).json({
           success: false,
-          error: 'Invalid email or password',
+          error: "Invalid email or password",
           timestamp: new Date().toISOString(),
         });
       } else {
@@ -224,12 +232,16 @@ export class AuthController {
    * - Generates new token with current user state
    * - Old token remains valid until expiration
    */
-  refresh = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  refresh = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          error: 'Authentication required',
+          error: "Authentication required",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -240,19 +252,19 @@ export class AuthController {
       if (!user) {
         res.status(404).json({
           success: false,
-          error: 'User not found',
+          error: "User not found",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
       // Generate new token (using the user's current data)
-      const { generateToken } = await import('../utils/jwt');
+      const { generateToken } = await import("../utils/jwt");
       const token = generateToken({
         id: user.id,
         email: user.email,
         role: user.role,
-        passwordHash: '', // Not used in token
+        passwordHash: "", // Not used in token
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       });

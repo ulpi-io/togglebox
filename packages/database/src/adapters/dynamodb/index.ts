@@ -28,22 +28,22 @@
  * ```
  */
 
-import { DatabaseRepositories, ThreeTierRepositories } from '../../factory';
-import { DynamoDBPlatformRepository } from './DynamoDBPlatformRepository';
-import { DynamoDBEnvironmentRepository } from './DynamoDBEnvironmentRepository';
-import { DynamoDBConfigRepository } from './DynamoDBConfigRepository';
-import { DynamoDBUsageRepository } from './DynamoDBUsageRepository';
-import { DynamoDBNewFlagRepository } from './DynamoDBNewFlagRepository';
-import { DynamoDBExperimentRepository } from './DynamoDBExperimentRepository';
-import { DynamoDBStatsRepository } from './DynamoDBStatsRepository';
+import { DatabaseRepositories, ThreeTierRepositories } from "../../factory";
+import { DynamoDBPlatformRepository } from "./DynamoDBPlatformRepository";
+import { DynamoDBEnvironmentRepository } from "./DynamoDBEnvironmentRepository";
+import { DynamoDBConfigRepository } from "./DynamoDBConfigRepository";
+import { DynamoDBUsageRepository } from "./DynamoDBUsageRepository";
+import { DynamoDBNewFlagRepository } from "./DynamoDBNewFlagRepository";
+import { DynamoDBExperimentRepository } from "./DynamoDBExperimentRepository";
+import { DynamoDBStatsRepository } from "./DynamoDBStatsRepository";
 
-export * from './DynamoDBPlatformRepository';
-export * from './DynamoDBEnvironmentRepository';
-export * from './DynamoDBConfigRepository';
-export * from './DynamoDBUsageRepository';
-export * from './DynamoDBNewFlagRepository';
-export * from './DynamoDBExperimentRepository';
-export * from './DynamoDBStatsRepository';
+export * from "./DynamoDBPlatformRepository";
+export * from "./DynamoDBEnvironmentRepository";
+export * from "./DynamoDBConfigRepository";
+export * from "./DynamoDBUsageRepository";
+export * from "./DynamoDBNewFlagRepository";
+export * from "./DynamoDBExperimentRepository";
+export * from "./DynamoDBStatsRepository";
 
 /**
  * Creates DynamoDB repository instances.

@@ -26,13 +26,13 @@
  * ```
  */
 
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import {
   getUsersTableName,
   getApiKeysTableName,
   getPasswordResetsTableName,
-} from '@togglebox/database';
+} from "@togglebox/database";
 
 // Re-export table name functions for auth services
 export { getUsersTableName, getApiKeysTableName, getPasswordResetsTableName };
@@ -60,8 +60,10 @@ export { getUsersTableName, getApiKeysTableName, getPasswordResetsTableName };
  * 3. IAM role (when running in AWS Lambda/EC2)
  */
 const client = new DynamoDBClient({
-  region: process.env['AWS_REGION'] || 'us-east-1',
-  ...(process.env['DYNAMODB_ENDPOINT'] && { endpoint: process.env['DYNAMODB_ENDPOINT'] }),
+  region: process.env["AWS_REGION"] || "us-east-1",
+  ...(process.env["DYNAMODB_ENDPOINT"] && {
+    endpoint: process.env["DYNAMODB_ENDPOINT"],
+  }),
 });
 
 export const dynamoDBClient = DynamoDBDocumentClient.from(client);

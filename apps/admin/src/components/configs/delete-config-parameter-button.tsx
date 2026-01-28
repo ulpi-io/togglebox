@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { deleteConfigParameterApi } from '@/lib/api/configs';
-import { Button } from '@togglebox/ui';
-import { Trash2 } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { deleteConfigParameterApi } from "@/lib/api/configs";
+import { Button } from "@togglebox/ui";
+import { Trash2 } from "lucide-react";
 
 interface DeleteConfigParameterButtonProps {
   platform: string;
@@ -36,7 +36,11 @@ export function DeleteConfigParameterButton({
         router.refresh();
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete config parameter');
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete config parameter",
+      );
       setIsDeleting(false);
       setShowConfirm(false);
     }
@@ -52,7 +56,7 @@ export function DeleteConfigParameterButton({
           disabled={isDeleting}
           className="text-xs"
         >
-          {isDeleting ? '...' : 'Delete'}
+          {isDeleting ? "..." : "Delete"}
         </Button>
         <Button
           variant="outline"

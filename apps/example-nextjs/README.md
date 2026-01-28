@@ -8,11 +8,11 @@ A comprehensive "kitchen sink" demo showing how to integrate the ToggleBox SDK i
 
 This example app demonstrates all three tiers of ToggleBox:
 
-| Tier | Feature | Use Case |
-|------|---------|----------|
-| **Tier 1** | Remote Configs | Dynamic settings, themes, API URLs |
-| **Tier 2** | Feature Flags | Ship code when ready, release when you want |
-| **Tier 3** | Experiments | A/B tests with variant assignment |
+| Tier       | Feature        | Use Case                                    |
+| ---------- | -------------- | ------------------------------------------- |
+| **Tier 1** | Remote Configs | Dynamic settings, themes, API URLs          |
+| **Tier 2** | Feature Flags  | Ship code when ready, release when you want |
+| **Tier 3** | Experiments    | A/B tests with variant assignment           |
 
 ---
 
@@ -55,14 +55,14 @@ The app runs at `http://localhost:3002`.
 
 The seed script creates demo data for this app:
 
-| Type | Key | Description |
-|------|-----|-------------|
-| **Platform** | `web` | Platform identifier |
-| **Environment** | `staging` | Environment for this app |
-| **Flag** | `dark-mode` | Toggle dark mode UI |
-| **Flag** | `beta-features` | Enable beta features |
-| **Experiment** | `checkout-test` | A/B test with `control` and `variant_a` |
-| **Config** | `theme`, `apiTimeout` | Remote configuration values |
+| Type            | Key                   | Description                             |
+| --------------- | --------------------- | --------------------------------------- |
+| **Platform**    | `web`                 | Platform identifier                     |
+| **Environment** | `staging`             | Environment for this app                |
+| **Flag**        | `dark-mode`           | Toggle dark mode UI                     |
+| **Flag**        | `beta-features`       | Enable beta features                    |
+| **Experiment**  | `checkout-test`       | A/B test with `control` and `variant_a` |
+| **Config**      | `theme`, `apiTimeout` | Remote configuration values             |
 
 **Demo Admin:** `admin@togglebox.com` / `Parola123!`
 
@@ -115,7 +115,7 @@ src/app/
 Wrap your app with `ToggleBoxProvider`:
 
 ```tsx
-import { ToggleBoxProvider } from '@togglebox/sdk-nextjs'
+import { ToggleBoxProvider } from "@togglebox/sdk-nextjs";
 
 export default function RootLayout({ children }) {
   return (
@@ -123,12 +123,12 @@ export default function RootLayout({ children }) {
       platform="web"
       environment="production"
       apiUrl={process.env.NEXT_PUBLIC_TOGGLEBOX_API_URL!}
-      apiKey={process.env.NEXT_PUBLIC_TOGGLEBOX_API_KEY}  // Required if API has auth enabled
-      pollingInterval={30000}  // Auto-refresh every 30s
+      apiKey={process.env.NEXT_PUBLIC_TOGGLEBOX_API_KEY} // Required if API has auth enabled
+      pollingInterval={30000} // Auto-refresh every 30s
     >
       {children}
     </ToggleBoxProvider>
-  )
+  );
 }
 ```
 
@@ -139,21 +139,21 @@ export default function RootLayout({ children }) {
 Fetch and display remote configuration:
 
 ```tsx
-'use client'
+"use client";
 
-import { useConfig } from '@togglebox/sdk-nextjs'
+import { useConfig } from "@togglebox/sdk-nextjs";
 
 export default function ConfigExample() {
-  const { config, isLoading } = useConfig()
+  const { config, isLoading } = useConfig();
 
-  if (isLoading) return <div>Loading config...</div>
+  if (isLoading) return <div>Loading config...</div>;
 
   return (
     <div>
       <h2>Remote Config</h2>
       <pre>{JSON.stringify(config, null, 2)}</pre>
     </div>
-  )
+  );
 }
 ```
 
@@ -164,31 +164,31 @@ export default function ConfigExample() {
 Check if a feature flag is enabled:
 
 ```tsx
-'use client'
+"use client";
 
-import { useFlags } from '@togglebox/sdk-nextjs'
-import { useState, useEffect } from 'react'
+import { useFlags } from "@togglebox/sdk-nextjs";
+import { useState, useEffect } from "react";
 
 export default function FlagExample() {
-  const { isFlagEnabled, isLoading } = useFlags()
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false)
+  const { isFlagEnabled, isLoading } = useFlags();
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
   useEffect(() => {
     async function checkFlag() {
-      const enabled = await isFlagEnabled('dark-mode', {
-        userId: 'user-123',
-        country: 'US',
-      })
-      setDarkModeEnabled(enabled)
+      const enabled = await isFlagEnabled("dark-mode", {
+        userId: "user-123",
+        country: "US",
+      });
+      setDarkModeEnabled(enabled);
     }
-    if (!isLoading) checkFlag()
-  }, [isLoading, isFlagEnabled])
+    if (!isLoading) checkFlag();
+  }, [isLoading, isFlagEnabled]);
 
   return (
-    <div className={darkModeEnabled ? 'bg-gray-900 text-white' : 'bg-white'}>
-      {darkModeEnabled ? '🌙 Dark Mode' : '☀️ Light Mode'}
+    <div className={darkModeEnabled ? "bg-gray-900 text-white" : "bg-white"}>
+      {darkModeEnabled ? "🌙 Dark Mode" : "☀️ Light Mode"}
     </div>
-  )
+  );
 }
 ```
 
@@ -199,32 +199,32 @@ export default function FlagExample() {
 Get assigned variant for an experiment:
 
 ```tsx
-'use client'
+"use client";
 
-import { useExperiments } from '@togglebox/sdk-nextjs'
-import { useState, useEffect } from 'react'
+import { useExperiments } from "@togglebox/sdk-nextjs";
+import { useState, useEffect } from "react";
 
 export default function ExperimentExample() {
-  const { getVariant, isLoading } = useExperiments()
-  const [variant, setVariant] = useState<string | null>(null)
+  const { getVariant, isLoading } = useExperiments();
+  const [variant, setVariant] = useState<string | null>(null);
 
   useEffect(() => {
     async function assignVariant() {
-      const result = await getVariant('checkout-test', { userId: 'user-123' })
-      setVariant(result)
+      const result = await getVariant("checkout-test", { userId: "user-123" });
+      setVariant(result);
     }
-    if (!isLoading) assignVariant()
-  }, [isLoading, getVariant])
+    if (!isLoading) assignVariant();
+  }, [isLoading, getVariant]);
 
   return (
     <div>
-      {variant === 'one-click' ? (
+      {variant === "one-click" ? (
         <button>One-Click Checkout</button>
       ) : (
         <button>Standard Checkout</button>
       )}
     </div>
-  )
+  );
 }
 ```
 
@@ -235,22 +235,26 @@ export default function ExperimentExample() {
 Track analytics events:
 
 ```tsx
-'use client'
+"use client";
 
-import { useAnalytics } from '@togglebox/sdk-nextjs'
+import { useAnalytics } from "@togglebox/sdk-nextjs";
 
 export default function TrackingExample() {
-  const { trackEvent } = useAnalytics()
+  const { trackEvent } = useAnalytics();
 
   const handlePurchase = () => {
-    trackEvent('purchase_completed', {
-      userId: 'user-123',
-    }, {
-      properties: { value: 99.99, currency: 'USD' },
-    })
-  }
+    trackEvent(
+      "purchase_completed",
+      {
+        userId: "user-123",
+      },
+      {
+        properties: { value: 99.99, currency: "USD" },
+      },
+    );
+  };
 
-  return <button onClick={handlePurchase}>Complete Purchase</button>
+  return <button onClick={handlePurchase}>Complete Purchase</button>;
 }
 ```
 
@@ -261,21 +265,21 @@ export default function TrackingExample() {
 Fetch config on the server for SSR:
 
 ```tsx
-import { getServerSideConfig } from '@togglebox/sdk-nextjs/server'
+import { getServerSideConfig } from "@togglebox/sdk-nextjs/server";
 
 export default async function SSRPage() {
   const config = await getServerSideConfig({
-    platform: 'web',
-    environment: 'production',
+    platform: "web",
+    environment: "production",
     apiUrl: process.env.TOGGLEBOX_API_URL!,
-  })
+  });
 
   return (
     <div>
       <h2>Server-Rendered Config</h2>
       <pre>{JSON.stringify(config, null, 2)}</pre>
     </div>
-  )
+  );
 }
 ```
 
@@ -288,6 +292,7 @@ export default async function SSRPage() {
 **File:** `src/app/examples/full/feature-toggle/page.tsx`
 
 Full implementation showing:
+
 - Flag evaluation with user context
 - Loading states
 - Conditional UI rendering
@@ -297,6 +302,7 @@ Full implementation showing:
 **File:** `src/app/examples/full/ab-test-cta/page.tsx`
 
 Complete A/B test implementation:
+
 - Variant assignment
 - Different CTA buttons per variant
 - Conversion tracking
@@ -306,6 +312,7 @@ Complete A/B test implementation:
 **File:** `src/app/examples/full/config-theme/page.tsx`
 
 Theme switching with remote config:
+
 - Dynamic theme loading
 - CSS variable application
 - Config-driven styling
@@ -315,27 +322,39 @@ Theme switching with remote config:
 **File:** `src/app/examples/full/ssr-hydration/page.tsx`
 
 Server-side rendering with client hydration:
+
 - Fetch config/flags on server
 - Pass to client via `initialConfig` prop
 - No loading flash on client
 
 ```tsx
 // Server Component
-import { getServerSideConfig, getServerSideFlags } from '@togglebox/sdk-nextjs/server'
-import { ClientComponent } from './client'
+import {
+  getServerSideConfig,
+  getServerSideFlags,
+} from "@togglebox/sdk-nextjs/server";
+import { ClientComponent } from "./client";
 
 export default async function SSRPage() {
   const [config, flags] = await Promise.all([
-    getServerSideConfig({ platform: 'web', environment: 'production', apiUrl: '...' }),
-    getServerSideFlags({ platform: 'web', environment: 'production', apiUrl: '...' }),
-  ])
+    getServerSideConfig({
+      platform: "web",
+      environment: "production",
+      apiUrl: "...",
+    }),
+    getServerSideFlags({
+      platform: "web",
+      environment: "production",
+      apiUrl: "...",
+    }),
+  ]);
 
-  return <ClientComponent initialConfig={config} initialFlags={flags} />
+  return <ClientComponent initialConfig={config} initialFlags={flags} />;
 }
 
 // Client Component
-'use client'
-import { ToggleBoxProvider } from '@togglebox/sdk-nextjs'
+("use client");
+import { ToggleBoxProvider } from "@togglebox/sdk-nextjs";
 
 export function ClientComponent({ initialConfig, initialFlags }) {
   return (
@@ -348,7 +367,7 @@ export function ClientComponent({ initialConfig, initialFlags }) {
     >
       <App />
     </ToggleBoxProvider>
-  )
+  );
 }
 ```
 
@@ -357,6 +376,7 @@ export function ClientComponent({ initialConfig, initialFlags }) {
 **File:** `src/app/examples/full/polling-updates/page.tsx`
 
 Auto-refresh configuration:
+
 - Polling interval configuration
 - Manual refresh trigger
 - Real-time updates display
@@ -366,6 +386,7 @@ Auto-refresh configuration:
 **File:** `src/app/examples/full/error-handling/page.tsx`
 
 Graceful error handling with:
+
 - Error state detection
 - Retry button
 - Cached data fallback
@@ -376,6 +397,7 @@ Graceful error handling with:
 **File:** `src/app/examples/full/health-check/page.tsx`
 
 API connectivity monitoring:
+
 - Connection status display
 - Latency measurement
 - Check history tracking
@@ -414,52 +436,52 @@ The `ToggleBoxProvider` accepts these props:
 
 ```tsx
 const {
-  config,           // Config | null
-  getConfigValue,   // <T>(key: string, defaultValue: T) => Promise<T>
-  isLoading,        // boolean
-  error,            // Error | null
-  refresh,          // () => Promise<void>
-} = useConfig()
+  config, // Config | null
+  getConfigValue, // <T>(key: string, defaultValue: T) => Promise<T>
+  isLoading, // boolean
+  error, // Error | null
+  refresh, // () => Promise<void>
+} = useConfig();
 ```
 
 ### useFlags()
 
 ```tsx
 const {
-  flags,            // Flag[]
-  isFlagEnabled,    // (flagKey: string, context?: FlagContext) => Promise<boolean>
-  isLoading,        // boolean
-  error,            // Error | null
-  refresh,          // () => Promise<void>
-} = useFlags()
+  flags, // Flag[]
+  isFlagEnabled, // (flagKey: string, context?: FlagContext) => Promise<boolean>
+  isLoading, // boolean
+  error, // Error | null
+  refresh, // () => Promise<void>
+} = useFlags();
 ```
 
 ### useExperiments()
 
 ```tsx
 const {
-  experiments,      // Experiment[]
-  getVariant,       // (experimentKey: string, context: ExperimentContext) => Promise<string | null>
-  isLoading,        // boolean
-  error,            // Error | null
-  refresh,          // () => Promise<void>
-} = useExperiments()
+  experiments, // Experiment[]
+  getVariant, // (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+  isLoading, // boolean
+  error, // Error | null
+  refresh, // () => Promise<void>
+} = useExperiments();
 ```
 
 ### useAnalytics()
 
 ```tsx
 const {
-  trackEvent,       // (eventName: string, context: ExperimentContext, data?: EventData) => void
-  trackConversion,  // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
-  flushStats,       // () => Promise<void>
-} = useAnalytics()
+  trackEvent, // (eventName: string, context: ExperimentContext, data?: EventData) => void
+  trackConversion, // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
+  flushStats, // () => Promise<void>
+} = useAnalytics();
 ```
 
 ### useToggleBoxClient()
 
 ```tsx
-const client = useToggleBoxClient()  // ToggleBoxClient | null
+const client = useToggleBoxClient(); // ToggleBoxClient | null
 ```
 
 ---
@@ -467,6 +489,7 @@ const client = useToggleBoxClient()  // ToggleBoxClient | null
 ## SDK Documentation
 
 For complete SDK documentation, see:
+
 - [SDK-NextJS README](../../packages/sdk-nextjs/README.md)
 - [SDK-JS README](../../packages/sdk-js/README.md)
 

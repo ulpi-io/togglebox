@@ -29,16 +29,19 @@ yarn add @togglebox/cache
 Install the peer dependencies for the provider you plan to use:
 
 **CloudFront:**
+
 ```bash
 pnpm add aws-sdk
 ```
 
 **Cloudflare:**
+
 ```bash
 # No additional dependencies required (uses native fetch)
 ```
 
 **Express Middleware:**
+
 ```bash
 pnpm add express
 pnpm add -D @types/express
@@ -46,45 +49,45 @@ pnpm add -D @types/express
 
 ## Provider Comparison
 
-| Feature | CloudFront | Cloudflare | NoOp |
-|---------|-----------|------------|------|
-| Global invalidation | ✅ | ✅ | ❌ (logs only) |
-| Path-based invalidation | ✅ | ✅ | ❌ (logs only) |
-| Batch invalidation | ✅ | ✅ | ❌ (logs only) |
-| Cost | Pay per invalidation | Included in plan | Free |
-| Speed | ~5-30 seconds | ~1-5 seconds | Instant (no-op) |
-| Use case | AWS infrastructure | Cloudflare Workers | Development/testing |
+| Feature                 | CloudFront           | Cloudflare         | NoOp                |
+| ----------------------- | -------------------- | ------------------ | ------------------- |
+| Global invalidation     | ✅                   | ✅                 | ❌ (logs only)      |
+| Path-based invalidation | ✅                   | ✅                 | ❌ (logs only)      |
+| Batch invalidation      | ✅                   | ✅                 | ❌ (logs only)      |
+| Cost                    | Pay per invalidation | Included in plan   | Free                |
+| Speed                   | ~5-30 seconds        | ~1-5 seconds       | Instant (no-op)     |
+| Use case                | AWS infrastructure   | Cloudflare Workers | Development/testing |
 
 ## Quick Start
 
 ### 1. Create Cache Provider
 
 ```typescript
-import { createCacheProvider } from '@togglebox/cache';
+import { createCacheProvider } from "@togglebox/cache";
 
 // CloudFront provider
 const cache = createCacheProvider({
   enabled: true,
-  provider: 'cloudfront',
+  provider: "cloudfront",
   cloudfront: {
     distributionId: process.env.CLOUDFRONT_DISTRIBUTION_ID,
-    region: process.env.AWS_REGION || 'us-east-1'
-  }
+    region: process.env.AWS_REGION || "us-east-1",
+  },
 });
 
 // Cloudflare provider
 const cache = createCacheProvider({
   enabled: true,
-  provider: 'cloudflare',
+  provider: "cloudflare",
   cloudflare: {
     zoneId: process.env.CLOUDFLARE_ZONE_ID,
-    apiToken: process.env.CLOUDFLARE_API_TOKEN
-  }
+    apiToken: process.env.CLOUDFLARE_API_TOKEN,
+  },
 });
 
 // Disabled (development)
 const cache = createCacheProvider({
-  enabled: false
+  enabled: false,
 });
 ```
 
@@ -93,21 +96,21 @@ const cache = createCacheProvider({
 ```typescript
 // Invalidate specific paths
 const invalidationId = await cache.invalidateCache([
-  '/api/v1/platforms/web/environments/production/*',
-  '/api/v1/platforms/mobile/*'
+  "/api/v1/platforms/web/environments/production/*",
+  "/api/v1/platforms/mobile/*",
 ]);
 
 // Invalidate entire platform
-await cache.invalidatePlatformCache('web');
+await cache.invalidatePlatformCache("web");
 
 // Invalidate specific environment
-await cache.invalidateEnvironmentCache('web', 'production');
+await cache.invalidateEnvironmentCache("web", "production");
 
 // Invalidate specific version
-await cache.invalidateVersionCache('web', 'production', '1.2.3');
+await cache.invalidateVersionCache("web", "production", "1.2.3");
 
 // Invalidate feature flag
-await cache.invalidateFeatureFlagCache('web', 'production', 'dark-mode');
+await cache.invalidateFeatureFlagCache("web", "production", "dark-mode");
 
 // Invalidate everything
 await cache.invalidateGlobalCache();
@@ -116,27 +119,32 @@ await cache.invalidateGlobalCache();
 ### 3. Use Middleware (Express)
 
 ```typescript
-import express from 'express';
-import { cacheHeaders, noCacheHeaders } from '@togglebox/cache';
+import express from "express";
+import { cacheHeaders, noCacheHeaders } from "@togglebox/cache";
 
 const app = express();
 
 // Apply cache headers to public endpoints (1 hour browser, 24 hours CDN)
-app.use('/api/v1/platforms', cacheHeaders());
+app.use("/api/v1/platforms", cacheHeaders());
 
 // Custom cache TTL
-app.use('/api/v1/platforms', cacheHeaders({
-  ttl: 1800,      // 30 minutes browser cache
-  maxAge: 43200   // 12 hours CDN cache
-}));
+app.use(
+  "/api/v1/platforms",
+  cacheHeaders({
+    ttl: 1800, // 30 minutes browser cache
+    maxAge: 43200, // 12 hours CDN cache
+  }),
+);
 
 // Only cache specific paths
-app.use(cacheHeaders({
-  pathPattern: /^\/api\/v1\/platforms/
-}));
+app.use(
+  cacheHeaders({
+    pathPattern: /^\/api\/v1\/platforms/,
+  }),
+);
 
 // Disable caching on internal endpoints
-app.use('/api/v1/internal', noCacheHeaders());
+app.use("/api/v1/internal", noCacheHeaders());
 ```
 
 ## Configuration
@@ -144,19 +152,20 @@ app.use('/api/v1/internal', noCacheHeaders());
 ### CloudFront Provider
 
 ```typescript
-import { createCacheProvider } from '@togglebox/cache';
+import { createCacheProvider } from "@togglebox/cache";
 
 const cache = createCacheProvider({
   enabled: true,
-  provider: 'cloudfront',
+  provider: "cloudfront",
   cloudfront: {
-    distributionId: 'E1234ABCDEFGHI',  // Required
-    region: 'us-east-1'                // Optional, defaults to 'us-east-1'
-  }
+    distributionId: "E1234ABCDEFGHI", // Required
+    region: "us-east-1", // Optional, defaults to 'us-east-1'
+  },
 });
 ```
 
 **Environment Variables:**
+
 ```bash
 CACHE_ENABLED=true
 CACHE_PROVIDER=cloudfront
@@ -165,6 +174,7 @@ AWS_REGION=us-east-1
 ```
 
 **AWS Credentials:**
+
 - Uses AWS SDK default credential chain
 - Set via environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 - Or use IAM roles (recommended for Lambda/ECS)
@@ -172,19 +182,20 @@ AWS_REGION=us-east-1
 ### Cloudflare Provider
 
 ```typescript
-import { createCacheProvider } from '@togglebox/cache';
+import { createCacheProvider } from "@togglebox/cache";
 
 const cache = createCacheProvider({
   enabled: true,
-  provider: 'cloudflare',
+  provider: "cloudflare",
   cloudflare: {
-    zoneId: '1234567890abcdef1234567890abcdef',  // Required
-    apiToken: 'your-cloudflare-api-token'        // Required
-  }
+    zoneId: "1234567890abcdef1234567890abcdef", // Required
+    apiToken: "your-cloudflare-api-token", // Required
+  },
 });
 ```
 
 **Environment Variables:**
+
 ```bash
 CACHE_ENABLED=true
 CACHE_PROVIDER=cloudflare
@@ -193,6 +204,7 @@ CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
 ```
 
 **Cloudflare API Token:**
+
 - Create API token with "Cache Purge" permission
 - Zone-specific or account-level token
 - [Create token in Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens)
@@ -200,21 +212,22 @@ CLOUDFLARE_API_TOKEN=your-cloudflare-api-token
 ### NoOp Provider (Disabled)
 
 ```typescript
-import { createCacheProvider } from '@togglebox/cache';
+import { createCacheProvider } from "@togglebox/cache";
 
 // Explicitly disabled
 const cache = createCacheProvider({
-  enabled: false
+  enabled: false,
 });
 
 // Or specify 'none' provider
 const cache = createCacheProvider({
   enabled: true,
-  provider: 'none'
+  provider: "none",
 });
 ```
 
 **Environment Variables:**
+
 ```bash
 CACHE_ENABLED=false
 ```
@@ -226,35 +239,45 @@ CACHE_ENABLED=false
 Sets `Cache-Control` headers on GET requests.
 
 **Options:**
+
 - `ttl` (number): Browser cache TTL in seconds (default: 3600 = 1 hour)
 - `maxAge` (number): CDN/shared cache TTL in seconds (default: 86400 = 24 hours)
 - `cacheControl` (string): Cache control directive (default: 'public')
 - `pathPattern` (RegExp): Optional pattern to match paths
 
 **Example:**
+
 ```typescript
 // Basic usage
-app.use('/api/v1/platforms', cacheHeaders());
+app.use("/api/v1/platforms", cacheHeaders());
 // Sets: Cache-Control: public, max-age=3600, s-maxage=86400
 
 // Custom TTL
-app.use('/api/v1/platforms', cacheHeaders({
-  ttl: 1800,      // 30 minutes
-  maxAge: 43200   // 12 hours
-}));
+app.use(
+  "/api/v1/platforms",
+  cacheHeaders({
+    ttl: 1800, // 30 minutes
+    maxAge: 43200, // 12 hours
+  }),
+);
 // Sets: Cache-Control: public, max-age=1800, s-maxage=43200
 
 // Private cache (not cacheable by CDN)
-app.use('/api/v1/user', cacheHeaders({
-  cacheControl: 'private',
-  ttl: 300
-}));
+app.use(
+  "/api/v1/user",
+  cacheHeaders({
+    cacheControl: "private",
+    ttl: 300,
+  }),
+);
 // Sets: Cache-Control: private, max-age=300, s-maxage=86400
 
 // Pattern-based
-app.use(cacheHeaders({
-  pathPattern: /^\/api\/v1\/platforms/
-}));
+app.use(
+  cacheHeaders({
+    pathPattern: /^\/api\/v1\/platforms/,
+  }),
+);
 ```
 
 ### `noCacheHeaders()`
@@ -262,8 +285,9 @@ app.use(cacheHeaders({
 Disables caching completely (forces revalidation).
 
 **Example:**
+
 ```typescript
-app.use('/api/v1/internal', noCacheHeaders());
+app.use("/api/v1/internal", noCacheHeaders());
 // Sets:
 // - Cache-Control: no-cache, no-store, must-revalidate
 // - Pragma: no-cache
@@ -278,8 +302,8 @@ Invalidates specific cache paths.
 
 ```typescript
 const invalidationId = await cache.invalidateCache([
-  '/api/v1/platforms/web/*',
-  '/api/v1/platforms/mobile/environments/production/*'
+  "/api/v1/platforms/web/*",
+  "/api/v1/platforms/mobile/environments/production/*",
 ]);
 ```
 
@@ -300,7 +324,7 @@ await cache.invalidateGlobalCache();
 Invalidates all cache for a specific platform.
 
 ```typescript
-await cache.invalidatePlatformCache('web');
+await cache.invalidatePlatformCache("web");
 ```
 
 **Invalidates:** `/api/v1/platforms/web/*`
@@ -310,7 +334,7 @@ await cache.invalidatePlatformCache('web');
 Invalidates cache for a specific platform environment.
 
 ```typescript
-await cache.invalidateEnvironmentCache('web', 'production');
+await cache.invalidateEnvironmentCache("web", "production");
 ```
 
 **Invalidates:** `/api/v1/platforms/web/environments/production/*`
@@ -320,7 +344,7 @@ await cache.invalidateEnvironmentCache('web', 'production');
 Invalidates cache for a specific configuration version.
 
 ```typescript
-await cache.invalidateVersionCache('web', 'production', '1.2.3');
+await cache.invalidateVersionCache("web", "production", "1.2.3");
 ```
 
 **Invalidates:** `/api/v1/platforms/web/environments/production/versions/1.2.3*`
@@ -330,7 +354,7 @@ await cache.invalidateVersionCache('web', 'production', '1.2.3');
 Invalidates cache for a specific feature flag.
 
 ```typescript
-await cache.invalidateFeatureFlagCache('web', 'production', 'dark-mode');
+await cache.invalidateFeatureFlagCache("web", "production", "dark-mode");
 ```
 
 **Invalidates:** `/api/v1/platforms/web/environments/production/flags*`
@@ -345,15 +369,15 @@ cache.generateCachePaths();
 // Returns: ['/*']
 
 // Platform paths
-cache.generateCachePaths('web');
+cache.generateCachePaths("web");
 // Returns: ['/api/v1/platforms/web/*']
 
 // Environment paths
-cache.generateCachePaths('web', 'production');
+cache.generateCachePaths("web", "production");
 // Returns: ['/api/v1/platforms/web/environments/production/*']
 
 // Version paths
-cache.generateCachePaths('web', 'production', '1.2.3');
+cache.generateCachePaths("web", "production", "1.2.3");
 // Returns: ['/api/v1/platforms/web/environments/production/versions/1.2.3*']
 ```
 
@@ -363,7 +387,7 @@ Checks if caching is enabled.
 
 ```typescript
 if (cache.isEnabled()) {
-  console.log('Cache invalidation will be performed');
+  console.log("Cache invalidation will be performed");
 }
 ```
 
@@ -372,37 +396,40 @@ if (cache.isEnabled()) {
 If you're migrating from the old `CloudFrontService` in `@togglebox/shared`:
 
 ### Before
+
 ```typescript
-import { CloudFrontService } from '@togglebox/shared';
+import { CloudFrontService } from "@togglebox/shared";
 
 const cloudfront = new CloudFrontService(
-  process.env.CLOUDFRONT_DISTRIBUTION_ID
+  process.env.CLOUDFRONT_DISTRIBUTION_ID,
 );
 
 await cloudfront.invalidateCache({
-  platform: 'web',
-  environment: 'production',
-  version: '1.2.3'
+  platform: "web",
+  environment: "production",
+  version: "1.2.3",
 });
 ```
 
 ### After
+
 ```typescript
-import { createCacheProvider } from '@togglebox/cache';
+import { createCacheProvider } from "@togglebox/cache";
 
 const cache = createCacheProvider({
-  enabled: process.env.CACHE_ENABLED === 'true',
-  provider: 'cloudfront',
+  enabled: process.env.CACHE_ENABLED === "true",
+  provider: "cloudfront",
   cloudfront: {
     distributionId: process.env.CLOUDFRONT_DISTRIBUTION_ID,
-    region: process.env.AWS_REGION
-  }
+    region: process.env.AWS_REGION,
+  },
 });
 
-await cache.invalidateVersionCache('web', 'production', '1.2.3');
+await cache.invalidateVersionCache("web", "production", "1.2.3");
 ```
 
 **Key Changes:**
+
 - Factory function instead of direct class instantiation
 - Provider selection via configuration
 - Granular invalidation methods instead of single method with object parameter
@@ -415,8 +442,8 @@ await cache.invalidateVersionCache('web', 'production', '1.2.3');
 import type {
   CacheProvider,
   CacheConfig,
-  CacheHeadersOptions
-} from '@togglebox/cache';
+  CacheHeadersOptions,
+} from "@togglebox/cache";
 
 // Custom provider implementation
 class MyCacheProvider implements CacheProvider {
@@ -429,17 +456,17 @@ class MyCacheProvider implements CacheProvider {
 // Type-safe configuration
 const config: CacheConfig = {
   enabled: true,
-  provider: 'cloudfront',
+  provider: "cloudfront",
   cloudfront: {
-    distributionId: 'E1234ABCDEFGHI'
-  }
+    distributionId: "E1234ABCDEFGHI",
+  },
 };
 
 // Middleware options
 const options: CacheHeadersOptions = {
   ttl: 3600,
   maxAge: 86400,
-  pathPattern: /^\/api/
+  pathPattern: /^\/api/,
 };
 ```
 
@@ -451,16 +478,17 @@ Use environment variables to configure cache providers:
 
 ```typescript
 const cache = createCacheProvider({
-  enabled: process.env.CACHE_ENABLED === 'true',
-  provider: (process.env.CACHE_PROVIDER as 'cloudfront' | 'cloudflare') || 'cloudfront',
+  enabled: process.env.CACHE_ENABLED === "true",
+  provider:
+    (process.env.CACHE_PROVIDER as "cloudfront" | "cloudflare") || "cloudfront",
   cloudfront: {
     distributionId: process.env.CLOUDFRONT_DISTRIBUTION_ID,
-    region: process.env.AWS_REGION
+    region: process.env.AWS_REGION,
   },
   cloudflare: {
     zoneId: process.env.CLOUDFLARE_ZONE_ID,
-    apiToken: process.env.CLOUDFLARE_API_TOKEN
-  }
+    apiToken: process.env.CLOUDFLARE_API_TOKEN,
+  },
 });
 ```
 
@@ -468,11 +496,11 @@ const cache = createCacheProvider({
 
 ```typescript
 const cache = createCacheProvider({
-  enabled: process.env.NODE_ENV === 'production',
-  provider: 'cloudfront',
+  enabled: process.env.NODE_ENV === "production",
+  provider: "cloudfront",
   cloudfront: {
-    distributionId: process.env.CLOUDFRONT_DISTRIBUTION_ID
-  }
+    distributionId: process.env.CLOUDFRONT_DISTRIBUTION_ID,
+  },
 });
 ```
 
@@ -492,13 +520,16 @@ await cache.invalidateFeatureFlagCache(platform, env, flagName);
 
 ```typescript
 // Cache public read endpoints
-app.use('/api/v1/platforms', cacheHeaders({
-  ttl: 3600,      // 1 hour browser cache
-  maxAge: 86400   // 24 hours CDN cache
-}));
+app.use(
+  "/api/v1/platforms",
+  cacheHeaders({
+    ttl: 3600, // 1 hour browser cache
+    maxAge: 86400, // 24 hours CDN cache
+  }),
+);
 
 // Never cache internal/write endpoints
-app.use('/api/v1/internal', noCacheHeaders());
+app.use("/api/v1/internal", noCacheHeaders());
 ```
 
 ### 5. Handle Invalidation Errors Gracefully
@@ -507,10 +538,10 @@ app.use('/api/v1/internal', noCacheHeaders());
 try {
   const invalidationId = await cache.invalidateCache(paths);
   if (invalidationId) {
-    logger.info({ invalidationId, paths }, 'Cache invalidated');
+    logger.info({ invalidationId, paths }, "Cache invalidated");
   }
 } catch (error) {
-  logger.error({ error, paths }, 'Cache invalidation failed');
+  logger.error({ error, paths }, "Cache invalidation failed");
   // Don't fail the request - cache will eventually expire
 }
 ```
@@ -522,6 +553,7 @@ try {
 **Problem:** AWS credentials don't have CloudFront permissions
 
 **Solution:** Add `cloudfront:CreateInvalidation` permission to IAM role/user:
+
 ```json
 {
   "Effect": "Allow",
@@ -535,6 +567,7 @@ try {
 **Problem:** Invalid or expired API token
 
 **Solution:**
+
 - Create new API token with "Cache Purge" permission
 - Ensure token is zone-scoped or account-scoped
 - Verify `CLOUDFLARE_API_TOKEN` is set correctly
@@ -544,6 +577,7 @@ try {
 **Problem:** Cache headers not being set or invalidation not working
 
 **Solution:**
+
 1. Verify provider is enabled: `cache.isEnabled()`
 2. Check environment variables are set correctly
 3. Verify CDN configuration (distribution/zone exists)
@@ -555,6 +589,7 @@ try {
 **Problem:** Provider configuration missing (distributionId, zoneId, etc.)
 
 **Solution:**
+
 - Check environment variables are set
 - Verify configuration in `createCacheProvider()` call
 - Falls back to NoOp provider when config is invalid

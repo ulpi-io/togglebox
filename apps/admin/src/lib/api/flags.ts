@@ -1,5 +1,5 @@
-import { browserApiClient } from './browser-client';
-import type { Flag, FlagTargeting, Platform, Environment } from './types';
+import { browserApiClient } from "./browser-client";
+import type { Flag, FlagTargeting, Platform, Environment } from "./types";
 
 /**
  * Get all flags across all platforms and environments.
@@ -7,7 +7,7 @@ import type { Flag, FlagTargeting, Platform, Environment } from './types';
  */
 export async function getAllFlagsApi(): Promise<Flag[]> {
   // First, get all platforms
-  const platforms = await browserApiClient<Platform[]>('/api/v1/platforms');
+  const platforms = await browserApiClient<Platform[]>("/api/v1/platforms");
 
   // For each platform, get environments and then flags
   const allFlags: Flag[] = [];
@@ -16,33 +16,39 @@ export async function getAllFlagsApi(): Promise<Flag[]> {
     platforms.map(async (platform) => {
       try {
         const environments = await browserApiClient<Environment[]>(
-          `/api/v1/platforms/${platform.name}/environments`
+          `/api/v1/platforms/${platform.name}/environments`,
         );
 
         await Promise.all(
           environments.map(async (env) => {
             try {
               const flags = await browserApiClient<Flag[]>(
-                `/api/v1/platforms/${platform.name}/environments/${env.environment}/flags`
+                `/api/v1/platforms/${platform.name}/environments/${env.environment}/flags`,
               );
               allFlags.push(...flags);
             } catch (error) {
               // Only skip 404 errors (no flags for environment)
               // Log other errors for debugging
-              if (error instanceof Error && !error.message.includes('404')) {
-                console.warn(`Failed to fetch flags for ${platform.name}/${env.environment}:`, error.message);
+              if (error instanceof Error && !error.message.includes("404")) {
+                console.warn(
+                  `Failed to fetch flags for ${platform.name}/${env.environment}:`,
+                  error.message,
+                );
               }
             }
-          })
+          }),
         );
       } catch (error) {
         // Only skip 404 errors (no environments for platform)
         // Log other errors for debugging
-        if (error instanceof Error && !error.message.includes('404')) {
-          console.warn(`Failed to fetch environments for ${platform.name}:`, error.message);
+        if (error instanceof Error && !error.message.includes("404")) {
+          console.warn(
+            `Failed to fetch environments for ${platform.name}:`,
+            error.message,
+          );
         }
       }
-    })
+    }),
   );
 
   return allFlags;
@@ -54,10 +60,10 @@ export async function getAllFlagsApi(): Promise<Flag[]> {
  */
 export async function getFlagsApi(
   platform: string,
-  environment: string
+  environment: string,
 ): Promise<Flag[]> {
   return browserApiClient<Flag[]>(
-    `/api/v1/platforms/${platform}/environments/${environment}/flags`
+    `/api/v1/platforms/${platform}/environments/${environment}/flags`,
   );
 }
 
@@ -67,10 +73,10 @@ export async function getFlagsApi(
 export async function getFlagApi(
   platform: string,
   environment: string,
-  flagKey: string
+  flagKey: string,
 ): Promise<Flag> {
   return browserApiClient<Flag>(
-    `/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}`
+    `/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}`,
   );
 }
 
@@ -80,10 +86,10 @@ export async function getFlagApi(
 export async function getFlagVersionsApi(
   platform: string,
   environment: string,
-  flagKey: string
+  flagKey: string,
 ): Promise<Flag[]> {
   return browserApiClient<Flag[]>(
-    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/versions`
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/versions`,
   );
 }
 
@@ -101,36 +107,43 @@ export async function createFlagApi(
     name: string;
     description?: string;
     enabled?: boolean;
-    flagType?: 'boolean' | 'string' | 'number';
+    flagType?: "boolean" | "string" | "number";
     valueA?: boolean | string | number;
     valueB?: boolean | string | number;
     targeting?: {
-      countries?: { country: string; serveValue?: 'A' | 'B'; languages?: { language: string; serveValue?: 'A' | 'B' }[] }[];
+      countries?: {
+        country: string;
+        serveValue?: "A" | "B";
+        languages?: { language: string; serveValue?: "A" | "B" }[];
+      }[];
       forceIncludeUsers?: string[];
       forceExcludeUsers?: string[];
     };
-  }
+  },
 ): Promise<Flag> {
   // Convert targeting to FlagTargeting format, preserving serveValue
   let targeting: FlagTargeting | undefined;
 
   if (data.targeting) {
     targeting = {
-      countries: data.targeting.countries?.map(c => ({
-        country: c.country,
-        serveValue: c.serveValue || 'A',
-        languages: c.languages?.map(l => ({
-          language: l.language,
-          serveValue: l.serveValue || 'A',
-        })),
-      })) || [],
+      countries:
+        data.targeting.countries?.map((c) => ({
+          country: c.country,
+          serveValue: c.serveValue || "A",
+          languages: c.languages?.map((l) => ({
+            language: l.language,
+            serveValue: l.serveValue || "A",
+          })),
+        })) || [],
       forceIncludeUsers: data.targeting.forceIncludeUsers || [],
       forceExcludeUsers: data.targeting.forceExcludeUsers || [],
     };
     // Clean up empty targeting
-    if (targeting.countries?.length === 0 &&
-        targeting.forceIncludeUsers?.length === 0 &&
-        targeting.forceExcludeUsers?.length === 0) {
+    if (
+      targeting.countries?.length === 0 &&
+      targeting.forceIncludeUsers?.length === 0 &&
+      targeting.forceExcludeUsers?.length === 0
+    ) {
       targeting = undefined;
     }
   }
@@ -152,9 +165,9 @@ export async function createFlagApi(
   return browserApiClient<Flag>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/flags`,
     {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(payload),
-    }
+    },
   );
 }
 
@@ -174,32 +187,39 @@ export async function updateFlagApi(
     valueA?: boolean | string | number;
     valueB?: boolean | string | number;
     targeting?: {
-      countries?: { country: string; serveValue?: 'A' | 'B'; languages?: { language: string; serveValue?: 'A' | 'B' }[] }[];
+      countries?: {
+        country: string;
+        serveValue?: "A" | "B";
+        languages?: { language: string; serveValue?: "A" | "B" }[];
+      }[];
       forceIncludeUsers?: string[];
       forceExcludeUsers?: string[];
     };
-  }
+  },
 ): Promise<Flag> {
   // Convert targeting to FlagTargeting format, preserving serveValue
   let targeting: FlagTargeting | undefined;
 
   if (data.targeting) {
     targeting = {
-      countries: data.targeting.countries?.map(c => ({
-        country: c.country,
-        serveValue: c.serveValue || 'A',
-        languages: c.languages?.map(l => ({
-          language: l.language,
-          serveValue: l.serveValue || 'A',
-        })),
-      })) || [],
+      countries:
+        data.targeting.countries?.map((c) => ({
+          country: c.country,
+          serveValue: c.serveValue || "A",
+          languages: c.languages?.map((l) => ({
+            language: l.language,
+            serveValue: l.serveValue || "A",
+          })),
+        })) || [],
       forceIncludeUsers: data.targeting.forceIncludeUsers || [],
       forceExcludeUsers: data.targeting.forceExcludeUsers || [],
     };
     // Clean up empty targeting
-    if (targeting.countries?.length === 0 &&
-        targeting.forceIncludeUsers?.length === 0 &&
-        targeting.forceExcludeUsers?.length === 0) {
+    if (
+      targeting.countries?.length === 0 &&
+      targeting.forceIncludeUsers?.length === 0 &&
+      targeting.forceExcludeUsers?.length === 0
+    ) {
       targeting = undefined;
     }
   }
@@ -219,9 +239,9 @@ export async function updateFlagApi(
   return browserApiClient<Flag>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}`,
     {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(payload),
-    }
+    },
   );
 }
 
@@ -232,14 +252,14 @@ export async function toggleFlagApi(
   platform: string,
   environment: string,
   flagKey: string,
-  enabled: boolean
+  enabled: boolean,
 ): Promise<Flag> {
   return browserApiClient<Flag>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/toggle`,
     {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify({ enabled }),
-    }
+    },
   );
 }
 
@@ -249,13 +269,13 @@ export async function toggleFlagApi(
 export async function deleteFlagApi(
   platform: string,
   environment: string,
-  flagKey: string
+  flagKey: string,
 ): Promise<void> {
   await browserApiClient(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}`,
     {
-      method: 'DELETE',
-    }
+      method: "DELETE",
+    },
   );
 }
 
@@ -283,13 +303,13 @@ export async function updateFlagRolloutApi(
   platform: string,
   environment: string,
   flagKey: string,
-  settings: RolloutSettings
+  settings: RolloutSettings,
 ): Promise<Flag> {
   return browserApiClient<Flag>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/rollout`,
     {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(settings),
-    }
+    },
   );
 }

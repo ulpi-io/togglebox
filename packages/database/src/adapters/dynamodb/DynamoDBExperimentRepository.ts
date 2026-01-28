@@ -6,15 +6,23 @@
  * Experiments support multiple variants with traffic allocation and metrics.
  */
 
-import { PutCommand, QueryCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  PutCommand,
+  QueryCommand,
+  UpdateCommand,
+  DeleteCommand,
+} from "@aws-sdk/lib-dynamodb";
 import type {
   Experiment,
   CreateExperiment,
   UpdateExperiment,
   ExperimentStatus,
-} from '@togglebox/experiments';
-import type { IExperimentRepository, ExperimentPage } from '@togglebox/experiments';
-import { dynamoDBClient, getExperimentsTableName } from '../../database';
+} from "@togglebox/experiments";
+import type {
+  IExperimentRepository,
+  ExperimentPage,
+} from "@togglebox/experiments";
+import { dynamoDBClient, getExperimentsTableName } from "../../database";
 
 // Type for DynamoDB item
 type DynamoItem = Record<string, unknown>;
@@ -23,12 +31,14 @@ type DynamoItem = Record<string, unknown>;
  * Safely decode pagination cursor.
  * @throws Error with user-friendly message if cursor is invalid
  */
-function decodeCursor(cursor: string | undefined): Record<string, unknown> | undefined {
+function decodeCursor(
+  cursor: string | undefined,
+): Record<string, unknown> | undefined {
   if (!cursor) return undefined;
   try {
-    return JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8'));
+    return JSON.parse(Buffer.from(cursor, "base64").toString("utf-8"));
   } catch {
-    throw new Error('Invalid pagination token');
+    throw new Error("Invalid pagination token");
   }
 }
 
@@ -48,14 +58,18 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     return `EXP#${experimentKey}#V#${version}`;
   }
 
-  private getStatusPK(platform: string, environment: string, status: ExperimentStatus): string {
+  private getStatusPK(
+    platform: string,
+    environment: string,
+    status: ExperimentStatus,
+  ): string {
     return `PLATFORM#${platform}#ENV#${environment}#STATUS#${status}`;
   }
 
   async create(data: CreateExperiment): Promise<Experiment> {
     const now = new Date().toISOString();
-    const version = '1.0.0';
-    const status: ExperimentStatus = 'draft';
+    const version = "1.0.0";
+    const status: ExperimentStatus = "draft";
 
     const experiment: Experiment = {
       platform: data.platform,
@@ -90,17 +104,23 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     const pk = this.getPK(experiment.platform, experiment.environment);
     const sk = this.getSK(experiment.experimentKey, version);
 
-    await dynamoDBClient.send(new PutCommand({
-      TableName: this.getTableName(),
-      Item: {
-        PK: pk,
-        SK: sk,
-        GSI1PK: this.getStatusPK(experiment.platform, experiment.environment, status),
-        GSI1SK: `EXP#${experiment.experimentKey}`,
-        ...experiment,
-      },
-      ConditionExpression: 'attribute_not_exists(PK)',
-    }));
+    await dynamoDBClient.send(
+      new PutCommand({
+        TableName: this.getTableName(),
+        Item: {
+          PK: pk,
+          SK: sk,
+          GSI1PK: this.getStatusPK(
+            experiment.platform,
+            experiment.environment,
+            status,
+          ),
+          GSI1SK: `EXP#${experiment.experimentKey}`,
+          ...experiment,
+        },
+        ConditionExpression: "attribute_not_exists(PK)",
+      }),
+    );
 
     return experiment;
   }
@@ -109,14 +129,14 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    data: UpdateExperiment
+    data: UpdateExperiment,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'draft') {
+    if (current.status !== "draft") {
       throw new Error(`Cannot update experiment in ${current.status} status`);
     }
 
@@ -136,23 +156,26 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
       primaryMetric: data.primaryMetric ?? current.primaryMetric,
       secondaryMetrics: data.secondaryMetrics ?? current.secondaryMetrics,
       confidenceLevel: data.confidenceLevel ?? current.confidenceLevel,
-      minimumDetectableEffect: data.minimumDetectableEffect ?? current.minimumDetectableEffect,
+      minimumDetectableEffect:
+        data.minimumDetectableEffect ?? current.minimumDetectableEffect,
       minimumSampleSize: data.minimumSampleSize ?? current.minimumSampleSize,
       scheduledStartAt: data.scheduledStartAt ?? current.scheduledStartAt,
       scheduledEndAt: data.scheduledEndAt ?? current.scheduledEndAt,
       updatedAt: now,
     };
 
-    await dynamoDBClient.send(new PutCommand({
-      TableName: this.getTableName(),
-      Item: {
-        PK: pk,
-        SK: sk,
-        GSI1PK: this.getStatusPK(platform, environment, current.status),
-        GSI1SK: `EXP#${experimentKey}`,
-        ...updatedExperiment,
-      },
-    }));
+    await dynamoDBClient.send(
+      new PutCommand({
+        TableName: this.getTableName(),
+        Item: {
+          PK: pk,
+          SK: sk,
+          GSI1PK: this.getStatusPK(platform, environment, current.status),
+          GSI1SK: `EXP#${experimentKey}`,
+          ...updatedExperiment,
+        },
+      }),
+    );
 
     return updatedExperiment;
   }
@@ -161,56 +184,75 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    startedBy: string
+    startedBy: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'draft') {
+    if (current.status !== "draft") {
       throw new Error(`Cannot start experiment in ${current.status} status`);
     }
 
     const now = new Date().toISOString();
-    return this.updateStatus(platform, environment, experimentKey, current.version, 'running', {
-      startedAt: now,
-      startedBy,
-    });
+    return this.updateStatus(
+      platform,
+      environment,
+      experimentKey,
+      current.version,
+      "running",
+      {
+        startedAt: now,
+        startedBy,
+      },
+    );
   }
 
   async pause(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'running') {
+    if (current.status !== "running") {
       throw new Error(`Cannot pause experiment in ${current.status} status`);
     }
 
-    return this.updateStatus(platform, environment, experimentKey, current.version, 'paused');
+    return this.updateStatus(
+      platform,
+      environment,
+      experimentKey,
+      current.version,
+      "paused",
+    );
   }
 
   async resume(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'paused') {
+    if (current.status !== "paused") {
       throw new Error(`Cannot resume experiment in ${current.status} status`);
     }
 
-    return this.updateStatus(platform, environment, experimentKey, current.version, 'running');
+    return this.updateStatus(
+      platform,
+      environment,
+      experimentKey,
+      current.version,
+      "running",
+    );
   }
 
   async complete(
@@ -218,61 +260,76 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     environment: string,
     experimentKey: string,
     winner: string | undefined,
-    completedBy: string
+    completedBy: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'running' && current.status !== 'paused') {
+    if (current.status !== "running" && current.status !== "paused") {
       throw new Error(`Cannot complete experiment in ${current.status} status`);
     }
 
     const now = new Date().toISOString();
-    return this.updateStatus(platform, environment, experimentKey, current.version, 'completed', {
-      winner,
-      completedAt: now,
-      completedBy,
-    });
+    return this.updateStatus(
+      platform,
+      environment,
+      experimentKey,
+      current.version,
+      "completed",
+      {
+        winner,
+        completedAt: now,
+        completedBy,
+      },
+    );
   }
 
   async archive(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'completed') {
+    if (current.status !== "completed") {
       throw new Error(`Cannot archive experiment in ${current.status} status`);
     }
 
-    return this.updateStatus(platform, environment, experimentKey, current.version, 'archived');
+    return this.updateStatus(
+      platform,
+      environment,
+      experimentKey,
+      current.version,
+      "archived",
+    );
   }
 
   async get(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment | null> {
     const pk = this.getPK(platform, environment);
 
-    const result = await dynamoDBClient.send(new QueryCommand({
-      TableName: this.getTableName(),
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-      FilterExpression: 'isActive = :active',
-      ExpressionAttributeValues: {
-        ':pk': pk,
-        ':prefix': `EXP#${experimentKey}#V#`,
-        ':active': true,
-      },
-      ScanIndexForward: false,
-      Limit: 1,
-    }));
+    const result = await dynamoDBClient.send(
+      new QueryCommand({
+        TableName: this.getTableName(),
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+        FilterExpression: "isActive = :active",
+        ExpressionAttributeValues: {
+          ":pk": pk,
+          ":prefix": `EXP#${experimentKey}#V#`,
+          ":active": true,
+        },
+        ScanIndexForward: false,
+        Limit: 1,
+      }),
+    );
 
     if (!result.Items || result.Items.length === 0) {
       return null;
@@ -286,40 +343,46 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     environment: string,
     status?: ExperimentStatus,
     limit?: number,
-    cursor?: string
+    cursor?: string,
   ): Promise<ExperimentPage> {
     let result;
 
     if (status) {
-      result = await dynamoDBClient.send(new QueryCommand({
-        TableName: this.getTableName(),
-        IndexName: 'GSI1',
-        KeyConditionExpression: 'GSI1PK = :pk',
-        ExpressionAttributeValues: {
-          ':pk': this.getStatusPK(platform, environment, status),
-        },
-        Limit: limit || 100,
-        ExclusiveStartKey: decodeCursor(cursor),
-      }));
+      result = await dynamoDBClient.send(
+        new QueryCommand({
+          TableName: this.getTableName(),
+          IndexName: "GSI1",
+          KeyConditionExpression: "GSI1PK = :pk",
+          ExpressionAttributeValues: {
+            ":pk": this.getStatusPK(platform, environment, status),
+          },
+          Limit: limit || 100,
+          ExclusiveStartKey: decodeCursor(cursor),
+        }),
+      );
     } else {
       const pk = this.getPK(platform, environment);
-      result = await dynamoDBClient.send(new QueryCommand({
-        TableName: this.getTableName(),
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        FilterExpression: 'isActive = :active',
-        ExpressionAttributeValues: {
-          ':pk': pk,
-          ':prefix': 'EXP#',
-          ':active': true,
-        },
-        Limit: limit || 100,
-        ExclusiveStartKey: decodeCursor(cursor),
-      }));
+      result = await dynamoDBClient.send(
+        new QueryCommand({
+          TableName: this.getTableName(),
+          KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+          FilterExpression: "isActive = :active",
+          ExpressionAttributeValues: {
+            ":pk": pk,
+            ":prefix": "EXP#",
+            ":active": true,
+          },
+          Limit: limit || 100,
+          ExclusiveStartKey: decodeCursor(cursor),
+        }),
+      );
     }
 
-    const items = (result.Items || []).map(item => this.itemToExperiment(item as DynamoItem));
+    const items = (result.Items || []).map((item) =>
+      this.itemToExperiment(item as DynamoItem),
+    );
     const nextCursor = result.LastEvaluatedKey
-      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString("base64")
       : undefined;
 
     return {
@@ -331,61 +394,69 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
 
   async listRunning(
     platform: string,
-    environment: string
+    environment: string,
   ): Promise<Experiment[]> {
-    const result = await dynamoDBClient.send(new QueryCommand({
-      TableName: this.getTableName(),
-      IndexName: 'GSI1',
-      KeyConditionExpression: 'GSI1PK = :pk',
-      ExpressionAttributeValues: {
-        ':pk': this.getStatusPK(platform, environment, 'running'),
-      },
-    }));
+    const result = await dynamoDBClient.send(
+      new QueryCommand({
+        TableName: this.getTableName(),
+        IndexName: "GSI1",
+        KeyConditionExpression: "GSI1PK = :pk",
+        ExpressionAttributeValues: {
+          ":pk": this.getStatusPK(platform, environment, "running"),
+        },
+      }),
+    );
 
-    return (result.Items || []).map(item => this.itemToExperiment(item as DynamoItem));
+    return (result.Items || []).map((item) =>
+      this.itemToExperiment(item as DynamoItem),
+    );
   }
 
   async delete(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<void> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status === 'running') {
-      throw new Error('Cannot delete running experiment');
+    if (current.status === "running") {
+      throw new Error("Cannot delete running experiment");
     }
 
     const pk = this.getPK(platform, environment);
 
-    const result = await dynamoDBClient.send(new QueryCommand({
-      TableName: this.getTableName(),
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-      ExpressionAttributeValues: {
-        ':pk': pk,
-        ':prefix': `EXP#${experimentKey}#V#`,
-      },
-    }));
+    const result = await dynamoDBClient.send(
+      new QueryCommand({
+        TableName: this.getTableName(),
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+        ExpressionAttributeValues: {
+          ":pk": pk,
+          ":prefix": `EXP#${experimentKey}#V#`,
+        },
+      }),
+    );
 
     for (const item of result.Items || []) {
       const dynItem = item as DynamoItem;
-      await dynamoDBClient.send(new DeleteCommand({
-        TableName: this.getTableName(),
-        Key: {
-          PK: dynItem['PK'],
-          SK: dynItem['SK'],
-        },
-      }));
+      await dynamoDBClient.send(
+        new DeleteCommand({
+          TableName: this.getTableName(),
+          Key: {
+            PK: dynItem["PK"],
+            SK: dynItem["SK"],
+          },
+        }),
+      );
     }
   }
 
   async exists(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<boolean> {
     const experiment = await this.get(platform, environment, experimentKey);
     return experiment !== null;
@@ -395,7 +466,7 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    results: Experiment['results']
+    results: Experiment["results"],
   ): Promise<void> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
@@ -406,22 +477,24 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     const sk = this.getSK(experimentKey, current.version);
     const now = new Date().toISOString();
 
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: sk },
-      UpdateExpression: 'SET results = :results, updatedAt = :now',
-      ExpressionAttributeValues: {
-        ':results': results,
-        ':now': now,
-      },
-    }));
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: sk },
+        UpdateExpression: "SET results = :results, updatedAt = :now",
+        ExpressionAttributeValues: {
+          ":results": results,
+          ":now": now,
+        },
+      }),
+    );
   }
 
   async updateTrafficAllocation(
     platform: string,
     environment: string,
     experimentKey: string,
-    trafficAllocation: Experiment['trafficAllocation']
+    trafficAllocation: Experiment["trafficAllocation"],
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
@@ -429,18 +502,29 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     }
 
     // Only allow updating traffic allocation for running or paused experiments
-    if (current.status !== 'running' && current.status !== 'paused' && current.status !== 'draft') {
-      throw new Error(`Cannot update traffic allocation for experiment in ${current.status} status`);
+    if (
+      current.status !== "running" &&
+      current.status !== "paused" &&
+      current.status !== "draft"
+    ) {
+      throw new Error(
+        `Cannot update traffic allocation for experiment in ${current.status} status`,
+      );
     }
 
     // Validate traffic allocation sums to 100%
-    const totalPercentage = trafficAllocation.reduce((sum, t) => sum + t.percentage, 0);
+    const totalPercentage = trafficAllocation.reduce(
+      (sum, t) => sum + t.percentage,
+      0,
+    );
     if (totalPercentage !== 100) {
-      throw new Error(`Traffic allocation must sum to 100%, got ${totalPercentage}%`);
+      throw new Error(
+        `Traffic allocation must sum to 100%, got ${totalPercentage}%`,
+      );
     }
 
     // Validate all variation keys exist
-    const variationKeys = new Set(current.variations.map(v => v.key));
+    const variationKeys = new Set(current.variations.map((v) => v.key));
     for (const allocation of trafficAllocation) {
       if (!variationKeys.has(allocation.variationKey)) {
         throw new Error(`Unknown variation key: ${allocation.variationKey}`);
@@ -451,19 +535,22 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     const sk = this.getSK(experimentKey, current.version);
     const now = new Date().toISOString();
 
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: sk },
-      UpdateExpression: 'SET trafficAllocation = :trafficAllocation, updatedAt = :now',
-      ExpressionAttributeValues: {
-        ':trafficAllocation': trafficAllocation,
-        ':now': now,
-      },
-    }));
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: sk },
+        UpdateExpression:
+          "SET trafficAllocation = :trafficAllocation, updatedAt = :now",
+        ExpressionAttributeValues: {
+          ":trafficAllocation": trafficAllocation,
+          ":now": now,
+        },
+      }),
+    );
 
     const updated = await this.get(platform, environment, experimentKey);
     if (!updated) {
-      throw new Error('Failed to retrieve updated experiment');
+      throw new Error("Failed to retrieve updated experiment");
     }
     return updated;
   }
@@ -474,20 +561,21 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     experimentKey: string,
     version: string,
     newStatus: ExperimentStatus,
-    additionalFields?: Record<string, unknown>
+    additionalFields?: Record<string, unknown>,
   ): Promise<Experiment> {
     const pk = this.getPK(platform, environment);
     const sk = this.getSK(experimentKey, version);
     const now = new Date().toISOString();
 
-    let updateExpression = 'SET #status = :status, GSI1PK = :gsi1pk, updatedAt = :now';
+    let updateExpression =
+      "SET #status = :status, GSI1PK = :gsi1pk, updatedAt = :now";
     const expressionAttributeNames: Record<string, string> = {
-      '#status': 'status',
+      "#status": "status",
     };
     const expressionAttributeValues: Record<string, unknown> = {
-      ':status': newStatus,
-      ':gsi1pk': this.getStatusPK(platform, environment, newStatus),
-      ':now': now,
+      ":status": newStatus,
+      ":gsi1pk": this.getStatusPK(platform, environment, newStatus),
+      ":now": now,
     };
 
     if (additionalFields) {
@@ -497,50 +585,58 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
       }
     }
 
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: sk },
-      UpdateExpression: updateExpression,
-      ExpressionAttributeNames: expressionAttributeNames,
-      ExpressionAttributeValues: expressionAttributeValues,
-    }));
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: sk },
+        UpdateExpression: updateExpression,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+      }),
+    );
 
     const updated = await this.get(platform, environment, experimentKey);
     if (!updated) {
-      throw new Error('Failed to retrieve updated experiment');
+      throw new Error("Failed to retrieve updated experiment");
     }
     return updated;
   }
 
   private itemToExperiment(item: DynamoItem): Experiment {
     return {
-      platform: item['platform'] as string,
-      environment: item['environment'] as string,
-      experimentKey: item['experimentKey'] as string,
-      name: item['name'] as string,
-      description: item['description'] as string | undefined,
-      hypothesis: item['hypothesis'] as string,
-      status: item['status'] as ExperimentStatus,
-      startedAt: item['startedAt'] as string | undefined,
-      completedAt: item['completedAt'] as string | undefined,
-      scheduledStartAt: item['scheduledStartAt'] as string | undefined,
-      scheduledEndAt: item['scheduledEndAt'] as string | undefined,
-      variations: item['variations'] as Experiment['variations'],
-      controlVariation: item['controlVariation'] as string,
-      trafficAllocation: item['trafficAllocation'] as Experiment['trafficAllocation'],
-      targeting: item['targeting'] as Experiment['targeting'],
-      primaryMetric: item['primaryMetric'] as Experiment['primaryMetric'],
-      secondaryMetrics: item['secondaryMetrics'] as Experiment['secondaryMetrics'],
-      confidenceLevel: item['confidenceLevel'] as number,
-      minimumDetectableEffect: item['minimumDetectableEffect'] as number | undefined,
-      minimumSampleSize: item['minimumSampleSize'] as number | undefined,
-      results: item['results'] as Experiment['results'],
-      winner: item['winner'] as string | undefined,
-      version: item['version'] as string,
-      isActive: item['isActive'] as boolean,
-      createdBy: item['createdBy'] as string,
-      createdAt: item['createdAt'] as string,
-      updatedAt: item['updatedAt'] as string,
+      platform: item["platform"] as string,
+      environment: item["environment"] as string,
+      experimentKey: item["experimentKey"] as string,
+      name: item["name"] as string,
+      description: item["description"] as string | undefined,
+      hypothesis: item["hypothesis"] as string,
+      status: item["status"] as ExperimentStatus,
+      startedAt: item["startedAt"] as string | undefined,
+      completedAt: item["completedAt"] as string | undefined,
+      scheduledStartAt: item["scheduledStartAt"] as string | undefined,
+      scheduledEndAt: item["scheduledEndAt"] as string | undefined,
+      variations: item["variations"] as Experiment["variations"],
+      controlVariation: item["controlVariation"] as string,
+      trafficAllocation: item[
+        "trafficAllocation"
+      ] as Experiment["trafficAllocation"],
+      targeting: item["targeting"] as Experiment["targeting"],
+      primaryMetric: item["primaryMetric"] as Experiment["primaryMetric"],
+      secondaryMetrics: item[
+        "secondaryMetrics"
+      ] as Experiment["secondaryMetrics"],
+      confidenceLevel: item["confidenceLevel"] as number,
+      minimumDetectableEffect: item["minimumDetectableEffect"] as
+        | number
+        | undefined,
+      minimumSampleSize: item["minimumSampleSize"] as number | undefined,
+      results: item["results"] as Experiment["results"],
+      winner: item["winner"] as string | undefined,
+      version: item["version"] as string,
+      isActive: item["isActive"] as boolean,
+      createdBy: item["createdBy"] as string,
+      createdAt: item["createdAt"] as string,
+      updatedAt: item["updatedAt"] as string,
     };
   }
 }

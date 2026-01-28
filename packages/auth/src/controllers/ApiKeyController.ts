@@ -20,9 +20,9 @@
  * - Users can only manage their own keys
  */
 
-import { Response, NextFunction } from 'express';
-import { ApiKeyService } from '../services/ApiKeyService';
-import { AuthRequest } from '../middleware/auth';
+import { Response, NextFunction } from "express";
+import { ApiKeyService } from "../services/ApiKeyService";
+import { AuthRequest } from "../middleware/auth";
 
 /**
  * API Key controller class.
@@ -73,13 +73,13 @@ export class ApiKeyController {
   listApiKeys = async (
     req: AuthRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          error: 'Authentication required',
+          error: "Authentication required",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -153,13 +153,13 @@ export class ApiKeyController {
   createApiKey = async (
     req: AuthRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          error: 'Authentication required',
+          error: "Authentication required",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -177,18 +177,19 @@ export class ApiKeyController {
       res.status(201).json({
         success: true,
         data: apiKey,
-        message: 'API key created. This is the only time you will see the full key.',
+        message:
+          "API key created. This is the only time you will see the full key.",
         timestamp: new Date().toISOString(),
       });
     } catch (error: unknown) {
       const err = error as { message?: string };
-      if (err.message?.includes('User not found')) {
+      if (err.message?.includes("User not found")) {
         res.status(404).json({
           success: false,
           error: err.message,
           timestamp: new Date().toISOString(),
         });
-      } else if (err.message?.includes('does not have')) {
+      } else if (err.message?.includes("does not have")) {
         res.status(403).json({
           success: false,
           error: err.message,
@@ -242,35 +243,38 @@ export class ApiKeyController {
   getApiKey = async (
     req: AuthRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          error: 'Authentication required',
+          error: "Authentication required",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      const id = req.params['id'];
+      const id = req.params["id"];
       if (!id) {
         res.status(400).json({
           success: false,
-          error: 'Missing API key ID',
+          error: "Missing API key ID",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
       // SECURITY: Use getApiKeyForUser to verify ownership
-      const apiKey = await this.apiKeyService.getApiKeyForUser(id, req.user.userId);
+      const apiKey = await this.apiKeyService.getApiKeyForUser(
+        id,
+        req.user.userId,
+      );
 
       if (!apiKey) {
         res.status(404).json({
           success: false,
-          error: 'API key not found',
+          error: "API key not found",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -324,23 +328,23 @@ export class ApiKeyController {
   revokeApiKey = async (
     req: AuthRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          error: 'Authentication required',
+          error: "Authentication required",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      const id = req.params['id'];
+      const id = req.params["id"];
       if (!id) {
         res.status(400).json({
           success: false,
-          error: 'Missing API key ID',
+          error: "Missing API key ID",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -350,14 +354,14 @@ export class ApiKeyController {
 
       res.status(200).json({
         success: true,
-        message: 'API key revoked successfully',
+        message: "API key revoked successfully",
         timestamp: new Date().toISOString(),
       });
     } catch (error: unknown) {
       const err = error as { message?: string };
       if (
-        err.message?.includes('not found') ||
-        err.message?.includes('permission')
+        err.message?.includes("not found") ||
+        err.message?.includes("permission")
       ) {
         res.status(404).json({
           success: false,

@@ -1,13 +1,13 @@
-import { useMemo } from 'react'
-import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
-import type { Experiment, ExperimentContext } from '@togglebox/experiments'
-import { useToggleBoxContext } from './provider'
+import { useMemo } from "react";
+import type { Flag, EvaluationContext as FlagContext } from "@togglebox/flags";
+import type { Experiment, ExperimentContext } from "@togglebox/experiments";
+import { useToggleBoxContext } from "./provider";
 import type {
   UseConfigResult,
   UseFlagsResult,
   UseExperimentsResult,
   UseAnalyticsResult,
-} from './types'
+} from "./types";
 
 // ============================================================================
 // Tier 1: Remote Configs
@@ -28,8 +28,9 @@ import type {
  * ```
  */
 export function useConfig(): UseConfigResult {
-  const { config, getConfigValue, isLoading, error, refresh } = useToggleBoxContext()
-  return { config, getConfigValue, isLoading, error, refresh }
+  const { config, getConfigValue, isLoading, error, refresh } =
+    useToggleBoxContext();
+  return { config, getConfigValue, isLoading, error, refresh };
 }
 
 // ============================================================================
@@ -50,8 +51,9 @@ export function useConfig(): UseConfigResult {
  * ```
  */
 export function useFlags(): UseFlagsResult {
-  const { flags, isFlagEnabled, isLoading, error, refresh } = useToggleBoxContext()
-  return { flags, isFlagEnabled, isLoading, error, refresh }
+  const { flags, isFlagEnabled, isLoading, error, refresh } =
+    useToggleBoxContext();
+  return { flags, isFlagEnabled, isLoading, error, refresh };
 }
 
 /**
@@ -70,17 +72,17 @@ export function useFlags(): UseFlagsResult {
  * ```
  */
 export function useFlag(flagKey: string, context?: FlagContext) {
-  const { flags, isLoading, isFlagEnabled } = useToggleBoxContext()
+  const { flags, isLoading, isFlagEnabled } = useToggleBoxContext();
 
   return useMemo(() => {
-    const flag = flags.find((f: Flag) => f.flagKey === flagKey)
+    const flag = flags.find((f: Flag) => f.flagKey === flagKey);
     return {
       flag,
       exists: !!flag,
       isLoading,
       checkEnabled: async () => isFlagEnabled(flagKey, context),
-    }
-  }, [flags, flagKey, isLoading, isFlagEnabled, context])
+    };
+  }, [flags, flagKey, isLoading, isFlagEnabled, context]);
 }
 
 // ============================================================================
@@ -101,8 +103,9 @@ export function useFlag(flagKey: string, context?: FlagContext) {
  * ```
  */
 export function useExperiments(): UseExperimentsResult {
-  const { experiments, getVariant, isLoading, error, refresh } = useToggleBoxContext()
-  return { experiments, getVariant, isLoading, error, refresh }
+  const { experiments, getVariant, isLoading, error, refresh } =
+    useToggleBoxContext();
+  return { experiments, getVariant, isLoading, error, refresh };
 }
 
 /**
@@ -120,18 +123,23 @@ export function useExperiments(): UseExperimentsResult {
  * const variant = await getVariant()
  * ```
  */
-export function useExperiment(experimentKey: string, context: ExperimentContext) {
-  const { experiments, isLoading, getVariant } = useToggleBoxContext()
+export function useExperiment(
+  experimentKey: string,
+  context: ExperimentContext,
+) {
+  const { experiments, isLoading, getVariant } = useToggleBoxContext();
 
   return useMemo(() => {
-    const experiment = experiments.find((e: Experiment) => e.experimentKey === experimentKey)
+    const experiment = experiments.find(
+      (e: Experiment) => e.experimentKey === experimentKey,
+    );
     return {
       experiment,
       exists: !!experiment,
       isLoading,
       getVariant: async () => getVariant(experimentKey, context),
-    }
-  }, [experiments, experimentKey, isLoading, getVariant, context])
+    };
+  }, [experiments, experimentKey, isLoading, getVariant, context]);
 }
 
 // ============================================================================
@@ -163,7 +171,6 @@ export function useExperiment(experimentKey: string, context: ExperimentContext)
  * ```
  */
 export function useAnalytics(): UseAnalyticsResult {
-  const { trackEvent, trackConversion, flushStats } = useToggleBoxContext()
-  return { trackEvent, trackConversion, flushStats }
+  const { trackEvent, trackConversion, flushStats } = useToggleBoxContext();
+  return { trackEvent, trackConversion, flushStats };
 }
-

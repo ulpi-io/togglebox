@@ -1,9 +1,9 @@
 ---
 name: Bug Report
 about: Create a report to help us improve
-title: '[BUG] '
+title: "[BUG] "
 labels: bug
-assignees: ''
+assignees: ""
 ---
 
 ## Bug Description
@@ -32,6 +32,7 @@ assignees: ''
 ## Environment
 
 **Deployment Platform:**
+
 - [ ] AWS Lambda
 - [ ] Cloudflare Workers
 - [ ] Netlify Functions
@@ -39,6 +40,7 @@ assignees: ''
 - [ ] Local development
 
 **Database:**
+
 - [ ] DynamoDB
 - [ ] Cloudflare D1
 - [ ] MySQL

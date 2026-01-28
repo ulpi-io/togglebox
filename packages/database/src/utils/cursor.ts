@@ -28,16 +28,16 @@ export function parseCursor(cursor?: string): number {
   }
 
   try {
-    const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
+    const decoded = Buffer.from(cursor, "base64").toString("utf-8");
     const n = Number(decoded);
 
     if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
-      throw new Error('Invalid cursor');
+      throw new Error("Invalid cursor");
     }
 
     return n;
   } catch {
-    throw new Error('Invalid cursor');
+    throw new Error("Invalid cursor");
   }
 }
 
@@ -53,7 +53,7 @@ export function parseCursor(cursor?: string): number {
  * ```
  */
 export function encodeCursor(offset: number): string {
-  return Buffer.from(String(offset)).toString('base64');
+  return Buffer.from(String(offset)).toString("base64");
 }
 
 /**

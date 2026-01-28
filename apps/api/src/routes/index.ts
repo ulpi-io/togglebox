@@ -6,6 +6,6 @@
  * Auth routes: Authentication endpoints (conditionally loaded)
  */
 
-export { publicRouter } from './publicRoutes';
-export { internalRouter } from './internalRoutes';
-export { authRouter } from './authRoutes';
+export { publicRouter } from "./publicRoutes";
+export { internalRouter } from "./internalRoutes";
+export { authRouter } from "./authRoutes";

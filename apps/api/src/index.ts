@@ -10,8 +10,8 @@
  * - AWS ECS/Fargate deployments
  */
 
-import app from './app';
-import { logger, config } from '@togglebox/shared';
+import app from "./app";
+import { logger, config } from "@togglebox/shared";
 
 const PORT = config.env.PORT;
 

@@ -9,6 +9,7 @@ This document provides comprehensive error pattern recognition, debugging strate
 #### Laravel PHPUnit Tests
 
 **Common Patterns:**
+
 ```
 Failed asserting that false is true
 Class 'DatabaseSeeder' not found
@@ -18,6 +19,7 @@ Column not found: 1054 Unknown column
 ```
 
 **Root Causes:**
+
 - Database seeding issues (missing factories, seeders)
 - Database connection problems (wrong credentials, service not running)
 - Authorization/policy failures
@@ -31,6 +33,7 @@ Column not found: 1054 Unknown column
 #### Next.js Jest/Vitest Tests
 
 **Common Patterns:**
+
 ```
 Cannot read properties of undefined (reading 'map')
 Component did not render
@@ -40,6 +43,7 @@ Snapshot test failed
 ```
 
 **Root Causes:**
+
 - Missing mock data or incorrect structure
 - Component props not matching expectations
 - Server/client hydration mismatch
@@ -53,6 +57,7 @@ Snapshot test failed
 #### NestJS E2E/Unit Tests
 
 **Common Patterns:**
+
 ```
 Nest can't resolve dependencies
 Cannot GET /api/endpoint
@@ -62,6 +67,7 @@ Module not found
 ```
 
 **Root Causes:**
+
 - Dependency injection configuration missing
 - Route not properly registered
 - Response format mismatch (HTML instead of JSON)
@@ -77,6 +83,7 @@ Module not found
 #### Laravel Runtime Errors
 
 **Common Patterns:**
+
 ```
 Class 'App\Models\User' not found
 Call to a member function on null
@@ -86,6 +93,7 @@ SQLSTATE[42S02]: Base table or view not found
 ```
 
 **Root Causes:**
+
 - Autoloader cache needs refresh (`composer dump-autoload`)
 - Null check missing (relationship returns null)
 - Method signature changed but call sites not updated
@@ -99,6 +107,7 @@ SQLSTATE[42S02]: Base table or view not found
 #### React/Next.js Runtime Errors
 
 **Common Patterns:**
+
 ```
 Hydration failed
 Maximum update depth exceeded
@@ -108,6 +117,7 @@ Objects are not valid as a React child
 ```
 
 **Root Causes:**
+
 - Server/client state mismatch
 - Infinite re-render loop (setState in render)
 - State update during render phase
@@ -121,6 +131,7 @@ Objects are not valid as a React child
 #### NestJS Runtime Errors
 
 **Common Patterns:**
+
 ```
 Cannot find module '@nestjs/...'
 Circular dependency detected
@@ -130,6 +141,7 @@ Connection timeout
 ```
 
 **Root Causes:**
+
 - Missing package installation
 - Circular module imports (A imports B, B imports A)
 - Provider not added to module's providers array
@@ -147,6 +159,7 @@ Connection timeout
 **Laravel/PHP:** (N/A - PHP is dynamically typed)
 
 **Next.js TypeScript:**
+
 ```
 Property 'X' does not exist on type 'Y'
 Type 'null' is not assignable to type 'string'
@@ -155,6 +168,7 @@ Cannot find name 'React'
 ```
 
 **Root Causes:**
+
 - Missing type definition for prop
 - Null/undefined not handled (use optional chaining or type guards)
 - Type mismatch (wrong type passed to function/component)
@@ -165,6 +179,7 @@ Cannot find name 'React'
 ---
 
 **NestJS TypeScript:**
+
 ```
 Decorator '@Injectable()' is not valid here
 Type 'Promise<X>' is missing 'then' method
@@ -173,6 +188,7 @@ Circular dependency in types
 ```
 
 **Root Causes:**
+
 - Decorator on wrong target (class vs method)
 - Async function not marked properly
 - Missing dependency
@@ -183,6 +199,7 @@ Circular dependency in types
 ---
 
 **Express TypeScript:**
+
 ```
 Property 'user' does not exist on type 'Request'
 No overload matches this call
@@ -190,6 +207,7 @@ No overload matches this call
 ```
 
 **Root Causes:**
+
 - Need to extend Express Request type
 - Middleware type definition incorrect
 - Missing @types/express or @types/node
@@ -203,6 +221,7 @@ No overload matches this call
 #### Backend Performance (Laravel/NestJS/Express)
 
 **Indicators:**
+
 ```
 Response time > 2s
 Database query count > 50 for single request
@@ -211,6 +230,7 @@ CPU spike on specific endpoint
 ```
 
 **Common Causes:**
+
 - **N+1 query problem** (missing eager loading in Laravel)
 - **Missing database indexes** (full table scans)
 - **Memory leak** (not releasing resources)
@@ -218,6 +238,7 @@ CPU spike on specific endpoint
 - **No caching** (repeated expensive computations)
 
 **Debugging Approach:**
+
 1. Profile with Laravel Telescope, NestJS built-in profiler, or Node profiler
 2. Check query count and execution time
 3. Analyze database EXPLAIN for slow queries
@@ -231,6 +252,7 @@ CPU spike on specific endpoint
 #### Frontend Performance (Next.js/React)
 
 **Indicators:**
+
 ```
 First Contentful Paint > 2s
 Cumulative Layout Shift > 0.1
@@ -239,6 +261,7 @@ Slow component renders (>100ms)
 ```
 
 **Common Causes:**
+
 - **Unnecessary re-renders** (missing memoization)
 - **Large bundle** (not code-splitting)
 - **Unoptimized images** (not using Next.js Image)
@@ -246,6 +269,7 @@ Slow component renders (>100ms)
 - **Heavy computations** in render (should be useMemo)
 
 **Debugging Approach:**
+
 1. Use React DevTools Profiler
 2. Check bundle analyzer for large dependencies
 3. Lighthouse audit for Core Web Vitals
@@ -261,23 +285,27 @@ Slow component renders (>100ms)
 ### Laravel Debugging Strategy
 
 **Step 1: Gather Context**
+
 - Check error message and stack trace
 - Review recent migrations and model changes
 - Check `.env` configuration
 - Review logs in `storage/logs/`
 
 **Step 2: Isolate the Issue**
+
 - Can you reproduce with `php artisan tinker`?
 - Does it fail in specific environment only?
 - Is it related to database, cache, or queue?
 
 **Step 3: Common Fixes**
+
 - Refresh autoloader: `composer dump-autoload`
 - Clear caches: `php artisan cache:clear`, `config:clear`, `view:clear`
 - Run migrations: `php artisan migrate`
 - Re-seed database: `php artisan db:seed`
 
 **Step 4: Deep Dive**
+
 - Add `dd()` or `Log::debug()` at key points
 - Use Laravel Telescope for request tracing
 - Check database queries with Query Log
@@ -288,17 +316,20 @@ Slow component renders (>100ms)
 ### Next.js Debugging Strategy
 
 **Step 1: Gather Context**
+
 - Check browser console for client-side errors
 - Check terminal for server-side errors
 - Review Network tab for failed requests
 - Check React DevTools for component tree
 
 **Step 2: Isolate the Issue**
+
 - Is it client-side or server-side?
 - Does it happen during build or runtime?
 - Is it related to data fetching or rendering?
 
 **Step 3: Common Fixes**
+
 - Clear `.next` directory: `rm -rf .next`
 - Restart dev server
 - Check if data fetching is working (server actions, API routes)
@@ -306,6 +337,7 @@ Slow component renders (>100ms)
 - Check for hydration mismatches (server vs client state)
 
 **Step 4: Deep Dive**
+
 - Add `console.log` in server/client components appropriately
 - Use React DevTools Profiler for render issues
 - Check Network tab for API failures
@@ -316,18 +348,21 @@ Slow component renders (>100ms)
 ### NestJS Debugging Strategy
 
 **Step 1: Gather Context**
+
 - Check terminal for exceptions
 - Review module dependency graph
 - Check logs (if using Pino or Winston)
 - Review API response format
 
 **Step 2: Isolate the Issue**
+
 - Is it a DI problem? (providers, modules)
 - Is it a routing issue? (controllers, guards)
 - Is it a data problem? (DTOs, validation)
 - Is it external dependency? (database, API)
 
 **Step 3: Common Fixes**
+
 - Check provider is added to module's `providers` array
 - Verify imports in module's `imports` array
 - Check for circular dependencies
@@ -335,6 +370,7 @@ Slow component renders (>100ms)
 - Verify environment variables loaded
 
 **Step 4: Deep Dive**
+
 - Add `Logger` calls at key points
 - Use NestJS REPL for testing: `npm run start -- --entryFile repl`
 - Enable debug mode in `main.ts`
@@ -346,24 +382,28 @@ Slow component renders (>100ms)
 ### Express Debugging Strategy
 
 **Step 1: Gather Context**
+
 - Check terminal for console errors
 - Review middleware stack order
 - Check request/response logs
 - Verify route registration
 
 **Step 2: Isolate the Issue**
+
 - Does middleware pass control correctly (`next()`)?
 - Is route handler registered before wildcard routes?
 - Is request body parsed (body-parser)?
 - Are CORS headers set correctly?
 
 **Step 3: Common Fixes**
+
 - Add `console.log` in middleware chain
 - Verify middleware order (auth before protected routes)
 - Check body-parser is configured
 - Verify error handling middleware is last
 
 **Step 4: Deep Dive**
+
 - Use `morgan` for HTTP request logging
 - Add debug logs in each middleware
 - Test with curl/Postman to isolate client issues
@@ -376,12 +416,14 @@ Slow component renders (>100ms)
 ### Single vs Multiple Root Causes
 
 **Indicators of Single Root Cause:**
+
 - All failures started at the same time
 - All errors mention the same dependency/module
 - All stack traces share common code path
 - Recent single change (commit, deploy, dependency update)
 
 **Example:**
+
 ```
 Scenario: All tests failing after npm install
 
@@ -397,12 +439,14 @@ Decision: DON'T parallelize. Fix database connection first.
 ---
 
 **Indicators of Multiple Independent Root Causes:**
+
 - Failures in unrelated subsystems
 - Different error messages/patterns
 - Different stack traces with no commonality
 - Isolated to specific modules/features
 
 **Example:**
+
 ```
 Scenario: Multiple test failures
 
@@ -420,18 +464,19 @@ Decision: CAN parallelize. Each has different root cause.
 ### Dependency Analysis
 
 **Questions to Ask:**
+
 1. If I fix issue A, will issue B automatically resolve?
 2. Does issue B require the fix from issue A to work?
 3. Do A and B modify the same files/database/state?
 
 **Dependency Matrix:**
 
-| Issue A | Issue B | Dependent? | Can Parallelize? |
-|---------|---------|------------|------------------|
-| Laravel DB schema change | Next.js uses old schema | Yes (B depends on A) | ❌ No |
-| Laravel auth bug | Next.js UI bug | No | ✅ Yes |
-| Shared util function bug | Multiple components use it | Yes (shared root cause) | ❌ No |
-| Bug in module X | Bug in module Y | No (isolated modules) | ✅ Yes |
+| Issue A                  | Issue B                    | Dependent?              | Can Parallelize? |
+| ------------------------ | -------------------------- | ----------------------- | ---------------- |
+| Laravel DB schema change | Next.js uses old schema    | Yes (B depends on A)    | ❌ No            |
+| Laravel auth bug         | Next.js UI bug             | No                      | ✅ Yes           |
+| Shared util function bug | Multiple components use it | Yes (shared root cause) | ❌ No            |
+| Bug in module X          | Bug in module Y            | No (isolated modules)   | ✅ Yes           |
 
 ---
 
@@ -439,6 +484,7 @@ Decision: CAN parallelize. Each has different root cause.
 
 **Step 1: Extract Error Metadata**
 For each error, extract:
+
 - Framework/tech stack
 - Subsystem/module
 - Error type (test failure, runtime error, type error, performance)
@@ -446,6 +492,7 @@ For each error, extract:
 
 **Step 2: Group by Similarity**
 Create clusters based on:
+
 - Same tech stack AND same subsystem → Likely related, investigate together
 - Different tech stack → Likely independent, can parallelize
 - Same file/function → Likely related, investigate together
@@ -453,12 +500,14 @@ Create clusters based on:
 
 **Step 3: Validate Independence**
 For each cluster pair, verify:
+
 - [ ] No shared files being modified
 - [ ] No data dependencies
 - [ ] No sequential ordering required
 - [ ] No common root cause
 
 **Step 4: Decision**
+
 - If 3+ independent clusters → Proceed with parallel debugging
 - If < 3 clusters OR clusters are related → Sequential debugging
 
@@ -469,6 +518,7 @@ For each cluster pair, verify:
 ### Pitfall 1: Missing Shared Root Cause
 
 **Scenario:**
+
 ```
 Error 1: Laravel API returns 500
 Error 2: Next.js fetch fails
@@ -486,6 +536,7 @@ Error 3: NestJS webhook fails
 ### Pitfall 2: Cascading Failures
 
 **Scenario:**
+
 ```
 Error 1: Database migration failed
 Error 2: API tests fail (missing table)
@@ -503,6 +554,7 @@ Error 3: Frontend tests fail (API returns 500)
 ### Pitfall 3: Overlapping File Changes
 
 **Scenario:**
+
 ```
 Bug 1: Cart total calculation wrong (CartService.php)
 Bug 2: Discount logic broken (CartService.php)
@@ -519,6 +571,7 @@ Bug 2: Discount logic broken (CartService.php)
 ### Pitfall 4: Ignoring Integration
 
 **Scenario:**
+
 ```
 Fix 1: Laravel returns new API response format
 Fix 2: Next.js expects old API response format
@@ -535,7 +588,9 @@ Fix 2: Next.js expects old API response format
 Use this checklist after parallel debugging to ensure quality:
 
 ### Per-Fix Validation
+
 For each fix:
+
 - [ ] Original error no longer reproduces
 - [ ] Unit tests pass
 - [ ] No new errors introduced
@@ -543,7 +598,9 @@ For each fix:
 - [ ] Performance not degraded
 
 ### Integration Validation
+
 For all fixes together:
+
 - [ ] No file conflicts
 - [ ] No contradictory changes
 - [ ] Full test suite passes (not just fixed tests)
@@ -551,6 +608,7 @@ For all fixes together:
 - [ ] Manual smoke testing complete
 
 ### Documentation
+
 - [ ] Fix documented (what was wrong, why, how fixed)
 - [ ] If pattern issue, document prevention strategy
 - [ ] Update relevant documentation if needed
@@ -599,18 +657,21 @@ Useful for complex, interconnected issues where you need full picture first.
 ## Framework-Specific Error Codes Quick Reference
 
 ### Laravel HTTP Status Codes
+
 - `419` → CSRF token mismatch
 - `403` → Authorization failed (policy/gate)
 - `500` → Server error (check logs)
 - `404` → Route not found or model not found
 
 ### Next.js Build Errors
+
 - `ENOENT` → File not found
 - `Module not found` → Import path wrong or missing dependency
 - `Hydration error` → Server/client mismatch
 - `Error: Minified React error` → Check React error decoder
 
 ### NestJS Exception Filters
+
 - `NotFoundException` → Resource not found
 - `UnauthorizedException` → Auth guard blocked request
 - `BadRequestException` → Validation failed
@@ -621,6 +682,7 @@ Useful for complex, interconnected issues where you need full picture first.
 ## Recommended Debugging Tools by Framework
 
 ### Laravel
+
 - **Laravel Telescope:** Request tracing, query monitoring
 - **Debugbar:** In-browser debugging info
 - **Tinker:** REPL for testing code
@@ -629,6 +691,7 @@ Useful for complex, interconnected issues where you need full picture first.
 - **EXPLAIN:** Database query analysis
 
 ### Next.js
+
 - **React DevTools:** Component tree inspection
 - **Next.js Error Overlay:** Build-time errors
 - **Network Tab:** API request debugging
@@ -636,6 +699,7 @@ Useful for complex, interconnected issues where you need full picture first.
 - **console.log:** Still effective for server components (check terminal)
 
 ### NestJS
+
 - **NestJS Logger:** Built-in logging
 - **Nest Devtools:** Visual debugging (if installed)
 - **REPL:** Testing services in isolation
@@ -643,6 +707,7 @@ Useful for complex, interconnected issues where you need full picture first.
 - **Debug mode:** Enable in main.ts for detailed logs
 
 ### Express
+
 - **Morgan:** HTTP request logger
 - **Debug module:** Namespaced debugging
 - **Postman/curl:** API testing
@@ -654,6 +719,7 @@ Useful for complex, interconnected issues where you need full picture first.
 ## Summary
 
 This reference guide provides:
+
 1. **Error pattern recognition** for quick agent matching
 2. **Framework-specific debugging strategies** for effective troubleshooting
 3. **Root cause analysis techniques** to determine parallelization viability

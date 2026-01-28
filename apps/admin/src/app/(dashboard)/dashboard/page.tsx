@@ -1,9 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { getDashboardStatsApi, type DashboardStats } from '@/lib/api/stats';
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@togglebox/ui';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { getDashboardStatsApi, type DashboardStats } from "@/lib/api/stats";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@togglebox/ui";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -16,7 +22,9 @@ export default function DashboardPage() {
         const data = await getDashboardStatsApi();
         setStats(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load dashboard stats');
+        setError(
+          err instanceof Error ? err.message : "Failed to load dashboard stats",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -77,7 +85,7 @@ export default function DashboardPage() {
             <div className="text-destructive text-lg font-bold mb-2">
               Error loading dashboard
             </div>
-            <p className="text-muted-foreground">{error || 'Unknown error'}</p>
+            <p className="text-muted-foreground">{error || "Unknown error"}</p>
           </CardContent>
         </Card>
       </div>
@@ -86,39 +94,39 @@ export default function DashboardPage() {
 
   const statCards = [
     {
-      title: 'Platforms',
+      title: "Platforms",
       value: stats.totalPlatforms,
-      description: 'Total platforms configured',
+      description: "Total platforms configured",
     },
     {
-      title: 'Environments',
+      title: "Environments",
       value: stats.totalEnvironments,
-      description: 'Environments across all platforms',
+      description: "Environments across all platforms",
     },
     {
-      title: 'Config Parameters',
+      title: "Config Parameters",
       value: stats.totalConfigParameters,
-      description: 'Firebase-style config parameters',
+      description: "Firebase-style config parameters",
     },
     {
-      title: 'Flags',
+      title: "Flags",
       value: stats.totalFlags,
-      description: 'Feature flags across all environments',
+      description: "Feature flags across all environments",
     },
     {
-      title: 'Experiments',
+      title: "Experiments",
       value: stats.totalExperiments,
-      description: 'A/B experiments across all environments',
+      description: "A/B experiments across all environments",
     },
     {
-      title: 'Users',
+      title: "Users",
       value: stats.totalUsers,
-      description: 'Total users with access',
+      description: "Total users with access",
     },
     {
-      title: 'API Keys',
+      title: "API Keys",
       value: stats.totalApiKeys,
-      description: 'Active API keys',
+      description: "Active API keys",
     },
   ];
 
@@ -138,7 +146,9 @@ export default function DashboardPage() {
             <CardContent className="p-4 text-center">
               <div className="text-2xl mb-2">&#9881;</div>
               <div className="font-bold text-sm">Configs</div>
-              <div className="text-xs text-muted-foreground">Remote configuration</div>
+              <div className="text-xs text-muted-foreground">
+                Remote configuration
+              </div>
             </CardContent>
           </Card>
         </Link>
@@ -182,7 +192,9 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-black mb-2">{stat.value}</div>
-              <p className="text-sm text-muted-foreground">{stat.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {stat.description}
+              </p>
             </CardContent>
           </Card>
         ))}

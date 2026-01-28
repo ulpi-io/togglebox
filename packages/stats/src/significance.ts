@@ -56,7 +56,7 @@ function calculateZScore(
   p1: number,
   n1: number,
   p2: number,
-  n2: number
+  n2: number,
 ): number {
   // Pooled proportion
   const pooledP = (p1 * n1 + p2 * n2) / (n1 + n2);
@@ -76,7 +76,7 @@ function calculateZScore(
 function calculateConfidenceInterval(
   p: number,
   n: number,
-  confidenceLevel: number
+  confidenceLevel: number,
 ): [number, number] {
   // Z-score for confidence level (e.g., 1.96 for 95%)
   const zCritical = getZCritical(confidenceLevel);
@@ -145,7 +145,7 @@ function erfInv(x: number): number {
 export function calculateSignificance(
   control: VariationData,
   treatment: VariationData,
-  confidenceLevel = 0.95
+  confidenceLevel = 0.95,
 ): SignificanceResult {
   // SECURITY: Guard against division by zero when there are no participants
   if (control.participants === 0 || treatment.participants === 0) {
@@ -169,7 +169,7 @@ export function calculateSignificance(
     p1,
     control.participants,
     p2,
-    treatment.participants
+    treatment.participants,
   );
 
   // Calculate p-value (two-tailed)
@@ -179,7 +179,7 @@ export function calculateSignificance(
   const confidenceInterval = calculateConfidenceInterval(
     p2,
     treatment.participants,
-    confidenceLevel
+    confidenceLevel,
   );
 
   // Calculate relative lift
@@ -207,14 +207,14 @@ export function calculateSignificance(
 export function calculateMultipleSignificance(
   control: VariationData,
   treatments: VariationData[],
-  confidenceLevel = 0.95
+  confidenceLevel = 0.95,
 ): Map<string, SignificanceResult> {
   const results = new Map<string, SignificanceResult>();
 
   for (const treatment of treatments) {
     results.set(
       treatment.variationKey,
-      calculateSignificance(control, treatment, confidenceLevel)
+      calculateSignificance(control, treatment, confidenceLevel),
     );
   }
 
@@ -241,22 +241,20 @@ export function calculateRequiredSampleSize(
   baselineConversion: number,
   minimumDetectableEffect: number,
   confidenceLevel = 0.95,
-  power = 0.8
+  power = 0.8,
 ): number {
   // SECURITY: Validate inputs to prevent division by zero and invalid calculations
   if (baselineConversion <= 0 || baselineConversion >= 1) {
-    throw new Error(
-      'baselineConversion must be between 0 and 1 (exclusive)'
-    );
+    throw new Error("baselineConversion must be between 0 and 1 (exclusive)");
   }
   if (minimumDetectableEffect <= 0) {
-    throw new Error('minimumDetectableEffect must be greater than 0');
+    throw new Error("minimumDetectableEffect must be greater than 0");
   }
   if (confidenceLevel <= 0 || confidenceLevel >= 1) {
-    throw new Error('confidenceLevel must be between 0 and 1 (exclusive)');
+    throw new Error("confidenceLevel must be between 0 and 1 (exclusive)");
   }
   if (power <= 0 || power >= 1) {
-    throw new Error('power must be between 0 and 1 (exclusive)');
+    throw new Error("power must be between 0 and 1 (exclusive)");
   }
 
   const zAlpha = getZCritical(confidenceLevel);

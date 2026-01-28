@@ -11,9 +11,9 @@ import type {
   CreateFlag,
   UpdateFlag,
   UpdateRollout,
-} from '@togglebox/flags';
-import type { IFlagRepository, FlagPage } from '@togglebox/flags';
-import { parseCursor, encodeCursor } from '../../utils/cursor';
+} from "@togglebox/flags";
+import type { IFlagRepository, FlagPage } from "@togglebox/flags";
+import { parseCursor, encodeCursor } from "../../utils/cursor";
 
 /**
  * D1 row type for Flag queries.
@@ -70,7 +70,7 @@ export class D1FlagRepository implements IFlagRepository {
    */
   async create(data: CreateFlag): Promise<Flag> {
     const now = new Date().toISOString();
-    const version = '1.0.0';
+    const version = "1.0.0";
 
     const flag: Flag = {
       platform: data.platform,
@@ -79,7 +79,7 @@ export class D1FlagRepository implements IFlagRepository {
       name: data.name,
       description: data.description,
       enabled: data.enabled ?? false,
-      flagType: data.flagType ?? 'boolean',
+      flagType: data.flagType ?? "boolean",
       valueA: data.valueA ?? true,
       valueB: data.valueB ?? false,
       targeting: data.targeting ?? {
@@ -87,7 +87,7 @@ export class D1FlagRepository implements IFlagRepository {
         forceIncludeUsers: [],
         forceExcludeUsers: [],
       },
-      defaultValue: data.defaultValue ?? 'B',
+      defaultValue: data.defaultValue ?? "B",
       // Percentage rollout (disabled by default)
       rolloutEnabled: data.rolloutEnabled ?? false,
       rolloutPercentageA: data.rolloutPercentageA ?? 100,
@@ -108,7 +108,7 @@ export class D1FlagRepository implements IFlagRepository {
       .prepare(
         `INSERT INTO flags
         (platform, environment, flagKey, name, description, enabled, flagType, valueA, valueB, targeting, defaultValue, rolloutEnabled, rolloutPercentageA, rolloutPercentageB, version, isActive, createdBy, createdAt, updatedAt)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)`
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)`,
       )
       .bind(
         flag.platform,
@@ -129,7 +129,7 @@ export class D1FlagRepository implements IFlagRepository {
         flag.isActive ? 1 : 0,
         flag.createdBy,
         flag.createdAt,
-        flag.updatedAt
+        flag.updatedAt,
       )
       .run();
 
@@ -143,7 +143,7 @@ export class D1FlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    data: UpdateFlag
+    data: UpdateFlag,
   ): Promise<Flag> {
     // Get current active version
     const current = await this.getActive(platform, environment, flagKey);
@@ -152,7 +152,7 @@ export class D1FlagRepository implements IFlagRepository {
     }
 
     // Parse current version and increment patch
-    const [major, minor, patch] = current.version.split('.').map(Number);
+    const [major, minor, patch] = current.version.split(".").map(Number);
     const newVersion = `${major}.${minor}.${(patch ?? 0) + 1}`;
     const now = new Date().toISOString();
 
@@ -180,7 +180,7 @@ export class D1FlagRepository implements IFlagRepository {
     await this.db
       .prepare(
         `UPDATE flags SET isActive = 0
-        WHERE platform = ?1 AND environment = ?2 AND flagKey = ?3 AND version = ?4`
+        WHERE platform = ?1 AND environment = ?2 AND flagKey = ?3 AND version = ?4`,
       )
       .bind(platform, environment, flagKey, current.version)
       .run();
@@ -194,7 +194,7 @@ export class D1FlagRepository implements IFlagRepository {
       .prepare(
         `INSERT INTO flags
         (platform, environment, flagKey, name, description, enabled, flagType, valueA, valueB, targeting, defaultValue, rolloutEnabled, rolloutPercentageA, rolloutPercentageB, version, isActive, createdBy, createdAt, updatedAt)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)`
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)`,
       )
       .bind(
         newFlag.platform,
@@ -215,7 +215,7 @@ export class D1FlagRepository implements IFlagRepository {
         newFlag.isActive ? 1 : 0,
         newFlag.createdBy,
         newFlag.createdAt,
-        newFlag.updatedAt
+        newFlag.updatedAt,
       )
       .run();
 
@@ -229,7 +229,7 @@ export class D1FlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
@@ -241,9 +241,16 @@ export class D1FlagRepository implements IFlagRepository {
     await this.db
       .prepare(
         `UPDATE flags SET enabled = ?1, updatedAt = ?2
-        WHERE platform = ?3 AND environment = ?4 AND flagKey = ?5 AND version = ?6`
+        WHERE platform = ?3 AND environment = ?4 AND flagKey = ?5 AND version = ?6`,
       )
-      .bind(enabled ? 1 : 0, now, platform, environment, flagKey, current.version)
+      .bind(
+        enabled ? 1 : 0,
+        now,
+        platform,
+        environment,
+        flagKey,
+        current.version,
+      )
       .run();
 
     return {
@@ -259,14 +266,14 @@ export class D1FlagRepository implements IFlagRepository {
   async getActive(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<Flag | null> {
     const result = await this.db
       .prepare(
         `SELECT platform, environment, flagKey, name, description, enabled, flagType, valueA, valueB, targeting, defaultValue, rolloutEnabled, rolloutPercentageA, rolloutPercentageB, version, isActive, createdBy, createdAt, updatedAt
         FROM flags
         WHERE platform = ?1 AND environment = ?2 AND flagKey = ?3 AND isActive = 1
-        LIMIT 1`
+        LIMIT 1`,
       )
       .bind(platform, environment, flagKey)
       .first<D1FlagRow>();
@@ -285,13 +292,13 @@ export class D1FlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    version: string
+    version: string,
   ): Promise<Flag | null> {
     const result = await this.db
       .prepare(
         `SELECT platform, environment, flagKey, name, description, enabled, flagType, valueA, valueB, targeting, defaultValue, rolloutEnabled, rolloutPercentageA, rolloutPercentageB, version, isActive, createdBy, createdAt, updatedAt
         FROM flags
-        WHERE platform = ?1 AND environment = ?2 AND flagKey = ?3 AND version = ?4`
+        WHERE platform = ?1 AND environment = ?2 AND flagKey = ?3 AND version = ?4`,
       )
       .bind(platform, environment, flagKey, version)
       .first<D1FlagRow>();
@@ -310,7 +317,7 @@ export class D1FlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     limit: number = 100,
-    cursor?: string
+    cursor?: string,
   ): Promise<FlagPage> {
     // Parse cursor as offset (validates and throws on malformed cursors)
     const offset = parseCursor(cursor);
@@ -321,12 +328,14 @@ export class D1FlagRepository implements IFlagRepository {
         FROM flags
         WHERE platform = ?1 AND environment = ?2 AND isActive = 1
         ORDER BY createdAt DESC
-        LIMIT ?3 OFFSET ?4`
+        LIMIT ?3 OFFSET ?4`,
       )
       .bind(platform, environment, limit, offset)
       .all<D1FlagRow>();
 
-    const items = result.results ? result.results.map(row => this.rowToFlag(row)) : [];
+    const items = result.results
+      ? result.results.map((row) => this.rowToFlag(row))
+      : [];
     const hasMore = items.length === limit;
     const nextCursor = hasMore ? encodeCursor(offset + limit) : undefined;
 
@@ -343,19 +352,21 @@ export class D1FlagRepository implements IFlagRepository {
   async listVersions(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<Flag[]> {
     const result = await this.db
       .prepare(
         `SELECT platform, environment, flagKey, name, description, enabled, flagType, valueA, valueB, targeting, defaultValue, rolloutEnabled, rolloutPercentageA, rolloutPercentageB, version, isActive, createdBy, createdAt, updatedAt
         FROM flags
         WHERE platform = ?1 AND environment = ?2 AND flagKey = ?3
-        ORDER BY version DESC`
+        ORDER BY version DESC`,
       )
       .bind(platform, environment, flagKey)
       .all<D1FlagRow>();
 
-    return result.results ? result.results.map(row => this.rowToFlag(row)) : [];
+    return result.results
+      ? result.results.map((row) => this.rowToFlag(row))
+      : [];
   }
 
   /**
@@ -364,11 +375,11 @@ export class D1FlagRepository implements IFlagRepository {
   async delete(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<void> {
     const result = await this.db
       .prepare(
-        'DELETE FROM flags WHERE platform = ?1 AND environment = ?2 AND flagKey = ?3'
+        "DELETE FROM flags WHERE platform = ?1 AND environment = ?2 AND flagKey = ?3",
       )
       .bind(platform, environment, flagKey)
       .run();
@@ -384,7 +395,7 @@ export class D1FlagRepository implements IFlagRepository {
   async exists(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<boolean> {
     const flag = await this.getActive(platform, environment, flagKey);
     return flag !== null;
@@ -398,7 +409,7 @@ export class D1FlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    settings: UpdateRollout
+    settings: UpdateRollout,
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
@@ -414,7 +425,7 @@ export class D1FlagRepository implements IFlagRepository {
           rolloutPercentageA = ?2,
           rolloutPercentageB = ?3,
           updatedAt = ?4
-        WHERE platform = ?5 AND environment = ?6 AND flagKey = ?7 AND version = ?8`
+        WHERE platform = ?5 AND environment = ?6 AND flagKey = ?7 AND version = ?8`,
       )
       .bind(
         (settings.rolloutEnabled ?? current.rolloutEnabled) ? 1 : 0,
@@ -424,15 +435,17 @@ export class D1FlagRepository implements IFlagRepository {
         platform,
         environment,
         flagKey,
-        current.version
+        current.version,
       )
       .run();
 
     return {
       ...current,
       rolloutEnabled: settings.rolloutEnabled ?? current.rolloutEnabled,
-      rolloutPercentageA: settings.rolloutPercentageA ?? current.rolloutPercentageA,
-      rolloutPercentageB: settings.rolloutPercentageB ?? current.rolloutPercentageB,
+      rolloutPercentageA:
+        settings.rolloutPercentageA ?? current.rolloutPercentageA,
+      rolloutPercentageB:
+        settings.rolloutPercentageB ?? current.rolloutPercentageB,
       updatedAt: now,
     };
   }
@@ -461,13 +474,18 @@ export class D1FlagRepository implements IFlagRepository {
       name: row.name,
       description: row.description || undefined,
       enabled: Boolean(row.enabled),
-      flagType: row.flagType as 'boolean' | 'string' | 'number',
+      flagType: row.flagType as "boolean" | "string" | "number",
       valueA: this.safeParse(row.valueA, false),
       valueB: this.safeParse(row.valueB, false),
-      targeting: this.safeParse(row.targeting, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
-      defaultValue: row.defaultValue as 'A' | 'B',
+      targeting: this.safeParse(row.targeting, {
+        countries: [],
+        forceIncludeUsers: [],
+        forceExcludeUsers: [],
+      }),
+      defaultValue: row.defaultValue as "A" | "B",
       // Percentage rollout (defaults for backward compatibility)
-      rolloutEnabled: row.rolloutEnabled != null ? Boolean(row.rolloutEnabled) : false,
+      rolloutEnabled:
+        row.rolloutEnabled != null ? Boolean(row.rolloutEnabled) : false,
       rolloutPercentageA: row.rolloutPercentageA ?? 100,
       rolloutPercentageB: row.rolloutPercentageB ?? 0,
       version: row.version,

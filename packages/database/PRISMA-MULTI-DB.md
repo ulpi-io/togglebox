@@ -49,11 +49,11 @@ datasource db {
 
 ## Supported Databases
 
-| DB_TYPE | Prisma Provider | Connection String |
-|---------|----------------|-------------------|
-| `mysql` | `mysql` | `MYSQL_URL=mysql://user:pass@host:3306/db` |
-| `postgresql` | `postgresql` | `POSTGRES_URL=postgresql://user:pass@host:5432/db` |
-| `sqlite` | `sqlite` | `SQLITE_FILE=./data/config.db` |
+| DB_TYPE      | Prisma Provider | Connection String                                  |
+| ------------ | --------------- | -------------------------------------------------- |
+| `mysql`      | `mysql`         | `MYSQL_URL=mysql://user:pass@host:3306/db`         |
+| `postgresql` | `postgresql`    | `POSTGRES_URL=postgresql://user:pass@host:5432/db` |
+| `sqlite`     | `sqlite`        | `SQLITE_FILE=./data/config.db`                     |
 
 ## Examples
 
@@ -131,11 +131,13 @@ RUN pnpm --filter @config/database prisma:generate
 ## Why Not Multiple Schema Files?
 
 We could have separate files like:
+
 - `schema.mysql.prisma`
 - `schema.postgresql.prisma`
 - `schema.sqlite.prisma`
 
 But this would require:
+
 - Duplicating the entire schema (harder to maintain)
 - Changing Prisma commands to specify the schema file
 - More complexity in deployment scripts
@@ -171,11 +173,13 @@ export DATABASE_URL=$POSTGRES_URL
 The schema file is in `packages/database/prisma/schema.prisma`.
 
 Check it was updated:
+
 ```bash
 cat packages/database/prisma/schema.prisma | grep provider
 ```
 
 Should show:
+
 ```
   provider = "postgresql"  # or your DB_TYPE
 ```

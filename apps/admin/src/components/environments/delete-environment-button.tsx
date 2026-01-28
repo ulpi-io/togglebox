@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { deleteEnvironmentApi } from '@/lib/api/platforms';
-import { Button } from '@togglebox/ui';
+import { useState } from "react";
+import { deleteEnvironmentApi } from "@/lib/api/platforms";
+import { Button } from "@togglebox/ui";
 
 interface DeleteEnvironmentButtonProps {
   platform: string;
@@ -10,7 +10,11 @@ interface DeleteEnvironmentButtonProps {
   onSuccess?: () => void;
 }
 
-export function DeleteEnvironmentButton({ platform, environment, onSuccess }: DeleteEnvironmentButtonProps) {
+export function DeleteEnvironmentButton({
+  platform,
+  environment,
+  onSuccess,
+}: DeleteEnvironmentButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -22,7 +26,9 @@ export function DeleteEnvironmentButton({ platform, environment, onSuccess }: De
         onSuccess();
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete environment');
+      alert(
+        err instanceof Error ? err.message : "Failed to delete environment",
+      );
       setIsDeleting(false);
     }
   }
@@ -36,7 +42,7 @@ export function DeleteEnvironmentButton({ platform, environment, onSuccess }: De
           onClick={handleDelete}
           disabled={isDeleting}
         >
-          {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+          {isDeleting ? "Deleting..." : "Confirm Delete"}
         </Button>
         <Button
           variant="outline"

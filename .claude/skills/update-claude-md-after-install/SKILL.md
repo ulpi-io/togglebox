@@ -14,6 +14,7 @@ After installing framework agents, CLAUDE.md and its imported files contain gene
 ## When to Use
 
 Use this skill when:
+
 - **Initial install:** User just installed agents and CLAUDE.md has generic examples
 - **Project start:** Beginning work on a project for the first time
 - **Key milestones:** After major architecture changes, new custom commands added, team conventions updated
@@ -21,6 +22,7 @@ Use this skill when:
 - **Discovery gaps:** CLAUDE.md outdated or missing new project patterns
 
 **Symptoms:**
+
 - CLAUDE.md has comments like "customize for your project"
 - project-commands.md shows `app:sync-users` but project has different commands
 - architecture.md describes patterns the project doesn't use
@@ -31,16 +33,21 @@ Use this skill when:
 ## Discovery Modes
 
 ### Full Discovery (Initial Install)
+
 Run all discovery steps to build complete project documentation from generic templates.
 
 ### Incremental Update (Periodic Refresh)
+
 Focus on what changed:
+
 1. Check for new custom commands added since last update
 2. Scan for architecture changes (new queues, services, patterns)
 3. Review for updated team conventions
 
 ### Targeted Update (Specific Change)
+
 User says "I just added multi-tenancy" or "we have new deployment scripts":
+
 1. Discover only the mentioned area
 2. Update relevant section
 3. Verify no conflicts with existing documentation
@@ -55,6 +62,7 @@ Follow these steps systematically. Use TodoWrite to track progress.
 I'm using the **update-claude-md-after-install** skill to discover your actual project patterns.
 
 I'll systematically analyze:
+
 1. Custom artisan commands
 2. Architecture patterns
 3. Team conventions
@@ -65,6 +73,7 @@ This ensures CLAUDE.md matches your real project.
 ### Step 2: Discover Custom Commands
 
 **What to look for:**
+
 - Custom artisan commands in `app/Console/Commands/`
 - Deployment scripts (`deploy.sh`, `rollback.sh`, etc.)
 - Package.json scripts
@@ -84,6 +93,7 @@ cat package.json | grep -A 20 "\"scripts\""
 ```
 
 **What to extract:**
+
 - Command signature (e.g., `php artisan app:command-name`, `npm run custom-task`, `yarn workspace:sync`)
 - Description from docblock, comments, or help text
 - When it's used (schedule, manual, deployment)
@@ -93,6 +103,7 @@ cat package.json | grep -A 20 "\"scripts\""
 ### Step 3: Discover Architecture Patterns
 
 **What to look for:**
+
 - Multi-tenancy: Search for `TenantScope`, `tenant_id`, subdomain resolution
 - Event-driven: Check `app/Events/`, `app/Listeners/`, event service providers
 - API versioning: Look in `routes/api.php` for `/v1/`, `/v2/` patterns
@@ -117,6 +128,7 @@ cat config/horizon.php 2>/dev/null || cat config/queue.php
 ```
 
 **What to extract:**
+
 - Actual patterns used (not generic possibilities)
 - Specific configuration values (queue names, worker counts, retry strategies)
 - Technology choices (which packages, which drivers)
@@ -126,6 +138,7 @@ cat config/horizon.php 2>/dev/null || cat config/queue.php
 ### Step 4: Discover Team Conventions
 
 **What to look for:**
+
 - Git workflow in `.github/PULL_REQUEST_TEMPLATE.md` or `CONTRIBUTING.md`
 - CI/CD configuration in `.github/workflows/` for test requirements
 - Code review standards in documentation
@@ -149,6 +162,7 @@ grep "coverage" phpunit.xml 2>/dev/null
 ```
 
 **What to extract:**
+
 - Approval requirements (how many reviewers)
 - Testing standards (coverage %, required test types)
 - Git branch naming conventions
@@ -161,6 +175,7 @@ grep "coverage" phpunit.xml 2>/dev/null
 **First, discover ALL imported files:**
 
 Read root CLAUDE.md and find all `@` imports. Common pattern:
+
 ```markdown
 @.claude/claude-md-refs/project-commands.md
 @.claude/claude-md-refs/architecture.md
@@ -168,6 +183,7 @@ Read root CLAUDE.md and find all `@` imports. Common pattern:
 ```
 
 But projects may have additional imports like:
+
 ```markdown
 @.claude/claude-md-refs/deployment-guide.md
 @.claude/claude-md-refs/testing-strategy.md
@@ -197,6 +213,7 @@ For EACH file found via `@` imports:
 4. **Verify updates** by reading the file again
 
 Common imported files:
+
 ```
 .claude/claude-md-refs/
 ├── project-commands.md - Custom commands, deployment scripts
@@ -208,6 +225,7 @@ Common imported files:
 **CRITICAL:** Update ALL files (root CLAUDE.md + every @imported file) so complete documentation matches the actual project.
 
 **Before updating:**
+
 1. Read root CLAUDE.md
 2. Extract ALL `@import` paths (lines starting with `@`)
 3. Read each imported file to understand its purpose
@@ -215,12 +233,14 @@ Common imported files:
 5. Have discovered information for all files
 
 **Update strategy:**
+
 - **Root CLAUDE.md**: Replace generic framework examples with project-specific ones
 - **Imported files**: Replace ALL generic examples with discovered patterns
 - **Keep**: Framework best practices and structure
 - **Remove**: Sections describing patterns the project doesn't use
 
 **After updating:**
+
 1. Read root CLAUDE.md to verify updates
 2. Read EVERY imported file (from `@` paths) to verify updates
 3. Verify ALL @imports still resolve correctly
@@ -231,12 +251,14 @@ Common imported files:
 Before completing, verify:
 
 **Root CLAUDE.md:**
+
 - [ ] Project Commands section has actual commands, not just generic examples
 - [ ] Code Style matches project (if different from framework defaults)
 - [ ] File Organization reflects actual project structure
 - [ ] All framework sections match how project actually uses the framework
 
 **All Imported Files (discovered via @ imports):**
+
 - [ ] Extracted all @import paths from root CLAUDE.md
 - [ ] Read every imported file to understand its purpose
 - [ ] Updated every imported file with discovered project patterns
@@ -247,6 +269,7 @@ Before completing, verify:
   - [ ] [any additional imported files found]
 
 **Both Root and All Imported Files:**
+
 - [ ] No generic placeholders like "customize for your project" remain in ANY file
 - [ ] ALL @imports in root CLAUDE.md resolve correctly
 - [ ] ALL files (root + every imported file) use real project examples
@@ -254,16 +277,16 @@ Before completing, verify:
 
 ## Common Mistakes
 
-| Mistake | Fix |
-|---------|-----|
-| Keeping generic examples | Replace with discovered real examples |
-| Asking user instead of discovering | Analyze codebase first, ask only for clarification |
-| Superficial updates (just project name) | Do thorough discovery of actual patterns |
-| Only updating root CLAUDE.md | Update root CLAUDE.md AND ALL @imported files |
-| Only updating known imported files | Discover ALL @import paths dynamically, update every file |
-| Missing some imported files | Extract ALL lines starting with @ from CLAUDE.md |
-| Not verifying updates work | Read ALL files after updating to confirm |
-| Skipping discovery under time pressure | Discovery takes 2-3 minutes, prevents incorrect documentation |
+| Mistake                                 | Fix                                                           |
+| --------------------------------------- | ------------------------------------------------------------- |
+| Keeping generic examples                | Replace with discovered real examples                         |
+| Asking user instead of discovering      | Analyze codebase first, ask only for clarification            |
+| Superficial updates (just project name) | Do thorough discovery of actual patterns                      |
+| Only updating root CLAUDE.md            | Update root CLAUDE.md AND ALL @imported files                 |
+| Only updating known imported files      | Discover ALL @import paths dynamically, update every file     |
+| Missing some imported files             | Extract ALL lines starting with @ from CLAUDE.md              |
+| Not verifying updates work              | Read ALL files after updating to confirm                      |
+| Skipping discovery under time pressure  | Discovery takes 2-3 minutes, prevents incorrect documentation |
 
 ## What If Discovery Finds Nothing?
 
@@ -282,8 +305,10 @@ If discovery doesn't find project-specific patterns:
 **Laravel Project Example:**
 
 Before (generic):
+
 ```markdown
 ## Custom Artisan Commands
+
 - `php artisan app:sync-users` - Sync users from external service
 - `php artisan app:generate-reports` - Generate monthly reports
 ```
@@ -291,8 +316,10 @@ Before (generic):
 After discovery finds: `app/Console/Commands/ImportOrdersCommand.php` and `app/Console/Commands/SendDailySummaryCommand.php`
 
 After (updated):
+
 ```markdown
 ## Custom Artisan Commands
+
 - `php artisan app:import-orders {source}` - Import orders from external platform (Shopify, WooCommerce)
 - `php artisan app:send-daily-summary` - Send daily summary emails to admin users (runs at 8am via scheduler)
 ```
@@ -300,8 +327,10 @@ After (updated):
 **Express/Node.js Project Example:**
 
 Before (generic):
+
 ```markdown
 ## Custom NPM Scripts
+
 - `npm run sync:data` - Sync data from external service
 - `npm run generate:reports` - Generate monthly reports
 ```
@@ -309,13 +338,16 @@ Before (generic):
 After discovery finds scripts in `package.json` and files in `src/scripts/`
 
 After (updated):
+
 ```markdown
 ## Custom NPM Scripts
+
 - `npm run import:orders -- --source=shopify` - Import orders from Shopify API
 - `npm run email:daily-summary` - Send daily summary emails (runs via cron at 8am)
 ```
 
 Notice:
+
 - Generic examples replaced with actual commands
 - Real descriptions from command docblocks
 - Usage context added (what it does, when it runs)
@@ -325,6 +357,7 @@ Notice:
 ### If user says "I'm in a hurry, just quickly update it":
 
 **Response:**
+
 ```
 I understand you're in a hurry. However, thorough discovery takes only 2-3 minutes and ensures
 your CLAUDE.md has accurate information. Incorrect documentation causes confusion later.
@@ -338,21 +371,22 @@ This prevents having to redo it when generic examples cause problems.
 
 ### Common Rationalizations to Reject
 
-| Rationalization | Reality |
-|-----------------|---------|
-| "Just update the obvious parts" | Discovery finds non-obvious patterns. Do full scan. |
-| "I'll tell you what to update" | Codebase is source of truth. Discover first, ask for clarification. |
-| "User seems busy, don't bother them" | Users WANT accurate docs. 2-3 minutes now saves hours later. |
+| Rationalization                          | Reality                                                                |
+| ---------------------------------------- | ---------------------------------------------------------------------- |
+| "Just update the obvious parts"          | Discovery finds non-obvious patterns. Do full scan.                    |
+| "I'll tell you what to update"           | Codebase is source of truth. Discover first, ask for clarification.    |
+| "User seems busy, don't bother them"     | Users WANT accurate docs. 2-3 minutes now saves hours later.           |
 | "Generic examples are fine as templates" | Generic examples confuse and cause errors. Replace with real patterns. |
-| "I can skip the imported files" | Imported files are loaded by Claude. Update ALL files. |
-| "Just update project-commands.md" | Architecture and conventions matter too. Update all three minimum. |
-| "I'll just update what I find" | Extract ALL @imports first. Update every discovered file. |
+| "I can skip the imported files"          | Imported files are loaded by Claude. Update ALL files.                 |
+| "Just update project-commands.md"        | Architecture and conventions matter too. Update all three minimum.     |
+| "I'll just update what I find"           | Extract ALL @imports first. Update every discovered file.              |
 
 **All of these mean: Do full discovery, update ALL files (root + all imports).**
 
 ### Red Flags - STOP and Start Over
 
 If you catch yourself doing any of these, STOP:
+
 - ❌ Updating only root CLAUDE.md without checking for imports
 - ❌ Keeping generic examples because "they're close enough"
 - ❌ Asking user what to update instead of discovering
@@ -365,11 +399,13 @@ If you catch yourself doing any of these, STOP:
 ## Integration with Other Skills
 
 This skill works after:
+
 - Installing agents via the installer
 - CLAUDE.md has been copied to project root
 - claude-md-refs/ folder exists with template files
 
 This skill prepares for:
+
 - Using Claude Code with accurate project context
 - Agents having real examples instead of placeholders
 - Future developers understanding actual project patterns
@@ -403,4 +439,4 @@ This skill prepares for:
 
 ---
 
-*This skill ensures CLAUDE.md and ALL imported files match the actual project, not generic templates.*
+_This skill ensures CLAUDE.md and ALL imported files match the actual project, not generic templates._

@@ -31,25 +31,25 @@ npx expo run:ios # or npx expo run:android
 ### Open Source Self-Hosted
 
 ```tsx
-import { ToggleBoxProvider } from '@togglebox/sdk-expo'
+import { ToggleBoxProvider } from "@togglebox/sdk-expo";
 
 export default function App() {
   return (
     <ToggleBoxProvider
       platform="mobile"
-      environment={__DEV__ ? 'development' : 'production'}
+      environment={__DEV__ ? "development" : "production"}
       apiUrl="https://api.yourcompany.com"
     >
       <MainApp />
     </ToggleBoxProvider>
-  )
+  );
 }
 ```
 
 ### Cloud Multi-Tenant
 
 ```tsx
-import { ToggleBoxProvider } from '@togglebox/sdk-expo'
+import { ToggleBoxProvider } from "@togglebox/sdk-expo";
 
 export default function App() {
   return (
@@ -60,7 +60,7 @@ export default function App() {
     >
       <MainApp />
     </ToggleBoxProvider>
-  )
+  );
 }
 ```
 
@@ -70,17 +70,18 @@ export default function App() {
 
 ToggleBox provides three complementary systems:
 
-| Tier | System | Hook | Use Case |
-|------|--------|------|----------|
-| 1 | Remote Configs | `useConfig()` | Static settings, themes |
-| 2 | Feature Flags | `useFlag()` | On/off switches with targeting |
-| 3 | Experiments | `useExperiment()` | Multi-variant A/B testing |
+| Tier | System         | Hook              | Use Case                       |
+| ---- | -------------- | ----------------- | ------------------------------ |
+| 1    | Remote Configs | `useConfig()`     | Static settings, themes        |
+| 2    | Feature Flags  | `useFlag()`       | On/off switches with targeting |
+| 3    | Experiments    | `useExperiment()` | Multi-variant A/B testing      |
 
 ---
 
 ## Tier 1: Remote Configs
 
 Remote configs are **versioned, immutable snapshots** of application settings. Use them for:
+
 - API endpoints and service URLs
 - UI themes and branding
 - Default values and limits
@@ -89,13 +90,13 @@ Remote configs are **versioned, immutable snapshots** of application settings. U
 ### Using Configuration
 
 ```tsx
-import { useConfig } from '@togglebox/sdk-expo'
-import { View, Text, ActivityIndicator } from 'react-native'
+import { useConfig } from "@togglebox/sdk-expo";
+import { View, Text, ActivityIndicator } from "react-native";
 
 function SettingsScreen() {
-  const { config, isLoading } = useConfig()
+  const { config, isLoading } = useConfig();
 
-  if (isLoading && !config) return <ActivityIndicator size="large" />
+  if (isLoading && !config) return <ActivityIndicator size="large" />;
 
   return (
     <View>
@@ -105,22 +106,22 @@ function SettingsScreen() {
       <Text>API Endpoint: {config?.apiBaseUrl}</Text>
       <Text>Max Upload: {config?.limits?.maxUploadSize} bytes</Text>
     </View>
-  )
+  );
 }
 ```
 
 ### Theming with Config
 
 ```tsx
-import { useConfig } from '@togglebox/sdk-expo'
-import { ThemeProvider } from '@react-navigation/native'
+import { useConfig } from "@togglebox/sdk-expo";
+import { ThemeProvider } from "@react-navigation/native";
 
 function AppTheme({ children }: { children: React.ReactNode }) {
-  const { config, isLoading } = useConfig()
+  const { config, isLoading } = useConfig();
 
-  if (isLoading && !config) return <SplashScreen />
+  if (isLoading && !config) return <SplashScreen />;
 
-  const theme = config?.theme || defaultTheme
+  const theme = config?.theme || defaultTheme;
 
   return (
     <ThemeProvider
@@ -138,7 +139,7 @@ function AppTheme({ children }: { children: React.ReactNode }) {
     >
       {children}
     </ThemeProvider>
-  )
+  );
 }
 ```
 
@@ -147,6 +148,7 @@ function AppTheme({ children }: { children: React.ReactNode }) {
 ## Tier 2: Feature Flags
 
 Feature flags are **2-value switches** (A or B) with targeting rules. Use them for:
+
 - Gradual rollouts (1% → 10% → 50% → 100%)
 - Country/language targeting
 - User-specific features (beta users, premium plans)
@@ -155,31 +157,31 @@ Feature flags are **2-value switches** (A or B) with targeting rules. Use them f
 ### Check Flag Enabled
 
 ```tsx
-import { useFlag, useFlags } from '@togglebox/sdk-expo'
-import { View } from 'react-native'
+import { useFlag, useFlags } from "@togglebox/sdk-expo";
+import { View } from "react-native";
 
 function HomeScreen() {
-  const { checkEnabled, isLoading } = useFlag('new-home-ui')
-  const [showNewUI, setShowNewUI] = useState(false)
+  const { checkEnabled, isLoading } = useFlag("new-home-ui");
+  const [showNewUI, setShowNewUI] = useState(false);
 
   useEffect(() => {
-    checkEnabled().then(setShowNewUI)
-  }, [checkEnabled])
+    checkEnabled().then(setShowNewUI);
+  }, [checkEnabled]);
 
-  if (isLoading) return <LoadingSpinner />
+  if (isLoading) return <LoadingSpinner />;
 
-  return showNewUI ? <NewHomeUI /> : <LegacyHomeUI />
+  return showNewUI ? <NewHomeUI /> : <LegacyHomeUI />;
 }
 ```
 
 ### Get All Flags
 
 ```tsx
-import { useFlags } from '@togglebox/sdk-expo'
-import { View, Text, FlatList } from 'react-native'
+import { useFlags } from "@togglebox/sdk-expo";
+import { View, Text, FlatList } from "react-native";
 
 function FeatureFlagDebugger() {
-  const { flags } = useFlags()
+  const { flags } = useFlags();
 
   return (
     <FlatList
@@ -187,11 +189,13 @@ function FeatureFlagDebugger() {
       keyExtractor={(item) => item.flagKey}
       renderItem={({ item }) => (
         <View>
-          <Text>{item.flagKey}: {item.enabled ? 'ON' : 'OFF'}</Text>
+          <Text>
+            {item.flagKey}: {item.enabled ? "ON" : "OFF"}
+          </Text>
         </View>
       )}
     />
-  )
+  );
 }
 ```
 
@@ -200,6 +204,7 @@ function FeatureFlagDebugger() {
 ## Tier 3: Experiments
 
 Experiments enable **multi-variant A/B testing** with statistical tracking. Use them for:
+
 - Testing multiple UI variations
 - Measuring conversion impact
 - Data-driven product decisions
@@ -207,29 +212,29 @@ Experiments enable **multi-variant A/B testing** with statistical tracking. Use 
 ### Get Experiment Variant
 
 ```tsx
-import { useExperiment } from '@togglebox/sdk-expo'
-import { useAuth } from './auth'
+import { useExperiment } from "@togglebox/sdk-expo";
+import { useAuth } from "./auth";
 
 function OnboardingFlow() {
-  const { user } = useAuth()
-  const { isLoading, getVariant } = useExperiment('onboarding-experiment', {
-    userId: user?.id || 'anonymous',
-  })
-  const [variant, setVariant] = useState<string | null>(null)
+  const { user } = useAuth();
+  const { isLoading, getVariant } = useExperiment("onboarding-experiment", {
+    userId: user?.id || "anonymous",
+  });
+  const [variant, setVariant] = useState<string | null>(null);
 
   useEffect(() => {
-    getVariant().then(setVariant)
-  }, [getVariant])
+    getVariant().then(setVariant);
+  }, [getVariant]);
 
-  if (isLoading) return <LoadingSpinner />
+  if (isLoading) return <LoadingSpinner />;
 
   switch (variant) {
-    case 'simplified':
-      return <SimplifiedOnboarding />
-    case 'gamified':
-      return <GamifiedOnboarding />
+    case "simplified":
+      return <SimplifiedOnboarding />;
+    case "gamified":
+      return <GamifiedOnboarding />;
     default:
-      return <StandardOnboarding />
+      return <StandardOnboarding />;
   }
 }
 ```
@@ -239,70 +244,73 @@ function OnboardingFlow() {
 Track user conversions to measure experiment effectiveness:
 
 ```tsx
-import { useAnalytics } from '@togglebox/sdk-expo'
+import { useAnalytics } from "@togglebox/sdk-expo";
 
-function PurchaseButton({ userId, cartTotal }: { userId: string; cartTotal: number }) {
-  const { trackConversion, flushStats } = useAnalytics()
+function PurchaseButton({
+  userId,
+  cartTotal,
+}: {
+  userId: string;
+  cartTotal: number;
+}) {
+  const { trackConversion, flushStats } = useAnalytics();
 
   const handlePurchase = async () => {
     // Process payment...
 
     // Track the conversion
     await trackConversion(
-      'checkout-experiment',
+      "checkout-experiment",
       { userId },
       {
-        metricName: 'purchase',
+        metricName: "purchase",
         value: cartTotal,
-      }
-    )
+      },
+    );
 
     // Optionally flush stats immediately
-    await flushStats()
-  }
+    await flushStats();
+  };
 
-  return (
-    <Button title="Complete Purchase" onPress={handlePurchase} />
-  )
+  return <Button title="Complete Purchase" onPress={handlePurchase} />;
 }
 ```
 
 ### Complete A/B Test Example
 
 ```tsx
-import { useExperiment, useAnalytics } from '@togglebox/sdk-expo'
-import { View, Button, Text } from 'react-native'
+import { useExperiment, useAnalytics } from "@togglebox/sdk-expo";
+import { View, Button, Text } from "react-native";
 
 function SignupButton() {
-  const { user } = useAuth()
-  const context = { userId: user?.id || 'anonymous' }
-  const { getVariant } = useExperiment('signup-cta-experiment', context)
-  const { trackConversion } = useAnalytics()
-  const [variant, setVariant] = useState<string | null>(null)
+  const { user } = useAuth();
+  const context = { userId: user?.id || "anonymous" };
+  const { getVariant } = useExperiment("signup-cta-experiment", context);
+  const { trackConversion } = useAnalytics();
+  const [variant, setVariant] = useState<string | null>(null);
 
   useEffect(() => {
-    getVariant().then(setVariant)
-  }, [getVariant])
+    getVariant().then(setVariant);
+  }, [getVariant]);
 
   const handleSignup = async () => {
     // Track the conversion
-    await trackConversion('signup-cta-experiment', context, {
-      metricName: 'signup_click',
-    })
+    await trackConversion("signup-cta-experiment", context, {
+      metricName: "signup_click",
+    });
 
     // Navigate to signup...
-  }
+  };
 
   // Render different button text based on variant
-  const buttonText = variant === 'friendly'
-    ? 'Join the family!'
-    : variant === 'urgent'
-    ? 'Sign up now - Limited time!'
-    : 'Create Account'
+  const buttonText =
+    variant === "friendly"
+      ? "Join the family!"
+      : variant === "urgent"
+        ? "Sign up now - Limited time!"
+        : "Create Account";
 
-  return (
-    <Button title={buttonText} onPress={handleSignup} />
-  )
+  return <Button title={buttonText} onPress={handleSignup} />;
 }
 ```
 
@@ -315,16 +323,16 @@ Context is used for targeting rules in flags and experiments. Update it when use
 ### Dynamic Context Updates
 
 ```tsx
-import { useFlags } from '@togglebox/sdk-expo'
-import { useAuth } from './auth'
-import { useLocale } from './locale'
-import * as Application from 'expo-application'
-import { Platform } from 'react-native'
+import { useFlags } from "@togglebox/sdk-expo";
+import { useAuth } from "./auth";
+import { useLocale } from "./locale";
+import * as Application from "expo-application";
+import { Platform } from "react-native";
 
 function ContextManager({ children }: { children: React.ReactNode }) {
-  const { user, isLoading: authLoading } = useAuth()
-  const locale = useLocale()
-  const { isFlagEnabled } = useFlags()
+  const { user, isLoading: authLoading } = useAuth();
+  const locale = useLocale();
+  const { isFlagEnabled } = useFlags();
 
   // NOTE: The provider doesn't expose setContext directly
   // Context is passed per-evaluation instead
@@ -332,37 +340,37 @@ function ContextManager({ children }: { children: React.ReactNode }) {
   // Example: Evaluate flag with full context
   useEffect(() => {
     const context = {
-      userId: user?.id || 'anonymous',
+      userId: user?.id || "anonymous",
       userEmail: user?.email,
-      country: locale.region || 'US',
-      language: locale.language || 'en',
-      plan: user?.subscription?.plan || 'free',
-      appVersion: Application.nativeApplicationVersion || '1.0.0',
+      country: locale.region || "US",
+      language: locale.language || "en",
+      plan: user?.subscription?.plan || "free",
+      appVersion: Application.nativeApplicationVersion || "1.0.0",
       platform: Platform.OS, // 'ios' or 'android'
-    }
+    };
 
     // Use context in evaluations
-    isFlagEnabled('premium-features', context).then((enabled) => {
+    isFlagEnabled("premium-features", context).then((enabled) => {
       // Handle result
-    })
-  }, [user, locale])
+    });
+  }, [user, locale]);
 
-  return <>{children}</>
+  return <>{children}</>;
 }
 ```
 
 ### Context Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `userId` | string | Unique user identifier (required for consistent hashing) |
-| `userEmail` | string | User email for targeting |
-| `country` | string | ISO country code (e.g., 'US', 'GB') |
-| `language` | string | Language code (e.g., 'en', 'fr') |
-| `plan` | string | Subscription plan for targeting |
-| `appVersion` | string | App version for version-specific rollouts |
-| `platform` | string | 'ios' or 'android' for platform-specific flags |
-| `*` | any | Custom attributes for targeting rules |
+| Property     | Type   | Description                                              |
+| ------------ | ------ | -------------------------------------------------------- |
+| `userId`     | string | Unique user identifier (required for consistent hashing) |
+| `userEmail`  | string | User email for targeting                                 |
+| `country`    | string | ISO country code (e.g., 'US', 'GB')                      |
+| `language`   | string | Language code (e.g., 'en', 'fr')                         |
+| `plan`       | string | Subscription plan for targeting                          |
+| `appVersion` | string | App version for version-specific rollouts                |
+| `platform`   | string | 'ios' or 'android' for platform-specific flags           |
+| `*`          | any    | Custom attributes for targeting rules                    |
 
 ---
 
@@ -374,25 +382,20 @@ function ContextManager({ children }: { children: React.ReactNode }) {
 <ToggleBoxProvider
   // Required
   platform="mobile"
-  environment={__DEV__ ? 'development' : 'production'}
-
+  environment={__DEV__ ? "development" : "production"}
   // API Configuration (choose one)
   apiUrl="https://api.yourcompany.com"
   // OR
   tenantSubdomain="acme"
-
   // Optional: Version pinning
-  configVersion="2.0.0"  // Pin to specific version
-
+  configVersion="2.0.0" // Pin to specific version
   // Optional: Caching
   cache={{
     enabled: true,
     ttl: 300000, // 5 minutes
   }}
-
   // Optional: Auto-refresh
   pollingInterval={300000} // Poll every 5 minutes
-
   // Optional: Offline persistence
   persistToStorage={true}
   storageTTL={86400000} // 24 hours
@@ -406,36 +409,36 @@ function ContextManager({ children }: { children: React.ReactNode }) {
 ```typescript
 interface ToggleBoxProviderProps {
   /** Platform name (e.g., 'mobile', 'ios', 'android') */
-  platform: string
+  platform: string;
 
   /** Environment name (e.g., 'production', 'staging', 'development') */
-  environment: string
+  environment: string;
 
   /** API base URL (for open source self-hosted) */
-  apiUrl?: string
+  apiUrl?: string;
 
   /** Tenant subdomain for cloud deployments */
-  tenantSubdomain?: string
+  tenantSubdomain?: string;
 
   /** Config version to fetch (default: 'stable') */
-  configVersion?: string
+  configVersion?: string;
 
   /** Cache configuration */
   cache?: {
-    enabled: boolean
-    ttl: number
-  }
+    enabled: boolean;
+    ttl: number;
+  };
 
   /** Auto-refresh polling interval in milliseconds (0 to disable) */
-  pollingInterval?: number
+  pollingInterval?: number;
 
   /** Enable persistent storage with MMKV */
-  persistToStorage?: boolean
+  persistToStorage?: boolean;
 
   /** Storage TTL in milliseconds (default: 24 hours) */
-  storageTTL?: number
+  storageTTL?: number;
 
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 ```
 
@@ -462,6 +465,7 @@ Enable offline support with high-performance MMKV storage.
 ### How It Works
 
 With persistence enabled:
+
 1. Configuration is cached in MMKV (high-performance native storage)
 2. App works offline using cached data
 3. Fresh data is fetched in background when online
@@ -470,28 +474,28 @@ With persistence enabled:
 ### Offline Indicator
 
 ```tsx
-import NetInfo from '@react-native-community/netinfo'
-import { useConfig } from '@togglebox/sdk-expo'
-import { View, Text } from 'react-native'
+import NetInfo from "@react-native-community/netinfo";
+import { useConfig } from "@togglebox/sdk-expo";
+import { View, Text } from "react-native";
 
 function OfflineBanner() {
-  const { config } = useConfig()
-  const [isOnline, setIsOnline] = useState(true)
+  const { config } = useConfig();
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
-      setIsOnline(state.isConnected ?? false)
-    })
-    return unsubscribe
-  }, [])
+      setIsOnline(state.isConnected ?? false);
+    });
+    return unsubscribe;
+  }, []);
 
-  if (isOnline || !config) return null
+  if (isOnline || !config) return null;
 
   return (
-    <View style={{ backgroundColor: '#ffcc00', padding: 8 }}>
+    <View style={{ backgroundColor: "#ffcc00", padding: 8 }}>
       <Text>Using cached configuration (offline)</Text>
     </View>
-  )
+  );
 }
 ```
 
@@ -499,12 +503,12 @@ function OfflineBanner() {
 
 We use [react-native-mmkv](https://github.com/mrousavy/react-native-mmkv) instead of AsyncStorage for several reasons:
 
-| Feature | MMKV | AsyncStorage |
-|---------|------|--------------|
-| Performance | ~30x faster | Slow |
-| API | Synchronous | Async only |
+| Feature     | MMKV                   | AsyncStorage           |
+| ----------- | ---------------------- | ---------------------- |
+| Performance | ~30x faster            | Slow                   |
+| API         | Synchronous            | Async only             |
 | Reliability | Battle-tested (WeChat) | Known data loss issues |
-| Size limit | No practical limit | 6MB on Android |
+| Size limit  | No practical limit     | 6MB on Android         |
 
 ---
 
@@ -516,12 +520,12 @@ Access configuration with methods:
 
 ```tsx
 const {
-  config,           // Config | null
-  getConfigValue,   // <T>(key: string, defaultValue: T) => Promise<T>
-  isLoading,        // boolean
-  error,            // Error | null
-  refresh,          // () => Promise<void>
-} = useConfig()
+  config, // Config | null
+  getConfigValue, // <T>(key: string, defaultValue: T) => Promise<T>
+  isLoading, // boolean
+  error, // Error | null
+  refresh, // () => Promise<void>
+} = useConfig();
 ```
 
 ### useFlags
@@ -530,12 +534,12 @@ Access all feature flags with evaluation:
 
 ```tsx
 const {
-  flags,            // Flag[]
-  isFlagEnabled,    // (flagKey: string, context?: FlagContext) => Promise<boolean>
-  isLoading,        // boolean
-  error,            // Error | null
-  refresh,          // () => Promise<void>
-} = useFlags()
+  flags, // Flag[]
+  isFlagEnabled, // (flagKey: string, context?: FlagContext) => Promise<boolean>
+  isLoading, // boolean
+  error, // Error | null
+  refresh, // () => Promise<void>
+} = useFlags();
 ```
 
 ### useFlag
@@ -543,7 +547,7 @@ const {
 Access a specific feature flag:
 
 ```tsx
-const { flag, exists, isLoading, checkEnabled } = useFlag('my-flag')
+const { flag, exists, isLoading, checkEnabled } = useFlag("my-flag");
 // flag: Flag | undefined
 // exists: boolean
 // isLoading: boolean
@@ -556,12 +560,12 @@ Access all experiments with variant assignment:
 
 ```tsx
 const {
-  experiments,      // Experiment[]
-  getVariant,       // (experimentKey: string, context: ExperimentContext) => Promise<string | null>
-  isLoading,        // boolean
-  error,            // Error | null
-  refresh,          // () => Promise<void>
-} = useExperiments()
+  experiments, // Experiment[]
+  getVariant, // (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+  isLoading, // boolean
+  error, // Error | null
+  refresh, // () => Promise<void>
+} = useExperiments();
 ```
 
 ### useExperiment
@@ -569,9 +573,12 @@ const {
 Access a specific experiment:
 
 ```tsx
-const { experiment, exists, isLoading, getVariant } = useExperiment('my-experiment', {
-  userId: 'user-123',
-})
+const { experiment, exists, isLoading, getVariant } = useExperiment(
+  "my-experiment",
+  {
+    userId: "user-123",
+  },
+);
 // experiment: Experiment | undefined
 // exists: boolean
 // isLoading: boolean
@@ -584,10 +591,10 @@ Access analytics and event tracking:
 
 ```tsx
 const {
-  trackEvent,       // (eventName: string, context: ExperimentContext, data?: EventData) => void
-  trackConversion,  // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
-  flushStats,       // () => Promise<void>
-} = useAnalytics()
+  trackEvent, // (eventName: string, context: ExperimentContext, data?: EventData) => void
+  trackConversion, // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
+  flushStats, // () => Promise<void>
+} = useAnalytics();
 ```
 
 ### useToggleBoxClient
@@ -595,7 +602,7 @@ const {
 Access the raw ToggleBox client for advanced use cases:
 
 ```tsx
-const client = useToggleBoxClient()
+const client = useToggleBoxClient();
 // Returns ToggleBoxClient | null
 ```
 
@@ -610,9 +617,9 @@ const client = useToggleBoxClient()
   platform="mobile"
   environment="production"
   apiUrl="https://api.yourcompany.com"
-  pollingInterval={300000}   // Poll every 5 minutes
-  persistToStorage={true}    // Cache in MMKV
-  storageTTL={86400000}      // 24 hour cache
+  pollingInterval={300000} // Poll every 5 minutes
+  persistToStorage={true} // Cache in MMKV
+  storageTTL={86400000} // 24 hour cache
 >
   {children}
 </ToggleBoxProvider>
@@ -621,55 +628,52 @@ const client = useToggleBoxClient()
 ### Pull-to-Refresh
 
 ```tsx
-import { RefreshControl, ScrollView } from 'react-native'
-import { useConfig } from '@togglebox/sdk-expo'
+import { RefreshControl, ScrollView } from "react-native";
+import { useConfig } from "@togglebox/sdk-expo";
 
 function MyScreen() {
-  const { refresh, isLoading } = useConfig()
+  const { refresh, isLoading } = useConfig();
 
   return (
     <ScrollView
       refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={refresh}
-        />
+        <RefreshControl refreshing={isLoading} onRefresh={refresh} />
       }
     >
       <Content />
     </ScrollView>
-  )
+  );
 }
 ```
 
 ### Loading & Error States
 
 ```tsx
-import { View, Text, Button, ActivityIndicator } from 'react-native'
-import { useConfig } from '@togglebox/sdk-expo'
+import { View, Text, Button, ActivityIndicator } from "react-native";
+import { useConfig } from "@togglebox/sdk-expo";
 
 function ConfigLoader({ children }: { children: React.ReactNode }) {
-  const { config, isLoading, error, refresh } = useConfig()
+  const { config, isLoading, error, refresh } = useConfig();
 
   if (isLoading && !config) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
         <Text>Loading configuration...</Text>
       </View>
-    )
+    );
   }
 
   if (error && !config) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Text>Error: {error.message}</Text>
         <Button title="Retry" onPress={refresh} />
       </View>
-    )
+    );
   }
 
-  return <>{children}</>
+  return <>{children}</>;
 }
 ```
 
@@ -678,107 +682,109 @@ function ConfigLoader({ children }: { children: React.ReactNode }) {
 Target specific app versions with feature flags:
 
 ```tsx
-import * as Application from 'expo-application'
-import { Platform } from 'react-native'
-import { useFlags } from '@togglebox/sdk-expo'
+import * as Application from "expo-application";
+import { Platform } from "react-native";
+import { useFlags } from "@togglebox/sdk-expo";
 
 function VersionTargetedFeature() {
-  const { isFlagEnabled } = useFlags()
-  const [showFeature, setShowFeature] = useState(false)
+  const { isFlagEnabled } = useFlags();
+  const [showFeature, setShowFeature] = useState(false);
 
   useEffect(() => {
     // Create a flag in the dashboard with:
     // - targetPlatformVersions: ['>=2.0.0', '<3.0.0']
     // This flag will only be enabled for app versions 2.x.x
-    isFlagEnabled('new-feature-v2', {
-      userId: 'user-123',
-      appVersion: Application.nativeApplicationVersion || '1.0.0',
+    isFlagEnabled("new-feature-v2", {
+      userId: "user-123",
+      appVersion: Application.nativeApplicationVersion || "1.0.0",
       platform: Platform.OS,
-    }).then(setShowFeature)
-  }, [])
+    }).then(setShowFeature);
+  }, []);
 
-  if (!showFeature) return null
+  if (!showFeature) return null;
 
-  return <NewFeatureV2 />
+  return <NewFeatureV2 />;
 }
 ```
 
 ### Percentage-Based Rollout
 
 ```tsx
-import { useFlags } from '@togglebox/sdk-expo'
+import { useFlags } from "@togglebox/sdk-expo";
 
 function CheckoutScreen() {
-  const { isFlagEnabled } = useFlags()
-  const { user } = useAuth()
-  const [useNewCheckout, setUseNewCheckout] = useState(false)
+  const { isFlagEnabled } = useFlags();
+  const { user } = useAuth();
+  const [useNewCheckout, setUseNewCheckout] = useState(false);
 
   useEffect(() => {
     // Flag configured with 25% rollout in dashboard
     // userId is used for consistent hashing (same user always gets same result)
-    isFlagEnabled('new-checkout', { userId: user.id }).then(setUseNewCheckout)
-  }, [user.id])
+    isFlagEnabled("new-checkout", { userId: user.id }).then(setUseNewCheckout);
+  }, [user.id]);
 
-  return useNewCheckout ? <NewCheckout /> : <LegacyCheckout />
+  return useNewCheckout ? <NewCheckout /> : <LegacyCheckout />;
 }
 ```
 
 ### Combining Configs and Flags
 
 ```tsx
-import { useConfig, useFlag } from '@togglebox/sdk-expo'
-import { View, Text } from 'react-native'
+import { useConfig, useFlag } from "@togglebox/sdk-expo";
+import { View, Text } from "react-native";
 
 function FeatureCard({ featureName }: { featureName: string }) {
-  const config = useConfig()
-  const { checkEnabled, isLoading } = useFlag(featureName)
-  const [isEnabled, setIsEnabled] = useState(false)
+  const config = useConfig();
+  const { checkEnabled, isLoading } = useFlag(featureName);
+  const [isEnabled, setIsEnabled] = useState(false);
 
   useEffect(() => {
-    checkEnabled().then(setIsEnabled)
-  }, [checkEnabled])
+    checkEnabled().then(setIsEnabled);
+  }, [checkEnabled]);
 
   // Use config for static settings, flags for dynamic on/off
-  const featureConfig = config?.features?.[featureName] || {}
+  const featureConfig = config?.features?.[featureName] || {};
 
-  if (!isEnabled) return null
+  if (!isEnabled) return null;
 
   return (
-    <View style={{ padding: 16, backgroundColor: '#f5f5f5', borderRadius: 8 }}>
-      <Text style={{ fontWeight: 'bold' }}>{featureConfig.title || featureName}</Text>
-      <Text>{featureConfig.description || 'No description'}</Text>
+    <View style={{ padding: 16, backgroundColor: "#f5f5f5", borderRadius: 8 }}>
+      <Text style={{ fontWeight: "bold" }}>
+        {featureConfig.title || featureName}
+      </Text>
+      <Text>{featureConfig.description || "No description"}</Text>
     </View>
-  )
+  );
 }
 ```
 
 ### Multiple Flags Evaluation
 
 ```tsx
-import { useFlags } from '@togglebox/sdk-expo'
-import { View } from 'react-native'
+import { useFlags } from "@togglebox/sdk-expo";
+import { View } from "react-native";
 
 function FeatureSection() {
-  const { isFlagEnabled } = useFlags()
-  const { user } = useAuth()
+  const { isFlagEnabled } = useFlags();
+  const { user } = useAuth();
   const [features, setFeatures] = useState({
     darkMode: false,
     betaFeatures: false,
     premiumContent: false,
-  })
+  });
 
   useEffect(() => {
-    const context = { userId: user?.id || 'anonymous' }
+    const context = { userId: user?.id || "anonymous" };
 
     // Check multiple flags in parallel
     Promise.all([
-      isFlagEnabled('dark-mode', context),
-      isFlagEnabled('beta-features', context),
-      isFlagEnabled('premium-content', context),
+      isFlagEnabled("dark-mode", context),
+      isFlagEnabled("beta-features", context),
+      isFlagEnabled("premium-content", context),
     ]).then(([darkMode, beta, premium]) => {
-      setFeatures({ darkMode, betaFeatures: beta, premiumContent: premium })
-    })
-  }, [user?.id])
+      setFeatures({ darkMode, betaFeatures: beta, premiumContent: premium });
+    });
+  }, [user?.id]);
 
   return (
     <View>
@@ -786,7 +792,7 @@ function FeatureSection() {
       {features.betaFeatures && <BetaFeaturesSection />}
       {features.premiumContent && <PremiumContentBadge />}
     </View>
-  )
+  );
 }
 ```
 
@@ -798,15 +804,15 @@ Here's a complete example showing all three tiers working together:
 
 ```tsx
 // App.tsx
-import { ToggleBoxProvider } from '@togglebox/sdk-expo'
-import { NavigationContainer } from '@react-navigation/native'
-import { AuthProvider } from './auth'
+import { ToggleBoxProvider } from "@togglebox/sdk-expo";
+import { NavigationContainer } from "@react-navigation/native";
+import { AuthProvider } from "./auth";
 
 export default function App() {
   return (
     <ToggleBoxProvider
       platform="mobile"
-      environment={__DEV__ ? 'development' : 'production'}
+      environment={__DEV__ ? "development" : "production"}
       apiUrl={process.env.EXPO_PUBLIC_TOGGLEBOX_URL!}
       pollingInterval={300000}
       persistToStorage={true}
@@ -818,62 +824,67 @@ export default function App() {
         </NavigationContainer>
       </AuthProvider>
     </ToggleBoxProvider>
-  )
+  );
 }
 
 // HomeScreen.tsx
-import { useConfig, useFlag, useExperiment, useAnalytics } from '@togglebox/sdk-expo'
-import * as Application from 'expo-application'
+import {
+  useConfig,
+  useFlag,
+  useExperiment,
+  useAnalytics,
+} from "@togglebox/sdk-expo";
+import * as Application from "expo-application";
 
 function HomeScreen() {
-  const { user } = useAuth()
-  const { config } = useConfig()
-  const { checkEnabled: checkNewUI } = useFlag('new-home-ui')
-  const { getVariant } = useExperiment('home-layout-experiment', {
-    userId: user?.id || 'anonymous',
-  })
-  const { trackConversion } = useAnalytics()
+  const { user } = useAuth();
+  const { config } = useConfig();
+  const { checkEnabled: checkNewUI } = useFlag("new-home-ui");
+  const { getVariant } = useExperiment("home-layout-experiment", {
+    userId: user?.id || "anonymous",
+  });
+  const { trackConversion } = useAnalytics();
 
-  const [showNewUI, setShowNewUI] = useState(false)
-  const [layoutVariant, setLayoutVariant] = useState<string | null>(null)
+  const [showNewUI, setShowNewUI] = useState(false);
+  const [layoutVariant, setLayoutVariant] = useState<string | null>(null);
 
   useEffect(() => {
     // Check feature flag
-    checkNewUI().then(setShowNewUI)
+    checkNewUI().then(setShowNewUI);
 
     // Get experiment variant
-    getVariant().then(setLayoutVariant)
-  }, [user?.id])
+    getVariant().then(setLayoutVariant);
+  }, [user?.id]);
 
   const handleCTAClick = async () => {
     // Track conversion for the experiment
     await trackConversion(
-      'home-layout-experiment',
-      { userId: user?.id || 'anonymous' },
-      { metricName: 'cta_click' }
-    )
-  }
+      "home-layout-experiment",
+      { userId: user?.id || "anonymous" },
+      { metricName: "cta_click" },
+    );
+  };
 
   // Tier 1: Use config for static settings
-  const theme = config?.theme || defaultTheme
+  const theme = config?.theme || defaultTheme;
 
   // Tier 2: Use flag for on/off switch
   if (!showNewUI) {
-    return <LegacyHomeScreen theme={theme} />
+    return <LegacyHomeScreen theme={theme} />;
   }
 
   // Tier 3: Use experiment for variant testing
   return (
     <View style={{ backgroundColor: theme.backgroundColor }}>
-      {layoutVariant === 'hero' ? (
+      {layoutVariant === "hero" ? (
         <HeroLayout onCTAClick={handleCTAClick} />
-      ) : layoutVariant === 'cards' ? (
+      ) : layoutVariant === "cards" ? (
         <CardsLayout onCTAClick={handleCTAClick} />
       ) : (
         <DefaultLayout onCTAClick={handleCTAClick} />
       )}
     </View>
-  )
+  );
 }
 ```
 
@@ -896,7 +907,7 @@ import {
   useAnalytics,
   useToggleBoxClient,
   Storage,
-} from '@togglebox/sdk-expo'
+} from "@togglebox/sdk-expo";
 
 import type {
   ToggleBoxProviderProps,
@@ -915,7 +926,7 @@ import type {
   Experiment,
   ExperimentContext,
   VariantAssignment,
-} from '@togglebox/sdk-expo'
+} from "@togglebox/sdk-expo";
 ```
 
 ---

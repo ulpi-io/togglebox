@@ -25,11 +25,16 @@
  * - `deleteByUser`: Query + batch delete (use with caution for many keys)
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { PutCommand, GetCommand, QueryCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
-import { ApiKey, PublicApiKey } from '../../models/ApiKey';
-import { CreateApiKeyRepositoryData } from '../../interfaces/IApiKeyRepository';
-import { dynamoDBClient, getApiKeysTableName } from './database';
+import { v4 as uuidv4 } from "uuid";
+import {
+  PutCommand,
+  GetCommand,
+  QueryCommand,
+  DeleteCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { ApiKey, PublicApiKey } from "../../models/ApiKey";
+import { CreateApiKeyRepositoryData } from "../../interfaces/IApiKeyRepository";
+import { dynamoDBClient, getApiKeysTableName } from "./database";
 
 /**
  * Create a new API key in DynamoDB.
@@ -52,7 +57,9 @@ import { dynamoDBClient, getApiKeysTableName } from './database';
  * - `lastUsedAt`: Initially null, updated on each use
  * - `expiresAt`: Optional expiration timestamp
  */
-export async function createApiKey(data: CreateApiKeyRepositoryData): Promise<ApiKey> {
+export async function createApiKey(
+  data: CreateApiKeyRepositoryData,
+): Promise<ApiKey> {
   const now = new Date();
   const apiKey: ApiKey = {
     id: uuidv4(),
@@ -81,7 +88,7 @@ export async function createApiKey(data: CreateApiKeyRepositoryData): Promise<Ap
       expiresAt: apiKey.expiresAt ? apiKey.expiresAt.toISOString() : null,
       lastUsedAt: null,
     },
-    ConditionExpression: 'attribute_not_exists(PK)',
+    ConditionExpression: "attribute_not_exists(PK)",
   };
 
   try {
@@ -89,7 +96,7 @@ export async function createApiKey(data: CreateApiKeyRepositoryData): Promise<Ap
     return apiKey;
   } catch (error: unknown) {
     const err = error as { code?: string; message?: string };
-    if (err.code === 'ConditionalCheckFailedException') {
+    if (err.code === "ConditionalCheckFailedException") {
       throw new Error(`API Key with ID ${apiKey.id} already exists`);
     }
     throw error;
@@ -140,19 +147,23 @@ export async function findApiKeyById(id: string): Promise<ApiKey | null> {
  * Never log or expose the keyHash value in responses.
  * Used only for internal authentication verification.
  */
-export async function findApiKeyByKeyHash(keyHash: string): Promise<ApiKey | null> {
+export async function findApiKeyByKeyHash(
+  keyHash: string,
+): Promise<ApiKey | null> {
   const params = {
     TableName: getApiKeysTableName(),
-    IndexName: 'GSI2',
-    KeyConditionExpression: 'GSI2PK = :pk',
+    IndexName: "GSI2",
+    KeyConditionExpression: "GSI2PK = :pk",
     ExpressionAttributeValues: {
-      ':pk': `APIKEY_HASH#${keyHash}`,
+      ":pk": `APIKEY_HASH#${keyHash}`,
     },
     Limit: 1,
   };
 
   const result = await dynamoDBClient.send(new QueryCommand(params));
-  return result.Items && result.Items.length > 0 ? mapToApiKey(result.Items[0]) : null;
+  return result.Items && result.Items.length > 0
+    ? mapToApiKey(result.Items[0])
+    : null;
 }
 
 /**
@@ -173,13 +184,15 @@ export async function findApiKeyByKeyHash(keyHash: string): Promise<ApiKey | nul
  * **Performance:**
  * Efficient GSI query - suitable for users with 100s of API keys.
  */
-export async function listApiKeysByUser(userId: string): Promise<PublicApiKey[]> {
+export async function listApiKeysByUser(
+  userId: string,
+): Promise<PublicApiKey[]> {
   const params = {
     TableName: getApiKeysTableName(),
-    IndexName: 'GSI1',
-    KeyConditionExpression: 'GSI1PK = :pk',
+    IndexName: "GSI1",
+    KeyConditionExpression: "GSI1PK = :pk",
     ExpressionAttributeValues: {
-      ':pk': `USER#${userId}`,
+      ":pk": `USER#${userId}`,
     },
   };
 
@@ -187,7 +200,9 @@ export async function listApiKeysByUser(userId: string): Promise<PublicApiKey[]>
   const apiKeys = result.Items ? result.Items.map(mapToApiKey) : [];
 
   // Convert to PublicApiKey (remove keyHash and userId)
-  return apiKeys.map(({ keyHash, userId: _, ...publicKey }) => publicKey as PublicApiKey);
+  return apiKeys.map(
+    ({ keyHash, userId: _, ...publicKey }) => publicKey as PublicApiKey,
+  );
 }
 
 /**
@@ -207,7 +222,10 @@ export async function listApiKeysByUser(userId: string): Promise<PublicApiKey[]>
  * Update `lastUsedAt` timestamp during API key authentication.
  * Performed asynchronously after authentication succeeds (fire-and-forget).
  */
-export async function updateApiKey(id: string, data: Partial<ApiKey>): Promise<ApiKey> {
+export async function updateApiKey(
+  id: string,
+  data: Partial<ApiKey>,
+): Promise<ApiKey> {
   const existingKey = await findApiKeyById(id);
   if (!existingKey) {
     throw new Error(`API Key with ID ${id} not found`);
@@ -229,8 +247,12 @@ export async function updateApiKey(id: string, data: Partial<ApiKey>): Promise<A
       GSI2SK: `APIKEY#${id}`,
       ...updatedKey,
       createdAt: updatedKey.createdAt.toISOString(),
-      expiresAt: updatedKey.expiresAt ? updatedKey.expiresAt.toISOString() : null,
-      lastUsedAt: updatedKey.lastUsedAt ? updatedKey.lastUsedAt.toISOString() : null,
+      expiresAt: updatedKey.expiresAt
+        ? updatedKey.expiresAt.toISOString()
+        : null,
+      lastUsedAt: updatedKey.lastUsedAt
+        ? updatedKey.lastUsedAt.toISOString()
+        : null,
     },
   };
 

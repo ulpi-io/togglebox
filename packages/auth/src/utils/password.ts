@@ -19,7 +19,7 @@
  * - Consider async nature when using in request handlers
  */
 
-import bcrypt from 'bcrypt';
+import bcrypt from "bcrypt";
 
 /**
  * Number of salt rounds for bcrypt hashing.
@@ -93,6 +93,9 @@ export async function hashPassword(password: string): Promise<string> {
  * }
  * ```
  */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }

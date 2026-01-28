@@ -20,27 +20,27 @@ import {
   CreateConfigParameter,
   UpdateConfigParameter,
   parseConfigValue,
-} from '@togglebox/configs';
+} from "@togglebox/configs";
 import {
   IConfigRepository,
   OffsetPaginationParams,
   TokenPaginationParams,
   PaginatedResult,
-} from '../../interfaces';
-import { dynamoDBClient, getRemoteConfigsTableName } from '../../database';
+} from "../../interfaces";
+import { dynamoDBClient, getRemoteConfigsTableName } from "../../database";
 import {
   PutCommand,
   GetCommand,
   QueryCommand,
   QueryCommandInput,
   BatchWriteCommand,
-} from '@aws-sdk/lib-dynamodb';
+} from "@aws-sdk/lib-dynamodb";
 
 /**
  * Type guard for DynamoDB errors with a name property.
  */
 function isDynamoDBError(error: unknown): error is Error & { name: string } {
-  return error instanceof Error && typeof error.name === 'string';
+  return error instanceof Error && typeof error.name === "string";
 }
 
 /**
@@ -60,14 +60,14 @@ export class DynamoDBConfigRepository implements IConfigRepository {
    */
   async getConfigs(
     platform: string,
-    environment: string
+    environment: string,
   ): Promise<Record<string, unknown>> {
     const params: QueryCommandInput = {
       TableName: getRemoteConfigsTableName(),
-      IndexName: 'GSI1',
-      KeyConditionExpression: 'GSI1PK = :gsiPk',
+      IndexName: "GSI1",
+      KeyConditionExpression: "GSI1PK = :gsiPk",
       ExpressionAttributeValues: {
-        ':gsiPk': `CONFIG#${platform}#${environment}#ACTIVE`,
+        ":gsiPk": `CONFIG#${platform}#${environment}#ACTIVE`,
       },
     };
 
@@ -76,9 +76,14 @@ export class DynamoDBConfigRepository implements IConfigRepository {
 
     if (result.Items) {
       for (const item of result.Items) {
-        const param = this.mapToConfigParameter(item as Record<string, unknown>);
+        const param = this.mapToConfigParameter(
+          item as Record<string, unknown>,
+        );
         // Parse the value based on its type
-        configs[param.parameterKey] = parseConfigValue(param.defaultValue, param.valueType);
+        configs[param.parameterKey] = parseConfigValue(
+          param.defaultValue,
+          param.valueType,
+        );
       }
     }
 
@@ -94,7 +99,7 @@ export class DynamoDBConfigRepository implements IConfigRepository {
    */
   async create(param: CreateConfigParameter): Promise<ConfigParameter> {
     const timestamp = new Date().toISOString();
-    const version = '1';
+    const version = "1";
 
     const configParam: ConfigParameter = {
       ...param,
@@ -116,16 +121,20 @@ export class DynamoDBConfigRepository implements IConfigRepository {
     const command = new PutCommand({
       TableName: getRemoteConfigsTableName(),
       Item: item,
-      ConditionExpression: 'attribute_not_exists(PK) AND attribute_not_exists(SK)',
+      ConditionExpression:
+        "attribute_not_exists(PK) AND attribute_not_exists(SK)",
     });
 
     try {
       await dynamoDBClient.send(command);
       return configParam;
     } catch (error: unknown) {
-      if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
+      if (
+        isDynamoDBError(error) &&
+        error.name === "ConditionalCheckFailedException"
+      ) {
         throw new Error(
-          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`
+          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`,
         );
       }
       throw error;
@@ -139,13 +148,13 @@ export class DynamoDBConfigRepository implements IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    updates: UpdateConfigParameter
+    updates: UpdateConfigParameter,
   ): Promise<ConfigParameter> {
     // 1. Get current active version
     const current = await this.getActive(platform, environment, parameterKey);
     if (!current) {
       throw new Error(
-        `Parameter ${parameterKey} not found in ${platform}/${environment}`
+        `Parameter ${parameterKey} not found in ${platform}/${environment}`,
       );
     }
 
@@ -161,8 +170,14 @@ export class DynamoDBConfigRepository implements IConfigRepository {
       version: nextVersion,
       valueType: updates.valueType ?? current.valueType,
       defaultValue: updates.defaultValue ?? current.defaultValue,
-      description: updates.description !== undefined ? (updates.description ?? undefined) : current.description,
-      parameterGroup: updates.parameterGroup !== undefined ? (updates.parameterGroup ?? undefined) : current.parameterGroup,
+      description:
+        updates.description !== undefined
+          ? (updates.description ?? undefined)
+          : current.description,
+      parameterGroup:
+        updates.parameterGroup !== undefined
+          ? (updates.parameterGroup ?? undefined)
+          : current.parameterGroup,
       isActive: true,
       createdBy: updates.createdBy,
       createdAt: timestamp,
@@ -170,7 +185,7 @@ export class DynamoDBConfigRepository implements IConfigRepository {
 
     // 4. Deactivate old version (remove GSI attributes) and create new version
     // Use TransactWrite for atomicity
-    const { TransactWriteCommand } = await import('@aws-sdk/lib-dynamodb');
+    const { TransactWriteCommand } = await import("@aws-sdk/lib-dynamodb");
 
     const transactCommand = new TransactWriteCommand({
       TransactItems: [
@@ -182,9 +197,9 @@ export class DynamoDBConfigRepository implements IConfigRepository {
               PK: `CONFIG#${platform}#${environment}`,
               SK: `PARAM#${parameterKey}#V#${current.version}`,
             },
-            UpdateExpression: 'SET isActive = :false REMOVE GSI1PK, GSI1SK',
+            UpdateExpression: "SET isActive = :false REMOVE GSI1PK, GSI1SK",
             ExpressionAttributeValues: {
-              ':false': false,
+              ":false": false,
             },
           },
         },
@@ -214,10 +229,14 @@ export class DynamoDBConfigRepository implements IConfigRepository {
   async delete(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<boolean> {
     // 1. Get all versions
-    const versions = await this.listVersions(platform, environment, parameterKey);
+    const versions = await this.listVersions(
+      platform,
+      environment,
+      parameterKey,
+    );
     if (versions.length === 0) {
       return false;
     }
@@ -267,7 +286,7 @@ export class DynamoDBConfigRepository implements IConfigRepository {
         if (unprocessed && unprocessed.length > 0) {
           // Exponential backoff before retry
           const delay = Math.min(100 * Math.pow(2, retryCount), 3000);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           itemsToProcess = unprocessed as typeof batch;
           retryCount++;
         } else {
@@ -277,7 +296,9 @@ export class DynamoDBConfigRepository implements IConfigRepository {
 
       // If there are still unprocessed items after max retries, return false
       if (itemsToProcess.length > 0 && retryCount >= maxRetries) {
-        console.error(`[DynamoDB] Failed to delete ${itemsToProcess.length} items after ${maxRetries} retries for ${platform}/${environment}/${parameterKey}`);
+        console.error(
+          `[DynamoDB] Failed to delete ${itemsToProcess.length} items after ${maxRetries} retries for ${platform}/${environment}/${parameterKey}`,
+        );
         return false;
       }
     }
@@ -291,23 +312,25 @@ export class DynamoDBConfigRepository implements IConfigRepository {
   async getActive(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<ConfigParameter | null> {
     // Query GSI1 for active parameter
     const params: QueryCommandInput = {
       TableName: getRemoteConfigsTableName(),
-      IndexName: 'GSI1',
-      KeyConditionExpression: 'GSI1PK = :gsiPk AND GSI1SK = :gsiSk',
+      IndexName: "GSI1",
+      KeyConditionExpression: "GSI1PK = :gsiPk AND GSI1SK = :gsiSk",
       ExpressionAttributeValues: {
-        ':gsiPk': `CONFIG#${platform}#${environment}#ACTIVE`,
-        ':gsiSk': `PARAM#${parameterKey}`,
+        ":gsiPk": `CONFIG#${platform}#${environment}#ACTIVE`,
+        ":gsiSk": `PARAM#${parameterKey}`,
       },
       Limit: 1,
     };
 
     const result = await dynamoDBClient.send(new QueryCommand(params));
     if (result.Items && result.Items.length > 0) {
-      return this.mapToConfigParameter(result.Items[0] as Record<string, unknown>);
+      return this.mapToConfigParameter(
+        result.Items[0] as Record<string, unknown>,
+      );
     }
 
     return null;
@@ -319,17 +342,17 @@ export class DynamoDBConfigRepository implements IConfigRepository {
   async listActive(
     platform: string,
     environment: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<PaginatedResult<ConfigParameter>> {
     // Use token-based pagination for DynamoDB
     const tokenPagination = pagination as TokenPaginationParams | undefined;
 
     const params: QueryCommandInput = {
       TableName: getRemoteConfigsTableName(),
-      IndexName: 'GSI1',
-      KeyConditionExpression: 'GSI1PK = :gsiPk',
+      IndexName: "GSI1",
+      KeyConditionExpression: "GSI1PK = :gsiPk",
       ExpressionAttributeValues: {
-        ':gsiPk': `CONFIG#${platform}#${environment}#ACTIVE`,
+        ":gsiPk": `CONFIG#${platform}#${environment}#ACTIVE`,
       },
       Limit: tokenPagination?.limit || 100,
     };
@@ -338,21 +361,23 @@ export class DynamoDBConfigRepository implements IConfigRepository {
     if (tokenPagination?.nextToken) {
       try {
         params.ExclusiveStartKey = JSON.parse(
-          Buffer.from(tokenPagination.nextToken, 'base64').toString('utf-8')
+          Buffer.from(tokenPagination.nextToken, "base64").toString("utf-8"),
         );
       } catch {
-        throw new Error('Invalid pagination token');
+        throw new Error("Invalid pagination token");
       }
     }
 
     const result = await dynamoDBClient.send(new QueryCommand(params));
     const items = result.Items
-      ? result.Items.map((item) => this.mapToConfigParameter(item as Record<string, unknown>))
+      ? result.Items.map((item) =>
+          this.mapToConfigParameter(item as Record<string, unknown>),
+        )
       : [];
 
     // Encode LastEvaluatedKey as base64 token
     const nextToken = result.LastEvaluatedKey
-      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString("base64")
       : undefined;
 
     return {
@@ -368,21 +393,23 @@ export class DynamoDBConfigRepository implements IConfigRepository {
   async listVersions(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<ConfigParameter[]> {
     const params: QueryCommandInput = {
       TableName: getRemoteConfigsTableName(),
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
       ExpressionAttributeValues: {
-        ':pk': `CONFIG#${platform}#${environment}`,
-        ':sk': `PARAM#${parameterKey}#V#`,
+        ":pk": `CONFIG#${platform}#${environment}`,
+        ":sk": `PARAM#${parameterKey}#V#`,
       },
       ScanIndexForward: false, // Descending order (newest first)
     };
 
     const result = await dynamoDBClient.send(new QueryCommand(params));
     return result.Items
-      ? result.Items.map((item) => this.mapToConfigParameter(item as Record<string, unknown>))
+      ? result.Items.map((item) =>
+          this.mapToConfigParameter(item as Record<string, unknown>),
+        )
       : [];
   }
 
@@ -393,16 +420,25 @@ export class DynamoDBConfigRepository implements IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    version: string
+    version: string,
   ): Promise<ConfigParameter | null> {
     // 1. Get the version to rollback to
-    const targetVersion = await this.getVersion(platform, environment, parameterKey, version);
+    const targetVersion = await this.getVersion(
+      platform,
+      environment,
+      parameterKey,
+      version,
+    );
     if (!targetVersion) {
       return null;
     }
 
     // 2. Get current active version
-    const currentActive = await this.getActive(platform, environment, parameterKey);
+    const currentActive = await this.getActive(
+      platform,
+      environment,
+      parameterKey,
+    );
     if (!currentActive) {
       return null;
     }
@@ -413,7 +449,7 @@ export class DynamoDBConfigRepository implements IConfigRepository {
     }
 
     // 3. Swap active status using TransactWrite
-    const { TransactWriteCommand } = await import('@aws-sdk/lib-dynamodb');
+    const { TransactWriteCommand } = await import("@aws-sdk/lib-dynamodb");
 
     const transactCommand = new TransactWriteCommand({
       TransactItems: [
@@ -425,9 +461,9 @@ export class DynamoDBConfigRepository implements IConfigRepository {
               PK: `CONFIG#${platform}#${environment}`,
               SK: `PARAM#${parameterKey}#V#${currentActive.version}`,
             },
-            UpdateExpression: 'SET isActive = :false REMOVE GSI1PK, GSI1SK',
+            UpdateExpression: "SET isActive = :false REMOVE GSI1PK, GSI1SK",
             ExpressionAttributeValues: {
-              ':false': false,
+              ":false": false,
             },
           },
         },
@@ -439,11 +475,12 @@ export class DynamoDBConfigRepository implements IConfigRepository {
               PK: `CONFIG#${platform}#${environment}`,
               SK: `PARAM#${parameterKey}#V#${version}`,
             },
-            UpdateExpression: 'SET isActive = :true, GSI1PK = :gsiPk, GSI1SK = :gsiSk',
+            UpdateExpression:
+              "SET isActive = :true, GSI1PK = :gsiPk, GSI1SK = :gsiSk",
             ExpressionAttributeValues: {
-              ':true': true,
-              ':gsiPk': `CONFIG#${platform}#${environment}#ACTIVE`,
-              ':gsiSk': `PARAM#${parameterKey}`,
+              ":true": true,
+              ":gsiPk": `CONFIG#${platform}#${environment}#ACTIVE`,
+              ":gsiSk": `PARAM#${parameterKey}`,
             },
           },
         },
@@ -465,12 +502,12 @@ export class DynamoDBConfigRepository implements IConfigRepository {
   async count(platform: string, environment: string): Promise<number> {
     const params: QueryCommandInput = {
       TableName: getRemoteConfigsTableName(),
-      IndexName: 'GSI1',
-      KeyConditionExpression: 'GSI1PK = :gsiPk',
+      IndexName: "GSI1",
+      KeyConditionExpression: "GSI1PK = :gsiPk",
       ExpressionAttributeValues: {
-        ':gsiPk': `CONFIG#${platform}#${environment}#ACTIVE`,
+        ":gsiPk": `CONFIG#${platform}#${environment}#ACTIVE`,
       },
-      Select: 'COUNT',
+      Select: "COUNT",
     };
 
     const result = await dynamoDBClient.send(new QueryCommand(params));
@@ -488,7 +525,7 @@ export class DynamoDBConfigRepository implements IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    version: string
+    version: string,
   ): Promise<ConfigParameter | null> {
     const params = {
       TableName: getRemoteConfigsTableName(),
@@ -499,7 +536,9 @@ export class DynamoDBConfigRepository implements IConfigRepository {
     };
 
     const result = await dynamoDBClient.send(new GetCommand(params));
-    return result.Item ? this.mapToConfigParameter(result.Item as Record<string, unknown>) : null;
+    return result.Item
+      ? this.mapToConfigParameter(result.Item as Record<string, unknown>)
+      : null;
   }
 
   /**

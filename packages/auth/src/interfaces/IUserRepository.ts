@@ -6,7 +6,7 @@
  * Supports CRUD operations, email lookup, and paginated listing with role filtering.
  */
 
-import type { User, CreateUserData, UpdateUserData } from '../models/User';
+import type { User, CreateUserData, UpdateUserData } from "../models/User";
 
 /**
  * User repository interface.

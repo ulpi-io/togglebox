@@ -30,11 +30,11 @@
  * ```
  */
 
-import { Router } from 'express';
-import { AuthController } from '../controllers/AuthController';
-import { validate } from '../validators/authSchemas';
-import { registerSchema, loginSchema } from '../validators/authSchemas';
-import { AuthMiddleware } from '../middleware/auth';
+import { Router } from "express";
+import { AuthController } from "../controllers/AuthController";
+import { validate } from "../validators/authSchemas";
+import { registerSchema, loginSchema } from "../validators/authSchemas";
+import { AuthMiddleware } from "../middleware/auth";
 
 /**
  * Create authentication routes.
@@ -58,7 +58,7 @@ import { AuthMiddleware } from '../middleware/auth';
  */
 export function createAuthRoutes(
   authController: AuthController,
-  authMiddleware: AuthMiddleware
+  authMiddleware: AuthMiddleware,
 ): Router {
   const router = Router();
 
@@ -71,7 +71,7 @@ export function createAuthRoutes(
    * **Handler:** {@link AuthController.register}
    * **Authentication:** Not required
    */
-  router.post('/register', validate(registerSchema), authController.register);
+  router.post("/register", validate(registerSchema), authController.register);
 
   /**
    * POST /api/v1/auth/login
@@ -82,7 +82,7 @@ export function createAuthRoutes(
    * **Handler:** {@link AuthController.login}
    * **Authentication:** Not required
    */
-  router.post('/login', validate(loginSchema), authController.login);
+  router.post("/login", validate(loginSchema), authController.login);
 
   /**
    * POST /api/v1/auth/refresh
@@ -93,7 +93,7 @@ export function createAuthRoutes(
    * **Handler:** {@link AuthController.refresh}
    * **Authentication:** Required (JWT)
    */
-  router.post('/refresh', authMiddleware.authenticate, authController.refresh);
+  router.post("/refresh", authMiddleware.authenticate, authController.refresh);
 
   return router;
 }

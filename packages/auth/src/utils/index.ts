@@ -10,7 +10,7 @@
  * - Password reset token generation
  * - API key generation and formatting
  */
-export * from './password';
+export * from "./password";
 export {
   generateSecureToken,
   hashToken,
@@ -18,6 +18,6 @@ export {
   generateApiKey,
   getApiKeyPrefix,
   getApiKeyLast4,
-} from './token';
-export { generateToken, verifyToken as verifyJWT, decodeToken } from './jwt';
-export type { JwtPayload } from './jwt';
+} from "./token";
+export { generateToken, verifyToken as verifyJWT, decodeToken } from "./jwt";
+export type { JwtPayload } from "./jwt";

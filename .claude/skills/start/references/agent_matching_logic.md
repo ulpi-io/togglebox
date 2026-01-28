@@ -13,6 +13,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 ### laravel-senior-engineer
 
 **Primary Expertise:**
+
 - Laravel 12.x backend development
 - Multi-database architectures (MySQL, Redis, DynamoDB)
 - Eloquent ORM, models, relationships
@@ -24,6 +25,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - Production-ready enterprise applications
 
 **Technology Indicators:**
+
 - File extensions: `*.php`
 - Directory patterns: `/app/`, `/routes/`, `/database/`, `/config/`, `/tests/Feature/`
 - Framework files: `artisan`, `composer.json` with Laravel dependencies
@@ -36,6 +38,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
   - Laravel facades (`Cache::`, `Queue::`, `DB::`)
 
 **Task Pattern Triggers:**
+
 - "Build Laravel API endpoint for..."
 - "Create Eloquent model for..."
 - "Implement queue job for..."
@@ -46,11 +49,13 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - "Add Redis caching to..."
 
 **Confidence Scoring:**
+
 - **High (90-100%):** Laravel framework files present, `composer.json` has `laravel/framework`, explicit mention
 - **Medium (60-89%):** PHP files in `/app/Http/` or `/app/Models/` structure
 - **Low (<60%):** Generic PHP files without Laravel indicators
 
 **When NOT to use:**
+
 - Pure PHP without framework → `general-purpose`
 - Magento PHP → `magento-senior-engineer`
 - WordPress → `general-purpose` (no WordPress agent)
@@ -60,6 +65,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 ### nextjs-senior-engineer
 
 **Primary Expertise:**
+
 - Next.js 14/15 with App Router
 - React Server Components (RSC)
 - Server Actions
@@ -70,6 +76,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - Production-ready full-stack applications
 
 **Technology Indicators:**
+
 - File extensions: `*.tsx`, `*.jsx`
 - Directory patterns: `/app/`, `/pages/`, `/components/`, `/lib/`
 - Framework files: `next.config.js`, `next.config.ts`, `package.json` with `next` dependency
@@ -82,6 +89,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
   - `useRouter`, `usePathname`, `useSearchParams` from `next/navigation`
 
 **Task Pattern Triggers:**
+
 - "Build Next.js page for..."
 - "Create React component for..."
 - "Implement server action for..."
@@ -92,11 +100,13 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - "Implement caching strategy for..."
 
 **Confidence Scoring:**
+
 - **High (90-100%):** `next.config.*` exists, App Router structure (`/app/`), explicit mention
 - **Medium (60-89%):** React/TSX files with Next.js patterns (like `Image` from `next/image`)
 - **Low (<60%):** Generic React components without Next.js-specific imports
 
 **When NOT to use:**
+
 - Pure React library → Still use `nextjs-senior-engineer` for component work
 - Remix app → `remix-senior-engineer`
 - React Native → `expo-react-native-senior-engineer`
@@ -106,6 +116,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 ### nestjs-senior-engineer
 
 **Primary Expertise:**
+
 - NestJS framework with TypeScript
 - Dependency injection and modular architecture
 - Microservices patterns
@@ -116,6 +127,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - Enterprise-grade server-side applications
 
 **Technology Indicators:**
+
 - File extensions: `*.ts`
 - Framework files: `nest-cli.json`, `package.json` with `@nestjs/*` dependencies
 - Directory patterns: `/src/`, module-based structure (e.g., `/src/users/`, `/src/auth/`)
@@ -128,6 +140,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
   - `import { ... } from '@nestjs/...'`
 
 **Task Pattern Triggers:**
+
 - "Build NestJS module for..."
 - "Create service with DI for..."
 - "Implement microservice for..."
@@ -138,11 +151,13 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - "Implement WebSocket gateway..."
 
 **Confidence Scoring:**
+
 - **High (90-100%):** `nest-cli.json` exists, `@nestjs/*` in dependencies, NestJS decorators in code
 - **Medium (60-89%):** TypeScript with DI patterns but no clear config file
 - **Low (<60%):** Generic TypeScript without NestJS indicators
 
 **When NOT to use:**
+
 - Express.js without NestJS → `express-senior-engineer`
 - Node.js scripts without framework → `general-purpose`
 
@@ -151,6 +166,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 ### remix-senior-engineer
 
 **Primary Expertise:**
+
 - Remix full-stack framework
 - Loaders and actions (data fetching patterns)
 - Progressive enhancement
@@ -160,6 +176,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - Production-ready applications
 
 **Technology Indicators:**
+
 - File extensions: `*.tsx`, `*.ts`
 - Framework files: `remix.config.js`, `vite.config.ts`, `package.json` with `@remix-run/*`
 - Directory patterns: `/app/routes/`
@@ -171,6 +188,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
   - `Form` component from `@remix-run/react`
 
 **Task Pattern Triggers:**
+
 - "Build Remix route for..."
 - "Create loader/action for..."
 - "Implement form with progressive enhancement..."
@@ -179,11 +197,13 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - "Add streaming for..."
 
 **Confidence Scoring:**
+
 - **High (90-100%):** `remix.config.*` exists, loader/action patterns, explicit mention
 - **Medium (60-89%):** React files with loader-like patterns
 - **Low (<60%):** Generic React components
 
 **When NOT to use:**
+
 - Next.js app → `nextjs-senior-engineer`
 - Generic React → `nextjs-senior-engineer`
 
@@ -192,6 +212,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 ### express-senior-engineer
 
 **Primary Expertise:**
+
 - Express.js framework
 - Middleware architecture
 - RESTful API development
@@ -200,6 +221,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - Production-ready Node.js server-side applications
 
 **Technology Indicators:**
+
 - File extensions: `*.js`, `*.ts`
 - Dependencies: `package.json` with `express` (but NOT `@nestjs/*`)
 - Code patterns:
@@ -210,6 +232,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
   - `req`, `res`, `next` parameters
 
 **Task Pattern Triggers:**
+
 - "Build Express API for..."
 - "Create middleware for..."
 - "Add REST endpoint for..."
@@ -218,11 +241,13 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - "Set up Bull queue in Express..."
 
 **Confidence Scoring:**
+
 - **High (90-100%):** `express` in dependencies, middleware patterns, explicit mention
 - **Medium (60-89%):** Node.js HTTP server patterns with Express-like structure
 - **Low (<60%):** Generic Node.js without Express indicators
 
 **When NOT to use:**
+
 - NestJS (uses Express internally) → `nestjs-senior-engineer`
 - Serverless functions → `general-purpose`
 
@@ -231,6 +256,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 ### expo-react-native-senior-engineer
 
 **Primary Expertise:**
+
 - Expo React Native development
 - Expo Router for navigation
 - Expo Modules API
@@ -241,6 +267,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - Production-ready mobile applications
 
 **Technology Indicators:**
+
 - File extensions: `*.tsx`, `*.jsx`
 - Framework files: `app.json` (Expo config), `package.json` with `expo` dependency
 - Directory patterns: `/app/` (Expo Router), `/components/`
@@ -251,6 +278,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
   - React Native components: `<View>`, `<Text>`, `<ScrollView>`
 
 **Task Pattern Triggers:**
+
 - "Build mobile screen for..."
 - "Create Expo module for..."
 - "Implement navigation for..."
@@ -259,11 +287,13 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - "Add Expo camera integration..."
 
 **Confidence Scoring:**
+
 - **High (90-100%):** `app.json` with Expo config, `expo` in dependencies, explicit mention
 - **Medium (60-89%):** React Native imports without clear Expo markers
 - **Low (<60%):** Generic React/TypeScript
 
 **When NOT to use:**
+
 - Pure React Native without Expo → `general-purpose` (no pure RN agent)
 - Web-only React → `nextjs-senior-engineer`
 
@@ -272,6 +302,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 ### flutter-senior-engineer
 
 **Primary Expertise:**
+
 - Flutter framework
 - Widget composition
 - Navigation (GoRouter, Navigator 2.0)
@@ -282,6 +313,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - Production-ready cross-platform mobile applications
 
 **Technology Indicators:**
+
 - File extensions: `*.dart`
 - Framework files: `pubspec.yaml` with Flutter dependencies
 - Directory patterns: `/lib/`, `/test/`
@@ -292,6 +324,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
   - Flutter widgets: `Container`, `Column`, `Row`, `Text`
 
 **Task Pattern Triggers:**
+
 - "Build Flutter screen for..."
 - "Create widget for..."
 - "Implement state management for..."
@@ -300,11 +333,13 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - "Add Firebase to Flutter app..."
 
 **Confidence Scoring:**
+
 - **High (90-100%):** `pubspec.yaml` with Flutter SDK, `*.dart` files with widget patterns
 - **Medium (60-89%):** Dart files without clear Flutter markers
 - **Low (<60%):** Generic code
 
 **When NOT to use:**
+
 - Dart backend (without Flutter) → `general-purpose`
 
 ---
@@ -312,6 +347,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 ### magento-senior-engineer
 
 **Primary Expertise:**
+
 - Magento 2 e-commerce
 - Module development
 - Dependency injection (di.xml)
@@ -323,6 +359,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - Production-ready e-commerce applications
 
 **Technology Indicators:**
+
 - File extensions: `*.php`, `*.xml`
 - Directory patterns: `/app/code/[Vendor]/[Module]/`, `/vendor/magento/`
 - Framework files: `registration.php`, `module.xml`, `di.xml`, `composer.json` with Magento dependencies
@@ -333,6 +370,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
   - Plugins: `before*`, `after*`, `around*` methods
 
 **Task Pattern Triggers:**
+
 - "Build Magento module for..."
 - "Create plugin for..."
 - "Implement service contract for..."
@@ -341,11 +379,13 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - "Add Magento 2 extension..."
 
 **Confidence Scoring:**
+
 - **High (90-100%):** Magento directory structure, `module.xml`, explicit mention
 - **Medium (60-89%):** PHP in `/app/code/` with Magento-like namespaces
 - **Low (<60%):** Generic PHP
 
 **When NOT to use:**
+
 - Generic PHP → `general-purpose`
 - Laravel → `laravel-senior-engineer`
 
@@ -354,6 +394,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 ### general-purpose
 
 **Primary Expertise:**
+
 - General research and exploration
 - Multi-language code analysis
 - File system operations
@@ -362,6 +403,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - Documentation generation
 
 **Use When:**
+
 - No framework-specific patterns detected
 - Exploratory tasks ("find all instances of...")
 - Multi-framework analysis
@@ -370,6 +412,7 @@ This document provides comprehensive rules, patterns, and decision trees for mat
 - Documentation work
 
 **Task Pattern Triggers:**
+
 - "Search for..."
 - "Analyze these files..."
 - "Explore the codebase..."
@@ -515,10 +558,12 @@ def detect_frameworks(codebase_context):
 **User Request:** "Build user profile with backend API and frontend page"
 
 **Analysis:**
+
 - Backend API → Identify backend framework (Laravel, NestJS, Express)
 - Frontend page → Identify frontend framework (Next.js, Remix)
 
 **Decision:**
+
 - If 2 independent parts → Use `run-parallel-agents-feature-build`
 - Split into:
   - Backend agent (framework-specific)
@@ -529,10 +574,12 @@ def detect_frameworks(codebase_context):
 **User Request:** "Fix authentication across the stack"
 
 **Analysis:**
+
 - Authentication touches: Laravel backend + Next.js frontend
 - Are they independent fixes or interconnected?
 
 **Decision:**
+
 - If interconnected (shared logic) → Sequential fixes, start with backend
 - If independent bugs → Parallel agents
 
@@ -541,10 +588,12 @@ def detect_frameworks(codebase_context):
 **User Request:** "Find all API endpoints in the codebase"
 
 **Analysis:**
+
 - Discovery task, spans multiple potential frameworks
 - Not building/fixing, just exploring
 
 **Decision:**
+
 - Use `Explore` agent with `subagent_type=Explore`
 - NOT a specialized framework agent
 
@@ -557,12 +606,14 @@ def detect_frameworks(codebase_context):
 **Problem:** TypeScript (`.ts`, `.tsx`) used by Next.js, Remix, NestJS, Express, Expo
 
 **Solution Priority:**
+
 1. Check for framework config files
 2. Examine directory structure
 3. Look at import statements
 4. Default to most common in project
 
 **Example:**
+
 ```
 File: src/components/Button.tsx
 
@@ -579,12 +630,14 @@ Indicators to check:
 **Problem:** Project has Laravel backend AND Next.js frontend in same repo
 
 **Solution:**
+
 - Identify which part the task targets based on:
   - File paths mentioned
   - Keywords in request ("API" → backend, "page" → frontend)
   - Explicit user mention
 
 **Example:**
+
 ```
 User: "Add user authentication"
 Ambiguous! Could be:
@@ -600,6 +653,7 @@ Ambiguous! Could be:
 **Problem:** Framework not in catalog (e.g., SvelteKit, Nuxt.js, Django)
 
 **Solution:**
+
 - Use `general-purpose` agent
 - Mention limitation to user
 - Provide best-effort support
@@ -609,6 +663,7 @@ Ambiguous! Could be:
 **Problem:** Raw PHP, raw TypeScript, raw Dart without framework
 
 **Solution:**
+
 - Use `general-purpose` agent
 - Still effective for non-framework-specific work
 
@@ -619,23 +674,27 @@ Ambiguous! Could be:
 When matching agents, assign confidence:
 
 ### High Confidence (90-100%)
+
 - Framework config file exists
 - Explicit user mention of framework
 - Clear code patterns match framework
 - **Action:** Confidently delegate to specialized agent
 
 ### Medium Confidence (60-89%)
+
 - File patterns suggest framework
 - Directory structure matches
 - Some code patterns present
 - **Action:** Delegate but mention assumption to user
 
 ### Low Confidence (30-59%)
+
 - Weak indicators
 - Could be multiple frameworks
 - **Action:** Use AskUserQuestion to clarify OR use general-purpose
 
 ### Very Low (<30%)
+
 - No clear indicators
 - **Action:** Use general-purpose
 
@@ -676,12 +735,14 @@ Success Criteria:
 ### Anti-Pattern 1: Doing Specialized Work Yourself
 
 **Wrong:**
+
 ```
 User: "Build Laravel API endpoint"
 Assistant: *Writes Laravel code directly without delegating*
 ```
 
 **Right:**
+
 ```
 User: "Build Laravel API endpoint"
 Assistant: *Identifies Laravel, delegates to laravel-senior-engineer*
@@ -694,12 +755,14 @@ Assistant: *Identifies Laravel, delegates to laravel-senior-engineer*
 ### Anti-Pattern 2: Using Wrong Agent
 
 **Wrong:**
+
 ```
 User: "Fix NestJS service"
 Assistant: *Delegates to express-senior-engineer (both Node.js)*
 ```
 
 **Right:**
+
 ```
 User: "Fix NestJS service"
 Assistant: *Correctly identifies NestJS, delegates to nestjs-senior-engineer*
@@ -712,12 +775,14 @@ Assistant: *Correctly identifies NestJS, delegates to nestjs-senior-engineer*
 ### Anti-Pattern 3: Skipping Agent for "Simple" Tasks
 
 **Wrong:**
+
 ```
 User: "Add simple Laravel validation rule"
 Assistant: "This is simple, I'll do it directly"
 ```
 
 **Right:**
+
 ```
 User: "Add simple Laravel validation rule"
 Assistant: *Still delegates to laravel-senior-engineer for framework expertise*
@@ -730,12 +795,14 @@ Assistant: *Still delegates to laravel-senior-engineer for framework expertise*
 ### Anti-Pattern 4: Ignoring Multiple Frameworks
 
 **Wrong:**
+
 ```
 User: "Fix auth in Laravel backend and Next.js frontend"
 Assistant: *Tries to do both without recognizing it's two different domains*
 ```
 
 **Right:**
+
 ```
 User: "Fix auth in Laravel backend and Next.js frontend"
 Assistant: *Recognizes two frameworks, splits into parallel agents or sequential fixes*
@@ -761,6 +828,7 @@ Before delegating, verify:
 ## Summary
 
 **Key Principles:**
+
 1. Always use the RIGHT agent for the RIGHT job
 2. Specialized agents produce higher quality than general implementation
 3. Match based on: explicit mention > framework files > code patterns > defaults
@@ -769,6 +837,7 @@ Before delegating, verify:
 6. Context gathering is mandatory before delegation
 
 **Decision Flow:**
+
 1. Identify task complexity
 2. Scan for technology indicators
 3. Match to agent catalog

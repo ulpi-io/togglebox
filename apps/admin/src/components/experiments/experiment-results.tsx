@@ -1,5 +1,9 @@
-import type { Experiment, ExperimentResults, VariationResult } from '@/lib/api/types';
-import { Card, CardContent, CardHeader, CardTitle, Badge } from '@togglebox/ui';
+import type {
+  Experiment,
+  ExperimentResults,
+  VariationResult,
+} from "@/lib/api/types";
+import { Card, CardContent, CardHeader, CardTitle, Badge } from "@togglebox/ui";
 
 interface ExperimentResultsDisplayProps {
   experiment: Experiment;
@@ -7,25 +11,31 @@ interface ExperimentResultsDisplayProps {
 }
 
 function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return 'N/A';
+  if (!dateStr) return "N/A";
   const date = new Date(dateStr);
-  return isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
+  return isNaN(date.getTime()) ? "N/A" : date.toLocaleString();
 }
 
-export function ExperimentResultsDisplay({ experiment, results }: ExperimentResultsDisplayProps) {
+export function ExperimentResultsDisplay({
+  experiment,
+  results,
+}: ExperimentResultsDisplayProps) {
   const controlVariation = experiment.variations.find((v) => v.isControl);
 
   // Use results variations if available, otherwise create placeholder data from experiment variations
-  const variations: VariationResult[] = (results.variations && results.variations.length > 0)
-    ? results.variations
-    : experiment.variations.map(v => ({
-        variationKey: v.key,
-        participants: 0,
-        conversions: 0,
-        conversionRate: 0,
-      }));
+  const variations: VariationResult[] =
+    results.variations && results.variations.length > 0
+      ? results.variations
+      : experiment.variations.map((v) => ({
+          variationKey: v.key,
+          participants: 0,
+          conversions: 0,
+          conversionRate: 0,
+        }));
 
-  const controlResult = variations.find((v) => v.variationKey === controlVariation?.key);
+  const controlResult = variations.find(
+    (v) => v.variationKey === controlVariation?.key,
+  );
 
   return (
     <Card>
@@ -41,25 +51,37 @@ export function ExperimentResultsDisplay({ experiment, results }: ExperimentResu
         {/* Overall Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted border border-black/10 rounded-lg">
           <div>
-            <div className="text-sm text-muted-foreground">Total Participants</div>
-            <div className="text-2xl font-black">{(results.totalParticipants || 0).toLocaleString()}</div>
+            <div className="text-sm text-muted-foreground">
+              Total Participants
+            </div>
+            <div className="text-2xl font-black">
+              {(results.totalParticipants || 0).toLocaleString()}
+            </div>
           </div>
           <div>
-            <div className="text-sm text-muted-foreground">Total Conversions</div>
-            <div className="text-2xl font-black">{(results.totalConversions || 0).toLocaleString()}</div>
+            <div className="text-sm text-muted-foreground">
+              Total Conversions
+            </div>
+            <div className="text-2xl font-black">
+              {(results.totalConversions || 0).toLocaleString()}
+            </div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Status</div>
-            <div className={`text-lg font-black ${
-              results.isSignificant ? 'text-success' : 'text-warning'
-            }`}>
-              {results.isSignificant ? 'Significant ✓' : 'Collecting...'}
+            <div
+              className={`text-lg font-black ${
+                results.isSignificant ? "text-success" : "text-warning"
+              }`}
+            >
+              {results.isSignificant ? "Significant ✓" : "Collecting..."}
             </div>
           </div>
           {results.pValue !== undefined && (
             <div>
               <div className="text-sm text-muted-foreground">P-Value</div>
-              <div className="text-2xl font-black">{results.pValue.toFixed(4)}</div>
+              <div className="text-2xl font-black">
+                {results.pValue.toFixed(4)}
+              </div>
             </div>
           )}
         </div>
@@ -70,7 +92,9 @@ export function ExperimentResultsDisplay({ experiment, results }: ExperimentResu
             <div className="font-bold text-sm mb-2">⚠️ Warnings</div>
             <ul className="list-disc list-inside space-y-1">
               {results.warnings.map((warning, idx) => (
-                <li key={idx} className="text-sm">{warning}</li>
+                <li key={idx} className="text-sm">
+                  {warning}
+                </li>
               ))}
             </ul>
           </div>
@@ -79,10 +103,13 @@ export function ExperimentResultsDisplay({ experiment, results }: ExperimentResu
         {/* Sample Ratio Mismatch */}
         {results.sampleRatioMismatch && (
           <div className="border border-destructive/50 bg-destructive/10 rounded-lg p-4">
-            <div className="font-bold text-sm mb-2">🚨 Sample Ratio Mismatch Detected</div>
+            <div className="font-bold text-sm mb-2">
+              🚨 Sample Ratio Mismatch Detected
+            </div>
             <p className="text-sm">
-              The observed traffic distribution does not match the expected allocation.
-              This may indicate a bug in the randomization logic or tracking issues.
+              The observed traffic distribution does not match the expected
+              allocation. This may indicate a bug in the randomization logic or
+              tracking issues.
             </p>
           </div>
         )}
@@ -92,10 +119,12 @@ export function ExperimentResultsDisplay({ experiment, results }: ExperimentResu
           <div className="font-bold text-sm mb-3">Variation Performance</div>
           <div className="space-y-3">
             {variations.map((varResult) => {
-              const variation = experiment.variations.find((v) => v.key === varResult.variationKey);
+              const variation = experiment.variations.find(
+                (v) => v.key === varResult.variationKey,
+              );
               const isControl = variation?.isControl;
               const allocation = experiment.trafficAllocation.find(
-                (t) => t.variationKey === varResult.variationKey
+                (t) => t.variationKey === varResult.variationKey,
               );
 
               return (
@@ -103,15 +132,19 @@ export function ExperimentResultsDisplay({ experiment, results }: ExperimentResu
                   key={varResult.variationKey}
                   className={`p-4 rounded-lg border ${
                     isControl
-                      ? 'border-info/50 bg-info/10'
-                      : 'border-black/10 bg-white'
+                      ? "border-info/50 bg-info/10"
+                      : "border-black/10 bg-white"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <span className="text-lg font-black">{variation?.name}</span>
+                      <span className="text-lg font-black">
+                        {variation?.name}
+                      </span>
                       {isControl && (
-                        <Badge variant="default" size="sm">CONTROL</Badge>
+                        <Badge variant="default" size="sm">
+                          CONTROL
+                        </Badge>
                       )}
                     </div>
                     <div className="text-sm text-muted-foreground">
@@ -121,27 +154,44 @@ export function ExperimentResultsDisplay({ experiment, results }: ExperimentResu
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <div className="text-xs text-muted-foreground">Participants</div>
-                      <div className="text-xl font-black">{(varResult.participants || 0).toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Participants
+                      </div>
+                      <div className="text-xl font-black">
+                        {(varResult.participants || 0).toLocaleString()}
+                      </div>
                     </div>
                     <div>
-                      <div className="text-xs text-muted-foreground">Conversions</div>
-                      <div className="text-xl font-black">{(varResult.conversions || 0).toLocaleString()}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Conversions
+                      </div>
+                      <div className="text-xl font-black">
+                        {(varResult.conversions || 0).toLocaleString()}
+                      </div>
                     </div>
                     <div>
-                      <div className="text-xs text-muted-foreground">Conversion Rate</div>
+                      <div className="text-xs text-muted-foreground">
+                        Conversion Rate
+                      </div>
                       <div className="text-xl font-black">
                         {((varResult.conversionRate || 0) * 100).toFixed(2)}%
                       </div>
                     </div>
                     {!isControl && varResult.relativeLift !== undefined && (
                       <div>
-                        <div className="text-xs text-muted-foreground">Relative Lift</div>
-                        <div className={`text-xl font-black ${
-                          varResult.relativeLift > 0 ? 'text-success' :
-                          varResult.relativeLift < 0 ? 'text-destructive' : ''
-                        }`}>
-                          {varResult.relativeLift > 0 ? '+' : ''}
+                        <div className="text-xs text-muted-foreground">
+                          Relative Lift
+                        </div>
+                        <div
+                          className={`text-xl font-black ${
+                            varResult.relativeLift > 0
+                              ? "text-success"
+                              : varResult.relativeLift < 0
+                                ? "text-destructive"
+                                : ""
+                          }`}
+                        >
+                          {varResult.relativeLift > 0 ? "+" : ""}
                           {(varResult.relativeLift * 100).toFixed(2)}%
                         </div>
                       </div>
@@ -151,10 +201,12 @@ export function ExperimentResultsDisplay({ experiment, results }: ExperimentResu
                   {varResult.confidenceInterval && (
                     <div className="mt-3 pt-3 border-t border-black/10">
                       <div className="text-xs text-muted-foreground mb-1">
-                        {(experiment.confidenceLevel * 100).toFixed(0)}% Confidence Interval
+                        {(experiment.confidenceLevel * 100).toFixed(0)}%
+                        Confidence Interval
                       </div>
                       <div className="text-sm font-mono">
-                        [{(varResult.confidenceInterval[0] * 100).toFixed(2)}%, {(varResult.confidenceInterval[1] * 100).toFixed(2)}%]
+                        [{(varResult.confidenceInterval[0] * 100).toFixed(2)}%,{" "}
+                        {(varResult.confidenceInterval[1] * 100).toFixed(2)}%]
                       </div>
                     </div>
                   )}
@@ -172,7 +224,14 @@ export function ExperimentResultsDisplay({ experiment, results }: ExperimentResu
               <span className="font-bold text-lg">Winner Declared</span>
             </div>
             <p className="text-sm">
-              Variation <strong>{experiment.variations.find((v) => v.key === experiment.winner)?.name}</strong> has been declared the winner.
+              Variation{" "}
+              <strong>
+                {
+                  experiment.variations.find((v) => v.key === experiment.winner)
+                    ?.name
+                }
+              </strong>{" "}
+              has been declared the winner.
             </p>
           </div>
         )}
@@ -180,11 +239,15 @@ export function ExperimentResultsDisplay({ experiment, results }: ExperimentResu
         {/* Statistical Interpretation */}
         {results.isSignificant && !experiment.winner && (
           <div className="border border-info/50 bg-info/10 rounded-lg p-4">
-            <div className="font-bold text-sm mb-2">📊 Statistical Interpretation</div>
+            <div className="font-bold text-sm mb-2">
+              📊 Statistical Interpretation
+            </div>
             <p className="text-sm">
-              The results show statistical significance at the {(experiment.confidenceLevel * 100).toFixed(0)}% confidence level.
-              {results.pValue !== undefined && ` (p-value: ${results.pValue.toFixed(4)})`}
-              {' '}Consider completing the experiment and declaring a winner.
+              The results show statistical significance at the{" "}
+              {(experiment.confidenceLevel * 100).toFixed(0)}% confidence level.
+              {results.pValue !== undefined &&
+                ` (p-value: ${results.pValue.toFixed(4)})`}{" "}
+              Consider completing the experiment and declaring a winner.
             </p>
           </div>
         )}
@@ -193,8 +256,9 @@ export function ExperimentResultsDisplay({ experiment, results }: ExperimentResu
           <div className="border border-warning/50 bg-warning/10 rounded-lg p-4">
             <div className="font-bold text-sm mb-2">⏳ Early Stage</div>
             <p className="text-sm">
-              The experiment is in early stages. Continue collecting data before making conclusions.
-              Current sample size: {(results.totalParticipants || 0).toLocaleString()} participants.
+              The experiment is in early stages. Continue collecting data before
+              making conclusions. Current sample size:{" "}
+              {(results.totalParticipants || 0).toLocaleString()} participants.
             </p>
           </div>
         )}

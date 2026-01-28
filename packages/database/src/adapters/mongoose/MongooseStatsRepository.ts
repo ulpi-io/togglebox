@@ -15,9 +15,9 @@ import type {
   ExperimentMetricStats,
   CustomEventStats,
   StatsEvent,
-} from '@togglebox/stats';
-import type { IStatsRepository } from '@togglebox/stats';
-import { StatsModel, CustomEventModel } from './schemas';
+} from "@togglebox/stats";
+import type { IStatsRepository } from "@togglebox/stats";
+import { StatsModel, CustomEventModel } from "./schemas";
 
 /**
  * Simple concurrency limiter for batch processing.
@@ -83,7 +83,7 @@ export class MongooseStatsRepository implements IStatsRepository {
     platform: string,
     environment: string,
     configKey: string,
-    _clientId?: string
+    _clientId?: string,
   ): Promise<void> {
     const now = new Date().toISOString();
 
@@ -91,14 +91,14 @@ export class MongooseStatsRepository implements IStatsRepository {
       {
         platform,
         environment,
-        statsType: 'config',
+        statsType: "config",
         key: configKey,
       },
       {
         $inc: { fetchCount: 1 },
         $set: { lastFetchedAt: now, updatedAt: now },
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
@@ -108,12 +108,12 @@ export class MongooseStatsRepository implements IStatsRepository {
   async getConfigStats(
     platform: string,
     environment: string,
-    configKey: string
+    configKey: string,
   ): Promise<ConfigStats | null> {
     const doc = await StatsModel.findOne({
       platform,
       environment,
-      statsType: 'config',
+      statsType: "config",
       key: configKey,
     });
 
@@ -143,20 +143,20 @@ export class MongooseStatsRepository implements IStatsRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    value: 'A' | 'B',
+    value: "A" | "B",
     _userId: string,
-    country?: string
+    country?: string,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const today = now.split('T')[0]; // YYYY-MM-DD
+    const today = now.split("T")[0]; // YYYY-MM-DD
 
     // Update main stats
-    const incField = value === 'A' ? 'valueACount' : 'valueBCount';
+    const incField = value === "A" ? "valueACount" : "valueBCount";
     await StatsModel.updateOne(
       {
         platform,
         environment,
-        statsType: 'flag',
+        statsType: "flag",
         key: flagKey,
       },
       {
@@ -166,7 +166,7 @@ export class MongooseStatsRepository implements IStatsRepository {
         },
         $set: { lastEvaluatedAt: now, updatedAt: now },
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     // Update daily stats
@@ -174,7 +174,7 @@ export class MongooseStatsRepository implements IStatsRepository {
       {
         platform,
         environment,
-        statsType: 'flag_daily',
+        statsType: "flag_daily",
         key: flagKey,
         subKey: today,
       },
@@ -182,7 +182,7 @@ export class MongooseStatsRepository implements IStatsRepository {
         $inc: { [incField]: 1 },
         $set: { date: today, updatedAt: now },
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     // Update country stats if provided
@@ -191,7 +191,7 @@ export class MongooseStatsRepository implements IStatsRepository {
         {
           platform,
           environment,
-          statsType: 'flag_country',
+          statsType: "flag_country",
           key: flagKey,
           subKey: country,
         },
@@ -199,7 +199,7 @@ export class MongooseStatsRepository implements IStatsRepository {
           $inc: { [incField]: 1 },
           $set: { country, updatedAt: now },
         },
-        { upsert: true }
+        { upsert: true },
       );
     }
   }
@@ -210,12 +210,12 @@ export class MongooseStatsRepository implements IStatsRepository {
   async getFlagStats(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<FlagStats | null> {
     const doc = await StatsModel.findOne({
       platform,
       environment,
-      statsType: 'flag',
+      statsType: "flag",
       key: flagKey,
     });
 
@@ -243,17 +243,17 @@ export class MongooseStatsRepository implements IStatsRepository {
   async getFlagStatsByCountry(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<FlagStatsByCountry[]> {
     const docs = await StatsModel.find({
       platform,
       environment,
-      statsType: 'flag_country',
+      statsType: "flag_country",
       key: flagKey,
     });
 
-    return docs.map(doc => ({
-      country: doc.country ?? '',
+    return docs.map((doc) => ({
+      country: doc.country ?? "",
       valueACount: doc.valueACount ?? 0,
       valueBCount: doc.valueBCount ?? 0,
     }));
@@ -266,24 +266,24 @@ export class MongooseStatsRepository implements IStatsRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    days: number = 30
+    days: number = 30,
   ): Promise<FlagStatsDaily[]> {
     const today = new Date();
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - days);
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const todayStr = today.toISOString().split('T')[0];
+    const startDateStr = startDate.toISOString().split("T")[0];
+    const todayStr = today.toISOString().split("T")[0];
 
     const docs = await StatsModel.find({
       platform,
       environment,
-      statsType: 'flag_daily',
+      statsType: "flag_daily",
       key: flagKey,
       subKey: { $gte: startDateStr, $lte: todayStr },
     }).sort({ subKey: 1 });
 
-    return docs.map(doc => ({
-      date: doc.date ?? '',
+    return docs.map((doc) => ({
+      date: doc.date ?? "",
       valueACount: doc.valueACount ?? 0,
       valueBCount: doc.valueBCount ?? 0,
     }));
@@ -301,17 +301,17 @@ export class MongooseStatsRepository implements IStatsRepository {
     environment: string,
     experimentKey: string,
     variationKey: string,
-    _userId: string
+    _userId: string,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const today = now.split('T')[0];
+    const today = now.split("T")[0];
 
     // Update variation stats
     await StatsModel.updateOne(
       {
         platform,
         environment,
-        statsType: 'exp_var',
+        statsType: "exp_var",
         key: experimentKey,
         subKey: variationKey,
       },
@@ -326,7 +326,7 @@ export class MongooseStatsRepository implements IStatsRepository {
           updatedAt: now,
         },
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     // Update daily variation stats
@@ -334,7 +334,7 @@ export class MongooseStatsRepository implements IStatsRepository {
       {
         platform,
         environment,
-        statsType: 'exp_var',
+        statsType: "exp_var",
         key: experimentKey,
         subKey: `${variationKey}#${today}`,
       },
@@ -346,7 +346,7 @@ export class MongooseStatsRepository implements IStatsRepository {
           updatedAt: now,
         },
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
@@ -360,10 +360,10 @@ export class MongooseStatsRepository implements IStatsRepository {
     metricId: string,
     variationKey: string,
     _userId: string,
-    value?: number
+    value?: number,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const today = now.split('T')[0];
+    const today = now.split("T")[0];
 
     // Update metric stats
     const incFields: Record<string, number> = {
@@ -373,7 +373,7 @@ export class MongooseStatsRepository implements IStatsRepository {
     };
 
     if (value !== undefined) {
-      incFields['sumValue'] = value;
+      incFields["sumValue"] = value;
     }
 
     const updateFields = {
@@ -390,12 +390,12 @@ export class MongooseStatsRepository implements IStatsRepository {
       {
         platform,
         environment,
-        statsType: 'exp_metric',
+        statsType: "exp_metric",
         key: experimentKey,
         subKey: `${variationKey}#${metricId}`,
       },
       updateFields,
-      { upsert: true }
+      { upsert: true },
     );
 
     // Update daily metric stats
@@ -406,7 +406,7 @@ export class MongooseStatsRepository implements IStatsRepository {
     };
 
     if (value !== undefined) {
-      dailyIncFields['sumValue'] = value;
+      dailyIncFields["sumValue"] = value;
     }
 
     const dailyUpdateFields = {
@@ -423,12 +423,12 @@ export class MongooseStatsRepository implements IStatsRepository {
       {
         platform,
         environment,
-        statsType: 'exp_metric',
+        statsType: "exp_metric",
         key: experimentKey,
         subKey: `${variationKey}#${metricId}#${today}`,
       },
       dailyUpdateFields,
-      { upsert: true }
+      { upsert: true },
     );
 
     // Update daily experiment stats (aggregate conversions for all metrics)
@@ -437,7 +437,7 @@ export class MongooseStatsRepository implements IStatsRepository {
       {
         platform,
         environment,
-        statsType: 'exp_var',
+        statsType: "exp_var",
         key: experimentKey,
         subKey: `${variationKey}#${today}`,
       },
@@ -449,7 +449,7 @@ export class MongooseStatsRepository implements IStatsRepository {
           updatedAt: now,
         },
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
@@ -459,13 +459,13 @@ export class MongooseStatsRepository implements IStatsRepository {
   async getExperimentStats(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<ExperimentStats | null> {
     // Query all variation stats (excluding daily stats)
     const docs = await StatsModel.find({
       platform,
       environment,
-      statsType: 'exp_var',
+      statsType: "exp_var",
       key: experimentKey,
       subKey: { $not: /#/ }, // Exclude daily stats (subKey doesn't contain #)
     });
@@ -474,8 +474,8 @@ export class MongooseStatsRepository implements IStatsRepository {
       return null;
     }
 
-    const variations = docs.map(doc => ({
-      variationKey: doc.variationKey ?? '',
+    const variations = docs.map((doc) => ({
+      variationKey: doc.variationKey ?? "",
       participants: doc.participants ?? 0,
       exposures: doc.exposures ?? 0,
     }));
@@ -484,7 +484,7 @@ export class MongooseStatsRepository implements IStatsRepository {
     const dailyDocs = await StatsModel.find({
       platform,
       environment,
-      statsType: 'exp_var',
+      statsType: "exp_var",
       key: experimentKey,
       subKey: /#/, // Only daily stats (subKey contains #)
     }).sort({ date: 1, variationKey: 1 });
@@ -494,7 +494,7 @@ export class MongooseStatsRepository implements IStatsRepository {
     const metricDocs = await StatsModel.find({
       platform,
       environment,
-      statsType: 'exp_metric',
+      statsType: "exp_metric",
       key: experimentKey,
       date: { $exists: true }, // Only daily metric stats
     });
@@ -502,15 +502,18 @@ export class MongooseStatsRepository implements IStatsRepository {
     for (const doc of metricDocs) {
       if (doc.date && doc.variationKey) {
         const mapKey = `${doc.date}#${doc.variationKey}`;
-        conversionMap.set(mapKey, (conversionMap.get(mapKey) ?? 0) + (doc.conversions ?? 0));
+        conversionMap.set(
+          mapKey,
+          (conversionMap.get(mapKey) ?? 0) + (doc.conversions ?? 0),
+        );
       }
     }
 
-    const dailyData = dailyDocs.map(doc => {
+    const dailyData = dailyDocs.map((doc) => {
       const mapKey = `${doc.date}#${doc.variationKey}`;
       return {
-        date: doc.date ?? '',
-        variationKey: doc.variationKey ?? '',
+        date: doc.date ?? "",
+        variationKey: doc.variationKey ?? "",
         participants: doc.participants ?? 0,
         conversions: conversionMap.get(mapKey) ?? 0,
       };
@@ -535,24 +538,24 @@ export class MongooseStatsRepository implements IStatsRepository {
     environment: string,
     experimentKey: string,
     variationKey: string,
-    metricId: string
+    metricId: string,
   ): Promise<ExperimentMetricStats[]> {
     // Query daily metric stats
     const docs = await StatsModel.find({
       platform,
       environment,
-      statsType: 'exp_metric',
+      statsType: "exp_metric",
       key: experimentKey,
       subKey: new RegExp(`^${variationKey}#${metricId}#\\d{4}-\\d{2}-\\d{2}$`),
     }).sort({ subKey: 1 });
 
-    return docs.map(doc => ({
+    return docs.map((doc) => ({
       platform,
       environment,
       experimentKey,
       variationKey,
       metricId,
-      date: doc.date ?? '',
+      date: doc.date ?? "",
       sampleSize: doc.sampleSize ?? 0,
       sum: doc.sumValue ?? 0,
       count: doc.count ?? 0,
@@ -572,7 +575,7 @@ export class MongooseStatsRepository implements IStatsRepository {
     environment: string,
     eventName: string,
     userId?: string,
-    properties?: Record<string, unknown>
+    properties?: Record<string, unknown>,
   ): Promise<void> {
     const now = new Date().toISOString();
 
@@ -593,18 +596,18 @@ export class MongooseStatsRepository implements IStatsRepository {
     platform: string,
     environment: string,
     eventName?: string,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<CustomEventStats[]> {
     const query: Record<string, unknown> = { platform, environment };
     if (eventName) {
-      query['eventName'] = eventName;
+      query["eventName"] = eventName;
     }
 
     const docs = await CustomEventModel.find(query)
       .sort({ timestamp: -1 })
       .limit(limit);
 
-    return docs.map(doc => ({
+    return docs.map((doc) => ({
       platform: doc.platform,
       environment: doc.environment,
       eventName: doc.eventName,
@@ -625,7 +628,7 @@ export class MongooseStatsRepository implements IStatsRepository {
   async processBatch(
     platform: string,
     environment: string,
-    events: StatsEvent[]
+    events: StatsEvent[],
   ): Promise<void> {
     // Limit concurrency to avoid overwhelming the database
     const limit = pLimit(25);
@@ -633,32 +636,37 @@ export class MongooseStatsRepository implements IStatsRepository {
     const processEvent = async (event: StatsEvent): Promise<void> => {
       try {
         switch (event.type) {
-          case 'config_fetch':
-            await this.incrementConfigFetch(platform, environment, event.key, event.clientId);
+          case "config_fetch":
+            await this.incrementConfigFetch(
+              platform,
+              environment,
+              event.key,
+              event.clientId,
+            );
             break;
 
-          case 'flag_evaluation':
+          case "flag_evaluation":
             await this.incrementFlagEvaluation(
               platform,
               environment,
               event.flagKey,
               event.value,
               event.userId,
-              event.country
+              event.country,
             );
             break;
 
-          case 'experiment_exposure':
+          case "experiment_exposure":
             await this.recordExperimentExposure(
               platform,
               environment,
               event.experimentKey,
               event.variationKey,
-              event.userId
+              event.userId,
             );
             break;
 
-          case 'conversion':
+          case "conversion":
             await this.recordConversion(
               platform,
               environment,
@@ -666,17 +674,17 @@ export class MongooseStatsRepository implements IStatsRepository {
               event.metricId,
               event.variationKey,
               event.userId,
-              event.value
+              event.value,
             );
             break;
 
-          case 'custom_event':
+          case "custom_event":
             await this.recordCustomEvent(
               platform,
               environment,
               event.eventName,
               event.userId,
-              event.properties
+              event.properties,
             );
             break;
         }
@@ -699,12 +707,12 @@ export class MongooseStatsRepository implements IStatsRepository {
   async deleteConfigStats(
     platform: string,
     environment: string,
-    configKey: string
+    configKey: string,
   ): Promise<void> {
     await StatsModel.deleteMany({
       platform,
       environment,
-      statsType: 'config',
+      statsType: "config",
       key: configKey,
     });
   }
@@ -715,12 +723,12 @@ export class MongooseStatsRepository implements IStatsRepository {
   async deleteFlagStats(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<void> {
     await StatsModel.deleteMany({
       platform,
       environment,
-      statsType: { $in: ['flag', 'flag_country', 'flag_daily'] },
+      statsType: { $in: ["flag", "flag_country", "flag_daily"] },
       key: flagKey,
     });
   }
@@ -731,12 +739,12 @@ export class MongooseStatsRepository implements IStatsRepository {
   async deleteExperimentStats(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<void> {
     await StatsModel.deleteMany({
       platform,
       environment,
-      statsType: { $in: ['exp_var', 'exp_metric'] },
+      statsType: { $in: ["exp_var", "exp_metric"] },
       key: experimentKey,
     });
   }

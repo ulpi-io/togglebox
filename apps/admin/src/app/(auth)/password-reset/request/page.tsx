@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { requestPasswordResetApi } from '@/lib/api/auth';
+import { useState } from "react";
+import Link from "next/link";
+import { requestPasswordResetApi } from "@/lib/api/auth";
 import {
   Alert,
   Button,
@@ -14,7 +14,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
 export default function RequestPasswordResetPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,13 +27,15 @@ export default function RequestPasswordResetPage() {
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
+    const email = formData.get("email") as string;
 
     try {
       await requestPasswordResetApi(email);
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send reset link');
+      setError(
+        err instanceof Error ? err.message : "Failed to send reset link",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -61,22 +63,19 @@ export default function RequestPasswordResetPage() {
             />
           </div>
 
-          {error && (
-            <Alert variant="destructive">
-              {error}
-            </Alert>
-          )}
+          {error && <Alert variant="destructive">{error}</Alert>}
 
           {success && (
             <Alert variant="success">
-              If an account exists with that email, you will receive a password reset link.
+              If an account exists with that email, you will receive a password
+              reset link.
             </Alert>
           )}
         </CardContent>
 
         <CardFooter className="flex-col space-y-4">
           <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? 'Sending...' : 'Send Reset Link'}
+            {isLoading ? "Sending..." : "Send Reset Link"}
           </Button>
 
           <div className="text-sm text-center">

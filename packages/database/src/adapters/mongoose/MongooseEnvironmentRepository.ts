@@ -6,9 +6,14 @@
  * Handles foreign key relationships with platforms using ObjectId references.
  */
 
-import { Environment } from '@togglebox/core';
-import { IEnvironmentRepository, OffsetPaginationParams, TokenPaginationParams, OffsetPaginatedResult } from '../../interfaces';
-import { EnvironmentModel, PlatformModel } from './schemas';
+import { Environment } from "@togglebox/core";
+import {
+  IEnvironmentRepository,
+  OffsetPaginationParams,
+  TokenPaginationParams,
+  OffsetPaginatedResult,
+} from "../../interfaces";
+import { EnvironmentModel, PlatformModel } from "./schemas";
 
 /**
  * Mongoose implementation of environment repository.
@@ -25,11 +30,15 @@ export class MongooseEnvironmentRepository implements IEnvironmentRepository {
    * @throws {Error} If platform not found
    * @throws {Error} If environment already exists (MongoDB duplicate key error 11000)
    */
-  async createEnvironment(environment: Omit<Environment, 'createdAt'>): Promise<Environment> {
+  async createEnvironment(
+    environment: Omit<Environment, "createdAt">,
+  ): Promise<Environment> {
     const createdAt = new Date().toISOString();
 
     // Look up the platform to get its ID
-    const platformDoc = await PlatformModel.findOne({ name: environment.platform }).exec();
+    const platformDoc = await PlatformModel.findOne({
+      name: environment.platform,
+    }).exec();
 
     if (!platformDoc) {
       throw new Error(`Platform ${environment.platform} not found`);
@@ -54,7 +63,7 @@ export class MongooseEnvironmentRepository implements IEnvironmentRepository {
       if ((error as { code?: number }).code === 11000) {
         // Duplicate key error
         throw new Error(
-          `Environment ${environment.environment} already exists for platform ${environment.platform}`
+          `Environment ${environment.environment} already exists for platform ${environment.platform}`,
         );
       }
       throw error;
@@ -67,8 +76,14 @@ export class MongooseEnvironmentRepository implements IEnvironmentRepository {
    * @remarks
    * Uses compound index for efficient lookup.
    */
-  async getEnvironment(platform: string, environment: string): Promise<Environment | null> {
-    const doc = await EnvironmentModel.findOne({ platform, environment }).exec();
+  async getEnvironment(
+    platform: string,
+    environment: string,
+  ): Promise<Environment | null> {
+    const doc = await EnvironmentModel.findOne({
+      platform,
+      environment,
+    }).exec();
 
     if (!doc) {
       return null;
@@ -92,7 +107,7 @@ export class MongooseEnvironmentRepository implements IEnvironmentRepository {
    */
   async listEnvironments(
     platform: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<OffsetPaginatedResult<Environment>> {
     // Get total count for metadata
     const total = await EnvironmentModel.countDocuments({ platform }).exec();
@@ -103,7 +118,7 @@ export class MongooseEnvironmentRepository implements IEnvironmentRepository {
         .sort({ createdAt: -1 })
         .exec();
 
-      const items = docs.map(doc => ({
+      const items = docs.map((doc) => ({
         platform: doc.platform,
         environment: doc.environment,
         description: doc.description,
@@ -122,7 +137,7 @@ export class MongooseEnvironmentRepository implements IEnvironmentRepository {
       .limit(params.limit)
       .exec();
 
-    const items = docs.map(doc => ({
+    const items = docs.map((doc) => ({
       platform: doc.platform,
       environment: doc.environment,
       description: doc.description,
@@ -132,8 +147,14 @@ export class MongooseEnvironmentRepository implements IEnvironmentRepository {
     return { items, total };
   }
 
-  async deleteEnvironment(platform: string, environment: string): Promise<boolean> {
-    const result = await EnvironmentModel.deleteOne({ platform, environment }).exec();
+  async deleteEnvironment(
+    platform: string,
+    environment: string,
+  ): Promise<boolean> {
+    const result = await EnvironmentModel.deleteOne({
+      platform,
+      environment,
+    }).exec();
     return result.deletedCount > 0;
   }
 }

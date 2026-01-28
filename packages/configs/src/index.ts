@@ -17,4 +17,4 @@
  * - Tier 3: Experiments (@togglebox/experiments) - Multi-variant A/B testing
  */
 
-export * from './schemas';
+export * from "./schemas";

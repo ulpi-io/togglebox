@@ -1,5 +1,5 @@
-import { createAuthRouter } from '@togglebox/auth';
-import { logger } from '@togglebox/shared';
+import { createAuthRouter } from "@togglebox/auth";
+import { logger } from "@togglebox/shared";
 
 /**
  * Auth router - ALWAYS loaded
@@ -12,11 +12,19 @@ import { logger } from '@togglebox/shared';
  */
 
 const authRouter = createAuthRouter({
-  dbType: (process.env['DB_TYPE'] || 'dynamodb') as 'mysql' | 'postgresql' | 'sqlite' | 'mongodb' | 'dynamodb' | 'd1',
-  authEnabled: process.env['ENABLE_AUTHENTICATION'] === 'true',
+  dbType: (process.env["DB_TYPE"] || "dynamodb") as
+    | "mysql"
+    | "postgresql"
+    | "sqlite"
+    | "mongodb"
+    | "dynamodb"
+    | "d1",
+  authEnabled: process.env["ENABLE_AUTHENTICATION"] === "true",
 });
 
-logger.info('Auth module loaded');
-logger.info('Auth endpoints: /api/v1/auth/*, /api/v1/users/*, /api/v1/api-keys/*');
+logger.info("Auth module loaded");
+logger.info(
+  "Auth endpoints: /api/v1/auth/*, /api/v1/users/*, /api/v1/api-keys/*",
+);
 
 export { authRouter };

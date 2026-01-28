@@ -8,7 +8,7 @@
  * platform/environment and has version history. Only one version is active at a time.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * System limits for config parameters.
@@ -32,7 +32,12 @@ const PARAMETER_KEY_REGEX = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 /**
  * Schema for value types supported by config parameters.
  */
-export const ConfigValueTypeSchema = z.enum(['string', 'number', 'boolean', 'json']);
+export const ConfigValueTypeSchema = z.enum([
+  "string",
+  "number",
+  "boolean",
+  "json",
+]);
 
 /**
  * Schema for config parameters.
@@ -65,7 +70,10 @@ export const ConfigParameterSchema = z.object({
     .string()
     .min(1)
     .max(CONFIG_LIMITS.MAX_KEY_LENGTH)
-    .regex(PARAMETER_KEY_REGEX, 'Must start with a letter, containing only letters, numbers, underscores, and hyphens'),
+    .regex(
+      PARAMETER_KEY_REGEX,
+      "Must start with a letter, containing only letters, numbers, underscores, and hyphens",
+    ),
   version: z.string().min(1), // "1", "2", "3" etc.
 
   // Value
@@ -88,94 +96,101 @@ export const ConfigParameterSchema = z.object({
  * Schema for creating a config parameter.
  * Validates that defaultValue is valid for the specified valueType.
  */
-export const CreateConfigParameterSchema = z.object({
-  platform: z.string().min(1),
-  environment: z.string().min(1),
-  parameterKey: z
-    .string()
-    .min(1)
-    .max(CONFIG_LIMITS.MAX_KEY_LENGTH)
-    .regex(PARAMETER_KEY_REGEX, 'Must start with a letter, containing only letters, numbers, underscores, and hyphens'),
-  valueType: ConfigValueTypeSchema,
-  defaultValue: z.string().max(CONFIG_LIMITS.MAX_VALUE_LENGTH),
-  description: z.string().max(500).optional(),
-  parameterGroup: z.string().max(100).optional(),
-  createdBy: z.string().email(),
-}).superRefine((data, ctx) => {
-  // Validate defaultValue against valueType
-  if (data.valueType === 'number') {
-    const num = parseFloat(data.defaultValue);
-    if (!Number.isFinite(num)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `defaultValue "${data.defaultValue}" is not a valid number`,
-        path: ['defaultValue'],
-      });
-    }
-  } else if (data.valueType === 'json') {
-    try {
-      JSON.parse(data.defaultValue);
-    } catch {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `defaultValue is not valid JSON`,
-        path: ['defaultValue'],
-      });
-    }
-  } else if (data.valueType === 'boolean') {
-    if (data.defaultValue !== 'true' && data.defaultValue !== 'false') {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `defaultValue must be "true" or "false" for boolean type`,
-        path: ['defaultValue'],
-      });
-    }
-  }
-});
-
-/**
- * Schema for updating a config parameter (creates new version).
- * Validates that defaultValue is valid for valueType when both are provided.
- */
-export const UpdateConfigParameterSchema = z.object({
-  valueType: ConfigValueTypeSchema.optional(),
-  defaultValue: z.string().max(CONFIG_LIMITS.MAX_VALUE_LENGTH).optional(),
-  description: z.string().max(500).optional().nullable(),
-  parameterGroup: z.string().max(100).optional().nullable(),
-  createdBy: z.string().email(), // Who made this edit
-}).superRefine((data, ctx) => {
-  // Only validate if both valueType and defaultValue are provided
-  if (data.valueType && data.defaultValue !== undefined) {
-    if (data.valueType === 'number') {
+export const CreateConfigParameterSchema = z
+  .object({
+    platform: z.string().min(1),
+    environment: z.string().min(1),
+    parameterKey: z
+      .string()
+      .min(1)
+      .max(CONFIG_LIMITS.MAX_KEY_LENGTH)
+      .regex(
+        PARAMETER_KEY_REGEX,
+        "Must start with a letter, containing only letters, numbers, underscores, and hyphens",
+      ),
+    valueType: ConfigValueTypeSchema,
+    defaultValue: z.string().max(CONFIG_LIMITS.MAX_VALUE_LENGTH),
+    description: z.string().max(500).optional(),
+    parameterGroup: z.string().max(100).optional(),
+    createdBy: z.string().email(),
+  })
+  .superRefine((data, ctx) => {
+    // Validate defaultValue against valueType
+    if (data.valueType === "number") {
       const num = parseFloat(data.defaultValue);
       if (!Number.isFinite(num)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `defaultValue "${data.defaultValue}" is not a valid number`,
-          path: ['defaultValue'],
+          path: ["defaultValue"],
         });
       }
-    } else if (data.valueType === 'json') {
+    } else if (data.valueType === "json") {
       try {
         JSON.parse(data.defaultValue);
       } catch {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `defaultValue is not valid JSON`,
-          path: ['defaultValue'],
+          path: ["defaultValue"],
         });
       }
-    } else if (data.valueType === 'boolean') {
-      if (data.defaultValue !== 'true' && data.defaultValue !== 'false') {
+    } else if (data.valueType === "boolean") {
+      if (data.defaultValue !== "true" && data.defaultValue !== "false") {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `defaultValue must be "true" or "false" for boolean type`,
-          path: ['defaultValue'],
+          path: ["defaultValue"],
         });
       }
     }
-  }
-});
+  });
+
+/**
+ * Schema for updating a config parameter (creates new version).
+ * Validates that defaultValue is valid for valueType when both are provided.
+ */
+export const UpdateConfigParameterSchema = z
+  .object({
+    valueType: ConfigValueTypeSchema.optional(),
+    defaultValue: z.string().max(CONFIG_LIMITS.MAX_VALUE_LENGTH).optional(),
+    description: z.string().max(500).optional().nullable(),
+    parameterGroup: z.string().max(100).optional().nullable(),
+    createdBy: z.string().email(), // Who made this edit
+  })
+  .superRefine((data, ctx) => {
+    // Only validate if both valueType and defaultValue are provided
+    if (data.valueType && data.defaultValue !== undefined) {
+      if (data.valueType === "number") {
+        const num = parseFloat(data.defaultValue);
+        if (!Number.isFinite(num)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `defaultValue "${data.defaultValue}" is not a valid number`,
+            path: ["defaultValue"],
+          });
+        }
+      } else if (data.valueType === "json") {
+        try {
+          JSON.parse(data.defaultValue);
+        } catch {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `defaultValue is not valid JSON`,
+            path: ["defaultValue"],
+          });
+        }
+      } else if (data.valueType === "boolean") {
+        if (data.defaultValue !== "true" && data.defaultValue !== "false") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `defaultValue must be "true" or "false" for boolean type`,
+            path: ["defaultValue"],
+          });
+        }
+      }
+    }
+  });
 
 // Types
 export type ConfigValueType = z.infer<typeof ConfigValueTypeSchema>;
@@ -190,11 +205,14 @@ export type UpdateConfigParameter = z.infer<typeof UpdateConfigParameterSchema>;
 /**
  * Parses a stored string value to its typed value.
  */
-export function parseConfigValue(value: string, valueType: ConfigValueType): unknown {
+export function parseConfigValue(
+  value: string,
+  valueType: ConfigValueType,
+): unknown {
   switch (valueType) {
-    case 'boolean':
-      return value === 'true';
-    case 'number': {
+    case "boolean":
+      return value === "true";
+    case "number": {
       const num = parseFloat(value);
       // SECURITY: Guard against NaN - return null for invalid number strings
       if (!Number.isFinite(num)) {
@@ -202,7 +220,7 @@ export function parseConfigValue(value: string, valueType: ConfigValueType): unk
       }
       return num;
     }
-    case 'json':
+    case "json":
       try {
         return JSON.parse(value);
       } catch {
@@ -216,9 +234,12 @@ export function parseConfigValue(value: string, valueType: ConfigValueType): unk
 /**
  * Serializes a typed value to string for storage.
  */
-export function serializeConfigValue(value: unknown, valueType: ConfigValueType): string {
+export function serializeConfigValue(
+  value: unknown,
+  valueType: ConfigValueType,
+): string {
   switch (valueType) {
-    case 'json':
+    case "json":
       return JSON.stringify(value);
     default:
       return String(value);

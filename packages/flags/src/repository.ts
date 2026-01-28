@@ -5,7 +5,7 @@
  * Implementations exist for Prisma, DynamoDB, Mongoose, and D1.
  */
 
-import type { Flag, CreateFlag, UpdateFlag, UpdateRollout } from './schemas';
+import type { Flag, CreateFlag, UpdateFlag, UpdateRollout } from "./schemas";
 
 /**
  * Pagination result for Flags.
@@ -43,7 +43,7 @@ export interface IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    data: UpdateFlag
+    data: UpdateFlag,
   ): Promise<Flag>;
 
   /**
@@ -54,7 +54,7 @@ export interface IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<Flag>;
 
   /**
@@ -66,7 +66,7 @@ export interface IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    settings: UpdateRollout
+    settings: UpdateRollout,
   ): Promise<Flag>;
 
   /**
@@ -76,7 +76,7 @@ export interface IFlagRepository {
   getActive(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<Flag | null>;
 
   /**
@@ -87,7 +87,7 @@ export interface IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    version: string
+    version: string,
   ): Promise<Flag | null>;
 
   /**
@@ -98,7 +98,7 @@ export interface IFlagRepository {
     platform: string,
     environment: string,
     limit?: number,
-    cursor?: string
+    cursor?: string,
   ): Promise<FlagPage>;
 
   /**
@@ -108,18 +108,14 @@ export interface IFlagRepository {
   listVersions(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<Flag[]>;
 
   /**
    * Delete a Flag and all its versions.
    * @throws Error if flag doesn't exist
    */
-  delete(
-    platform: string,
-    environment: string,
-    flagKey: string
-  ): Promise<void>;
+  delete(platform: string, environment: string, flagKey: string): Promise<void>;
 
   /**
    * Check if a Flag exists.
@@ -127,6 +123,6 @@ export interface IFlagRepository {
   exists(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<boolean>;
 }

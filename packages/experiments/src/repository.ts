@@ -11,7 +11,7 @@ import type {
   UpdateExperiment,
   ExperimentStatus,
   TrafficAllocation,
-} from './schemas';
+} from "./schemas";
 
 /**
  * Pagination result for Experiments.
@@ -44,7 +44,7 @@ export interface IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    data: UpdateExperiment
+    data: UpdateExperiment,
   ): Promise<Experiment>;
 
   /**
@@ -55,7 +55,7 @@ export interface IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    startedBy: string
+    startedBy: string,
   ): Promise<Experiment>;
 
   /**
@@ -65,7 +65,7 @@ export interface IExperimentRepository {
   pause(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment>;
 
   /**
@@ -75,7 +75,7 @@ export interface IExperimentRepository {
   resume(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment>;
 
   /**
@@ -87,7 +87,7 @@ export interface IExperimentRepository {
     environment: string,
     experimentKey: string,
     winner: string | undefined,
-    completedBy: string
+    completedBy: string,
   ): Promise<Experiment>;
 
   /**
@@ -97,7 +97,7 @@ export interface IExperimentRepository {
   archive(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment>;
 
   /**
@@ -107,7 +107,7 @@ export interface IExperimentRepository {
   get(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment | null>;
 
   /**
@@ -119,16 +119,13 @@ export interface IExperimentRepository {
     environment: string,
     status?: ExperimentStatus,
     limit?: number,
-    cursor?: string
+    cursor?: string,
   ): Promise<ExperimentPage>;
 
   /**
    * List all running Experiments (for SDK).
    */
-  listRunning(
-    platform: string,
-    environment: string
-  ): Promise<Experiment[]>;
+  listRunning(platform: string, environment: string): Promise<Experiment[]>;
 
   /**
    * Delete an Experiment.
@@ -137,7 +134,7 @@ export interface IExperimentRepository {
   delete(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<void>;
 
   /**
@@ -146,7 +143,7 @@ export interface IExperimentRepository {
   exists(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<boolean>;
 
   /**
@@ -157,7 +154,7 @@ export interface IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    results: Experiment['results']
+    results: Experiment["results"],
   ): Promise<void>;
 
   /**
@@ -169,6 +166,6 @@ export interface IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    trafficAllocation: TrafficAllocation[]
+    trafficAllocation: TrafficAllocation[],
   ): Promise<Experiment>;
 }

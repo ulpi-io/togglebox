@@ -12,7 +12,7 @@
  * 2. Offset-based: ?limit=20&offset=0
  */
 
-import { Request } from 'express';
+import { Request } from "express";
 
 /**
  * Pagination parameters extracted from request
@@ -69,7 +69,7 @@ function toPositiveInt(value: unknown, fallback: number): number {
   if (value === undefined || value === null) {
     return fallback;
   }
-  const n = typeof value === 'string' ? Number(value) : Number(value);
+  const n = typeof value === "string" ? Number(value) : Number(value);
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
 }
 
@@ -106,7 +106,7 @@ export function getPaginationParams(req: Request): PaginationParams {
     // Validate limit (clamp to allowed range)
     perPageNum = Math.max(
       PAGINATION_DEFAULTS.MIN_PER_PAGE,
-      Math.min(limitNum, PAGINATION_DEFAULTS.MAX_PER_PAGE)
+      Math.min(limitNum, PAGINATION_DEFAULTS.MAX_PER_PAGE),
     );
 
     // Calculate page from offset
@@ -115,7 +115,10 @@ export function getPaginationParams(req: Request): PaginationParams {
   // Support page-based pagination (page + perPage)
   else {
     const pageNumRaw = toPositiveInt(page, 1);
-    const perPageNumRaw = toPositiveInt(perPage, PAGINATION_DEFAULTS.DEFAULT_PER_PAGE);
+    const perPageNumRaw = toPositiveInt(
+      perPage,
+      PAGINATION_DEFAULTS.DEFAULT_PER_PAGE,
+    );
 
     // Validate page (minimum 1)
     pageNum = Math.max(1, pageNumRaw);
@@ -123,7 +126,7 @@ export function getPaginationParams(req: Request): PaginationParams {
     // Validate perPage (clamp to allowed range)
     perPageNum = Math.max(
       PAGINATION_DEFAULTS.MIN_PER_PAGE,
-      Math.min(perPageNumRaw, PAGINATION_DEFAULTS.MAX_PER_PAGE)
+      Math.min(perPageNumRaw, PAGINATION_DEFAULTS.MAX_PER_PAGE),
     );
 
     // Calculate offset
@@ -163,7 +166,7 @@ export function getPaginationParams(req: Request): PaginationParams {
 export function createPaginationMeta(
   page: number,
   perPage: number,
-  total: number
+  total: number,
 ): PaginationMeta {
   const totalPages = Math.ceil(total / perPage);
 
@@ -189,7 +192,10 @@ export function createPaginationMeta(
  * const result = await repository.listItems(params);
  * ```
  */
-export function getOffsetPaginationParams(req: Request): { offset: number; limit: number } {
+export function getOffsetPaginationParams(req: Request): {
+  offset: number;
+  limit: number;
+} {
   const pagination = getPaginationParams(req);
   return {
     offset: pagination.offset,
@@ -235,13 +241,15 @@ export function isPaginationRequested(req: Request): boolean {
  * }
  * ```
  */
-export function getTokenPaginationParams(req: Request): { limit: number; nextToken?: string } | undefined {
+export function getTokenPaginationParams(
+  req: Request,
+): { limit: number; nextToken?: string } | undefined {
   if (!isPaginationRequested(req)) {
     return undefined;
   }
 
   const pagination = getPaginationParams(req);
-  const nextToken = req.query['nextToken'] as string | undefined;
+  const nextToken = req.query["nextToken"] as string | undefined;
 
   return {
     limit: pagination.limit,
@@ -256,7 +264,7 @@ export function getTokenPaginationParams(req: Request): { limit: number; nextTok
  * @returns true if nextToken is present in query params
  */
 export function isTokenPagination(req: Request): boolean {
-  return typeof req.query['nextToken'] === 'string';
+  return typeof req.query["nextToken"] === "string";
 }
 
 /**
@@ -285,8 +293,8 @@ export function getSmartPaginationParams(req: Request): {
   perPage: number;
 } {
   const pagination = getPaginationParams(req);
-  const nextToken = req.query['nextToken'] as string | undefined;
-  const isToken = typeof nextToken === 'string';
+  const nextToken = req.query["nextToken"] as string | undefined;
+  const isToken = typeof nextToken === "string";
 
   return {
     isToken,

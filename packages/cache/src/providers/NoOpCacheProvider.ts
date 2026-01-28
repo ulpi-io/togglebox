@@ -1,5 +1,5 @@
-import { CacheProvider } from '../types/CacheProvider';
-import { logger } from '@togglebox/shared';
+import { CacheProvider } from "../types/CacheProvider";
+import { logger } from "@togglebox/shared";
 
 /**
  * No-Operation Cache Provider
@@ -21,7 +21,9 @@ export class NoOpCacheProvider implements CacheProvider {
    * No-op cache invalidation
    */
   async invalidateCache(_paths: string[]): Promise<null> {
-    logger.debug('Cache invalidation skipped (caching disabled)', { provider: 'noop' });
+    logger.debug("Cache invalidation skipped (caching disabled)", {
+      provider: "noop",
+    });
     return null;
   }
 
@@ -29,7 +31,9 @@ export class NoOpCacheProvider implements CacheProvider {
    * No-op global cache invalidation
    */
   async invalidateGlobalCache(): Promise<null> {
-    logger.debug('Global cache invalidation skipped (caching disabled)', { provider: 'noop' });
+    logger.debug("Global cache invalidation skipped (caching disabled)", {
+      provider: "noop",
+    });
     return null;
   }
 
@@ -37,78 +41,131 @@ export class NoOpCacheProvider implements CacheProvider {
    * No-op platform cache invalidation
    */
   async invalidatePlatformCache(_platform: string): Promise<null> {
-    logger.debug('Platform cache invalidation skipped (caching disabled)', { provider: 'noop' });
+    logger.debug("Platform cache invalidation skipped (caching disabled)", {
+      provider: "noop",
+    });
     return null;
   }
 
   /**
    * No-op environment cache invalidation
    */
-  async invalidateEnvironmentCache(_platform: string, _environment: string): Promise<null> {
-    logger.debug('Environment cache invalidation skipped (caching disabled)', { provider: 'noop' });
+  async invalidateEnvironmentCache(
+    _platform: string,
+    _environment: string,
+  ): Promise<null> {
+    logger.debug("Environment cache invalidation skipped (caching disabled)", {
+      provider: "noop",
+    });
     return null;
   }
 
   /**
    * No-op version cache invalidation
    */
-  async invalidateVersionCache(_platform: string, _environment: string, _version: string): Promise<null> {
-    logger.debug('Version cache invalidation skipped (caching disabled)', { provider: 'noop' });
+  async invalidateVersionCache(
+    _platform: string,
+    _environment: string,
+    _version: string,
+  ): Promise<null> {
+    logger.debug("Version cache invalidation skipped (caching disabled)", {
+      provider: "noop",
+    });
     return null;
   }
 
   /**
    * No-op flag cache invalidation
    */
-  async invalidateFlagCache(_platform: string, _environment: string, _flagKey: string): Promise<null> {
-    logger.debug('Flag cache invalidation skipped (caching disabled)', { provider: 'noop' });
+  async invalidateFlagCache(
+    _platform: string,
+    _environment: string,
+    _flagKey: string,
+  ): Promise<null> {
+    logger.debug("Flag cache invalidation skipped (caching disabled)", {
+      provider: "noop",
+    });
     return null;
   }
 
   /**
    * No-op experiment cache invalidation
    */
-  async invalidateExperimentCache(_platform: string, _environment: string, _experimentKey: string): Promise<null> {
-    logger.debug('Experiment cache invalidation skipped (caching disabled)', { provider: 'noop' });
+  async invalidateExperimentCache(
+    _platform: string,
+    _environment: string,
+    _experimentKey: string,
+  ): Promise<null> {
+    logger.debug("Experiment cache invalidation skipped (caching disabled)", {
+      provider: "noop",
+    });
     return null;
   }
 
   /**
    * No-op all experiments cache invalidation
    */
-  async invalidateAllExperimentsCache(_platform: string, _environment: string): Promise<null> {
-    logger.debug('All experiments cache invalidation skipped (caching disabled)', { provider: 'noop' });
+  async invalidateAllExperimentsCache(
+    _platform: string,
+    _environment: string,
+  ): Promise<null> {
+    logger.debug(
+      "All experiments cache invalidation skipped (caching disabled)",
+      { provider: "noop" },
+    );
     return null;
   }
 
   /**
    * No-op stats cache invalidation
    */
-  async invalidateStatsCache(_platform: string, _environment: string): Promise<null> {
-    logger.debug('Stats cache invalidation skipped (caching disabled)', { provider: 'noop' });
+  async invalidateStatsCache(
+    _platform: string,
+    _environment: string,
+  ): Promise<null> {
+    logger.debug("Stats cache invalidation skipped (caching disabled)", {
+      provider: "noop",
+    });
     return null;
   }
 
   /**
    * No-op flag stats cache invalidation
    */
-  async invalidateFlagStatsCache(_platform: string, _environment: string, _flagKey: string): Promise<null> {
-    logger.debug('Flag stats cache invalidation skipped (caching disabled)', { provider: 'noop' });
+  async invalidateFlagStatsCache(
+    _platform: string,
+    _environment: string,
+    _flagKey: string,
+  ): Promise<null> {
+    logger.debug("Flag stats cache invalidation skipped (caching disabled)", {
+      provider: "noop",
+    });
     return null;
   }
 
   /**
    * No-op experiment stats cache invalidation
    */
-  async invalidateExperimentStatsCache(_platform: string, _environment: string, _experimentKey: string): Promise<null> {
-    logger.debug('Experiment stats cache invalidation skipped (caching disabled)', { provider: 'noop' });
+  async invalidateExperimentStatsCache(
+    _platform: string,
+    _environment: string,
+    _experimentKey: string,
+  ): Promise<null> {
+    logger.debug(
+      "Experiment stats cache invalidation skipped (caching disabled)",
+      { provider: "noop" },
+    );
     return null;
   }
 
   /**
    * Generate cache paths (returns empty array)
    */
-  generateCachePaths(_platform?: string, _environment?: string, _version?: string): string[] {
+  generateCachePaths(
+    _platform?: string,
+    _environment?: string,
+    _version?: string,
+  ): string[] {
     return [];
   }
 }

@@ -1,5 +1,5 @@
-import { IUsageRepository } from '../../interfaces';
-import { Connection, Model, Schema } from 'mongoose';
+import { IUsageRepository } from "../../interfaces";
+import { Connection, Model, Schema } from "mongoose";
 
 /**
  * Usage tracking document schema for MongoDB
@@ -40,7 +40,7 @@ export class MongooseUsageRepository implements IUsageRepository {
   private Usage: Model<any>;
 
   constructor(connection: Connection) {
-    this.Usage = connection.model('Usage', UsageSchema);
+    this.Usage = connection.model("Usage", UsageSchema);
   }
 
   /**
@@ -72,7 +72,7 @@ export class MongooseUsageRepository implements IUsageRepository {
         $inc: { apiRequests: 1 },
         $set: { lastUpdated: new Date() },
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 }

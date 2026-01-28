@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '../utils/cn';
+import * as React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { X } from "lucide-react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "../utils/cn";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -21,9 +21,9 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-50 bg-black/50',
-      'data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out',
-      className
+      "fixed inset-0 z-50 bg-black/50",
+      "data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out",
+      className,
     )}
     {...props}
   />
@@ -32,26 +32,26 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const dialogContentVariants = cva(
   [
-    'fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]',
-    'w-full bg-white border border-black/10 shadow-xl',
-    'data-[state=open]:animate-zoom-in data-[state=closed]:animate-zoom-out',
-    'focus:outline-none',
+    "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]",
+    "w-full bg-white border border-black/10 shadow-xl",
+    "data-[state=open]:animate-zoom-in data-[state=closed]:animate-zoom-out",
+    "focus:outline-none",
   ],
   {
     variants: {
       size: {
-        sm: 'max-w-sm rounded-xl',
-        md: 'max-w-md rounded-xl',
-        lg: 'max-w-lg rounded-xl',
-        xl: 'max-w-xl rounded-xl',
-        '2xl': 'max-w-2xl rounded-xl',
-        full: 'max-w-[calc(100%-2rem)] sm:max-w-[calc(100%-4rem)] max-h-[calc(100%-2rem)] rounded-xl',
+        sm: "max-w-sm rounded-xl",
+        md: "max-w-md rounded-xl",
+        lg: "max-w-lg rounded-xl",
+        xl: "max-w-xl rounded-xl",
+        "2xl": "max-w-2xl rounded-xl",
+        full: "max-w-[calc(100%-2rem)] sm:max-w-[calc(100%-4rem)] max-h-[calc(100%-2rem)] rounded-xl",
       },
     },
     defaultVariants: {
-      size: 'md',
+      size: "md",
     },
-  }
+  },
 );
 
 interface DialogContentProps
@@ -90,13 +90,13 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex flex-col space-y-1.5 p-6 pb-4 border-b border-black/10',
-      className
+      "flex flex-col space-y-1.5 p-6 pb-4 border-b border-black/10",
+      className,
     )}
     {...props}
   />
 );
-DialogHeader.displayName = 'DialogHeader';
+DialogHeader.displayName = "DialogHeader";
 
 const DialogFooter = ({
   className,
@@ -104,13 +104,13 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 p-6 pt-4 border-t border-black/10 gap-3 sm:gap-0',
-      className
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 p-6 pt-4 border-t border-black/10 gap-3 sm:gap-0",
+      className,
     )}
     {...props}
   />
 );
-DialogFooter.displayName = 'DialogFooter';
+DialogFooter.displayName = "DialogFooter";
 
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
@@ -118,7 +118,10 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className,
+    )}
     {...props}
   />
 ));
@@ -130,7 +133,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-muted-foreground mt-1', className)}
+    className={cn("text-sm text-muted-foreground mt-1", className)}
     {...props}
   />
 ));
@@ -140,9 +143,9 @@ const DialogBody = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('p-6 overflow-y-auto', className)} {...props} />
+  <div className={cn("p-6 overflow-y-auto", className)} {...props} />
 );
-DialogBody.displayName = 'DialogBody';
+DialogBody.displayName = "DialogBody";
 
 export {
   Dialog,

@@ -1,50 +1,57 @@
 {
-    "name": "togglebox/laravel",
-    "description": "Laravel SDK for ToggleBox - Remote Config, Feature Flags, and A/B Experiments",
-    "type": "library",
-    "license": "MIT",
-    "keywords": ["togglebox", "laravel", "feature-flags", "remote-config", "ab-testing", "experiments"],
-    "authors": [
-        {
-            "name": "ToggleBox Team",
-            "email": "support@togglebox.io"
-        }
-    ],
-    "require": {
-        "php": "^8.1",
-        "togglebox/sdk": "^0.1",
-        "illuminate/support": "^10.0|^11.0",
-        "illuminate/cache": "^10.0|^11.0"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^10.0",
-        "orchestra/testbench": "^8.0|^9.0",
-        "phpstan/phpstan": "^1.10"
-    },
-    "autoload": {
-        "psr-4": {
-            "ToggleBox\\Laravel\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "ToggleBox\\Laravel\\Tests\\": "tests/"
-        }
-    },
-    "scripts": {
-        "test": "phpunit",
-        "analyse": "phpstan analyse src --level=8"
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "ToggleBox\\Laravel\\ToggleBoxServiceProvider"
-            ],
-            "aliases": {
-                "ToggleBox": "ToggleBox\\Laravel\\Facades\\ToggleBox"
-            }
-        }
-    },
-    "minimum-stability": "stable",
-    "prefer-stable": true
+  "name": "togglebox/laravel",
+  "description": "Laravel SDK for ToggleBox - Remote Config, Feature Flags, and A/B Experiments",
+  "type": "library",
+  "license": "MIT",
+  "keywords": [
+    "togglebox",
+    "laravel",
+    "feature-flags",
+    "remote-config",
+    "ab-testing",
+    "experiments"
+  ],
+  "authors": [
+    {
+      "name": "ToggleBox Team",
+      "email": "support@togglebox.io"
+    }
+  ],
+  "require": {
+    "php": "^8.1",
+    "togglebox/sdk": "^0.1",
+    "illuminate/support": "^10.0|^11.0",
+    "illuminate/cache": "^10.0|^11.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.0",
+    "orchestra/testbench": "^8.0|^9.0",
+    "phpstan/phpstan": "^1.10"
+  },
+  "autoload": {
+    "psr-4": {
+      "ToggleBox\\Laravel\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "ToggleBox\\Laravel\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit",
+    "analyse": "phpstan analyse src --level=8"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "ToggleBox\\Laravel\\ToggleBoxServiceProvider"
+      ],
+      "aliases": {
+        "ToggleBox": "ToggleBox\\Laravel\\Facades\\ToggleBox"
+      }
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
 }

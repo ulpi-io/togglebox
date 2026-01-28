@@ -6,8 +6,13 @@
  * Handles foreign key relationships with platforms.
  */
 
-import { Environment } from '@togglebox/core';
-import { IEnvironmentRepository, OffsetPaginationParams, TokenPaginationParams, OffsetPaginatedResult } from '../../interfaces';
+import { Environment } from "@togglebox/core";
+import {
+  IEnvironmentRepository,
+  OffsetPaginationParams,
+  TokenPaginationParams,
+  OffsetPaginatedResult,
+} from "../../interfaces";
 
 /**
  * D1 implementation of environment repository.
@@ -26,12 +31,14 @@ export class D1EnvironmentRepository implements IEnvironmentRepository {
    * @throws {Error} If platform not found
    * @throws {Error} If environment already exists (SQLite UNIQUE constraint)
    */
-  async createEnvironment(environment: Omit<Environment, 'createdAt'>): Promise<Environment> {
+  async createEnvironment(
+    environment: Omit<Environment, "createdAt">,
+  ): Promise<Environment> {
     const createdAt = new Date().toISOString();
 
     // Get platformId from platform name
     const platform = await this.db
-      .prepare('SELECT id FROM platforms WHERE name = ?1')
+      .prepare("SELECT id FROM platforms WHERE name = ?1")
       .bind(environment.platform)
       .first<{ id: string }>();
 
@@ -42,14 +49,14 @@ export class D1EnvironmentRepository implements IEnvironmentRepository {
     try {
       await this.db
         .prepare(
-          'INSERT INTO environments (platform, environment, platformId, description, createdAt) VALUES (?1, ?2, ?3, ?4, ?5)'
+          "INSERT INTO environments (platform, environment, platformId, description, createdAt) VALUES (?1, ?2, ?3, ?4, ?5)",
         )
         .bind(
           environment.platform,
           environment.environment,
           platform.id,
           environment.description || null,
-          createdAt
+          createdAt,
         )
         .run();
 
@@ -60,8 +67,10 @@ export class D1EnvironmentRepository implements IEnvironmentRepository {
         createdAt,
       };
     } catch (error: unknown) {
-      if ((error as Error).message?.includes('UNIQUE constraint failed')) {
-        throw new Error(`Environment ${environment.environment} already exists for platform ${environment.platform}`);
+      if ((error as Error).message?.includes("UNIQUE constraint failed")) {
+        throw new Error(
+          `Environment ${environment.environment} already exists for platform ${environment.platform}`,
+        );
       }
       throw error;
     }
@@ -73,10 +82,13 @@ export class D1EnvironmentRepository implements IEnvironmentRepository {
    * @remarks
    * Uses composite WHERE clause for unique lookup.
    */
-  async getEnvironment(platform: string, environment: string): Promise<Environment | null> {
+  async getEnvironment(
+    platform: string,
+    environment: string,
+  ): Promise<Environment | null> {
     const result = await this.db
       .prepare(
-        'SELECT platform, environment, description, createdAt FROM environments WHERE platform = ?1 AND environment = ?2'
+        "SELECT platform, environment, description, createdAt FROM environments WHERE platform = ?1 AND environment = ?2",
       )
       .bind(platform, environment)
       .first<Environment>();
@@ -103,11 +115,11 @@ export class D1EnvironmentRepository implements IEnvironmentRepository {
    */
   async listEnvironments(
     platform: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<OffsetPaginatedResult<Environment>> {
     // Get total count for metadata
     const countResult = await this.db
-      .prepare('SELECT COUNT(*) as count FROM environments WHERE platform = ?1')
+      .prepare("SELECT COUNT(*) as count FROM environments WHERE platform = ?1")
       .bind(platform)
       .first<{ count: number }>();
 
@@ -117,7 +129,7 @@ export class D1EnvironmentRepository implements IEnvironmentRepository {
     if (!pagination) {
       const result = await this.db
         .prepare(
-          'SELECT platform, environment, description, createdAt FROM environments WHERE platform = ?1 ORDER BY createdAt DESC'
+          "SELECT platform, environment, description, createdAt FROM environments WHERE platform = ?1 ORDER BY createdAt DESC",
         )
         .bind(platform)
         .all<Environment>();
@@ -139,7 +151,7 @@ export class D1EnvironmentRepository implements IEnvironmentRepository {
 
     const result = await this.db
       .prepare(
-        'SELECT platform, environment, description, createdAt FROM environments WHERE platform = ?1 ORDER BY createdAt DESC LIMIT ?2 OFFSET ?3'
+        "SELECT platform, environment, description, createdAt FROM environments WHERE platform = ?1 ORDER BY createdAt DESC LIMIT ?2 OFFSET ?3",
       )
       .bind(platform, params.limit, params.offset)
       .all<Environment>();
@@ -156,9 +168,14 @@ export class D1EnvironmentRepository implements IEnvironmentRepository {
     return { items, total };
   }
 
-  async deleteEnvironment(platform: string, environment: string): Promise<boolean> {
+  async deleteEnvironment(
+    platform: string,
+    environment: string,
+  ): Promise<boolean> {
     const result = await this.db
-      .prepare('DELETE FROM environments WHERE platform = ?1 AND environment = ?2')
+      .prepare(
+        "DELETE FROM environments WHERE platform = ?1 AND environment = ?2",
+      )
       .bind(platform, environment)
       .run();
 

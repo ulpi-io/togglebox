@@ -20,7 +20,7 @@
  * - `passwordresettokens` - Password reset tokens
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 /**
  * User document interface extending Mongoose Document.
@@ -63,11 +63,15 @@ const userSchema = new Schema<IUserDocument>(
     name: { type: String },
     email: { type: String, required: true, unique: true, index: true },
     passwordHash: { type: String, required: true },
-    role: { type: String, required: true, enum: ['admin', 'developer', 'viewer'] },
+    role: {
+      type: String,
+      required: true,
+      enum: ["admin", "developer", "viewer"],
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /**
@@ -76,7 +80,7 @@ const userSchema = new Schema<IUserDocument>(
  * @remarks
  * Collection name: `users` (automatically pluralized by Mongoose).
  */
-export const UserModel = mongoose.model<IUserDocument>('User', userSchema);
+export const UserModel = mongoose.model<IUserDocument>("User", userSchema);
 
 /**
  * API Key document interface extending Mongoose Document.
@@ -141,7 +145,7 @@ const apiKeySchema = new Schema<IApiKeyDocument>(
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
-  }
+  },
 );
 
 /**
@@ -150,7 +154,10 @@ const apiKeySchema = new Schema<IApiKeyDocument>(
  * @remarks
  * Collection name: `apikeys` (automatically pluralized by Mongoose).
  */
-export const ApiKeyModel = mongoose.model<IApiKeyDocument>('ApiKey', apiKeySchema);
+export const ApiKeyModel = mongoose.model<IApiKeyDocument>(
+  "ApiKey",
+  apiKeySchema,
+);
 
 /**
  * Password Reset Token document interface extending Mongoose Document.
@@ -204,7 +211,7 @@ const passwordResetTokenSchema = new Schema<IPasswordResetTokenDocument>(
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
-  }
+  },
 );
 
 /**
@@ -213,7 +220,8 @@ const passwordResetTokenSchema = new Schema<IPasswordResetTokenDocument>(
  * @remarks
  * Collection name: `passwordresettokens` (automatically pluralized by Mongoose).
  */
-export const PasswordResetTokenModel = mongoose.model<IPasswordResetTokenDocument>(
-  'PasswordResetToken',
-  passwordResetTokenSchema
-);
+export const PasswordResetTokenModel =
+  mongoose.model<IPasswordResetTokenDocument>(
+    "PasswordResetToken",
+    passwordResetTokenSchema,
+  );

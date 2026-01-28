@@ -5,13 +5,13 @@
  * For multi-variant testing (3+ variants), use Experiments instead.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Flag value types - boolean, string, or number.
  * JSON is not supported for flags (use Remote Configs for complex values).
  */
-export const FlagValueTypeEnum = z.enum(['boolean', 'string', 'number']);
+export const FlagValueTypeEnum = z.enum(["boolean", "string", "number"]);
 export type FlagValueType = z.infer<typeof FlagValueTypeEnum>;
 
 /**
@@ -24,8 +24,8 @@ export type FlagValue = z.infer<typeof FlagValueSchema>;
  * Schema for language-level targeting within a country.
  */
 export const LanguageTargetSchema = z.object({
-  language: z.string().length(2, 'Language must be ISO-639 2-letter code'),
-  serveValue: z.enum(['A', 'B']),
+  language: z.string().length(2, "Language must be ISO-639 2-letter code"),
+  serveValue: z.enum(["A", "B"]),
 });
 export type LanguageTarget = z.infer<typeof LanguageTargetSchema>;
 
@@ -33,8 +33,8 @@ export type LanguageTarget = z.infer<typeof LanguageTargetSchema>;
  * Schema for country-level targeting with optional language overrides.
  */
 export const CountryTargetSchema = z.object({
-  country: z.string().length(2, 'Country must be ISO-3166 2-letter code'),
-  serveValue: z.enum(['A', 'B']),
+  country: z.string().length(2, "Country must be ISO-3166 2-letter code"),
+  serveValue: z.enum(["A", "B"]),
   languages: z.array(LanguageTargetSchema).optional(),
 });
 export type CountryTarget = z.infer<typeof CountryTargetSchema>;
@@ -99,22 +99,25 @@ export type Targeting = z.infer<typeof TargetingSchema>;
  */
 export const FlagSchema = z.object({
   // Identity
-  platform: z.string().min(1, 'Platform is required'),
-  environment: z.string().min(1, 'Environment is required'),
-  flagKey: z.string().min(1, 'Flag key is required').regex(
-    /^[a-z][a-z0-9_-]*$/,
-    'Flag key must be lowercase, start with a letter, and contain only letters, numbers, underscores, and hyphens'
-  ),
+  platform: z.string().min(1, "Platform is required"),
+  environment: z.string().min(1, "Environment is required"),
+  flagKey: z
+    .string()
+    .min(1, "Flag key is required")
+    .regex(
+      /^[a-z][a-z0-9_-]*$/,
+      "Flag key must be lowercase, start with a letter, and contain only letters, numbers, underscores, and hyphens",
+    ),
 
   // Metadata
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
 
   // State
   enabled: z.boolean().default(false), // Master switch: false = always serve defaultValue
 
   // Type & Values (EXACTLY 2 VALUES)
-  flagType: FlagValueTypeEnum.default('boolean'),
+  flagType: FlagValueTypeEnum.default("boolean"),
   valueA: FlagValueSchema, // Primary value (when conditions match)
   valueB: FlagValueSchema, // Secondary value (default/fallback)
 
@@ -126,20 +129,20 @@ export const FlagSchema = z.object({
   }),
 
   // Default (when no targeting matches)
-  defaultValue: z.enum(['A', 'B']).default('B'),
+  defaultValue: z.enum(["A", "B"]).default("B"),
 
   // Percentage Rollout
   // When enabled, users are assigned to A or B based on hash(flagKey + userId)
   rolloutEnabled: z.boolean().default(false),
   rolloutPercentageA: z.number().min(0).max(100).default(100), // Percentage for valueA (0-100)
-  rolloutPercentageB: z.number().min(0).max(100).default(0),   // Percentage for valueB (auto-calculated as 100 - A)
+  rolloutPercentageB: z.number().min(0).max(100).default(0), // Percentage for valueB (auto-calculated as 100 - A)
 
   // Versioning
-  version: z.string().default('1.0.0'),
+  version: z.string().default("1.0.0"),
   isActive: z.boolean().default(true),
 
   // Audit
-  createdBy: z.string().email('Invalid email format'),
+  createdBy: z.string().email("Invalid email format"),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -154,25 +157,29 @@ export const CreateFlagSchema = FlagSchema.omit({
   isActive: true,
   createdAt: true,
   updatedAt: true,
-}).extend({
-  // For boolean flags, provide sensible defaults
-  valueA: FlagValueSchema.optional(),
-  valueB: FlagValueSchema.optional(),
-}).transform((data) => {
-  // For boolean flags without explicit values, use true/false
-  if (data.flagType === 'boolean') {
-    return {
-      ...data,
-      valueA: data.valueA ?? true,
-      valueB: data.valueB ?? false,
-    };
-  }
-  // For other types, values are required
-  if (data.valueA === undefined || data.valueB === undefined) {
-    throw new Error(`valueA and valueB are required for ${data.flagType} flags`);
-  }
-  return data as typeof data & { valueA: FlagValue; valueB: FlagValue };
-});
+})
+  .extend({
+    // For boolean flags, provide sensible defaults
+    valueA: FlagValueSchema.optional(),
+    valueB: FlagValueSchema.optional(),
+  })
+  .transform((data) => {
+    // For boolean flags without explicit values, use true/false
+    if (data.flagType === "boolean") {
+      return {
+        ...data,
+        valueA: data.valueA ?? true,
+        valueB: data.valueB ?? false,
+      };
+    }
+    // For other types, values are required
+    if (data.valueA === undefined || data.valueB === undefined) {
+      throw new Error(
+        `valueA and valueB are required for ${data.flagType} flags`,
+      );
+    }
+    return data as typeof data & { valueA: FlagValue; valueB: FlagValue };
+  });
 
 export type CreateFlag = z.infer<typeof CreateFlagSchema>;
 
@@ -187,21 +194,24 @@ export const UpdateFlagSchema = z
     valueA: FlagValueSchema.optional(),
     valueB: FlagValueSchema.optional(),
     targeting: TargetingSchema.optional(),
-    defaultValue: z.enum(['A', 'B']).optional(),
+    defaultValue: z.enum(["A", "B"]).optional(),
     // Percentage rollout
     rolloutEnabled: z.boolean().optional(),
     rolloutPercentageA: z.number().min(0).max(100).optional(),
     rolloutPercentageB: z.number().min(0).max(100).optional(),
-    createdBy: z.string().email('Invalid email format'),
+    createdBy: z.string().email("Invalid email format"),
   })
   .superRefine((data, ctx) => {
     // If both percentages are provided, they must sum to 100
-    if (data.rolloutPercentageA !== undefined && data.rolloutPercentageB !== undefined) {
+    if (
+      data.rolloutPercentageA !== undefined &&
+      data.rolloutPercentageB !== undefined
+    ) {
       if (data.rolloutPercentageA + data.rolloutPercentageB !== 100) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'rolloutPercentageA + rolloutPercentageB must equal 100',
-          path: ['rolloutPercentageA'],
+          message: "rolloutPercentageA + rolloutPercentageB must equal 100",
+          path: ["rolloutPercentageA"],
         });
       }
     }
@@ -210,20 +220,25 @@ export const UpdateFlagSchema = z
 /**
  * Schema for updating rollout settings (in-place, no new version).
  */
-export const UpdateRolloutSchema = z.object({
-  rolloutEnabled: z.boolean().optional(),
-  rolloutPercentageA: z.number().min(0).max(100).optional(),
-  rolloutPercentageB: z.number().min(0).max(100).optional(),
-}).refine(
-  (data) => {
-    // If both percentages are provided, they must sum to 100
-    if (data.rolloutPercentageA !== undefined && data.rolloutPercentageB !== undefined) {
-      return data.rolloutPercentageA + data.rolloutPercentageB === 100;
-    }
-    return true;
-  },
-  { message: 'rolloutPercentageA + rolloutPercentageB must equal 100' }
-);
+export const UpdateRolloutSchema = z
+  .object({
+    rolloutEnabled: z.boolean().optional(),
+    rolloutPercentageA: z.number().min(0).max(100).optional(),
+    rolloutPercentageB: z.number().min(0).max(100).optional(),
+  })
+  .refine(
+    (data) => {
+      // If both percentages are provided, they must sum to 100
+      if (
+        data.rolloutPercentageA !== undefined &&
+        data.rolloutPercentageB !== undefined
+      ) {
+        return data.rolloutPercentageA + data.rolloutPercentageB === 100;
+      }
+      return true;
+    },
+    { message: "rolloutPercentageA + rolloutPercentageB must equal 100" },
+  );
 
 export type UpdateFlag = z.infer<typeof UpdateFlagSchema>;
 
@@ -242,7 +257,7 @@ export type ToggleFlag = z.infer<typeof ToggleFlagSchema>;
  * Schema for evaluation context.
  */
 export const EvaluationContextSchema = z.object({
-  userId: z.string().min(1, 'userId is required'),
+  userId: z.string().min(1, "userId is required"),
   country: z.string().length(2).optional(),
   language: z.string().length(2).optional(),
 });
@@ -255,7 +270,7 @@ export type EvaluationContext = z.infer<typeof EvaluationContextSchema>;
 export const EvaluationResultSchema = z.object({
   flagKey: z.string(),
   value: FlagValueSchema,
-  servedValue: z.enum(['A', 'B']),
+  servedValue: z.enum(["A", "B"]),
   reason: z.string(),
 });
 

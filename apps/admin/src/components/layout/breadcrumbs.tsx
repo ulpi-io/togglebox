@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ChevronRight, Home } from 'lucide-react';
-import { cn } from '@togglebox/ui';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronRight, Home } from "lucide-react";
+import { cn } from "@togglebox/ui";
 
 /**
  * Patterns for paths that have actual pages (navigable).
@@ -40,19 +40,23 @@ function isNavigable(path: string): boolean {
  * For known segments, uses predefined labels.
  * For dynamic segments (IDs, names), preserves the original value.
  */
-function segmentToLabel(segment: string, segments: string[], index: number): string {
+function segmentToLabel(
+  segment: string,
+  segments: string[],
+  index: number,
+): string {
   const labelMap: Record<string, string> = {
-    platforms: 'Platforms',
-    environments: 'Environments',
-    configs: 'Configs',
-    flags: 'Feature Flags',
-    experiments: 'Experiments',
-    dashboard: 'Dashboard',
-    users: 'Users',
-    'api-keys': 'API Keys',
-    cache: 'Cache',
-    evaluation: 'Evaluation',
-    versions: 'Versions',
+    platforms: "Platforms",
+    environments: "Environments",
+    configs: "Configs",
+    flags: "Feature Flags",
+    experiments: "Experiments",
+    dashboard: "Dashboard",
+    users: "Users",
+    "api-keys": "API Keys",
+    cache: "Cache",
+    evaluation: "Evaluation",
+    versions: "Versions",
   };
 
   if (labelMap[segment]) {
@@ -65,14 +69,14 @@ function segmentToLabel(segment: string, segments: string[], index: number): str
 export function Breadcrumbs() {
   const pathname = usePathname();
 
-  const segments = pathname.split('/').filter(Boolean);
+  const segments = pathname.split("/").filter(Boolean);
 
   if (segments.length === 0) {
     return null;
   }
 
   const breadcrumbs = segments.map((segment, index) => {
-    const href = '/' + segments.slice(0, index + 1).join('/');
+    const href = "/" + segments.slice(0, index + 1).join("/");
     const label = segmentToLabel(segment, segments, index);
     const navigable = isNavigable(href);
 
@@ -80,9 +84,13 @@ export function Breadcrumbs() {
   });
 
   // On mobile, only show last 2 breadcrumbs + home
-  const mobileBreadcrumbs = breadcrumbs.length > 2
-    ? [{ href: '...', label: '...', navigable: false }, ...breadcrumbs.slice(-2)]
-    : breadcrumbs;
+  const mobileBreadcrumbs =
+    breadcrumbs.length > 2
+      ? [
+          { href: "...", label: "...", navigable: false },
+          ...breadcrumbs.slice(-2),
+        ]
+      : breadcrumbs;
 
   return (
     <nav className="flex items-center gap-1.5 text-sm mb-6 overflow-x-auto scrollbar-hide">
@@ -100,7 +108,9 @@ export function Breadcrumbs() {
           <div key={crumb.href} className="flex items-center gap-1.5">
             <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
             {index === breadcrumbs.length - 1 ? (
-              <span className="font-semibold truncate max-w-[200px]">{crumb.label}</span>
+              <span className="font-semibold truncate max-w-[200px]">
+                {crumb.label}
+              </span>
             ) : crumb.navigable ? (
               <Link
                 href={crumb.href}
@@ -109,7 +119,9 @@ export function Breadcrumbs() {
                 {crumb.label}
               </Link>
             ) : (
-              <span className="text-muted-foreground truncate max-w-[150px]">{crumb.label}</span>
+              <span className="text-muted-foreground truncate max-w-[150px]">
+                {crumb.label}
+              </span>
             )}
           </div>
         ))}
@@ -118,11 +130,16 @@ export function Breadcrumbs() {
       {/* Mobile: Show condensed breadcrumbs */}
       <div className="flex sm:hidden items-center gap-1.5">
         {mobileBreadcrumbs.map((crumb, index) => (
-          <div key={`${crumb.href}-${index}`} className="flex items-center gap-1.5">
+          <div
+            key={`${crumb.href}-${index}`}
+            className="flex items-center gap-1.5"
+          >
             <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
             {index === mobileBreadcrumbs.length - 1 ? (
-              <span className="font-semibold truncate max-w-[120px]">{crumb.label}</span>
-            ) : crumb.href === '...' ? (
+              <span className="font-semibold truncate max-w-[120px]">
+                {crumb.label}
+              </span>
+            ) : crumb.href === "..." ? (
               <span className="text-muted-foreground">...</span>
             ) : crumb.navigable ? (
               <Link
@@ -132,7 +149,9 @@ export function Breadcrumbs() {
                 {crumb.label}
               </Link>
             ) : (
-              <span className="text-muted-foreground truncate max-w-[80px]">{crumb.label}</span>
+              <span className="text-muted-foreground truncate max-w-[80px]">
+                {crumb.label}
+              </span>
             )}
           </div>
         ))}

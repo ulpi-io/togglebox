@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { getUsersApi } from '@/lib/api/users';
-import type { User } from '@/lib/api/types';
-import { Badge, Button, Card, CardContent } from '@togglebox/ui';
-import { DeleteUserButton } from '@/components/users/delete-user-button';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { getUsersApi } from "@/lib/api/users";
+import type { User } from "@/lib/api/types";
+import { Badge, Button, Card, CardContent } from "@togglebox/ui";
+import { DeleteUserButton } from "@/components/users/delete-user-button";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -19,7 +19,7 @@ export default function UsersPage() {
       setUsers(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load users');
+      setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
       setIsLoading(false);
     }
@@ -40,8 +40,8 @@ export default function UsersPage() {
             </p>
           </div>
           <Link href="/users/create">
-          <Button>Create User</Button>
-        </Link>
+            <Button>Create User</Button>
+          </Link>
         </div>
         <Card>
           <CardContent className="p-0">
@@ -70,8 +70,8 @@ export default function UsersPage() {
             </p>
           </div>
           <Link href="/users/create">
-          <Button>Create User</Button>
-        </Link>
+            <Button>Create User</Button>
+          </Link>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
@@ -111,8 +111,8 @@ export default function UsersPage() {
               Create your first user to get started
             </p>
             <Link href="/users/create">
-          <Button>Create User</Button>
-        </Link>
+              <Button>Create User</Button>
+            </Link>
           </CardContent>
         </Card>
       ) : (
@@ -130,13 +130,28 @@ export default function UsersPage() {
                 </thead>
                 <tbody>
                   {users.map((user) => (
-                    <tr key={user.id} className="border-b border-black/5 last:border-0 hover:bg-muted/50 transition-colors">
+                    <tr
+                      key={user.id}
+                      className="border-b border-black/5 last:border-0 hover:bg-muted/50 transition-colors"
+                    >
                       <td className="py-3 px-4">
                         <div className="font-medium">{user.email}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{user.id}</div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {user.id}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
-                        <Badge userRole={user.role as 'admin' | 'developer' | 'editor' | 'viewer'} size="sm" className="font-black">
+                        <Badge
+                          userRole={
+                            user.role as
+                              | "admin"
+                              | "developer"
+                              | "editor"
+                              | "viewer"
+                          }
+                          size="sm"
+                          className="font-black"
+                        >
                           {user.role.toUpperCase()}
                         </Badge>
                       </td>
@@ -144,7 +159,11 @@ export default function UsersPage() {
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <DeleteUserButton userId={user.id} userEmail={user.email} onSuccess={loadUsers} />
+                        <DeleteUserButton
+                          userId={user.id}
+                          userEmail={user.email}
+                          onSuccess={loadUsers}
+                        />
                       </td>
                     </tr>
                   ))}

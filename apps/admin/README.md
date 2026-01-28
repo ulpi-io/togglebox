@@ -46,6 +46,7 @@ See `.env.example` for required configuration.
 ## Design System
 
 Inspired by ploon.ai:
+
 - **Colors**: Pure black on white
 - **Borders**: 2px black borders
 - **Typography**: Bold headers, standard body
@@ -54,6 +55,7 @@ Inspired by ploon.ai:
 ## API Coverage
 
 Implements all 56 endpoints:
+
 - Health (1)
 - Authentication (6)
 - Users (6)

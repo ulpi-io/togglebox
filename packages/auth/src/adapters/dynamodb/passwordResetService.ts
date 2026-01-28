@@ -30,13 +30,19 @@
  * - `deleteExpired`: Full table scan (run during off-peak hours)
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { PutCommand, GetCommand, QueryCommand, DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { v4 as uuidv4 } from "uuid";
+import {
+  PutCommand,
+  GetCommand,
+  QueryCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
 import {
   PasswordResetToken,
   CreatePasswordResetTokenData,
-} from '../../models/PasswordResetToken';
-import { dynamoDBClient, getPasswordResetsTableName } from './database';
+} from "../../models/PasswordResetToken";
+import { dynamoDBClient, getPasswordResetsTableName } from "./database";
 
 /**
  * Create a new password reset token in DynamoDB.
@@ -59,7 +65,7 @@ import { dynamoDBClient, getPasswordResetsTableName } from './database';
  * - `expiresAt`: Provided by caller (typically 1 hour from now)
  */
 export async function createPasswordResetToken(
-  data: CreatePasswordResetTokenData
+  data: CreatePasswordResetTokenData,
 ): Promise<PasswordResetToken> {
   const now = new Date();
   const token: PasswordResetToken = {
@@ -80,7 +86,7 @@ export async function createPasswordResetToken(
       GSI2PK: `RESET_HASH#${token.tokenHash}`,
       GSI2SK: `RESET#${token.id}`,
       // GSI3 for efficient expired token cleanup (query instead of scan)
-      GSI3PK: 'RESET#ALL',
+      GSI3PK: "RESET#ALL",
       GSI3SK: token.expiresAt.toISOString(),
       // TTL attribute for DynamoDB automatic cleanup (if TTL enabled on table)
       // TTL is the recommended approach - set to Unix timestamp (seconds)
@@ -89,7 +95,7 @@ export async function createPasswordResetToken(
       createdAt: token.createdAt.toISOString(),
       expiresAt: token.expiresAt.toISOString(),
     },
-    ConditionExpression: 'attribute_not_exists(PK)',
+    ConditionExpression: "attribute_not_exists(PK)",
   };
 
   try {
@@ -97,8 +103,10 @@ export async function createPasswordResetToken(
     return token;
   } catch (error: unknown) {
     const err = error as { code?: string; message?: string };
-    if (err.code === 'ConditionalCheckFailedException') {
-      throw new Error(`Password reset token with ID ${token.id} already exists`);
+    if (err.code === "ConditionalCheckFailedException") {
+      throw new Error(
+        `Password reset token with ID ${token.id} already exists`,
+      );
     }
     throw error;
   }
@@ -118,7 +126,7 @@ export async function createPasswordResetToken(
  * Single item lookup - most efficient query pattern (~1-2ms latency).
  */
 export async function findPasswordResetTokenById(
-  id: string
+  id: string,
 ): Promise<PasswordResetToken | null> {
   const params = {
     TableName: getPasswordResetsTableName(),
@@ -151,14 +159,14 @@ export async function findPasswordResetTokenById(
  * Used only for internal token verification.
  */
 export async function findPasswordResetTokenByTokenHash(
-  tokenHash: string
+  tokenHash: string,
 ): Promise<PasswordResetToken | null> {
   const params = {
     TableName: getPasswordResetsTableName(),
-    IndexName: 'GSI2',
-    KeyConditionExpression: 'GSI2PK = :pk',
+    IndexName: "GSI2",
+    KeyConditionExpression: "GSI2PK = :pk",
     ExpressionAttributeValues: {
-      ':pk': `RESET_HASH#${tokenHash}`,
+      ":pk": `RESET_HASH#${tokenHash}`,
     },
     Limit: 1,
   };
@@ -187,17 +195,17 @@ export async function findPasswordResetTokenByTokenHash(
  * Invalidate previous tokens when creating new password reset token for same user.
  */
 export async function findValidPasswordResetTokensByUser(
-  userId: string
+  userId: string,
 ): Promise<PasswordResetToken[]> {
   const now = new Date().toISOString();
 
   const params = {
     TableName: getPasswordResetsTableName(),
-    IndexName: 'GSI1',
-    KeyConditionExpression: 'GSI1PK = :pk AND GSI1SK > :now',
+    IndexName: "GSI1",
+    KeyConditionExpression: "GSI1PK = :pk AND GSI1SK > :now",
     ExpressionAttributeValues: {
-      ':pk': `USER#${userId}`,
-      ':now': `RESET#${now}`,
+      ":pk": `USER#${userId}`,
+      ":now": `RESET#${now}`,
     },
   };
 
@@ -245,13 +253,15 @@ export async function deletePasswordResetToken(id: string): Promise<void> {
  * - Invalidate all tokens after successful password reset
  * - Security: Revoke all pending tokens if suspicious activity detected
  */
-export async function deletePasswordResetTokensByUser(userId: string): Promise<void> {
+export async function deletePasswordResetTokensByUser(
+  userId: string,
+): Promise<void> {
   const params = {
     TableName: getPasswordResetsTableName(),
-    IndexName: 'GSI1',
-    KeyConditionExpression: 'GSI1PK = :pk',
+    IndexName: "GSI1",
+    KeyConditionExpression: "GSI1PK = :pk",
     ExpressionAttributeValues: {
-      ':pk': `USER#${userId}`,
+      ":pk": `USER#${userId}`,
     },
   };
 
@@ -259,7 +269,9 @@ export async function deletePasswordResetTokensByUser(userId: string): Promise<v
   const tokens = result.Items ? result.Items.map(mapToPasswordResetToken) : [];
 
   // Batch delete all tokens
-  const deletePromises = tokens.map((token) => deletePasswordResetToken(token.id));
+  const deletePromises = tokens.map((token) =>
+    deletePasswordResetToken(token.id),
+  );
   await Promise.all(deletePromises);
 }
 
@@ -291,27 +303,36 @@ export async function deleteExpiredPasswordResetTokens(): Promise<number> {
     // Use GSI3 for efficient query of expired tokens (instead of full table scan)
     const params = {
       TableName: getPasswordResetsTableName(),
-      IndexName: 'GSI3',
-      KeyConditionExpression: 'GSI3PK = :pk AND GSI3SK < :now',
+      IndexName: "GSI3",
+      KeyConditionExpression: "GSI3PK = :pk AND GSI3SK < :now",
       ExpressionAttributeValues: {
-        ':pk': 'RESET#ALL',
-        ':now': now,
+        ":pk": "RESET#ALL",
+        ":now": now,
       },
     };
 
     const result = await dynamoDBClient.send(new QueryCommand(params));
-    const expiredTokens = result.Items ? result.Items.map(mapToPasswordResetToken) : [];
+    const expiredTokens = result.Items
+      ? result.Items.map(mapToPasswordResetToken)
+      : [];
 
     // Batch delete expired tokens
-    const deletePromises = expiredTokens.map((token) => deletePasswordResetToken(token.id));
+    const deletePromises = expiredTokens.map((token) =>
+      deletePasswordResetToken(token.id),
+    );
     await Promise.all(deletePromises);
 
     return expiredTokens.length;
   } catch (error: unknown) {
     // Fallback to scan if GSI3 doesn't exist (for backward compatibility)
     const err = error as { name?: string; message?: string };
-    if (err.message?.includes('GSI') || err.name === 'ResourceNotFoundException') {
-      console.warn('GSI3 not found, falling back to table scan. Consider adding GSI for better performance.');
+    if (
+      err.message?.includes("GSI") ||
+      err.name === "ResourceNotFoundException"
+    ) {
+      console.warn(
+        "GSI3 not found, falling back to table scan. Consider adding GSI for better performance.",
+      );
       return deleteExpiredPasswordResetTokensWithScan();
     }
     throw error;
@@ -327,17 +348,21 @@ async function deleteExpiredPasswordResetTokensWithScan(): Promise<number> {
 
   const params = {
     TableName: getPasswordResetsTableName(),
-    FilterExpression: 'begins_with(PK, :pk) AND expiresAt < :now',
+    FilterExpression: "begins_with(PK, :pk) AND expiresAt < :now",
     ExpressionAttributeValues: {
-      ':pk': 'RESET#',
-      ':now': now,
+      ":pk": "RESET#",
+      ":now": now,
     },
   };
 
   const result = await dynamoDBClient.send(new ScanCommand(params));
-  const expiredTokens = result.Items ? result.Items.map(mapToPasswordResetToken) : [];
+  const expiredTokens = result.Items
+    ? result.Items.map(mapToPasswordResetToken)
+    : [];
 
-  const deletePromises = expiredTokens.map((token) => deletePasswordResetToken(token.id));
+  const deletePromises = expiredTokens.map((token) =>
+    deletePasswordResetToken(token.id),
+  );
   await Promise.all(deletePromises);
 
   return expiredTokens.length;
@@ -362,7 +387,11 @@ async function deleteExpiredPasswordResetTokensWithScan(): Promise<number> {
 function mapToPasswordResetToken(item: unknown): PasswordResetToken {
   const data = item as Record<string, unknown>;
   const { PK, SK, GSI1PK, GSI1SK, GSI2PK, GSI2SK, ...tokenData } = data;
-  const typedData = tokenData as { createdAt: string; expiresAt: string; [key: string]: unknown };
+  const typedData = tokenData as {
+    createdAt: string;
+    expiresAt: string;
+    [key: string]: unknown;
+  };
   return {
     ...tokenData,
     createdAt: new Date(typedData.createdAt),

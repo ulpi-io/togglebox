@@ -18,8 +18,12 @@
  * - `D1EnvironmentRepository` - Cloudflare D1
  */
 
-import { Environment } from '@togglebox/core';
-import { OffsetPaginationParams, TokenPaginationParams, PaginatedResult } from './IPagination';
+import { Environment } from "@togglebox/core";
+import {
+  OffsetPaginationParams,
+  TokenPaginationParams,
+  PaginatedResult,
+} from "./IPagination";
 
 /**
  * Environment repository interface for database operations.
@@ -32,7 +36,9 @@ export interface IEnvironmentRepository {
    * @returns Created environment with generated timestamp
    * @throws {Error} If environment with same name already exists in platform
    */
-  createEnvironment(environment: Omit<Environment, 'createdAt'>): Promise<Environment>;
+  createEnvironment(
+    environment: Omit<Environment, "createdAt">,
+  ): Promise<Environment>;
 
   /**
    * Retrieves an environment by platform and environment name.
@@ -41,7 +47,10 @@ export interface IEnvironmentRepository {
    * @param environment - Environment name
    * @returns Environment if found, null otherwise
    */
-  getEnvironment(platform: string, environment: string): Promise<Environment | null>;
+  getEnvironment(
+    platform: string,
+    environment: string,
+  ): Promise<Environment | null>;
 
   /**
    * Lists all environments for a platform with optional pagination.
@@ -68,7 +77,7 @@ export interface IEnvironmentRepository {
    */
   listEnvironments(
     platform: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<PaginatedResult<Environment>>;
 
   /**
@@ -103,6 +112,6 @@ export interface IEnvironmentRepository {
   updateEnvironment?(
     platform: string,
     environment: string,
-    updates: { description?: string }
+    updates: { description?: string },
   ): Promise<Environment | null>;
 }

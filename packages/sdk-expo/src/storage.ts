@@ -1,8 +1,8 @@
-import type { Flag } from '@togglebox/flags'
-import type { Experiment } from '@togglebox/experiments'
-import type { StoredData, StorageAdapter, Config } from './types'
+import type { Flag } from "@togglebox/flags";
+import type { Experiment } from "@togglebox/experiments";
+import type { StoredData, StorageAdapter, Config } from "./types";
 
-const STORAGE_KEY_PREFIX = '@togglebox/config'
+const STORAGE_KEY_PREFIX = "@togglebox/config";
 
 /**
  * MMKV storage wrapper for persisting configs, flags, and experiments.
@@ -17,16 +17,16 @@ const STORAGE_KEY_PREFIX = '@togglebox/config'
  * - Expired data is automatically cleaned up on load
  */
 export class Storage {
-  private platform: string
-  private environment: string
-  private ttl: number
-  private storage: StorageAdapter | null = null
-  private initPromise: Promise<void> | null = null
+  private platform: string;
+  private environment: string;
+  private ttl: number;
+  private storage: StorageAdapter | null = null;
+  private initPromise: Promise<void> | null = null;
 
   constructor(platform: string, environment: string, ttl: number = 86400000) {
-    this.platform = platform
-    this.environment = environment
-    this.ttl = ttl
+    this.platform = platform;
+    this.environment = environment;
+    this.ttl = ttl;
   }
 
   /**
@@ -34,39 +34,39 @@ export class Storage {
    * This allows the SDK to work without MMKV if persistToStorage is false.
    */
   private async initStorage(): Promise<void> {
-    if (this.storage) return
-    if (this.initPromise) return this.initPromise
+    if (this.storage) return;
+    if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
       try {
         // Dynamic import to avoid requiring MMKV if not using persistence
-        const { MMKV } = await import('react-native-mmkv')
+        const { MMKV } = await import("react-native-mmkv");
         this.storage = new MMKV({
           id: `togglebox-${this.platform}-${this.environment}`,
-        })
+        });
       } catch (error) {
         // BUGFIX: Reset initPromise so subsequent calls can retry initialization
         // This allows recovery after hot reload or dependency fix
-        this.initPromise = null
+        this.initPromise = null;
         console.error(
-          'Failed to initialize MMKV. Make sure react-native-mmkv is installed:',
-          error
-        )
+          "Failed to initialize MMKV. Make sure react-native-mmkv is installed:",
+          error,
+        );
         throw new Error(
-          'react-native-mmkv is required for persistToStorage feature. ' +
-          'Install it with: npm install react-native-mmkv'
-        )
+          "react-native-mmkv is required for persistToStorage feature. " +
+            "Install it with: npm install react-native-mmkv",
+        );
       }
-    })()
+    })();
 
-    return this.initPromise
+    return this.initPromise;
   }
 
   /**
    * Get storage key for this platform/environment
    */
   private getKey(): string {
-    return `${STORAGE_KEY_PREFIX}/${this.platform}/${this.environment}`
+    return `${STORAGE_KEY_PREFIX}/${this.platform}/${this.environment}`;
   }
 
   /**
@@ -74,36 +74,40 @@ export class Storage {
    *
    * @returns Stored data if valid and not expired, null otherwise
    */
-  async load(): Promise<{ config: Config; flags: Flag[]; experiments: Experiment[] } | null> {
+  async load(): Promise<{
+    config: Config;
+    flags: Flag[];
+    experiments: Experiment[];
+  } | null> {
     try {
-      await this.initStorage()
-      if (!this.storage) return null
+      await this.initStorage();
+      if (!this.storage) return null;
 
-      const key = this.getKey()
-      const json = this.storage.getString(key)
+      const key = this.getKey();
+      const json = this.storage.getString(key);
 
       if (!json) {
-        return null
+        return null;
       }
 
-      const data: StoredData = JSON.parse(json)
+      const data: StoredData = JSON.parse(json);
 
       // Check if data has expired
-      const now = Date.now()
+      const now = Date.now();
       if (now - data.timestamp > data.ttl) {
         // Data expired, remove it
-        this.storage.delete(key)
-        return null
+        this.storage.delete(key);
+        return null;
       }
 
       return {
         config: data.config,
         flags: data.flags,
         experiments: data.experiments,
-      }
+      };
     } catch (error) {
-      console.error('Failed to load from MMKV:', error)
-      return null
+      console.error("Failed to load from MMKV:", error);
+      return null;
     }
   }
 
@@ -114,23 +118,27 @@ export class Storage {
    * @param flags - Feature flags to store (Tier 2)
    * @param experiments - Experiments to store (Tier 3)
    */
-  async save(config: Config, flags: Flag[], experiments: Experiment[]): Promise<void> {
+  async save(
+    config: Config,
+    flags: Flag[],
+    experiments: Experiment[],
+  ): Promise<void> {
     try {
-      await this.initStorage()
-      if (!this.storage) return
+      await this.initStorage();
+      if (!this.storage) return;
 
-      const key = this.getKey()
+      const key = this.getKey();
       const data: StoredData = {
         config,
         flags,
         experiments,
         timestamp: Date.now(),
         ttl: this.ttl,
-      }
+      };
 
-      this.storage.set(key, JSON.stringify(data))
+      this.storage.set(key, JSON.stringify(data));
     } catch (error) {
-      console.error('Failed to save to MMKV:', error)
+      console.error("Failed to save to MMKV:", error);
     }
   }
 
@@ -139,13 +147,13 @@ export class Storage {
    */
   async clear(): Promise<void> {
     try {
-      await this.initStorage()
-      if (!this.storage) return
+      await this.initStorage();
+      if (!this.storage) return;
 
-      const key = this.getKey()
-      this.storage.delete(key)
+      const key = this.getKey();
+      this.storage.delete(key);
     } catch (error) {
-      console.error('Failed to clear MMKV:', error)
+      console.error("Failed to clear MMKV:", error);
     }
   }
 
@@ -154,17 +162,19 @@ export class Storage {
    */
   async clearAll(): Promise<void> {
     try {
-      await this.initStorage()
-      if (!this.storage) return
+      await this.initStorage();
+      if (!this.storage) return;
 
-      const allKeys = this.storage.getAllKeys()
-      const toggleboxKeys = allKeys.filter(key => key.startsWith(STORAGE_KEY_PREFIX))
+      const allKeys = this.storage.getAllKeys();
+      const toggleboxKeys = allKeys.filter((key) =>
+        key.startsWith(STORAGE_KEY_PREFIX),
+      );
 
       for (const key of toggleboxKeys) {
-        this.storage.delete(key)
+        this.storage.delete(key);
       }
     } catch (error) {
-      console.error('Failed to clear all MMKV data:', error)
+      console.error("Failed to clear all MMKV data:", error);
     }
   }
 }

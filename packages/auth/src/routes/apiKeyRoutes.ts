@@ -36,11 +36,11 @@
  * ```
  */
 
-import { Router } from 'express';
-import { ApiKeyController } from '../controllers/ApiKeyController';
-import { validate } from '../validators/authSchemas';
-import { createApiKeySchema } from '../validators/authSchemas';
-import { AuthMiddleware } from '../middleware/auth';
+import { Router } from "express";
+import { ApiKeyController } from "../controllers/ApiKeyController";
+import { validate } from "../validators/authSchemas";
+import { createApiKeySchema } from "../validators/authSchemas";
+import { AuthMiddleware } from "../middleware/auth";
 
 /**
  * Create API key management routes.
@@ -62,7 +62,7 @@ import { AuthMiddleware } from '../middleware/auth';
  */
 export function createApiKeyRoutes(
   apiKeyController: ApiKeyController,
-  authMiddleware: AuthMiddleware
+  authMiddleware: AuthMiddleware,
 ): Router {
   const router = Router();
 
@@ -76,7 +76,7 @@ export function createApiKeyRoutes(
    * **Authorization:** Authenticated user
    * **Returns:** Array of keys (prefix + last4, no full keys)
    */
-  router.get('/', authMiddleware.authenticate, apiKeyController.listApiKeys);
+  router.get("/", authMiddleware.authenticate, apiKeyController.listApiKeys);
 
   /**
    * POST /api/v1/api-keys
@@ -89,10 +89,10 @@ export function createApiKeyRoutes(
    * **CRITICAL:** Full key shown ONLY in this response (ONE TIME)
    */
   router.post(
-    '/',
+    "/",
     authMiddleware.authenticate,
     validate(createApiKeySchema),
-    apiKeyController.createApiKey
+    apiKeyController.createApiKey,
   );
 
   /**
@@ -105,7 +105,7 @@ export function createApiKeyRoutes(
    * **Authorization:** Authenticated user
    * **Returns:** Key details (prefix + last4, no full key)
    */
-  router.get('/:id', authMiddleware.authenticate, apiKeyController.getApiKey);
+  router.get("/:id", authMiddleware.authenticate, apiKeyController.getApiKey);
 
   /**
    * DELETE /api/v1/api-keys/:id
@@ -117,7 +117,11 @@ export function createApiKeyRoutes(
    * **Authorization:** Key owner only
    * **Warning:** Irreversible operation
    */
-  router.delete('/:id', authMiddleware.authenticate, apiKeyController.revokeApiKey);
+  router.delete(
+    "/:id",
+    authMiddleware.authenticate,
+    apiKeyController.revokeApiKey,
+  );
 
   return router;
 }

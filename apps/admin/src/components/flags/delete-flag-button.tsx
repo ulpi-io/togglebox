@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { deleteFlagApi } from '@/lib/api/flags';
-import { Button } from '@togglebox/ui';
-import { Trash2 } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { deleteFlagApi } from "@/lib/api/flags";
+import { Button } from "@togglebox/ui";
+import { Trash2 } from "lucide-react";
 
 interface DeleteFlagButtonProps {
   platform: string;
@@ -13,7 +13,12 @@ interface DeleteFlagButtonProps {
   onSuccess?: () => void;
 }
 
-export function DeleteFlagButton({ platform, environment, flagKey, onSuccess }: DeleteFlagButtonProps) {
+export function DeleteFlagButton({
+  platform,
+  environment,
+  flagKey,
+  onSuccess,
+}: DeleteFlagButtonProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -28,7 +33,7 @@ export function DeleteFlagButton({ platform, environment, flagKey, onSuccess }: 
         router.refresh();
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete flag');
+      alert(err instanceof Error ? err.message : "Failed to delete flag");
       setIsDeleting(false);
     }
   }
@@ -43,7 +48,7 @@ export function DeleteFlagButton({ platform, environment, flagKey, onSuccess }: 
           disabled={isDeleting}
           className="text-xs"
         >
-          {isDeleting ? '...' : 'Delete'}
+          {isDeleting ? "..." : "Delete"}
         </Button>
         <Button
           variant="outline"

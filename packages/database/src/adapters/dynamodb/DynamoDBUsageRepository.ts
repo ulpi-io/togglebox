@@ -1,6 +1,6 @@
-import { dynamoDBClient, getUsageTableName } from '../../database';
-import { IUsageRepository } from '../../interfaces';
-import { UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { dynamoDBClient, getUsageTableName } from "../../database";
+import { IUsageRepository } from "../../interfaces";
+import { UpdateCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 
 /**
  * Number of time-based shards for distributing usage writes.
@@ -93,13 +93,13 @@ export class DynamoDBUsageRepository implements IUsageRepository {
           SK: `USAGE#apiRequests#SHARD#${shard}`,
         },
         UpdateExpression:
-          'SET apiRequests = if_not_exists(apiRequests, :zero) + :one, lastUpdated = :now',
+          "SET apiRequests = if_not_exists(apiRequests, :zero) + :one, lastUpdated = :now",
         ExpressionAttributeValues: {
-          ':zero': 0,
-          ':one': 1,
-          ':now': new Date().toISOString(),
+          ":zero": 0,
+          ":one": 1,
+          ":now": new Date().toISOString(),
         },
-      })
+      }),
     );
   }
 
@@ -114,18 +114,18 @@ export class DynamoDBUsageRepository implements IUsageRepository {
     const result = await dynamoDBClient.send(
       new QueryCommand({
         TableName: getUsageTableName(),
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
         ExpressionAttributeValues: {
-          ':pk': `TENANT#${tenantId}`,
-          ':prefix': 'USAGE#apiRequests#SHARD#',
+          ":pk": `TENANT#${tenantId}`,
+          ":prefix": "USAGE#apiRequests#SHARD#",
         },
-      })
+      }),
     );
 
     // Sum up counts from all shards
     let total = 0;
     for (const item of result.Items || []) {
-      total += (item['apiRequests'] as number) || 0;
+      total += (item["apiRequests"] as number) || 0;
     }
 
     return total;

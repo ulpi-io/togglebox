@@ -1,11 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { use } from 'react';
-import Link from 'next/link';
-import { getFlagApi, updateFlagApi, updateFlagRolloutApi } from '@/lib/api/flags';
-import type { Flag } from '@/lib/api/types';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { use } from "react";
+import Link from "next/link";
+import {
+  getFlagApi,
+  updateFlagApi,
+  updateFlagRolloutApi,
+} from "@/lib/api/flags";
+import type { Flag } from "@/lib/api/types";
 import {
   Button,
   Checkbox,
@@ -18,7 +22,7 @@ import {
   CardHeader,
   CardTitle,
   Steps,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
 interface EditFlagPageProps {
   params: Promise<{
@@ -28,13 +32,13 @@ interface EditFlagPageProps {
   }>;
 }
 
-type FlagType = 'boolean' | 'string' | 'number';
+type FlagType = "boolean" | "string" | "number";
 
 interface CountryLanguagePair {
   id: string;
   country: string;
   languages: string;
-  serveValue: 'A' | 'B';
+  serveValue: "A" | "B";
 }
 
 interface ValidationResult {
@@ -44,9 +48,9 @@ interface ValidationResult {
 }
 
 const STEPS = [
-  { id: 'basic', label: 'Basic Info' },
-  { id: 'values', label: 'Values' },
-  { id: 'targeting', label: 'Targeting' },
+  { id: "basic", label: "Basic Info" },
+  { id: "values", label: "Values" },
+  { id: "targeting", label: "Targeting" },
 ];
 
 // Validation helpers
@@ -57,7 +61,7 @@ function validateUserList(input: string): ValidationResult {
 
   const entries = input
     .split(/[,\n]/)
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean);
 
   const seen = new Set<string>();
@@ -81,20 +85,27 @@ function validateUserList(input: string): ValidationResult {
   return { valid, duplicates, invalid };
 }
 
-function validateCountryCode(code: string): { valid: boolean; formatted: string } {
+function validateCountryCode(code: string): {
+  valid: boolean;
+  formatted: string;
+} {
   const trimmed = code.trim().toUpperCase();
   const isValid = /^[A-Z]{2}$/.test(trimmed);
-  return { valid: isValid || trimmed === '', formatted: trimmed };
+  return { valid: isValid || trimmed === "", formatted: trimmed };
 }
 
-function validateLanguages(input: string): { valid: string[]; invalid: string[]; duplicates: string[] } {
+function validateLanguages(input: string): {
+  valid: string[];
+  invalid: string[];
+  duplicates: string[];
+} {
   if (!input.trim()) {
     return { valid: [], invalid: [], duplicates: [] };
   }
 
   const entries = input
-    .split(',')
-    .map(s => s.trim().toLowerCase())
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
 
   const seen = new Set<string>();
@@ -124,7 +135,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
   const router = useRouter();
 
   // Step navigation
-  const [currentStep, setCurrentStep] = useState('basic');
+  const [currentStep, setCurrentStep] = useState("basic");
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
 
   const [flag, setFlag] = useState<Flag | null>(null);
@@ -132,12 +143,12 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Form fields
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [enabled, setEnabled] = useState(false);
-  const [flagType, setFlagType] = useState<FlagType>('boolean');
-  const [valueA, setValueA] = useState<string>('true');
-  const [valueB, setValueB] = useState<string>('false');
+  const [flagType, setFlagType] = useState<FlagType>("boolean");
+  const [valueA, setValueA] = useState<string>("true");
+  const [valueB, setValueB] = useState<string>("false");
 
   // Rollout settings (percentage-based rollouts)
   const [rolloutEnabled, setRolloutEnabled] = useState(false);
@@ -148,16 +159,24 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
   const [rolloutSuccess, setRolloutSuccess] = useState(false);
 
   // Targeting - Country/Language Pairs
-  const [countryLanguagePairs, setCountryLanguagePairs] = useState<CountryLanguagePair[]>([]);
-  const [forceIncludeUsers, setForceIncludeUsers] = useState('');
-  const [forceExcludeUsers, setForceExcludeUsers] = useState('');
+  const [countryLanguagePairs, setCountryLanguagePairs] = useState<
+    CountryLanguagePair[]
+  >([]);
+  const [forceIncludeUsers, setForceIncludeUsers] = useState("");
+  const [forceExcludeUsers, setForceExcludeUsers] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Validation results for targeting
-  const includeUsersValidation = useMemo(() => validateUserList(forceIncludeUsers), [forceIncludeUsers]);
-  const excludeUsersValidation = useMemo(() => validateUserList(forceExcludeUsers), [forceExcludeUsers]);
+  const includeUsersValidation = useMemo(
+    () => validateUserList(forceIncludeUsers),
+    [forceIncludeUsers],
+  );
+  const excludeUsersValidation = useMemo(
+    () => validateUserList(forceExcludeUsers),
+    [forceExcludeUsers],
+  );
 
   // Step validation
   const stepValidation = useMemo(() => {
@@ -165,7 +184,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
       isValid: !!name.trim(),
       errors: [] as string[],
     };
-    if (!name.trim()) basic.errors.push('Display name is required');
+    if (!name.trim()) basic.errors.push("Display name is required");
 
     const values = {
       isValid: true, // Values always have defaults
@@ -173,22 +192,26 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
     };
 
     const targeting = {
-      isValid: includeUsersValidation.invalid.length === 0 && excludeUsersValidation.invalid.length === 0,
+      isValid:
+        includeUsersValidation.invalid.length === 0 &&
+        excludeUsersValidation.invalid.length === 0,
       errors: [] as string[],
     };
-    if (includeUsersValidation.invalid.length > 0) targeting.errors.push('Invalid user IDs in Force Include');
-    if (excludeUsersValidation.invalid.length > 0) targeting.errors.push('Invalid user IDs in Force Exclude');
+    if (includeUsersValidation.invalid.length > 0)
+      targeting.errors.push("Invalid user IDs in Force Include");
+    if (excludeUsersValidation.invalid.length > 0)
+      targeting.errors.push("Invalid user IDs in Force Exclude");
 
     return { basic, values, targeting };
   }, [name, includeUsersValidation, excludeUsersValidation]);
 
   // Remove completed status if step validation fails
   useEffect(() => {
-    setCompletedSteps(prev => {
+    setCompletedSteps((prev) => {
       const newCompleted = new Set(prev);
-      if (!stepValidation.basic.isValid) newCompleted.delete('basic');
-      if (!stepValidation.values.isValid) newCompleted.delete('values');
-      if (!stepValidation.targeting.isValid) newCompleted.delete('targeting');
+      if (!stepValidation.basic.isValid) newCompleted.delete("basic");
+      if (!stepValidation.values.isValid) newCompleted.delete("values");
+      if (!stepValidation.targeting.isValid) newCompleted.delete("targeting");
       if (newCompleted.size !== prev.size) return newCompleted;
       for (const item of prev) {
         if (!newCompleted.has(item)) return newCompleted;
@@ -203,9 +226,9 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
       const data = await getFlagApi(platform, environment, flagKey);
       setFlag(data);
       setName(data.name);
-      setDescription(data.description || '');
+      setDescription(data.description || "");
       setEnabled(data.enabled);
-      setFlagType(data.flagType || 'boolean');
+      setFlagType(data.flagType || "boolean");
       setValueA(String(data.valueA));
       setValueB(String(data.valueB));
 
@@ -220,18 +243,18 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
           data.targeting.countries.map((c) => ({
             id: crypto.randomUUID(),
             country: c.country,
-            languages: c.languages?.map((l) => l.language).join(', ') || '',
-            serveValue: c.serveValue || 'A',
-          }))
+            languages: c.languages?.map((l) => l.language).join(", ") || "",
+            serveValue: c.serveValue || "A",
+          })),
         );
       } else {
         setCountryLanguagePairs([]);
       }
-      setForceIncludeUsers(data.targeting?.forceIncludeUsers?.join(', ') || '');
-      setForceExcludeUsers(data.targeting?.forceExcludeUsers?.join(', ') || '');
+      setForceIncludeUsers(data.targeting?.forceIncludeUsers?.join(", ") || "");
+      setForceExcludeUsers(data.targeting?.forceExcludeUsers?.join(", ") || "");
       setLoadError(null);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Failed to load flag');
+      setLoadError(err instanceof Error ? err.message : "Failed to load flag");
     } finally {
       setIsLoadingFlag(false);
     }
@@ -243,34 +266,44 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
   // Country/Language pair management
   function addCountryLanguagePair() {
-    setCountryLanguagePairs([...countryLanguagePairs, {
-      id: crypto.randomUUID(),
-      country: '',
-      languages: '',
-      serveValue: 'A',
-    }]);
+    setCountryLanguagePairs([
+      ...countryLanguagePairs,
+      {
+        id: crypto.randomUUID(),
+        country: "",
+        languages: "",
+        serveValue: "A",
+      },
+    ]);
   }
 
   function updateCountryLanguagePair(
     id: string,
-    update: Partial<{ country: string; languages: string; serveValue: 'A' | 'B' }>
+    update: Partial<{
+      country: string;
+      languages: string;
+      serveValue: "A" | "B";
+    }>,
   ) {
-    setCountryLanguagePairs(prev =>
-      prev.map(pair => pair.id === id ? { ...pair, ...update } : pair)
+    setCountryLanguagePairs((prev) =>
+      prev.map((pair) => (pair.id === id ? { ...pair, ...update } : pair)),
     );
   }
 
   function removeCountryLanguagePair(id: string) {
-    setCountryLanguagePairs(prev => prev.filter(pair => pair.id !== id));
+    setCountryLanguagePairs((prev) => prev.filter((pair) => pair.id !== id));
   }
 
-  function parseValue(raw: string, type: FlagType): boolean | string | number | null {
+  function parseValue(
+    raw: string,
+    type: FlagType,
+  ): boolean | string | number | null {
     switch (type) {
-      case 'boolean':
-        return raw === 'true';
-      case 'number': {
+      case "boolean":
+        return raw === "true";
+      case "number": {
         const parsed = Number(raw);
-        if (raw.trim() === '' || Number.isNaN(parsed)) {
+        if (raw.trim() === "" || Number.isNaN(parsed)) {
           return null; // Signal invalid number
         }
         return parsed;
@@ -281,13 +314,13 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
   }
 
   // Navigation
-  const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
+  const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
 
   function markCurrentStepAsCompleted() {
     const stepId = currentStep;
     const validation = stepValidation[stepId as keyof typeof stepValidation];
     if (validation?.isValid && !completedSteps.has(stepId)) {
-      setCompletedSteps(prev => new Set([...prev, stepId]));
+      setCompletedSteps((prev) => new Set([...prev, stepId]));
     }
   }
 
@@ -306,7 +339,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
   function handleStepClick(stepId: string) {
     if (stepId !== currentStep) {
-      const targetIndex = STEPS.findIndex(s => s.id === stepId);
+      const targetIndex = STEPS.findIndex((s) => s.id === stepId);
       if (targetIndex > currentStepIndex) {
         markCurrentStepAsCompleted();
       }
@@ -336,14 +369,17 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
       setRolloutSuccess(true);
       await loadFlag();
     } catch (err) {
-      setRolloutError(err instanceof Error ? err.message : 'Failed to update rollout');
+      setRolloutError(
+        err instanceof Error ? err.message : "Failed to update rollout",
+      );
     } finally {
       setRolloutSaving(false);
     }
   }
 
   // Check if all steps are valid for submission
-  const canSubmit = stepValidation.basic.isValid &&
+  const canSubmit =
+    stepValidation.basic.isValid &&
     stepValidation.values.isValid &&
     stepValidation.targeting.isValid;
 
@@ -353,13 +389,13 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
     if (!canSubmit) {
       if (!stepValidation.basic.isValid) {
-        setCurrentStep('basic');
+        setCurrentStep("basic");
         setError(stepValidation.basic.errors[0]);
       } else if (!stepValidation.values.isValid) {
-        setCurrentStep('values');
+        setCurrentStep("values");
         setError(stepValidation.values.errors[0]);
       } else if (!stepValidation.targeting.isValid) {
-        setCurrentStep('targeting');
+        setCurrentStep("targeting");
         setError(stepValidation.targeting.errors[0]);
       }
       return;
@@ -369,11 +405,11 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
     const parsedValueA = parseValue(valueA, flagType);
     const parsedValueB = parseValue(valueB, flagType);
     if (parsedValueA === null) {
-      setError('Value A must be a valid number');
+      setError("Value A must be a valid number");
       return;
     }
     if (parsedValueB === null) {
-      setError('Value B must be a valid number');
+      setError("Value B must be a valid number");
       return;
     }
 
@@ -382,21 +418,29 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
     try {
       // Build targeting object with serveValue
       const targeting: {
-        countries?: { country: string; serveValue: 'A' | 'B'; languages?: { language: string; serveValue: 'A' | 'B' }[] }[];
+        countries?: {
+          country: string;
+          serveValue: "A" | "B";
+          languages?: { language: string; serveValue: "A" | "B" }[];
+        }[];
         forceIncludeUsers?: string[];
         forceExcludeUsers?: string[];
       } = {};
 
-      const validPairs = countryLanguagePairs.filter(p => p.country.trim());
+      const validPairs = countryLanguagePairs.filter((p) => p.country.trim());
       if (validPairs.length > 0) {
-        targeting.countries = validPairs.map(pair => {
+        targeting.countries = validPairs.map((pair) => {
           const validLangs = validateLanguages(pair.languages);
           return {
             country: pair.country.trim().toUpperCase(),
             serveValue: pair.serveValue,
-            languages: validLangs.valid.length > 0
-              ? validLangs.valid.map(l => ({ language: l, serveValue: pair.serveValue }))
-              : undefined,
+            languages:
+              validLangs.valid.length > 0
+                ? validLangs.valid.map((l) => ({
+                    language: l,
+                    serveValue: pair.serveValue,
+                  }))
+                : undefined,
           };
         });
       }
@@ -420,7 +464,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
       router.push(`/flags?platform=${platform}&environment=${environment}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -428,24 +472,31 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
   // Render validation feedback for user lists
   function renderUserListValidation(validation: ValidationResult) {
-    const hasIssues = validation.duplicates.length > 0 || validation.invalid.length > 0;
+    const hasIssues =
+      validation.duplicates.length > 0 || validation.invalid.length > 0;
     if (!hasIssues && validation.valid.length === 0) return null;
 
     return (
       <div className="mt-2 space-y-1">
         {validation.valid.length > 0 && (
           <p className="text-xs text-muted-foreground">
-            {validation.valid.length} valid {validation.valid.length === 1 ? 'user' : 'users'}
+            {validation.valid.length} valid{" "}
+            {validation.valid.length === 1 ? "user" : "users"}
           </p>
         )}
         {validation.duplicates.length > 0 && (
           <p className="text-xs text-warning">
-            {validation.duplicates.length} duplicate{validation.duplicates.length === 1 ? '' : 's'} will be ignored: {validation.duplicates.slice(0, 3).join(', ')}{validation.duplicates.length > 3 ? '...' : ''}
+            {validation.duplicates.length} duplicate
+            {validation.duplicates.length === 1 ? "" : "s"} will be ignored:{" "}
+            {validation.duplicates.slice(0, 3).join(", ")}
+            {validation.duplicates.length > 3 ? "..." : ""}
           </p>
         )}
         {validation.invalid.length > 0 && (
           <p className="text-xs text-destructive">
-            {validation.invalid.length} invalid format: {validation.invalid.slice(0, 3).join(', ')}{validation.invalid.length > 3 ? '...' : ''}
+            {validation.invalid.length} invalid format:{" "}
+            {validation.invalid.slice(0, 3).join(", ")}
+            {validation.invalid.length > 3 ? "..." : ""}
           </p>
         )}
       </div>
@@ -477,15 +528,21 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
       <div>
         <div className="mb-8">
           <h1 className="text-4xl font-black mb-2">Edit Flag</h1>
-          <p className="text-muted-foreground">{platform} / {environment}</p>
+          <p className="text-muted-foreground">
+            {platform} / {environment}
+          </p>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
             <div className="text-destructive text-lg font-bold mb-2">
               Error loading flag
             </div>
-            <p className="text-muted-foreground mb-4">{loadError || 'Flag not found'}</p>
-            <Link href={`/flags?platform=${platform}&environment=${environment}`}>
+            <p className="text-muted-foreground mb-4">
+              {loadError || "Flag not found"}
+            </p>
+            <Link
+              href={`/flags?platform=${platform}&environment=${environment}`}
+            >
               <Button variant="outline">Back to Flags</Button>
             </Link>
           </CardContent>
@@ -522,7 +579,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
       <form onSubmit={handleSubmit}>
         {/* Step 1: Basic Info */}
-        {currentStep === 'basic' && (
+        {currentStep === "basic" && (
           <div className="space-y-6">
             {/* Flag Identity (Read-only) */}
             <Card>
@@ -538,7 +595,13 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                   <div className="space-y-2">
                     <Label>Flag Type (immutable)</Label>
                     <Input
-                      value={flagType === 'boolean' ? 'Boolean (true/false)' : flagType === 'string' ? 'String (text values)' : 'Number (numeric values)'}
+                      value={
+                        flagType === "boolean"
+                          ? "Boolean (true/false)"
+                          : flagType === "string"
+                            ? "String (text values)"
+                            : "Number (numeric values)"
+                      }
                       disabled
                       className="bg-muted"
                     />
@@ -578,16 +641,20 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
               </CardContent>
             </Card>
 
-            {!stepValidation.basic.isValid && stepValidation.basic.errors.length > 0 && (
-              <Alert variant="warning">
-                <span>Missing required fields: {stepValidation.basic.errors.join(', ')}</span>
-              </Alert>
-            )}
+            {!stepValidation.basic.isValid &&
+              stepValidation.basic.errors.length > 0 && (
+                <Alert variant="warning">
+                  <span>
+                    Missing required fields:{" "}
+                    {stepValidation.basic.errors.join(", ")}
+                  </span>
+                </Alert>
+              )}
           </div>
         )}
 
         {/* Step 2: Values */}
-        {currentStep === 'values' && (
+        {currentStep === "values" && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -597,7 +664,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="valueA">Value A (default)</Label>
-                    {flagType === 'boolean' ? (
+                    {flagType === "boolean" ? (
                       <Select
                         id="valueA"
                         value={valueA}
@@ -610,10 +677,10 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                     ) : (
                       <Input
                         id="valueA"
-                        type={flagType === 'number' ? 'number' : 'text'}
+                        type={flagType === "number" ? "number" : "text"}
                         value={valueA}
                         onChange={(e) => setValueA(e.target.value)}
-                        placeholder={flagType === 'number' ? '0' : 'value'}
+                        placeholder={flagType === "number" ? "0" : "value"}
                         disabled={isLoading}
                       />
                     )}
@@ -623,7 +690,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="valueB">Value B (rollout)</Label>
-                    {flagType === 'boolean' ? (
+                    {flagType === "boolean" ? (
                       <Select
                         id="valueB"
                         value={valueB}
@@ -636,10 +703,10 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                     ) : (
                       <Input
                         id="valueB"
-                        type={flagType === 'number' ? 'number' : 'text'}
+                        type={flagType === "number" ? "number" : "text"}
                         value={valueB}
                         onChange={(e) => setValueB(e.target.value)}
-                        placeholder={flagType === 'number' ? '0' : 'value'}
+                        placeholder={flagType === "number" ? "0" : "value"}
                         disabled={isLoading}
                       />
                     )}
@@ -696,17 +763,25 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                     <div className="space-y-2">
                       <Label>Traffic Distribution</Label>
                       <div className="flex items-center gap-4">
-                        <span className="text-sm font-medium w-24">Value A: {rolloutPercentageA}%</span>
+                        <span className="text-sm font-medium w-24">
+                          Value A: {rolloutPercentageA}%
+                        </span>
                         <input
                           type="range"
                           min="0"
                           max="100"
                           value={rolloutPercentageA}
-                          onChange={(e) => handleRolloutPercentageChange(parseInt(e.target.value))}
+                          onChange={(e) =>
+                            handleRolloutPercentageChange(
+                              parseInt(e.target.value),
+                            )
+                          }
                           className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                           disabled={rolloutSaving}
                         />
-                        <span className="text-sm font-medium w-24 text-right">Value B: {rolloutPercentageB}%</span>
+                        <span className="text-sm font-medium w-24 text-right">
+                          Value B: {rolloutPercentageB}%
+                        </span>
                       </div>
                     </div>
 
@@ -723,15 +798,19 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                      {rolloutPercentageA}% of users will receive Value A ({String(valueA)}), {rolloutPercentageB}% will receive Value B ({String(valueB)}).
-                      Users are consistently assigned based on their user ID hash.
+                      {rolloutPercentageA}% of users will receive Value A (
+                      {String(valueA)}), {rolloutPercentageB}% will receive
+                      Value B ({String(valueB)}). Users are consistently
+                      assigned based on their user ID hash.
                     </p>
                   </div>
                 )}
 
                 {!rolloutEnabled && (
                   <p className="text-sm text-muted-foreground">
-                    When disabled, users receive the configured default value (Value B by default). Enable rollout for gradual feature releases.
+                    When disabled, users receive the configured default value
+                    (Value B by default). Enable rollout for gradual feature
+                    releases.
                   </p>
                 )}
 
@@ -750,7 +829,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                     onClick={handleSaveRollout}
                     disabled={rolloutSaving}
                   >
-                    {rolloutSaving ? 'Saving...' : 'Save Rollout Settings'}
+                    {rolloutSaving ? "Saving..." : "Save Rollout Settings"}
                   </Button>
                 </div>
               </CardContent>
@@ -759,7 +838,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
         )}
 
         {/* Step 3: Targeting */}
-        {currentStep === 'targeting' && (
+        {currentStep === "targeting" && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -769,7 +848,9 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                 {/* Country/Language Pairs */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-base font-medium">Country/Language Targeting</Label>
+                    <Label className="text-base font-medium">
+                      Country/Language Targeting
+                    </Label>
                     <Button
                       type="button"
                       variant="outline"
@@ -783,56 +864,88 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
                   {countryLanguagePairs.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No country targeting configured. Flag will apply to all users.
+                      No country targeting configured. Flag will apply to all
+                      users.
                     </p>
                   ) : (
                     <div className="space-y-2">
                       {countryLanguagePairs.map((pair) => {
-                        const countryValidation = validateCountryCode(pair.country);
-                        const langValidation = validateLanguages(pair.languages);
-                        const hasCountryError = pair.country.trim() && !countryValidation.valid;
+                        const countryValidation = validateCountryCode(
+                          pair.country,
+                        );
+                        const langValidation = validateLanguages(
+                          pair.languages,
+                        );
+                        const hasCountryError =
+                          pair.country.trim() && !countryValidation.valid;
                         const hasLangError = langValidation.invalid.length > 0;
 
                         return (
-                          <div key={pair.id} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                          <div
+                            key={pair.id}
+                            className="p-3 bg-muted/50 rounded-lg space-y-2"
+                          >
                             <div className="flex items-start gap-3">
                               <div className="flex-1 grid grid-cols-3 gap-3">
                                 <div className="space-y-1">
-                                  <Label className="text-xs">Country Code (2-letter ISO)</Label>
+                                  <Label className="text-xs">
+                                    Country Code (2-letter ISO)
+                                  </Label>
                                   <Input
                                     value={pair.country}
-                                    onChange={(e) => updateCountryLanguagePair(pair.id, { country: e.target.value.toUpperCase() })}
+                                    onChange={(e) =>
+                                      updateCountryLanguagePair(pair.id, {
+                                        country: e.target.value.toUpperCase(),
+                                      })
+                                    }
                                     placeholder="e.g., AE"
                                     disabled={isLoading}
-                                    className={`uppercase ${hasCountryError ? 'border-destructive' : ''}`}
+                                    className={`uppercase ${hasCountryError ? "border-destructive" : ""}`}
                                     maxLength={2}
                                   />
                                   {hasCountryError && (
-                                    <p className="text-xs text-destructive">Must be 2 uppercase letters</p>
+                                    <p className="text-xs text-destructive">
+                                      Must be 2 uppercase letters
+                                    </p>
                                   )}
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-xs">Languages (comma-separated)</Label>
+                                  <Label className="text-xs">
+                                    Languages (comma-separated)
+                                  </Label>
                                   <Input
                                     value={pair.languages}
-                                    onChange={(e) => updateCountryLanguagePair(pair.id, { languages: e.target.value })}
+                                    onChange={(e) =>
+                                      updateCountryLanguagePair(pair.id, {
+                                        languages: e.target.value,
+                                      })
+                                    }
                                     placeholder="e.g., en, ar"
                                     disabled={isLoading}
-                                    className={hasLangError ? 'border-destructive' : ''}
+                                    className={
+                                      hasLangError ? "border-destructive" : ""
+                                    }
                                   />
                                   {langValidation.valid.length > 0 && (
                                     <p className="text-xs text-muted-foreground">
-                                      {langValidation.valid.length} language{langValidation.valid.length === 1 ? '' : 's'}: {langValidation.valid.join(', ')}
+                                      {langValidation.valid.length} language
+                                      {langValidation.valid.length === 1
+                                        ? ""
+                                        : "s"}
+                                      : {langValidation.valid.join(", ")}
                                     </p>
                                   )}
                                   {langValidation.duplicates.length > 0 && (
                                     <p className="text-xs text-warning">
-                                      Duplicates ignored: {langValidation.duplicates.join(', ')}
+                                      Duplicates ignored:{" "}
+                                      {langValidation.duplicates.join(", ")}
                                     </p>
                                   )}
                                   {langValidation.invalid.length > 0 && (
                                     <p className="text-xs text-destructive">
-                                      Invalid: {langValidation.invalid.join(', ')} (must be 2 lowercase letters)
+                                      Invalid:{" "}
+                                      {langValidation.invalid.join(", ")} (must
+                                      be 2 lowercase letters)
                                     </p>
                                   )}
                                 </div>
@@ -840,7 +953,11 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                                   <Label className="text-xs">Serve Value</Label>
                                   <Select
                                     value={pair.serveValue}
-                                    onChange={(e) => updateCountryLanguagePair(pair.id, { serveValue: e.target.value as 'A' | 'B' })}
+                                    onChange={(e) =>
+                                      updateCountryLanguagePair(pair.id, {
+                                        serveValue: e.target.value as "A" | "B",
+                                      })
+                                    }
                                     disabled={isLoading}
                                   >
                                     <option value="A">Serve A</option>
@@ -852,7 +969,9 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removeCountryLanguagePair(pair.id)}
+                                onClick={() =>
+                                  removeCountryLanguagePair(pair.id)
+                                }
                                 disabled={isLoading}
                                 className="text-destructive hover:text-destructive mt-5"
                               >
@@ -863,7 +982,10 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                         );
                       })}
                       <p className="text-xs text-muted-foreground">
-                        Each country can have multiple languages. Leave languages empty for all languages in that country. Serve Value determines which value (A or B) is served when users match this targeting rule.
+                        Each country can have multiple languages. Leave
+                        languages empty for all languages in that country. Serve
+                        Value determines which value (A or B) is served when
+                        users match this targeting rule.
                       </p>
                     </div>
                   )}
@@ -872,36 +994,46 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                 {/* Force Include/Exclude Users */}
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="forceIncludeUsers">Force Include Users</Label>
+                    <Label htmlFor="forceIncludeUsers">
+                      Force Include Users
+                    </Label>
                     <textarea
                       id="forceIncludeUsers"
                       value={forceIncludeUsers}
                       onChange={(e) => setForceIncludeUsers(e.target.value)}
                       placeholder="user123, user456, user789"
                       className={`w-full p-3 border rounded-lg min-h-[80px] bg-white/80 focus:ring-2 focus:ring-black/20 focus:border-black/40 focus:bg-white transition-all duration-200 resize-y ${
-                        includeUsersValidation.invalid.length > 0 ? 'border-destructive' : 'border-black/20'
+                        includeUsersValidation.invalid.length > 0
+                          ? "border-destructive"
+                          : "border-black/20"
                       }`}
                       disabled={isLoading}
                     />
                     <p className="text-xs text-muted-foreground">
-                      User IDs always included in flag (comma or newline separated)
+                      User IDs always included in flag (comma or newline
+                      separated)
                     </p>
                     {renderUserListValidation(includeUsersValidation)}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="forceExcludeUsers">Force Exclude Users</Label>
+                    <Label htmlFor="forceExcludeUsers">
+                      Force Exclude Users
+                    </Label>
                     <textarea
                       id="forceExcludeUsers"
                       value={forceExcludeUsers}
                       onChange={(e) => setForceExcludeUsers(e.target.value)}
                       placeholder="user789, user012"
                       className={`w-full p-3 border rounded-lg min-h-[80px] bg-white/80 focus:ring-2 focus:ring-black/20 focus:border-black/40 focus:bg-white transition-all duration-200 resize-y ${
-                        excludeUsersValidation.invalid.length > 0 ? 'border-destructive' : 'border-black/20'
+                        excludeUsersValidation.invalid.length > 0
+                          ? "border-destructive"
+                          : "border-black/20"
                       }`}
                       disabled={isLoading}
                     />
                     <p className="text-xs text-muted-foreground">
-                      User IDs always excluded from flag (comma or newline separated)
+                      User IDs always excluded from flag (comma or newline
+                      separated)
                     </p>
                     {renderUserListValidation(excludeUsersValidation)}
                   </div>
@@ -933,25 +1065,20 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <Link href={`/flags?platform=${platform}&environment=${environment}`}>
+            <Link
+              href={`/flags?platform=${platform}&environment=${environment}`}
+            >
               <Button type="button" variant="outline" disabled={isLoading}>
                 Cancel
               </Button>
             </Link>
             {currentStepIndex < STEPS.length - 1 ? (
-              <Button
-                type="button"
-                onClick={goToNextStep}
-                disabled={isLoading}
-              >
+              <Button type="button" onClick={goToNextStep} disabled={isLoading}>
                 Next
               </Button>
             ) : (
-              <Button
-                type="submit"
-                disabled={isLoading || !canSubmit}
-              >
-                {isLoading ? 'Saving...' : 'Save Changes'}
+              <Button type="submit" disabled={isLoading || !canSubmit}>
+                {isLoading ? "Saving..." : "Save Changes"}
               </Button>
             )}
           </div>

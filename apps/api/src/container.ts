@@ -13,14 +13,25 @@
  * - Explicit dependency graph
  */
 
-import { getDatabase, DatabaseRepositories, resetDatabase, getThreeTierRepositories, ThreeTierRepositories, resetThreeTierRepositories } from '@togglebox/database';
-import { createCacheProvider, CacheProvider, CacheConfig } from '@togglebox/cache';
-import { logger } from '@togglebox/shared';
-import { ConfigController } from './controllers/configController';
-import { WebhookController } from './controllers/webhookController';
-import { FlagController } from './controllers/flagController';
-import { ExperimentController } from './controllers/experimentController';
-import { StatsController } from './controllers/statsController';
+import {
+  getDatabase,
+  DatabaseRepositories,
+  resetDatabase,
+  getThreeTierRepositories,
+  ThreeTierRepositories,
+  resetThreeTierRepositories,
+} from "@togglebox/database";
+import {
+  createCacheProvider,
+  CacheProvider,
+  CacheConfig,
+} from "@togglebox/cache";
+import { logger } from "@togglebox/shared";
+import { ConfigController } from "./controllers/configController";
+import { WebhookController } from "./controllers/webhookController";
+import { FlagController } from "./controllers/flagController";
+import { ExperimentController } from "./controllers/experimentController";
+import { StatsController } from "./controllers/statsController";
 
 /**
  * Application Dependencies Container
@@ -61,31 +72,46 @@ export class Container {
    */
   static getCacheProvider(): CacheProvider {
     if (!this.cacheProvider) {
-      const envProvider = (process.env['CACHE_PROVIDER'] as 'cloudfront' | 'cloudflare' | 'none') || 'cloudfront';
+      const envProvider =
+        (process.env["CACHE_PROVIDER"] as
+          | "cloudfront"
+          | "cloudflare"
+          | "none") || "cloudfront";
       let provider = envProvider;
 
       // Validate CloudFront configuration
-      if (envProvider === 'cloudfront' && !process.env['CLOUDFRONT_DISTRIBUTION_ID']) {
-        logger.warn('Cache provider set to "cloudfront" but CLOUDFRONT_DISTRIBUTION_ID is missing. Defaulting to disabled cache.');
-        provider = 'none';
+      if (
+        envProvider === "cloudfront" &&
+        !process.env["CLOUDFRONT_DISTRIBUTION_ID"]
+      ) {
+        logger.warn(
+          'Cache provider set to "cloudfront" but CLOUDFRONT_DISTRIBUTION_ID is missing. Defaulting to disabled cache.',
+        );
+        provider = "none";
       }
 
       // Validate Cloudflare configuration
-      if (envProvider === 'cloudflare' && (!process.env['CLOUDFLARE_ZONE_ID'] || !process.env['CLOUDFLARE_API_TOKEN'])) {
-        logger.warn('Cache provider set to "cloudflare" but CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN is missing. Defaulting to disabled cache.');
-        provider = 'none';
+      if (
+        envProvider === "cloudflare" &&
+        (!process.env["CLOUDFLARE_ZONE_ID"] ||
+          !process.env["CLOUDFLARE_API_TOKEN"])
+      ) {
+        logger.warn(
+          'Cache provider set to "cloudflare" but CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN is missing. Defaulting to disabled cache.',
+        );
+        provider = "none";
       }
 
       const config: CacheConfig = {
-        enabled: process.env['CACHE_ENABLED'] === 'true',
+        enabled: process.env["CACHE_ENABLED"] === "true",
         provider,
         cloudfront: {
-          distributionId: process.env['CLOUDFRONT_DISTRIBUTION_ID'],
-          region: process.env['AWS_REGION'] || 'us-east-1',
+          distributionId: process.env["CLOUDFRONT_DISTRIBUTION_ID"],
+          region: process.env["AWS_REGION"] || "us-east-1",
         },
         cloudflare: {
-          zoneId: process.env['CLOUDFLARE_ZONE_ID'],
-          apiToken: process.env['CLOUDFLARE_API_TOKEN'],
+          zoneId: process.env["CLOUDFLARE_ZONE_ID"],
+          apiToken: process.env["CLOUDFLARE_API_TOKEN"],
         },
       };
       this.cacheProvider = createCacheProvider(config);
@@ -108,19 +134,14 @@ export class Container {
    * Create ConfigController with injected dependencies
    */
   static createConfigController(): ConfigController {
-    return new ConfigController(
-      this.getDatabase(),
-      this.getCacheProvider()
-    );
+    return new ConfigController(this.getDatabase(), this.getCacheProvider());
   }
 
   /**
    * Create WebhookController with injected dependencies
    */
   static createWebhookController(): WebhookController {
-    return new WebhookController(
-      this.getCacheProvider()
-    );
+    return new WebhookController(this.getCacheProvider());
   }
 
   /**
@@ -129,7 +150,7 @@ export class Container {
   static createFlagController(): FlagController {
     return new FlagController(
       this.getThreeTierRepositories(),
-      this.getCacheProvider()
+      this.getCacheProvider(),
     );
   }
 
@@ -139,7 +160,7 @@ export class Container {
   static createExperimentController(): ExperimentController {
     return new ExperimentController(
       this.getThreeTierRepositories(),
-      this.getCacheProvider()
+      this.getCacheProvider(),
     );
   }
 
@@ -147,9 +168,7 @@ export class Container {
    * Create StatsController with injected dependencies
    */
   static createStatsController(): StatsController {
-    return new StatsController(
-      this.getThreeTierRepositories()
-    );
+    return new StatsController(this.getThreeTierRepositories());
   }
 
   /**

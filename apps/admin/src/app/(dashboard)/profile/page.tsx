@@ -1,8 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { getCurrentUserApi, updateProfileApi, changePasswordApi } from '@/lib/api/auth';
-import type { User } from '@/lib/api/types';
+import { useState, useEffect, useRef } from "react";
+import {
+  getCurrentUserApi,
+  updateProfileApi,
+  changePasswordApi,
+} from "@/lib/api/auth";
+import type { User } from "@/lib/api/types";
 import {
   Button,
   Card,
@@ -13,7 +17,7 @@ import {
   Label,
   Alert,
   Badge,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -21,15 +25,15 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
 
   // Profile form state
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
   // Password form state
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -51,9 +55,9 @@ export default function ProfilePage() {
       try {
         const userData = await getCurrentUserApi();
         setUser(userData);
-        setName(userData.name || '');
+        setName(userData.name || "");
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load profile');
+        setError(err instanceof Error ? err.message : "Failed to load profile");
       } finally {
         setIsLoading(false);
       }
@@ -72,9 +76,14 @@ export default function ProfilePage() {
       setUser(updatedUser);
       setProfileSuccess(true);
       if (profileTimerRef.current) clearTimeout(profileTimerRef.current);
-      profileTimerRef.current = setTimeout(() => setProfileSuccess(false), 3000);
+      profileTimerRef.current = setTimeout(
+        () => setProfileSuccess(false),
+        3000,
+      );
     } catch (err) {
-      setProfileError(err instanceof Error ? err.message : 'Failed to update profile');
+      setProfileError(
+        err instanceof Error ? err.message : "Failed to update profile",
+      );
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -86,12 +95,12 @@ export default function ProfilePage() {
     setPasswordSuccess(false);
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('New passwords do not match');
+      setPasswordError("New passwords do not match");
       return;
     }
 
     if (newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
+      setPasswordError("Password must be at least 8 characters");
       return;
     }
 
@@ -100,13 +109,18 @@ export default function ProfilePage() {
     try {
       await changePasswordApi(currentPassword, newPassword);
       setPasswordSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
       if (passwordTimerRef.current) clearTimeout(passwordTimerRef.current);
-      passwordTimerRef.current = setTimeout(() => setPasswordSuccess(false), 3000);
+      passwordTimerRef.current = setTimeout(
+        () => setPasswordSuccess(false),
+        3000,
+      );
     } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : 'Failed to change password');
+      setPasswordError(
+        err instanceof Error ? err.message : "Failed to change password",
+      );
     } finally {
       setIsChangingPassword(false);
     }
@@ -173,7 +187,7 @@ export default function ProfilePage() {
                 <span className="text-muted-foreground">Role</span>
                 <p>
                   <Badge
-                    role={user.role as 'admin' | 'developer' | 'viewer'}
+                    role={user.role as "admin" | "developer" | "viewer"}
                     size="sm"
                   >
                     {user.role.toUpperCase()}
@@ -223,7 +237,7 @@ export default function ProfilePage() {
               )}
 
               <Button type="submit" disabled={isUpdatingProfile}>
-                {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
+                {isUpdatingProfile ? "Saving..." : "Save Changes"}
               </Button>
             </form>
           </CardContent>
@@ -288,7 +302,7 @@ export default function ProfilePage() {
               )}
 
               <Button type="submit" disabled={isChangingPassword}>
-                {isChangingPassword ? 'Changing...' : 'Change Password'}
+                {isChangingPassword ? "Changing..." : "Change Password"}
               </Button>
             </form>
           </CardContent>

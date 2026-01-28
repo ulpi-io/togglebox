@@ -1,5 +1,5 @@
 // Provider
-export { ToggleBoxProvider } from './provider'
+export { ToggleBoxProvider } from "./provider";
 
 // Hooks
 export {
@@ -9,10 +9,10 @@ export {
   useExperiments,
   useExperiment,
   useAnalytics,
-} from './hooks'
+} from "./hooks";
 
 // Storage
-export { Storage } from './storage'
+export { Storage } from "./storage";
 
 // Types
 export type {
@@ -26,23 +26,18 @@ export type {
   UseAnalyticsResult,
   StoredData,
   StorageAdapter,
-} from './types'
+} from "./types";
 
 // Re-export from sdk for convenience
-export { ToggleBoxClient } from '@togglebox/sdk'
-export type { ClientOptions, Config } from '@togglebox/sdk'
+export { ToggleBoxClient } from "@togglebox/sdk";
+export type { ClientOptions, Config } from "@togglebox/sdk";
 
 // Re-export types from packages for convenience
-export type {
-  Flag,
-  FlagContext,
-  FlagResult,
-  FlagValue,
-} from '@togglebox/sdk'
+export type { Flag, FlagContext, FlagResult, FlagValue } from "@togglebox/sdk";
 
 export type {
   Experiment,
   ExperimentContext,
   ExperimentVariation,
   VariantAssignment,
-} from '@togglebox/sdk'
+} from "@togglebox/sdk";

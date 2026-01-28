@@ -1,15 +1,20 @@
-import { Request, Response, NextFunction } from 'express';
-import { ThreeTierRepositories } from '@togglebox/database';
-import { logger, getTokenPaginationParams, withDatabaseContext, AuthenticatedRequest } from '@togglebox/shared';
+import { Request, Response, NextFunction } from "express";
+import { ThreeTierRepositories } from "@togglebox/database";
+import {
+  logger,
+  getTokenPaginationParams,
+  withDatabaseContext,
+  AuthenticatedRequest,
+} from "@togglebox/shared";
 import {
   CreateFlagSchema,
   UpdateFlagSchema,
   UpdateRolloutSchema,
   EvaluationContextSchema,
   evaluateFlag,
-} from '@togglebox/flags';
-import { CacheProvider } from '@togglebox/cache';
-import { z } from 'zod';
+} from "@togglebox/flags";
+import { CacheProvider } from "@togglebox/cache";
+import { z } from "zod";
 
 /**
  * Controller for Feature Flags (Tier 2: 2-value model with country/language targeting).
@@ -32,11 +37,18 @@ export class FlagController {
    *
    * POST /platforms/:platform/environments/:environment/flags
    */
-  createFlag = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  createFlag = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { platform, environment } = req.params as { platform: string; environment: string };
+      const { platform, environment } = req.params as {
+        platform: string;
+        environment: string;
+      };
       const user = (req as AuthenticatedRequest).user;
-      const createdBy = user?.email || 'system@togglebox.dev';
+      const createdBy = user?.email || "system@togglebox.dev";
 
       const bodyData = CreateFlagSchema.parse({
         ...req.body,
@@ -50,8 +62,10 @@ export class FlagController {
         const flag = await this.repos.flag.create(bodyData);
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('createFlag', 'flags', duration, true);
-        logger.info(`Created flag ${flag.flagKey} for ${flag.platform}/${flag.environment}`);
+        logger.logDatabaseOperation("createFlag", "flags", duration, true);
+        logger.info(
+          `Created flag ${flag.flagKey} for ${flag.platform}/${flag.environment}`,
+        );
 
         this.invalidateFlagCache(platform, environment, flag.flagKey);
 
@@ -65,9 +79,11 @@ export class FlagController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
@@ -81,7 +97,11 @@ export class FlagController {
    *
    * PUT /platforms/:platform/environments/:environment/flags/:flagKey
    */
-  updateFlag = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  updateFlag = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -89,7 +109,7 @@ export class FlagController {
         flagKey: string;
       };
       const user = (req as AuthenticatedRequest).user;
-      const createdBy = user?.email || 'system@togglebox.dev';
+      const createdBy = user?.email || "system@togglebox.dev";
 
       const bodyData = UpdateFlagSchema.parse({
         ...req.body,
@@ -98,11 +118,18 @@ export class FlagController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const flag = await this.repos.flag.update(platform, environment, flagKey, bodyData);
+        const flag = await this.repos.flag.update(
+          platform,
+          environment,
+          flagKey,
+          bodyData,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('updateFlag', 'flags', duration, true);
-        logger.info(`Updated flag ${flagKey} to v${flag.version} for ${platform}/${environment}`);
+        logger.logDatabaseOperation("updateFlag", "flags", duration, true);
+        logger.info(
+          `Updated flag ${flagKey} to v${flag.version} for ${platform}/${environment}`,
+        );
 
         this.invalidateFlagCache(platform, environment, flagKey);
 
@@ -116,14 +143,16 @@ export class FlagController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
       }
-      if (error instanceof Error && error.message.includes('not found')) {
+      if (error instanceof Error && error.message.includes("not found")) {
         res.status(404).json({
           success: false,
           error: error.message,
@@ -140,7 +169,11 @@ export class FlagController {
    *
    * PATCH /platforms/:platform/environments/:environment/flags/:flagKey/toggle
    */
-  toggleFlag = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  toggleFlag = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -151,11 +184,18 @@ export class FlagController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const flag = await this.repos.flag.toggle(platform, environment, flagKey, enabled);
+        const flag = await this.repos.flag.toggle(
+          platform,
+          environment,
+          flagKey,
+          enabled,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('toggleFlag', 'flags', duration, true);
-        logger.info(`Toggled flag ${flagKey} to ${enabled} for ${platform}/${environment}`);
+        logger.logDatabaseOperation("toggleFlag", "flags", duration, true);
+        logger.info(
+          `Toggled flag ${flagKey} to ${enabled} for ${platform}/${environment}`,
+        );
 
         this.invalidateFlagCache(platform, environment, flagKey);
 
@@ -169,14 +209,16 @@ export class FlagController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
       }
-      if (error instanceof Error && error.message.includes('not found')) {
+      if (error instanceof Error && error.message.includes("not found")) {
         res.status(404).json({
           success: false,
           error: error.message,
@@ -197,7 +239,11 @@ export class FlagController {
    * This endpoint allows quick percentage changes without creating a new version.
    * Useful for gradual rollouts (10% -> 50% -> 100%).
    */
-  updateRolloutSettings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  updateRolloutSettings = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -213,13 +259,18 @@ export class FlagController {
           platform,
           environment,
           flagKey,
-          settings
+          settings,
         );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('updateRolloutSettings', 'flags', duration, true);
+        logger.logDatabaseOperation(
+          "updateRolloutSettings",
+          "flags",
+          duration,
+          true,
+        );
         logger.info(
-          `Updated rollout for ${flagKey}: enabled=${flag.rolloutEnabled}, A=${flag.rolloutPercentageA}%, B=${flag.rolloutPercentageB}%`
+          `Updated rollout for ${flagKey}: enabled=${flag.rolloutEnabled}, A=${flag.rolloutPercentageA}%, B=${flag.rolloutPercentageB}%`,
         );
 
         this.invalidateFlagCache(platform, environment, flagKey);
@@ -234,14 +285,16 @@ export class FlagController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
       }
-      if (error instanceof Error && error.message.includes('not found')) {
+      if (error instanceof Error && error.message.includes("not found")) {
         res.status(404).json({
           success: false,
           error: error.message,
@@ -258,7 +311,11 @@ export class FlagController {
    *
    * GET /platforms/:platform/environments/:environment/flags/:flagKey
    */
-  getFlag = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getFlag = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -268,15 +325,19 @@ export class FlagController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const flag = await this.repos.flag.getActive(platform, environment, flagKey);
+        const flag = await this.repos.flag.getActive(
+          platform,
+          environment,
+          flagKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getFlag', 'flags', duration, true);
+        logger.logDatabaseOperation("getFlag", "flags", duration, true);
 
         if (!flag) {
           res.status(404).json({
             success: false,
-            error: 'Feature flag not found',
+            error: "Feature flag not found",
             timestamp: new Date().toISOString(),
           });
           return;
@@ -298,7 +359,11 @@ export class FlagController {
    *
    * GET /platforms/:platform/environments/:environment/flags/:flagKey/versions/:version
    */
-  getFlagVersion = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getFlagVersion = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey, version } = req.params as {
         platform: string;
@@ -309,10 +374,15 @@ export class FlagController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const flag = await this.repos.flag.getVersion(platform, environment, flagKey, version);
+        const flag = await this.repos.flag.getVersion(
+          platform,
+          environment,
+          flagKey,
+          version,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getFlagVersion', 'flags', duration, true);
+        logger.logDatabaseOperation("getFlagVersion", "flags", duration, true);
 
         if (!flag) {
           res.status(404).json({
@@ -339,9 +409,16 @@ export class FlagController {
    *
    * GET /platforms/:platform/environments/:environment/flags
    */
-  listFlags = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  listFlags = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { platform, environment } = req.params as { platform: string; environment: string };
+      const { platform, environment } = req.params as {
+        platform: string;
+        environment: string;
+      };
       const pagination = getTokenPaginationParams(req);
 
       await withDatabaseContext(req, async () => {
@@ -350,11 +427,11 @@ export class FlagController {
           platform,
           environment,
           pagination?.limit,
-          pagination?.nextToken
+          pagination?.nextToken,
         );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('listFlags', 'flags', duration, true);
+        logger.logDatabaseOperation("listFlags", "flags", duration, true);
 
         res.json({
           success: true,
@@ -376,7 +453,11 @@ export class FlagController {
    *
    * GET /platforms/:platform/environments/:environment/flags/:flagKey/versions
    */
-  listFlagVersions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  listFlagVersions = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -386,10 +467,19 @@ export class FlagController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const versions = await this.repos.flag.listVersions(platform, environment, flagKey);
+        const versions = await this.repos.flag.listVersions(
+          platform,
+          environment,
+          flagKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('listFlagVersions', 'flags', duration, true);
+        logger.logDatabaseOperation(
+          "listFlagVersions",
+          "flags",
+          duration,
+          true,
+        );
 
         res.json({
           success: true,
@@ -408,7 +498,11 @@ export class FlagController {
    *
    * DELETE /platforms/:platform/environments/:environment/flags/:flagKey
    */
-  deleteFlag = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  deleteFlag = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -421,7 +515,7 @@ export class FlagController {
         await this.repos.flag.delete(platform, environment, flagKey);
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('deleteFlag', 'flags', duration, true);
+        logger.logDatabaseOperation("deleteFlag", "flags", duration, true);
         logger.info(`Deleted flag ${flagKey} for ${platform}/${environment}`);
 
         this.invalidateFlagCache(platform, environment, flagKey);
@@ -429,7 +523,7 @@ export class FlagController {
         res.status(204).send();
       });
     } catch (error: unknown) {
-      if (error instanceof Error && error.message.includes('not found')) {
+      if (error instanceof Error && error.message.includes("not found")) {
         res.status(404).json({
           success: false,
           error: error.message,
@@ -446,7 +540,11 @@ export class FlagController {
    *
    * GET /platforms/:platform/environments/:environment/flags/:flagKey/evaluate
    */
-  evaluateFlagPublic = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  evaluateFlagPublic = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -463,15 +561,19 @@ export class FlagController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const flag = await this.repos.flag.getActive(platform, environment, flagKey);
+        const flag = await this.repos.flag.getActive(
+          platform,
+          environment,
+          flagKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getFlag', 'flags', duration, true);
+        logger.logDatabaseOperation("getFlag", "flags", duration, true);
 
         if (!flag) {
           res.status(404).json({
             success: false,
-            error: 'Feature flag not found',
+            error: "Feature flag not found",
             timestamp: new Date().toISOString(),
           });
           return;
@@ -486,7 +588,7 @@ export class FlagController {
           flagKey,
           evaluation.servedValue,
           context.userId,
-          context.country
+          context.country,
         );
 
         res.json({
@@ -499,9 +601,11 @@ export class FlagController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
@@ -515,7 +619,11 @@ export class FlagController {
    *
    * POST /platforms/:platform/environments/:environment/flags/:flagKey/evaluate
    */
-  evaluateFlag = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  evaluateFlag = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, flagKey } = req.params as {
         platform: string;
@@ -527,15 +635,19 @@ export class FlagController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const flag = await this.repos.flag.getActive(platform, environment, flagKey);
+        const flag = await this.repos.flag.getActive(
+          platform,
+          environment,
+          flagKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getFlag', 'flags', duration, true);
+        logger.logDatabaseOperation("getFlag", "flags", duration, true);
 
         if (!flag) {
           res.status(404).json({
             success: false,
-            error: 'Feature flag not found',
+            error: "Feature flag not found",
             timestamp: new Date().toISOString(),
           });
           return;
@@ -550,7 +662,7 @@ export class FlagController {
           flagKey,
           evaluation.servedValue,
           context.userId,
-          context.country
+          context.country,
         );
 
         res.json({
@@ -563,9 +675,11 @@ export class FlagController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
@@ -577,7 +691,11 @@ export class FlagController {
   /**
    * Helper method to invalidate cache for a flag.
    */
-  private invalidateFlagCache(platform: string, environment: string, flagKey: string): void {
+  private invalidateFlagCache(
+    platform: string,
+    environment: string,
+    flagKey: string,
+  ): void {
     const cachePaths = [
       `/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}`,
       `/api/v1/platforms/${platform}/environments/${environment}/flags`,
@@ -585,7 +703,7 @@ export class FlagController {
 
     this.cacheProvider.invalidateCache(cachePaths).catch((err: unknown) => {
       // WARN level since stale cache affects data consistency
-      logger.warn('Cache invalidation failed - stale data may be served', {
+      logger.warn("Cache invalidation failed - stale data may be served", {
         paths: cachePaths,
         error: err instanceof Error ? err.message : String(err),
       });

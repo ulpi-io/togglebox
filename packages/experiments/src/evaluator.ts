@@ -10,18 +10,19 @@ import type {
   ExperimentContext,
   VariantAssignment,
   ExperimentVariation,
-} from './schemas';
+} from "./schemas";
 
 /**
  * Assignment reasons for debugging.
  */
 export const AssignmentReason = {
-  EXPERIMENT_NOT_RUNNING: 'Experiment is not running',
-  EXPERIMENT_NOT_STARTED: 'Experiment has not started yet (scheduled start in future)',
-  EXPERIMENT_ENDED: 'Experiment has ended (scheduled end passed)',
-  FORCE_EXCLUDED: 'User is in force exclude list',
-  NOT_IN_TARGET: 'User does not match targeting criteria',
-  HASH_ASSIGNMENT: 'Assigned via consistent hash',
+  EXPERIMENT_NOT_RUNNING: "Experiment is not running",
+  EXPERIMENT_NOT_STARTED:
+    "Experiment has not started yet (scheduled start in future)",
+  EXPERIMENT_ENDED: "Experiment has ended (scheduled end passed)",
+  FORCE_EXCLUDED: "User is in force exclude list",
+  NOT_IN_TARGET: "User does not match targeting criteria",
+  HASH_ASSIGNMENT: "Assigned via consistent hash",
 } as const;
 
 /**
@@ -59,7 +60,7 @@ function getPercentage(userId: string, experimentKey: string): number {
  */
 function matchesTargeting(
   experiment: Experiment,
-  context: ExperimentContext
+  context: ExperimentContext,
 ): boolean {
   const { targeting } = experiment;
   const { userId, country } = context;
@@ -79,7 +80,7 @@ function matchesTargeting(
     if (!country) return false;
 
     const countryMatch = targeting.countries.find(
-      (c) => c.country.toUpperCase() === country.toUpperCase()
+      (c) => c.country.toUpperCase() === country.toUpperCase(),
     );
 
     if (!countryMatch) return false;
@@ -90,7 +91,7 @@ function matchesTargeting(
       if (!language) return false;
 
       const languageMatch = countryMatch.languages.find(
-        (l) => l.language.toLowerCase() === language.toLowerCase()
+        (l) => l.language.toLowerCase() === language.toLowerCase(),
       );
 
       if (!languageMatch) return false;
@@ -121,13 +122,13 @@ function matchesTargeting(
  */
 export function assignVariation(
   experiment: Experiment,
-  context: ExperimentContext
+  context: ExperimentContext,
 ): VariantAssignment | null {
   const { experimentKey, variations, trafficAllocation, status } = experiment;
   const { userId } = context;
 
   // 1. Check if experiment is running
-  if (status !== 'running') {
+  if (status !== "running") {
     return null;
   }
 
@@ -166,7 +167,8 @@ export function assignVariation(
     cumulativePercentage += allocation.percentage;
 
     if (percentage < cumulativePercentage) {
-      assignedVariation = variations.find((v) => v.key === allocation.variationKey) || null;
+      assignedVariation =
+        variations.find((v) => v.key === allocation.variationKey) || null;
       break;
     }
   }
@@ -198,7 +200,7 @@ export function assignVariation(
  */
 export function assignMultipleExperiments(
   experiments: Experiment[],
-  context: ExperimentContext
+  context: ExperimentContext,
 ): Map<string, VariantAssignment> {
   const assignments = new Map<string, VariantAssignment>();
 
@@ -223,7 +225,7 @@ export function assignMultipleExperiments(
 export function isInVariation(
   experiment: Experiment,
   context: ExperimentContext,
-  variationKey: string
+  variationKey: string,
 ): boolean {
   const assignment = assignVariation(experiment, context);
   return assignment?.variationKey === variationKey;
@@ -235,7 +237,7 @@ export function isInVariation(
  */
 export function previewAssignment(
   experiment: Experiment,
-  context: ExperimentContext
+  context: ExperimentContext,
 ): VariantAssignment | null {
   return assignVariation(experiment, context);
 }

@@ -29,24 +29,24 @@
  * ```
  */
 
-import { PrismaClient } from '.prisma/client-database';
-import { DatabaseRepositories, ThreeTierRepositories } from '../../factory';
-import { PrismaPlatformRepository } from './PrismaPlatformRepository';
-import { PrismaEnvironmentRepository } from './PrismaEnvironmentRepository';
-import { PrismaConfigRepository } from './PrismaConfigRepository';
-import { PrismaUsageRepository } from './PrismaUsageRepository';
-import { PrismaFlagRepository } from './PrismaFlagRepository';
-import { PrismaExperimentRepository } from './PrismaExperimentRepository';
-import { PrismaStatsRepository } from './PrismaStatsRepository';
-import { logger } from '@togglebox/shared';
+import { PrismaClient } from ".prisma/client-database";
+import { DatabaseRepositories, ThreeTierRepositories } from "../../factory";
+import { PrismaPlatformRepository } from "./PrismaPlatformRepository";
+import { PrismaEnvironmentRepository } from "./PrismaEnvironmentRepository";
+import { PrismaConfigRepository } from "./PrismaConfigRepository";
+import { PrismaUsageRepository } from "./PrismaUsageRepository";
+import { PrismaFlagRepository } from "./PrismaFlagRepository";
+import { PrismaExperimentRepository } from "./PrismaExperimentRepository";
+import { PrismaStatsRepository } from "./PrismaStatsRepository";
+import { logger } from "@togglebox/shared";
 
-export * from './PrismaPlatformRepository';
-export * from './PrismaEnvironmentRepository';
-export * from './PrismaConfigRepository';
-export * from './PrismaUsageRepository';
-export * from './PrismaFlagRepository';
-export * from './PrismaExperimentRepository';
-export * from './PrismaStatsRepository';
+export * from "./PrismaPlatformRepository";
+export * from "./PrismaEnvironmentRepository";
+export * from "./PrismaConfigRepository";
+export * from "./PrismaUsageRepository";
+export * from "./PrismaFlagRepository";
+export * from "./PrismaExperimentRepository";
+export * from "./PrismaStatsRepository";
 
 /**
  * Creates Prisma-based repository instances with configured connection pooling.
@@ -70,16 +70,22 @@ export * from './PrismaStatsRepository';
  */
 export function createPrismaRepositories(
   connectionUrl: string,
-  isSQLite: boolean = false
+  isSQLite: boolean = false,
 ): DatabaseRepositories {
   // Parse connection pool configuration from environment
-  const connectionLimit = parseInt(process.env['DATABASE_CONNECTION_LIMIT'] || '10', 10);
-  const poolTimeout = parseInt(process.env['DATABASE_POOL_TIMEOUT'] || '10', 10);
+  const connectionLimit = parseInt(
+    process.env["DATABASE_CONNECTION_LIMIT"] || "10",
+    10,
+  );
+  const poolTimeout = parseInt(
+    process.env["DATABASE_POOL_TIMEOUT"] || "10",
+    10,
+  );
 
   // Construct connection URL with pool parameters for non-SQLite databases
   let finalConnectionUrl = connectionUrl;
-  if (!isSQLite && !connectionUrl.includes('connection_limit')) {
-    const separator = connectionUrl.includes('?') ? '&' : '?';
+  if (!isSQLite && !connectionUrl.includes("connection_limit")) {
+    const separator = connectionUrl.includes("?") ? "&" : "?";
     finalConnectionUrl = `${connectionUrl}${separator}connection_limit=${connectionLimit}&pool_timeout=${poolTimeout}`;
   }
 
@@ -89,14 +95,22 @@ export function createPrismaRepositories(
         url: finalConnectionUrl,
       },
     },
-    log: process.env['NODE_ENV'] === 'development' ? ['query', 'warn', 'error'] : ['error'],
+    log:
+      process.env["NODE_ENV"] === "development"
+        ? ["query", "warn", "error"]
+        : ["error"],
   });
 
   // Enable foreign key constraints for SQLite
   if (isSQLite) {
-    prisma.$executeRawUnsafe('PRAGMA foreign_keys = ON;').catch((error: unknown) => {
-      logger.warn('Failed to enable SQLite foreign key constraints', error as Record<string, unknown>);
-    });
+    prisma
+      .$executeRawUnsafe("PRAGMA foreign_keys = ON;")
+      .catch((error: unknown) => {
+        logger.warn(
+          "Failed to enable SQLite foreign key constraints",
+          error as Record<string, unknown>,
+        );
+      });
   }
 
   return {
@@ -177,16 +191,22 @@ export function createPrismaRepositories(
  */
 export function createPrismaThreeTierRepositories(
   connectionUrl: string,
-  isSQLite: boolean = false
+  isSQLite: boolean = false,
 ): ThreeTierRepositories {
   // Parse connection pool configuration from environment
-  const connectionLimit = parseInt(process.env['DATABASE_CONNECTION_LIMIT'] || '10', 10);
-  const poolTimeout = parseInt(process.env['DATABASE_POOL_TIMEOUT'] || '10', 10);
+  const connectionLimit = parseInt(
+    process.env["DATABASE_CONNECTION_LIMIT"] || "10",
+    10,
+  );
+  const poolTimeout = parseInt(
+    process.env["DATABASE_POOL_TIMEOUT"] || "10",
+    10,
+  );
 
   // Construct connection URL with pool parameters for non-SQLite databases
   let finalConnectionUrl = connectionUrl;
-  if (!isSQLite && !connectionUrl.includes('connection_limit')) {
-    const separator = connectionUrl.includes('?') ? '&' : '?';
+  if (!isSQLite && !connectionUrl.includes("connection_limit")) {
+    const separator = connectionUrl.includes("?") ? "&" : "?";
     finalConnectionUrl = `${connectionUrl}${separator}connection_limit=${connectionLimit}&pool_timeout=${poolTimeout}`;
   }
 
@@ -196,14 +216,22 @@ export function createPrismaThreeTierRepositories(
         url: finalConnectionUrl,
       },
     },
-    log: process.env['NODE_ENV'] === 'development' ? ['query', 'warn', 'error'] : ['error'],
+    log:
+      process.env["NODE_ENV"] === "development"
+        ? ["query", "warn", "error"]
+        : ["error"],
   });
 
   // Enable foreign key constraints for SQLite
   if (isSQLite) {
-    prisma.$executeRawUnsafe('PRAGMA foreign_keys = ON;').catch((error: unknown) => {
-      logger.warn('Failed to enable SQLite foreign key constraints', error as Record<string, unknown>);
-    });
+    prisma
+      .$executeRawUnsafe("PRAGMA foreign_keys = ON;")
+      .catch((error: unknown) => {
+        logger.warn(
+          "Failed to enable SQLite foreign key constraints",
+          error as Record<string, unknown>,
+        );
+      });
   }
 
   return {

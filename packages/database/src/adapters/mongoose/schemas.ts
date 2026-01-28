@@ -20,7 +20,7 @@
  * - Parsed/stringified in repository layer
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 /**
  * Platform document interface for Mongoose.
@@ -49,7 +49,10 @@ const PlatformSchema = new Schema<IPlatformDocument>({
 /**
  * Platform Mongoose model.
  */
-export const PlatformModel = mongoose.model<IPlatformDocument>('Platform', PlatformSchema);
+export const PlatformModel = mongoose.model<IPlatformDocument>(
+  "Platform",
+  PlatformSchema,
+);
 
 /**
  * Environment document interface for Mongoose.
@@ -74,7 +77,12 @@ export interface IEnvironmentDocument extends Document {
 const EnvironmentSchema = new Schema<IEnvironmentDocument>({
   platform: { type: String, required: true },
   environment: { type: String, required: true },
-  platformId: { type: Schema.Types.ObjectId, ref: 'Platform', required: true, index: true },
+  platformId: {
+    type: Schema.Types.ObjectId,
+    ref: "Platform",
+    required: true,
+    index: true,
+  },
   description: { type: String, required: false },
   createdBy: { type: String, required: false },
   createdAt: { type: String, required: true },
@@ -86,7 +94,10 @@ EnvironmentSchema.index({ platform: 1, environment: 1 }, { unique: true });
 /**
  * Environment Mongoose model.
  */
-export const EnvironmentModel = mongoose.model<IEnvironmentDocument>('Environment', EnvironmentSchema);
+export const EnvironmentModel = mongoose.model<IEnvironmentDocument>(
+  "Environment",
+  EnvironmentSchema,
+);
 
 /**
  * Config parameter document interface for Mongoose.
@@ -100,7 +111,7 @@ export interface IConfigParameterDocument extends Document {
   environment: string;
   parameterKey: string;
   version: string; // "1", "2", "3" - auto-incremented on edit
-  valueType: 'string' | 'number' | 'boolean' | 'json';
+  valueType: "string" | "number" | "boolean" | "json";
   defaultValue: string; // All values stored as strings, parsed by valueType
   description?: string;
   parameterGroup?: string;
@@ -128,7 +139,11 @@ const ConfigParameterSchema = new Schema<IConfigParameterDocument>({
   environment: { type: String, required: true },
   parameterKey: { type: String, required: true },
   version: { type: String, required: true },
-  valueType: { type: String, required: true, enum: ['string', 'number', 'boolean', 'json'] },
+  valueType: {
+    type: String,
+    required: true,
+    enum: ["string", "number", "boolean", "json"],
+  },
   defaultValue: { type: String, required: true },
   description: { type: String, required: false },
   parameterGroup: { type: String, required: false },
@@ -138,18 +153,39 @@ const ConfigParameterSchema = new Schema<IConfigParameterDocument>({
 });
 
 // Compound unique index for platform + environment + parameterKey + version (PRIMARY KEY)
-ConfigParameterSchema.index({ platform: 1, environment: 1, parameterKey: 1, version: 1 }, { unique: true });
+ConfigParameterSchema.index(
+  { platform: 1, environment: 1, parameterKey: 1, version: 1 },
+  { unique: true },
+);
 // Index for getConfigs/listActive queries (active parameters only) with sort field
-ConfigParameterSchema.index({ platform: 1, environment: 1, isActive: 1, parameterKey: 1 });
+ConfigParameterSchema.index({
+  platform: 1,
+  environment: 1,
+  isActive: 1,
+  parameterKey: 1,
+});
 // Index for listVersions queries with sort by version descending
-ConfigParameterSchema.index({ platform: 1, environment: 1, parameterKey: 1, version: -1 });
+ConfigParameterSchema.index({
+  platform: 1,
+  environment: 1,
+  parameterKey: 1,
+  version: -1,
+});
 // Index for listByGroup queries with sort field
-ConfigParameterSchema.index({ platform: 1, environment: 1, parameterGroup: 1, parameterKey: 1 });
+ConfigParameterSchema.index({
+  platform: 1,
+  environment: 1,
+  parameterGroup: 1,
+  parameterKey: 1,
+});
 
 /**
  * Config parameter Mongoose model.
  */
-export const ConfigParameterModel = mongoose.model<IConfigParameterDocument>('ConfigParameter', ConfigParameterSchema);
+export const ConfigParameterModel = mongoose.model<IConfigParameterDocument>(
+  "ConfigParameter",
+  ConfigParameterSchema,
+);
 
 /**
  * Flag document interface for Mongoose.
@@ -161,11 +197,11 @@ export interface IFlagDocument extends Document {
   name: string;
   description?: string;
   enabled: boolean;
-  flagType: 'boolean' | 'string' | 'number';
+  flagType: "boolean" | "string" | "number";
   valueA: boolean | string | number;
   valueB: boolean | string | number;
   targeting: string; // JSON stored as string
-  defaultValue: 'A' | 'B';
+  defaultValue: "A" | "B";
   // Percentage rollout
   rolloutEnabled: boolean;
   rolloutPercentageA: number;
@@ -192,15 +228,31 @@ const FlagSchema = new Schema<IFlagDocument>({
   name: { type: String, required: true },
   description: { type: String, required: false },
   enabled: { type: Boolean, required: true },
-  flagType: { type: String, required: true, enum: ['boolean', 'string', 'number'] },
+  flagType: {
+    type: String,
+    required: true,
+    enum: ["boolean", "string", "number"],
+  },
   valueA: { type: Schema.Types.Mixed, required: true },
   valueB: { type: Schema.Types.Mixed, required: true },
   targeting: { type: String, required: true }, // JSON as string
-  defaultValue: { type: String, required: true, enum: ['A', 'B'] },
+  defaultValue: { type: String, required: true, enum: ["A", "B"] },
   // Percentage rollout
   rolloutEnabled: { type: Boolean, required: false, default: false },
-  rolloutPercentageA: { type: Number, required: false, default: 100, min: 0, max: 100 },
-  rolloutPercentageB: { type: Number, required: false, default: 0, min: 0, max: 100 },
+  rolloutPercentageA: {
+    type: Number,
+    required: false,
+    default: 100,
+    min: 0,
+    max: 100,
+  },
+  rolloutPercentageB: {
+    type: Number,
+    required: false,
+    default: 0,
+    min: 0,
+    max: 100,
+  },
   version: { type: String, required: true },
   isActive: { type: Boolean, required: true, default: true },
   createdBy: { type: String, required: true },
@@ -209,16 +261,25 @@ const FlagSchema = new Schema<IFlagDocument>({
 });
 
 // Compound unique index for platform + environment + flagKey + version
-FlagSchema.index({ platform: 1, environment: 1, flagKey: 1, version: 1 }, { unique: true });
+FlagSchema.index(
+  { platform: 1, environment: 1, flagKey: 1, version: 1 },
+  { unique: true },
+);
 // Index for finding active version with sort support
-FlagSchema.index({ platform: 1, environment: 1, flagKey: 1, isActive: 1, version: -1 });
+FlagSchema.index({
+  platform: 1,
+  environment: 1,
+  flagKey: 1,
+  isActive: 1,
+  version: -1,
+});
 // Index for listing all active flags in an environment
 FlagSchema.index({ platform: 1, environment: 1, isActive: 1, flagKey: 1 });
 
 /**
  * Flag Mongoose model.
  */
-export const FlagModel = mongoose.model<IFlagDocument>('Flag', FlagSchema);
+export const FlagModel = mongoose.model<IFlagDocument>("Flag", FlagSchema);
 
 /**
  * Experiment document interface for Mongoose.
@@ -230,7 +291,7 @@ export interface IExperimentDocument extends Document {
   name: string;
   description?: string;
   hypothesis: string;
-  status: 'draft' | 'running' | 'paused' | 'completed' | 'archived';
+  status: "draft" | "running" | "paused" | "completed" | "archived";
   startedAt?: string;
   completedAt?: string;
   scheduledStartAt?: string;
@@ -270,7 +331,11 @@ const ExperimentSchema = new Schema<IExperimentDocument>({
   name: { type: String, required: true },
   description: { type: String, required: false },
   hypothesis: { type: String, required: true },
-  status: { type: String, required: true, enum: ['draft', 'running', 'paused', 'completed', 'archived'] },
+  status: {
+    type: String,
+    required: true,
+    enum: ["draft", "running", "paused", "completed", "archived"],
+  },
   startedAt: { type: String, required: false },
   completedAt: { type: String, required: false },
   scheduledStartAt: { type: String, required: false },
@@ -296,16 +361,33 @@ const ExperimentSchema = new Schema<IExperimentDocument>({
 });
 
 // Compound unique index for platform + environment + experimentKey + version
-ExperimentSchema.index({ platform: 1, environment: 1, experimentKey: 1, version: 1 }, { unique: true });
+ExperimentSchema.index(
+  { platform: 1, environment: 1, experimentKey: 1, version: 1 },
+  { unique: true },
+);
 // Index for finding experiments by status with sort support
-ExperimentSchema.index({ platform: 1, environment: 1, status: 1, isActive: 1, createdAt: -1 });
+ExperimentSchema.index({
+  platform: 1,
+  environment: 1,
+  status: 1,
+  isActive: 1,
+  createdAt: -1,
+});
 // Index for listing all active experiments
-ExperimentSchema.index({ platform: 1, environment: 1, isActive: 1, experimentKey: 1 });
+ExperimentSchema.index({
+  platform: 1,
+  environment: 1,
+  isActive: 1,
+  experimentKey: 1,
+});
 
 /**
  * Experiment Mongoose model.
  */
-export const ExperimentModel = mongoose.model<IExperimentDocument>('Experiment', ExperimentSchema);
+export const ExperimentModel = mongoose.model<IExperimentDocument>(
+  "Experiment",
+  ExperimentSchema,
+);
 
 /**
  * Stats document interface for Mongoose.
@@ -313,7 +395,13 @@ export const ExperimentModel = mongoose.model<IExperimentDocument>('Experiment',
 export interface IStatsDocument extends Document {
   platform: string;
   environment: string;
-  statsType: 'config' | 'flag' | 'flag_country' | 'flag_daily' | 'exp_var' | 'exp_metric';
+  statsType:
+    | "config"
+    | "flag"
+    | "flag_country"
+    | "flag_daily"
+    | "exp_var"
+    | "exp_metric";
   key: string; // configKey, flagKey, or experimentKey
   subKey?: string; // country, date, variationKey, or metricId
 
@@ -362,7 +450,18 @@ export interface IStatsDocument extends Document {
 const StatsSchema = new Schema<IStatsDocument>({
   platform: { type: String, required: true },
   environment: { type: String, required: true },
-  statsType: { type: String, required: true, enum: ['config', 'flag', 'flag_country', 'flag_daily', 'exp_var', 'exp_metric'] },
+  statsType: {
+    type: String,
+    required: true,
+    enum: [
+      "config",
+      "flag",
+      "flag_country",
+      "flag_daily",
+      "exp_var",
+      "exp_metric",
+    ],
+  },
   key: { type: String, required: true },
   subKey: { type: String, required: false },
 
@@ -402,12 +501,18 @@ const StatsSchema = new Schema<IStatsDocument>({
 
 // Compound indexes for stats queries
 StatsSchema.index({ platform: 1, environment: 1, statsType: 1, key: 1 });
-StatsSchema.index({ platform: 1, environment: 1, statsType: 1, key: 1, subKey: 1 });
+StatsSchema.index({
+  platform: 1,
+  environment: 1,
+  statsType: 1,
+  key: 1,
+  subKey: 1,
+});
 
 /**
  * Stats Mongoose model.
  */
-export const StatsModel = mongoose.model<IStatsDocument>('Stats', StatsSchema);
+export const StatsModel = mongoose.model<IStatsDocument>("Stats", StatsSchema);
 
 /**
  * Custom Event document interface for Mongoose.
@@ -440,4 +545,7 @@ CustomEventSchema.index({ platform: 1, environment: 1, timestamp: -1 });
 /**
  * CustomEvent Mongoose model.
  */
-export const CustomEventModel = mongoose.model<ICustomEventDocument>('CustomEvent', CustomEventSchema);
+export const CustomEventModel = mongoose.model<ICustomEventDocument>(
+  "CustomEvent",
+  CustomEventSchema,
+);

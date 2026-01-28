@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: DynamoDB table for ToggleBox Remote Config with proper GSI for stable version queries
 
 Parameters:
@@ -36,7 +36,7 @@ Resources:
   ConfigurationsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${EnvironmentName}-togglebox-configurations'
+      TableName: !Sub "${EnvironmentName}-togglebox-configurations"
       BillingMode: !Ref BillingMode
 
       # Partition Key (PK) and Sort Key (SK)
@@ -58,12 +58,11 @@ Resources:
           KeyType: RANGE
 
       # Provisioned throughput (only used if BillingMode is PROVISIONED)
-      ProvisionedThroughput:
-        !If
-          - IsProvisioned
-          - ReadCapacityUnits: !Ref ReadCapacityUnits
-            WriteCapacityUnits: !Ref WriteCapacityUnits
-          - !Ref AWS::NoValue
+      ProvisionedThroughput: !If
+        - IsProvisioned
+        - ReadCapacityUnits: !Ref ReadCapacityUnits
+          WriteCapacityUnits: !Ref WriteCapacityUnits
+        - !Ref AWS::NoValue
 
       # Global Secondary Index for stable version queries
       GlobalSecondaryIndexes:
@@ -75,12 +74,11 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
-          ProvisionedThroughput:
-            !If
-              - IsProvisioned
-              - ReadCapacityUnits: !Ref ReadCapacityUnits
-                WriteCapacityUnits: !Ref WriteCapacityUnits
-              - !Ref AWS::NoValue
+          ProvisionedThroughput: !If
+            - IsProvisioned
+            - ReadCapacityUnits: !Ref ReadCapacityUnits
+              WriteCapacityUnits: !Ref WriteCapacityUnits
+            - !Ref AWS::NoValue
 
       # Point-in-time recovery for production
       PointInTimeRecoverySpecification:
@@ -113,16 +111,16 @@ Outputs:
     Description: DynamoDB table name
     Value: !Ref ConfigurationsTable
     Export:
-      Name: !Sub '${EnvironmentName}-togglebox-table-name'
+      Name: !Sub "${EnvironmentName}-togglebox-table-name"
 
   TableArn:
     Description: DynamoDB table ARN
     Value: !GetAtt ConfigurationsTable.Arn
     Export:
-      Name: !Sub '${EnvironmentName}-togglebox-table-arn'
+      Name: !Sub "${EnvironmentName}-togglebox-table-arn"
 
   StableVersionIndexName:
     Description: Global Secondary Index name for stable version queries
     Value: StableVersionIndex
     Export:
-      Name: !Sub '${EnvironmentName}-togglebox-gsi-name'
+      Name: !Sub "${EnvironmentName}-togglebox-gsi-name"

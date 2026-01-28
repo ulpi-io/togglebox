@@ -1,30 +1,30 @@
-import type { ToggleBoxClient } from '@togglebox/sdk'
-import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
-import type { Experiment, ExperimentContext } from '@togglebox/experiments'
+import type { ToggleBoxClient } from "@togglebox/sdk";
+import type { Flag, EvaluationContext as FlagContext } from "@togglebox/flags";
+import type { Experiment, ExperimentContext } from "@togglebox/experiments";
 
 /**
  * Remote config object - key-value pairs with typed values.
  * All values are parsed from their stored type (string, number, boolean, json).
  */
-export type Config = Record<string, unknown>
+export type Config = Record<string, unknown>;
 
 /**
  * Conversion data for experiment tracking
  */
 export interface ConversionData {
   /** Metric identifier (must match metric ID in experiment config) */
-  metricId: string
+  metricId: string;
   /** Optional value for sum/average metrics (e.g., revenue amount) */
-  value?: number
+  value?: number;
 }
 
 /**
  * Event data for custom event tracking
  */
 export interface EventData {
-  experimentKey?: string
-  variationKey?: string
-  properties?: Record<string, unknown>
+  experimentKey?: string;
+  variationKey?: string;
+  properties?: Record<string, unknown>;
 }
 
 /**
@@ -32,50 +32,50 @@ export interface EventData {
  */
 export interface ToggleBoxProviderProps {
   /** Platform name */
-  platform: string
+  platform: string;
 
   /** Environment name */
-  environment: string
+  environment: string;
 
   /**
    * API base URL (for open source self-hosted)
    * @remarks Use tenantSubdomain for cloud deployments
    */
-  apiUrl?: string
+  apiUrl?: string;
 
   /**
    * API key for authentication (optional for self-hosted, required for cloud)
    * @remarks Set NEXT_PUBLIC_TOGGLEBOX_API_KEY in environment variables
    */
-  apiKey?: string
+  apiKey?: string;
 
   /**
    * Tenant subdomain for cloud deployments
    * @remarks Automatically constructs apiUrl as https://{tenantSubdomain}.togglebox.io
    * @example 'acme' → https://acme.togglebox.io
    */
-  tenantSubdomain?: string
+  tenantSubdomain?: string;
 
   /** Cache configuration */
   cache?: {
-    enabled: boolean
-    ttl: number
-  }
+    enabled: boolean;
+    ttl: number;
+  };
 
   /** Auto-refresh polling interval in milliseconds (0 to disable) */
-  pollingInterval?: number
+  pollingInterval?: number;
 
   /** Initial config for SSR hydration */
-  initialConfig?: Config
+  initialConfig?: Config;
 
   /** Initial feature flags (2-value model) for SSR hydration */
-  initialFlags?: Flag[]
+  initialFlags?: Flag[];
 
   /** Initial experiments for SSR hydration */
-  initialExperiments?: Experiment[]
+  initialExperiments?: Experiment[];
 
   /** Children components */
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 /**
@@ -83,28 +83,31 @@ export interface ToggleBoxProviderProps {
  */
 export interface ToggleBoxContextValue {
   /** Current configuration (Tier 1) */
-  config: Config | null
+  config: Config | null;
 
   /** Current feature flags - 2-value model (Tier 2) */
-  flags: Flag[]
+  flags: Flag[];
 
   /** Current experiments (Tier 3) */
-  experiments: Experiment[]
+  experiments: Experiment[];
 
   /** Loading state */
-  isLoading: boolean
+  isLoading: boolean;
 
   /** Error state */
-  error: Error | null
+  error: Error | null;
 
   /** Manually refresh config, flags, and experiments */
-  refresh: () => Promise<void>
+  refresh: () => Promise<void>;
 
   /** Check if a flag is enabled */
-  isFlagEnabled: (flagKey: string, context?: FlagContext) => Promise<boolean>
+  isFlagEnabled: (flagKey: string, context?: FlagContext) => Promise<boolean>;
 
   /** Get experiment variant for a user */
-  getVariant: (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+  getVariant: (
+    experimentKey: string,
+    context: ExperimentContext,
+  ) => Promise<string | null>;
 
   /**
    * Track a conversion event for an experiment.
@@ -124,8 +127,8 @@ export interface ToggleBoxContextValue {
   trackConversion: (
     experimentKey: string,
     context: ExperimentContext,
-    data: ConversionData
-  ) => Promise<void>
+    data: ConversionData,
+  ) => Promise<void>;
 
   /**
    * Track a custom event.
@@ -145,8 +148,8 @@ export interface ToggleBoxContextValue {
   trackEvent: (
     eventName: string,
     context: ExperimentContext,
-    data?: EventData
-  ) => void
+    data?: EventData,
+  ) => void;
 
   /**
    * Get a typed config value with a default fallback.
@@ -161,7 +164,7 @@ export interface ToggleBoxContextValue {
    * const maxRetries = await getConfigValue<number>('max_retries', 3)
    * ```
    */
-  getConfigValue: <T>(key: string, defaultValue: T) => Promise<T>
+  getConfigValue: <T>(key: string, defaultValue: T) => Promise<T>;
 
   /**
    * Immediately flush pending stats events.
@@ -173,7 +176,7 @@ export interface ToggleBoxContextValue {
    * await flushStats() // Ensure conversion is sent immediately
    * ```
    */
-  flushStats: () => Promise<void>
+  flushStats: () => Promise<void>;
 
   /**
    * Get the underlying ToggleBoxClient instance for advanced use cases.
@@ -181,7 +184,7 @@ export interface ToggleBoxContextValue {
    *
    * @returns The client instance or null if not initialized
    */
-  getClient: () => ToggleBoxClient | null
+  getClient: () => ToggleBoxClient | null;
 }
 
 // ============================================================================
@@ -193,19 +196,19 @@ export interface ToggleBoxContextValue {
  */
 export interface UseConfigResult {
   /** Current configuration (Tier 1) */
-  config: Config | null
+  config: Config | null;
 
   /** Get a typed config value with a default fallback */
-  getConfigValue: <T>(key: string, defaultValue: T) => Promise<T>
+  getConfigValue: <T>(key: string, defaultValue: T) => Promise<T>;
 
   /** Loading state */
-  isLoading: boolean
+  isLoading: boolean;
 
   /** Error state */
-  error: Error | null
+  error: Error | null;
 
   /** Manually refresh config */
-  refresh: () => Promise<void>
+  refresh: () => Promise<void>;
 }
 
 /**
@@ -213,19 +216,19 @@ export interface UseConfigResult {
  */
 export interface UseFlagsResult {
   /** Current feature flags (Tier 2) */
-  flags: Flag[]
+  flags: Flag[];
 
   /** Check if a flag is enabled */
-  isFlagEnabled: (flagKey: string, context?: FlagContext) => Promise<boolean>
+  isFlagEnabled: (flagKey: string, context?: FlagContext) => Promise<boolean>;
 
   /** Loading state */
-  isLoading: boolean
+  isLoading: boolean;
 
   /** Error state */
-  error: Error | null
+  error: Error | null;
 
   /** Manually refresh flags */
-  refresh: () => Promise<void>
+  refresh: () => Promise<void>;
 }
 
 /**
@@ -233,19 +236,22 @@ export interface UseFlagsResult {
  */
 export interface UseExperimentsResult {
   /** Current experiments (Tier 3) */
-  experiments: Experiment[]
+  experiments: Experiment[];
 
   /** Get experiment variant for a user */
-  getVariant: (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+  getVariant: (
+    experimentKey: string,
+    context: ExperimentContext,
+  ) => Promise<string | null>;
 
   /** Loading state */
-  isLoading: boolean
+  isLoading: boolean;
 
   /** Error state */
-  error: Error | null
+  error: Error | null;
 
   /** Manually refresh experiments */
-  refresh: () => Promise<void>
+  refresh: () => Promise<void>;
 }
 
 /**
@@ -262,8 +268,8 @@ export interface UseAnalyticsResult {
   trackEvent: (
     eventName: string,
     context: ExperimentContext,
-    data?: EventData
-  ) => void
+    data?: EventData,
+  ) => void;
 
   /**
    * Track a conversion event for an experiment.
@@ -275,11 +281,11 @@ export interface UseAnalyticsResult {
   trackConversion: (
     experimentKey: string,
     context: ExperimentContext,
-    data: ConversionData
-  ) => Promise<void>
+    data: ConversionData,
+  ) => Promise<void>;
 
   /**
    * Immediately flush pending stats events.
    */
-  flushStats: () => Promise<void>
+  flushStats: () => Promise<void>;
 }

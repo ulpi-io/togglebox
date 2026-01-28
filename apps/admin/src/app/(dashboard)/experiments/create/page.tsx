@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { createExperimentApi } from '@/lib/api/experiments';
-import { getPlatformsApi, getEnvironmentsApi } from '@/lib/api/platforms';
-import type { Platform, Environment } from '@/lib/api/types';
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createExperimentApi } from "@/lib/api/experiments";
+import { getPlatformsApi, getEnvironmentsApi } from "@/lib/api/platforms";
+import type { Platform, Environment } from "@/lib/api/types";
 import {
   Button,
   Input,
@@ -18,13 +18,13 @@ import {
   CardTitle,
   Badge,
   Steps,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
 interface Variation {
   key: string;
   name: string;
   value: string;
-  valueType: 'string' | 'json';
+  valueType: "string" | "json";
   isControl: boolean;
   percentage: number;
 }
@@ -41,19 +41,19 @@ interface ValidationResult {
 }
 
 const VARIANT_COLORS = [
-  { border: 'border-info/50', bg: 'bg-info/10' },
-  { border: 'border-success/50', bg: 'bg-success/10' },
-  { border: 'border-warning/50', bg: 'bg-warning/10' },
-  { border: 'border-destructive/50', bg: 'bg-destructive/10' },
-  { border: 'border-purple-500/50', bg: 'bg-purple-50' },
-  { border: 'border-pink-500/50', bg: 'bg-pink-50' },
+  { border: "border-info/50", bg: "bg-info/10" },
+  { border: "border-success/50", bg: "bg-success/10" },
+  { border: "border-warning/50", bg: "bg-warning/10" },
+  { border: "border-destructive/50", bg: "bg-destructive/10" },
+  { border: "border-purple-500/50", bg: "bg-purple-50" },
+  { border: "border-pink-500/50", bg: "bg-pink-50" },
 ];
 
 const STEPS = [
-  { id: 'basic', label: 'Basic Info' },
-  { id: 'metric', label: 'Metric' },
-  { id: 'variations', label: 'Variations' },
-  { id: 'targeting', label: 'Targeting' },
+  { id: "basic", label: "Basic Info" },
+  { id: "metric", label: "Metric" },
+  { id: "variations", label: "Variations" },
+  { id: "targeting", label: "Targeting" },
 ];
 
 // Validation helpers
@@ -64,7 +64,7 @@ function validateUserList(input: string): ValidationResult {
 
   const entries = input
     .split(/[,\n]/)
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean);
 
   const seen = new Set<string>();
@@ -89,20 +89,27 @@ function validateUserList(input: string): ValidationResult {
   return { valid, duplicates, invalid };
 }
 
-function validateCountryCode(code: string): { valid: boolean; formatted: string } {
+function validateCountryCode(code: string): {
+  valid: boolean;
+  formatted: string;
+} {
   const trimmed = code.trim().toUpperCase();
   const isValid = /^[A-Z]{2}$/.test(trimmed);
-  return { valid: isValid || trimmed === '', formatted: trimmed };
+  return { valid: isValid || trimmed === "", formatted: trimmed };
 }
 
-function validateLanguages(input: string): { valid: string[]; invalid: string[]; duplicates: string[] } {
+function validateLanguages(input: string): {
+  valid: string[];
+  invalid: string[];
+  duplicates: string[];
+} {
   if (!input.trim()) {
     return { valid: [], invalid: [], duplicates: [] };
   }
 
   const entries = input
-    .split(',')
-    .map(s => s.trim().toLowerCase())
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
 
   const seen = new Set<string>();
@@ -131,14 +138,14 @@ export default function CreateExperimentPage() {
   const router = useRouter();
 
   // Step navigation
-  const [currentStep, setCurrentStep] = useState('basic');
+  const [currentStep, setCurrentStep] = useState("basic");
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
 
   // Platform/Environment selection
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [selectedPlatform, setSelectedPlatform] = useState('');
-  const [selectedEnvironment, setSelectedEnvironment] = useState('');
+  const [selectedPlatform, setSelectedPlatform] = useState("");
+  const [selectedEnvironment, setSelectedEnvironment] = useState("");
   const [loadingPlatforms, setLoadingPlatforms] = useState(true);
   const [loadingEnvironments, setLoadingEnvironments] = useState(false);
 
@@ -155,7 +162,7 @@ export default function CreateExperimentPage() {
   useEffect(() => {
     if (selectedPlatform) {
       setLoadingEnvironments(true);
-      setSelectedEnvironment('');
+      setSelectedEnvironment("");
       getEnvironmentsApi(selectedPlatform)
         .then(setEnvironments)
         .catch(console.error)
@@ -167,27 +174,45 @@ export default function CreateExperimentPage() {
   const environment = selectedEnvironment;
 
   // Basic fields
-  const [experimentKey, setExperimentKey] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [hypothesis, setHypothesis] = useState('');
+  const [experimentKey, setExperimentKey] = useState("");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [hypothesis, setHypothesis] = useState("");
 
   // Multi-variant support
   const [variations, setVariations] = useState<Variation[]>([
-    { key: 'control', name: 'Control', value: '', valueType: 'string', isControl: true, percentage: 50 },
-    { key: 'variant_1', name: 'Variant 1', value: '', valueType: 'string', isControl: false, percentage: 50 },
+    {
+      key: "control",
+      name: "Control",
+      value: "",
+      valueType: "string",
+      isControl: true,
+      percentage: 50,
+    },
+    {
+      key: "variant_1",
+      name: "Variant 1",
+      value: "",
+      valueType: "string",
+      isControl: false,
+      percentage: 50,
+    },
   ]);
   const [jsonErrors, setJsonErrors] = useState<Record<number, string>>({});
 
   // Targeting
-  const [countryLanguagePairs, setCountryLanguagePairs] = useState<CountryLanguagePair[]>([]);
-  const [forceIncludeUsers, setForceIncludeUsers] = useState('');
-  const [forceExcludeUsers, setForceExcludeUsers] = useState('');
+  const [countryLanguagePairs, setCountryLanguagePairs] = useState<
+    CountryLanguagePair[]
+  >([]);
+  const [forceIncludeUsers, setForceIncludeUsers] = useState("");
+  const [forceExcludeUsers, setForceExcludeUsers] = useState("");
 
   // Primary metric
-  const [metricName, setMetricName] = useState('');
-  const [metricEventName, setMetricEventName] = useState('');
-  const [metricType, setMetricType] = useState<'conversion' | 'count' | 'sum' | 'average'>('conversion');
+  const [metricName, setMetricName] = useState("");
+  const [metricEventName, setMetricEventName] = useState("");
+  const [metricType, setMetricType] = useState<
+    "conversion" | "count" | "sum" | "average"
+  >("conversion");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -195,60 +220,92 @@ export default function CreateExperimentPage() {
   const totalPercentage = variations.reduce((sum, v) => sum + v.percentage, 0);
 
   // Validation results for targeting
-  const includeUsersValidation = useMemo(() => validateUserList(forceIncludeUsers), [forceIncludeUsers]);
-  const excludeUsersValidation = useMemo(() => validateUserList(forceExcludeUsers), [forceExcludeUsers]);
+  const includeUsersValidation = useMemo(
+    () => validateUserList(forceIncludeUsers),
+    [forceIncludeUsers],
+  );
+  const excludeUsersValidation = useMemo(
+    () => validateUserList(forceExcludeUsers),
+    [forceExcludeUsers],
+  );
 
   // Step validation
   const stepValidation = useMemo(() => {
     const basic = {
-      isValid: !!(selectedPlatform && selectedEnvironment && experimentKey.trim() && name.trim() && hypothesis.trim()),
+      isValid: !!(
+        selectedPlatform &&
+        selectedEnvironment &&
+        experimentKey.trim() &&
+        name.trim() &&
+        hypothesis.trim()
+      ),
       errors: [] as string[],
     };
-    if (!selectedPlatform) basic.errors.push('Platform is required');
-    if (!selectedEnvironment) basic.errors.push('Environment is required');
-    if (!experimentKey.trim()) basic.errors.push('Experiment key is required');
-    if (!name.trim()) basic.errors.push('Display name is required');
-    if (!hypothesis.trim()) basic.errors.push('Hypothesis is required');
+    if (!selectedPlatform) basic.errors.push("Platform is required");
+    if (!selectedEnvironment) basic.errors.push("Environment is required");
+    if (!experimentKey.trim()) basic.errors.push("Experiment key is required");
+    if (!name.trim()) basic.errors.push("Display name is required");
+    if (!hypothesis.trim()) basic.errors.push("Hypothesis is required");
 
     const metric = {
       isValid: !!(metricName.trim() && metricEventName.trim()),
       errors: [] as string[],
     };
-    if (!metricName.trim()) metric.errors.push('Metric name is required');
-    if (!metricEventName.trim()) metric.errors.push('Event name is required');
+    if (!metricName.trim()) metric.errors.push("Metric name is required");
+    if (!metricEventName.trim()) metric.errors.push("Event name is required");
 
     const variationsValid = {
-      isValid: totalPercentage === 100 && variations.some(v => v.isControl) && Object.keys(jsonErrors).length === 0,
+      isValid:
+        totalPercentage === 100 &&
+        variations.some((v) => v.isControl) &&
+        Object.keys(jsonErrors).length === 0,
       errors: [] as string[],
     };
-    if (totalPercentage !== 100) variationsValid.errors.push(`Traffic must sum to 100% (currently ${totalPercentage}%)`);
-    if (!variations.some(v => v.isControl)) variationsValid.errors.push('One variation must be marked as control');
-    if (Object.keys(jsonErrors).length > 0) variationsValid.errors.push('Fix JSON validation errors');
+    if (totalPercentage !== 100)
+      variationsValid.errors.push(
+        `Traffic must sum to 100% (currently ${totalPercentage}%)`,
+      );
+    if (!variations.some((v) => v.isControl))
+      variationsValid.errors.push("One variation must be marked as control");
+    if (Object.keys(jsonErrors).length > 0)
+      variationsValid.errors.push("Fix JSON validation errors");
 
     const targeting = {
-      isValid: includeUsersValidation.invalid.length === 0 && excludeUsersValidation.invalid.length === 0,
+      isValid:
+        includeUsersValidation.invalid.length === 0 &&
+        excludeUsersValidation.invalid.length === 0,
       errors: [] as string[],
     };
-    if (includeUsersValidation.invalid.length > 0) targeting.errors.push('Invalid user IDs in Force Include');
-    if (excludeUsersValidation.invalid.length > 0) targeting.errors.push('Invalid user IDs in Force Exclude');
+    if (includeUsersValidation.invalid.length > 0)
+      targeting.errors.push("Invalid user IDs in Force Include");
+    if (excludeUsersValidation.invalid.length > 0)
+      targeting.errors.push("Invalid user IDs in Force Exclude");
 
     return { basic, metric, variations: variationsValid, targeting };
   }, [
-    selectedPlatform, selectedEnvironment, experimentKey, name, hypothesis,
-    metricName, metricEventName,
-    totalPercentage, variations, jsonErrors,
-    includeUsersValidation, excludeUsersValidation
+    selectedPlatform,
+    selectedEnvironment,
+    experimentKey,
+    name,
+    hypothesis,
+    metricName,
+    metricEventName,
+    totalPercentage,
+    variations,
+    jsonErrors,
+    includeUsersValidation,
+    excludeUsersValidation,
   ]);
 
   // Remove completed status if step validation fails (e.g., user clears required field)
   useEffect(() => {
-    setCompletedSteps(prev => {
+    setCompletedSteps((prev) => {
       const newCompleted = new Set(prev);
       // Remove steps that are no longer valid
-      if (!stepValidation.basic.isValid) newCompleted.delete('basic');
-      if (!stepValidation.metric.isValid) newCompleted.delete('metric');
-      if (!stepValidation.variations.isValid) newCompleted.delete('variations');
-      if (!stepValidation.targeting.isValid) newCompleted.delete('targeting');
+      if (!stepValidation.basic.isValid) newCompleted.delete("basic");
+      if (!stepValidation.metric.isValid) newCompleted.delete("metric");
+      if (!stepValidation.variations.isValid) newCompleted.delete("variations");
+      if (!stepValidation.targeting.isValid) newCompleted.delete("targeting");
       // Only update if there's a change
       if (newCompleted.size !== prev.size) return newCompleted;
       for (const item of prev) {
@@ -259,7 +316,7 @@ export default function CreateExperimentPage() {
   }, [stepValidation]);
 
   function getVariationLabel(index: number, isControl: boolean): string {
-    if (isControl) return 'Control';
+    if (isControl) return "Control";
     let variantNumber = 0;
     for (let i = 0; i <= index; i++) {
       if (!variations[i].isControl) variantNumber++;
@@ -268,26 +325,32 @@ export default function CreateExperimentPage() {
   }
 
   function updateVariation(index: number, updates: Partial<Variation>) {
-    setVariations(prev => prev.map((v, i) => i === index ? { ...v, ...updates } : v));
+    setVariations((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, ...updates } : v)),
+    );
   }
 
-  function updateVariationValue(index: number, value: string, valueType: 'string' | 'json') {
+  function updateVariationValue(
+    index: number,
+    value: string,
+    valueType: "string" | "json",
+  ) {
     updateVariation(index, { value });
 
-    if (valueType === 'json' && value.trim()) {
+    if (valueType === "json" && value.trim()) {
       try {
         JSON.parse(value);
-        setJsonErrors(prev => {
+        setJsonErrors((prev) => {
           const next = { ...prev };
           delete next[index];
           return next;
         });
       } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : 'Invalid JSON';
-        setJsonErrors(prev => ({ ...prev, [index]: message }));
+        const message = e instanceof Error ? e.message : "Invalid JSON";
+        setJsonErrors((prev) => ({ ...prev, [index]: message }));
       }
     } else {
-      setJsonErrors(prev => {
+      setJsonErrors((prev) => {
         const next = { ...prev };
         delete next[index];
         return next;
@@ -295,24 +358,24 @@ export default function CreateExperimentPage() {
     }
   }
 
-  function handleValueTypeChange(index: number, newType: 'string' | 'json') {
+  function handleValueTypeChange(index: number, newType: "string" | "json") {
     const variation = variations[index];
     updateVariation(index, { valueType: newType });
 
-    if (newType === 'json' && variation.value.trim()) {
+    if (newType === "json" && variation.value.trim()) {
       try {
         JSON.parse(variation.value);
-        setJsonErrors(prev => {
+        setJsonErrors((prev) => {
           const next = { ...prev };
           delete next[index];
           return next;
         });
       } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : 'Invalid JSON';
-        setJsonErrors(prev => ({ ...prev, [index]: message }));
+        const message = e instanceof Error ? e.message : "Invalid JSON";
+        setJsonErrors((prev) => ({ ...prev, [index]: message }));
       }
     } else {
-      setJsonErrors(prev => {
+      setJsonErrors((prev) => {
         const next = { ...prev };
         delete next[index];
         return next;
@@ -323,13 +386,13 @@ export default function CreateExperimentPage() {
   function addVariation() {
     if (variations.length >= 6) return;
 
-    const variantCount = variations.filter(v => !v.isControl).length + 1;
+    const variantCount = variations.filter((v) => !v.isControl).length + 1;
     const newKey = `variant_${variantCount}`;
     const newName = `Variant ${variantCount}`;
 
     const newCount = variations.length + 1;
     const evenPercentage = Math.floor(100 / newCount);
-    const remainder = 100 - (evenPercentage * newCount);
+    const remainder = 100 - evenPercentage * newCount;
 
     const updatedVariations = variations.map((v, i) => ({
       ...v,
@@ -338,7 +401,14 @@ export default function CreateExperimentPage() {
 
     setVariations([
       ...updatedVariations,
-      { key: newKey, name: newName, value: '', valueType: 'string', isControl: false, percentage: evenPercentage },
+      {
+        key: newKey,
+        name: newName,
+        value: "",
+        valueType: "string",
+        isControl: false,
+        percentage: evenPercentage,
+      },
     ]);
   }
 
@@ -349,15 +419,19 @@ export default function CreateExperimentPage() {
     const removedPercentage = variations[index].percentage;
     const remaining = variations.filter((_, i) => i !== index);
 
-    const updatedVariations = remaining.map(v =>
-      v.isControl ? { ...v, percentage: v.percentage + removedPercentage } : v
+    const updatedVariations = remaining.map((v) =>
+      v.isControl ? { ...v, percentage: v.percentage + removedPercentage } : v,
     );
 
     let variantNum = 0;
-    const renumbered = updatedVariations.map(v => {
+    const renumbered = updatedVariations.map((v) => {
       if (v.isControl) return v;
       variantNum++;
-      return { ...v, key: `variant_${variantNum}`, name: `Variant ${variantNum}` };
+      return {
+        ...v,
+        key: `variant_${variantNum}`,
+        name: `Variant ${variantNum}`,
+      };
     });
 
     setVariations(renumbered);
@@ -366,52 +440,66 @@ export default function CreateExperimentPage() {
   function distributeEvenly() {
     const count = variations.length;
     const evenPercentage = Math.floor(100 / count);
-    const remainder = 100 - (evenPercentage * count);
+    const remainder = 100 - evenPercentage * count;
 
-    setVariations(prev => prev.map((v, i) => ({
-      ...v,
-      percentage: evenPercentage + (i === 0 ? remainder : 0),
-    })));
+    setVariations((prev) =>
+      prev.map((v, i) => ({
+        ...v,
+        percentage: evenPercentage + (i === 0 ? remainder : 0),
+      })),
+    );
   }
 
   function setAsControl(index: number) {
-    setVariations(prev => {
+    setVariations((prev) => {
       const updated = prev.map((v, i) => ({
         ...v,
         isControl: i === index,
-        key: i === index ? 'control' : v.key,
-        name: i === index ? 'Control' : v.name,
+        key: i === index ? "control" : v.key,
+        name: i === index ? "Control" : v.name,
       }));
       let variantNum = 0;
-      return updated.map(v => {
+      return updated.map((v) => {
         if (v.isControl) return v;
         variantNum++;
-        return { ...v, key: `variant_${variantNum}`, name: `Variant ${variantNum}` };
+        return {
+          ...v,
+          key: `variant_${variantNum}`,
+          name: `Variant ${variantNum}`,
+        };
       });
     });
   }
 
   function addCountryLanguagePair() {
-    setCountryLanguagePairs(prev => [...prev, { country: '', languages: '' }]);
+    setCountryLanguagePairs((prev) => [
+      ...prev,
+      { country: "", languages: "" },
+    ]);
   }
 
-  function updateCountryLanguagePair(index: number, updates: Partial<CountryLanguagePair>) {
-    setCountryLanguagePairs(prev => prev.map((p, i) => i === index ? { ...p, ...updates } : p));
+  function updateCountryLanguagePair(
+    index: number,
+    updates: Partial<CountryLanguagePair>,
+  ) {
+    setCountryLanguagePairs((prev) =>
+      prev.map((p, i) => (i === index ? { ...p, ...updates } : p)),
+    );
   }
 
   function removeCountryLanguagePair(index: number) {
-    setCountryLanguagePairs(prev => prev.filter((_, i) => i !== index));
+    setCountryLanguagePairs((prev) => prev.filter((_, i) => i !== index));
   }
 
   // Navigation
-  const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
+  const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
 
   function markCurrentStepAsCompleted() {
     // Only mark step as completed if validation passes
     const stepId = currentStep;
     const validation = stepValidation[stepId as keyof typeof stepValidation];
     if (validation?.isValid && !completedSteps.has(stepId)) {
-      setCompletedSteps(prev => new Set([...prev, stepId]));
+      setCompletedSteps((prev) => new Set([...prev, stepId]));
     }
   }
 
@@ -432,7 +520,7 @@ export default function CreateExperimentPage() {
 
   function handleStepClick(stepId: string) {
     if (stepId !== currentStep) {
-      const targetIndex = STEPS.findIndex(s => s.id === stepId);
+      const targetIndex = STEPS.findIndex((s) => s.id === stepId);
       // Only mark as completed if navigating forward
       if (targetIndex > currentStepIndex) {
         markCurrentStepAsCompleted();
@@ -442,7 +530,8 @@ export default function CreateExperimentPage() {
   }
 
   // Check if all steps are valid for submission
-  const canSubmit = stepValidation.basic.isValid &&
+  const canSubmit =
+    stepValidation.basic.isValid &&
     stepValidation.metric.isValid &&
     stepValidation.variations.isValid &&
     stepValidation.targeting.isValid;
@@ -454,16 +543,16 @@ export default function CreateExperimentPage() {
     if (!canSubmit) {
       // Find first invalid step and navigate to it
       if (!stepValidation.basic.isValid) {
-        setCurrentStep('basic');
+        setCurrentStep("basic");
         setError(stepValidation.basic.errors[0]);
       } else if (!stepValidation.metric.isValid) {
-        setCurrentStep('metric');
+        setCurrentStep("metric");
         setError(stepValidation.metric.errors[0]);
       } else if (!stepValidation.variations.isValid) {
-        setCurrentStep('variations');
+        setCurrentStep("variations");
         setError(stepValidation.variations.errors[0]);
       } else if (!stepValidation.targeting.isValid) {
-        setCurrentStep('targeting');
+        setCurrentStep("targeting");
         setError(stepValidation.targeting.errors[0]);
       }
       return;
@@ -472,9 +561,9 @@ export default function CreateExperimentPage() {
     setIsLoading(true);
 
     try {
-      const parsedVariations = variations.map(v => {
+      const parsedVariations = variations.map((v) => {
         let parsedValue: unknown = v.value;
-        if (v.valueType === 'json' && v.value.trim()) {
+        if (v.valueType === "json" && v.value.trim()) {
           try {
             parsedValue = JSON.parse(v.value);
           } catch {
@@ -489,7 +578,7 @@ export default function CreateExperimentPage() {
         };
       });
 
-      const trafficAllocation = variations.map(v => ({
+      const trafficAllocation = variations.map((v) => ({
         variationKey: v.key,
         percentage: v.percentage,
       }));
@@ -500,12 +589,14 @@ export default function CreateExperimentPage() {
         forceExcludeUsers?: string[];
       } = {};
 
-      const validPairs = countryLanguagePairs.filter(p => p.country.trim());
+      const validPairs = countryLanguagePairs.filter((p) => p.country.trim());
       if (validPairs.length > 0) {
-        targeting.countries = validPairs.map(pair => ({
+        targeting.countries = validPairs.map((pair) => ({
           country: pair.country.trim().toUpperCase(),
           languages: pair.languages.trim()
-            ? pair.languages.split(',').map(l => ({ language: l.trim().toLowerCase() }))
+            ? pair.languages
+                .split(",")
+                .map((l) => ({ language: l.trim().toLowerCase() }))
             : undefined,
         }));
       }
@@ -518,7 +609,7 @@ export default function CreateExperimentPage() {
         targeting.forceExcludeUsers = excludeUsersValidation.valid;
       }
 
-      const controlVariation = variations.find(v => v.isControl);
+      const controlVariation = variations.find((v) => v.isControl);
 
       await createExperimentApi(platform, environment, {
         experimentKey: experimentKey.trim(),
@@ -530,43 +621,55 @@ export default function CreateExperimentPage() {
         trafficAllocation,
         targeting: Object.keys(targeting).length > 0 ? targeting : undefined,
         primaryMetric: {
-          id: metricEventName.trim().toLowerCase().replace(/\s+/g, '_'),
+          id: metricEventName.trim().toLowerCase().replace(/\s+/g, "_"),
           name: metricName.trim(),
           eventName: metricEventName.trim(),
           metricType,
-          successDirection: 'increase',
+          successDirection: "increase",
         },
         confidenceLevel: 0.95,
       });
 
-      router.push(`/experiments?platform=${platform}&environment=${environment}`);
+      router.push(
+        `/experiments?platform=${platform}&environment=${environment}`,
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
   }
 
   // Render validation feedback for user lists
-  function renderUserListValidation(validation: ValidationResult, label: string) {
-    const hasIssues = validation.duplicates.length > 0 || validation.invalid.length > 0;
+  function renderUserListValidation(
+    validation: ValidationResult,
+    label: string,
+  ) {
+    const hasIssues =
+      validation.duplicates.length > 0 || validation.invalid.length > 0;
     if (!hasIssues && validation.valid.length === 0) return null;
 
     return (
       <div className="mt-2 space-y-1">
         {validation.valid.length > 0 && (
           <p className="text-xs text-muted-foreground">
-            {validation.valid.length} valid {validation.valid.length === 1 ? 'user' : 'users'}
+            {validation.valid.length} valid{" "}
+            {validation.valid.length === 1 ? "user" : "users"}
           </p>
         )}
         {validation.duplicates.length > 0 && (
           <p className="text-xs text-warning">
-            {validation.duplicates.length} duplicate{validation.duplicates.length === 1 ? '' : 's'} will be ignored: {validation.duplicates.slice(0, 3).join(', ')}{validation.duplicates.length > 3 ? '...' : ''}
+            {validation.duplicates.length} duplicate
+            {validation.duplicates.length === 1 ? "" : "s"} will be ignored:{" "}
+            {validation.duplicates.slice(0, 3).join(", ")}
+            {validation.duplicates.length > 3 ? "..." : ""}
           </p>
         )}
         {validation.invalid.length > 0 && (
           <p className="text-xs text-destructive">
-            {validation.invalid.length} invalid format: {validation.invalid.slice(0, 3).join(', ')}{validation.invalid.length > 3 ? '...' : ''}
+            {validation.invalid.length} invalid format:{" "}
+            {validation.invalid.slice(0, 3).join(", ")}
+            {validation.invalid.length > 3 ? "..." : ""}
           </p>
         )}
       </div>
@@ -582,7 +685,7 @@ export default function CreateExperimentPage() {
             <p className="text-muted-foreground">
               {platform && environment
                 ? `Add a new A/B/n test for ${platform} / ${environment}`
-                : 'Configure and launch a new A/B/n test experiment'}
+                : "Configure and launch a new A/B/n test experiment"}
             </p>
           </div>
           <Link href="/experiments">
@@ -603,7 +706,7 @@ export default function CreateExperimentPage() {
 
       <form onSubmit={handleSubmit}>
         {/* Step 1: Basic Info */}
-        {currentStep === 'basic' && (
+        {currentStep === "basic" && (
           <div className="space-y-6">
             {/* Platform/Environment Selection */}
             <Card>
@@ -622,7 +725,7 @@ export default function CreateExperimentPage() {
                       required
                     >
                       <option value="">
-                        {loadingPlatforms ? 'Loading...' : 'Select platform'}
+                        {loadingPlatforms ? "Loading..." : "Select platform"}
                       </option>
                       {platforms.map((p) => (
                         <option key={p.name} value={p.name}>
@@ -637,11 +740,17 @@ export default function CreateExperimentPage() {
                       id="environment"
                       value={selectedEnvironment}
                       onChange={(e) => setSelectedEnvironment(e.target.value)}
-                      disabled={isLoading || loadingEnvironments || !selectedPlatform}
+                      disabled={
+                        isLoading || loadingEnvironments || !selectedPlatform
+                      }
                       required
                     >
                       <option value="">
-                        {loadingEnvironments ? 'Loading...' : selectedPlatform ? 'Select environment' : 'Select platform first'}
+                        {loadingEnvironments
+                          ? "Loading..."
+                          : selectedPlatform
+                            ? "Select environment"
+                            : "Select platform first"}
                       </option>
                       {environments.map((env) => (
                         <option key={env.environment} value={env.environment}>
@@ -714,16 +823,20 @@ export default function CreateExperimentPage() {
               </CardContent>
             </Card>
 
-            {!stepValidation.basic.isValid && stepValidation.basic.errors.length > 0 && (
-              <Alert variant="warning">
-                <span>Missing required fields: {stepValidation.basic.errors.join(', ')}</span>
-              </Alert>
-            )}
+            {!stepValidation.basic.isValid &&
+              stepValidation.basic.errors.length > 0 && (
+                <Alert variant="warning">
+                  <span>
+                    Missing required fields:{" "}
+                    {stepValidation.basic.errors.join(", ")}
+                  </span>
+                </Alert>
+              )}
           </div>
         )}
 
         {/* Step 2: Metric */}
-        {currentStep === 'metric' && (
+        {currentStep === "metric" && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -756,9 +869,9 @@ export default function CreateExperimentPage() {
                       Track this event from your app using the SDK:
                     </p>
                     <pre className="text-xs bg-muted p-2 rounded font-mono overflow-x-auto">
-{`// JavaScript/TypeScript
-await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
-  metricName: '${metricEventName || 'purchase'}',
+                      {`// JavaScript/TypeScript
+await client.trackConversion('${experimentKey || "experiment-key"}', context, {
+  metricName: '${metricEventName || "purchase"}',
   value: 99.99  // optional
 });`}
                     </pre>
@@ -770,10 +883,14 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                   <Select
                     id="metricType"
                     value={metricType}
-                    onChange={(e) => setMetricType(e.target.value as typeof metricType)}
+                    onChange={(e) =>
+                      setMetricType(e.target.value as typeof metricType)
+                    }
                     disabled={isLoading}
                   >
-                    <option value="conversion">Conversion (binary event)</option>
+                    <option value="conversion">
+                      Conversion (binary event)
+                    </option>
                     <option value="count">Count (number of events)</option>
                     <option value="sum">Sum (total value)</option>
                     <option value="average">Average (mean value)</option>
@@ -782,16 +899,20 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
               </CardContent>
             </Card>
 
-            {!stepValidation.metric.isValid && stepValidation.metric.errors.length > 0 && (
-              <Alert variant="warning">
-                <span>Missing required fields: {stepValidation.metric.errors.join(', ')}</span>
-              </Alert>
-            )}
+            {!stepValidation.metric.isValid &&
+              stepValidation.metric.errors.length > 0 && (
+                <Alert variant="warning">
+                  <span>
+                    Missing required fields:{" "}
+                    {stepValidation.metric.errors.join(", ")}
+                  </span>
+                </Alert>
+              )}
           </div>
         )}
 
         {/* Step 3: Variations */}
-        {currentStep === 'variations' && (
+        {currentStep === "variations" && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -799,7 +920,7 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                   <div className="flex items-center gap-3">
                     <CardTitle>Variations ({variations.length})</CardTitle>
                     <Badge
-                      variant={totalPercentage === 100 ? 'default' : 'warning'}
+                      variant={totalPercentage === 100 ? "default" : "warning"}
                       size="sm"
                     >
                       {totalPercentage}% total
@@ -840,7 +961,9 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                         <div className="flex items-center gap-2">
                           <span className="font-bold">{label}</span>
                           {variation.isControl && (
-                            <Badge variant="default" size="sm">CONTROL</Badge>
+                            <Badge variant="default" size="sm">
+                              CONTROL
+                            </Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
@@ -876,7 +999,9 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                             <Label>Name</Label>
                             <Input
                               value={variation.name}
-                              onChange={(e) => updateVariation(index, { name: e.target.value })}
+                              onChange={(e) =>
+                                updateVariation(index, { name: e.target.value })
+                              }
                               disabled={isLoading}
                             />
                           </div>
@@ -888,9 +1013,12 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                                 min={0}
                                 max={100}
                                 value={variation.percentage}
-                                onChange={(e) => updateVariation(index, {
-                                  percentage: parseInt(e.target.value, 10) || 0
-                                })}
+                                onChange={(e) =>
+                                  updateVariation(index, {
+                                    percentage:
+                                      parseInt(e.target.value, 10) || 0,
+                                  })
+                                }
                                 disabled={isLoading}
                               />
                               <span className="text-muted-foreground">%</span>
@@ -902,7 +1030,12 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                             <Label>Value</Label>
                             <Select
                               value={variation.valueType}
-                              onChange={(e) => handleValueTypeChange(index, e.target.value as 'string' | 'json')}
+                              onChange={(e) =>
+                                handleValueTypeChange(
+                                  index,
+                                  e.target.value as "string" | "json",
+                                )
+                              }
                               disabled={isLoading}
                               className="w-24 h-8 text-xs"
                             >
@@ -912,15 +1045,29 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                           </div>
                           <textarea
                             value={variation.value}
-                            onChange={(e) => updateVariationValue(index, e.target.value, variation.valueType)}
-                            placeholder={variation.valueType === 'json' ? '{"version": "v1", "enabled": true}' : 'simple string value'}
+                            onChange={(e) =>
+                              updateVariationValue(
+                                index,
+                                e.target.value,
+                                variation.valueType,
+                              )
+                            }
+                            placeholder={
+                              variation.valueType === "json"
+                                ? '{"version": "v1", "enabled": true}'
+                                : "simple string value"
+                            }
                             disabled={isLoading}
                             className={`w-full p-3 border rounded-lg min-h-[100px] bg-white/80 focus:ring-2 focus:ring-black/20 focus:border-black/40 focus:bg-white transition-all duration-200 font-mono ${
-                              jsonErrors[index] ? 'border-destructive' : 'border-black/20'
+                              jsonErrors[index]
+                                ? "border-destructive"
+                                : "border-black/20"
                             }`}
                           />
                           {jsonErrors[index] && (
-                            <p className="text-xs text-destructive">{jsonErrors[index]}</p>
+                            <p className="text-xs text-destructive">
+                              {jsonErrors[index]}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -930,7 +1077,10 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
 
                 {totalPercentage !== 100 && (
                   <Alert variant="warning">
-                    <span>Traffic allocation must sum to 100%. Currently at {totalPercentage}%.</span>
+                    <span>
+                      Traffic allocation must sum to 100%. Currently at{" "}
+                      {totalPercentage}%.
+                    </span>
                   </Alert>
                 )}
               </CardContent>
@@ -939,7 +1089,7 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
         )}
 
         {/* Step 4: Targeting */}
-        {currentStep === 'targeting' && (
+        {currentStep === "targeting" && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -949,7 +1099,9 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                 {/* Country/Language Pairs */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-base font-medium">Country/Language Targeting</Label>
+                    <Label className="text-base font-medium">
+                      Country/Language Targeting
+                    </Label>
                     <Button
                       type="button"
                       variant="outline"
@@ -963,56 +1115,88 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
 
                   {countryLanguagePairs.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No country targeting configured. Experiment will run for all users.
+                      No country targeting configured. Experiment will run for
+                      all users.
                     </p>
                   ) : (
                     <div className="space-y-2">
                       {countryLanguagePairs.map((pair, index) => {
-                        const countryValidation = validateCountryCode(pair.country);
-                        const langValidation = validateLanguages(pair.languages);
-                        const hasCountryError = pair.country.trim() && !countryValidation.valid;
+                        const countryValidation = validateCountryCode(
+                          pair.country,
+                        );
+                        const langValidation = validateLanguages(
+                          pair.languages,
+                        );
+                        const hasCountryError =
+                          pair.country.trim() && !countryValidation.valid;
                         const hasLangError = langValidation.invalid.length > 0;
 
                         return (
-                          <div key={index} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                          <div
+                            key={index}
+                            className="p-3 bg-muted/50 rounded-lg space-y-2"
+                          >
                             <div className="flex items-start gap-3">
                               <div className="flex-1 grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                  <Label className="text-xs">Country Code (2-letter ISO)</Label>
+                                  <Label className="text-xs">
+                                    Country Code (2-letter ISO)
+                                  </Label>
                                   <Input
                                     value={pair.country}
-                                    onChange={(e) => updateCountryLanguagePair(index, { country: e.target.value.toUpperCase() })}
+                                    onChange={(e) =>
+                                      updateCountryLanguagePair(index, {
+                                        country: e.target.value.toUpperCase(),
+                                      })
+                                    }
                                     placeholder="e.g., AE"
                                     disabled={isLoading}
-                                    className={`uppercase ${hasCountryError ? 'border-destructive' : ''}`}
+                                    className={`uppercase ${hasCountryError ? "border-destructive" : ""}`}
                                     maxLength={2}
                                   />
                                   {hasCountryError && (
-                                    <p className="text-xs text-destructive">Must be 2 uppercase letters</p>
+                                    <p className="text-xs text-destructive">
+                                      Must be 2 uppercase letters
+                                    </p>
                                   )}
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-xs">Languages (comma-separated)</Label>
+                                  <Label className="text-xs">
+                                    Languages (comma-separated)
+                                  </Label>
                                   <Input
                                     value={pair.languages}
-                                    onChange={(e) => updateCountryLanguagePair(index, { languages: e.target.value })}
+                                    onChange={(e) =>
+                                      updateCountryLanguagePair(index, {
+                                        languages: e.target.value,
+                                      })
+                                    }
                                     placeholder="e.g., en, ar"
                                     disabled={isLoading}
-                                    className={hasLangError ? 'border-destructive' : ''}
+                                    className={
+                                      hasLangError ? "border-destructive" : ""
+                                    }
                                   />
                                   {langValidation.valid.length > 0 && (
                                     <p className="text-xs text-muted-foreground">
-                                      {langValidation.valid.length} language{langValidation.valid.length === 1 ? '' : 's'}: {langValidation.valid.join(', ')}
+                                      {langValidation.valid.length} language
+                                      {langValidation.valid.length === 1
+                                        ? ""
+                                        : "s"}
+                                      : {langValidation.valid.join(", ")}
                                     </p>
                                   )}
                                   {langValidation.duplicates.length > 0 && (
                                     <p className="text-xs text-warning">
-                                      Duplicates ignored: {langValidation.duplicates.join(', ')}
+                                      Duplicates ignored:{" "}
+                                      {langValidation.duplicates.join(", ")}
                                     </p>
                                   )}
                                   {langValidation.invalid.length > 0 && (
                                     <p className="text-xs text-destructive">
-                                      Invalid: {langValidation.invalid.join(', ')} (must be 2 lowercase letters)
+                                      Invalid:{" "}
+                                      {langValidation.invalid.join(", ")} (must
+                                      be 2 lowercase letters)
                                     </p>
                                   )}
                                 </div>
@@ -1032,7 +1216,8 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                         );
                       })}
                       <p className="text-xs text-muted-foreground">
-                        Each country can have multiple languages. Leave languages empty for all languages in that country.
+                        Each country can have multiple languages. Leave
+                        languages empty for all languages in that country.
                       </p>
                     </div>
                   )}
@@ -1041,38 +1226,54 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                 {/* Force Include/Exclude Users */}
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="forceIncludeUsers">Force Include Users</Label>
+                    <Label htmlFor="forceIncludeUsers">
+                      Force Include Users
+                    </Label>
                     <textarea
                       id="forceIncludeUsers"
                       value={forceIncludeUsers}
                       onChange={(e) => setForceIncludeUsers(e.target.value)}
                       placeholder="user123, user456, user789"
                       className={`w-full p-3 border rounded-lg min-h-[80px] bg-white/80 focus:ring-2 focus:ring-black/20 focus:border-black/40 focus:bg-white transition-all duration-200 resize-y ${
-                        includeUsersValidation.invalid.length > 0 ? 'border-destructive' : 'border-black/20'
+                        includeUsersValidation.invalid.length > 0
+                          ? "border-destructive"
+                          : "border-black/20"
                       }`}
                       disabled={isLoading}
                     />
                     <p className="text-xs text-muted-foreground">
-                      User IDs always included in experiment (comma or newline separated)
+                      User IDs always included in experiment (comma or newline
+                      separated)
                     </p>
-                    {renderUserListValidation(includeUsersValidation, 'include')}
+                    {renderUserListValidation(
+                      includeUsersValidation,
+                      "include",
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="forceExcludeUsers">Force Exclude Users</Label>
+                    <Label htmlFor="forceExcludeUsers">
+                      Force Exclude Users
+                    </Label>
                     <textarea
                       id="forceExcludeUsers"
                       value={forceExcludeUsers}
                       onChange={(e) => setForceExcludeUsers(e.target.value)}
                       placeholder="user789, user012"
                       className={`w-full p-3 border rounded-lg min-h-[80px] bg-white/80 focus:ring-2 focus:ring-black/20 focus:border-black/40 focus:bg-white transition-all duration-200 resize-y ${
-                        excludeUsersValidation.invalid.length > 0 ? 'border-destructive' : 'border-black/20'
+                        excludeUsersValidation.invalid.length > 0
+                          ? "border-destructive"
+                          : "border-black/20"
                       }`}
                       disabled={isLoading}
                     />
                     <p className="text-xs text-muted-foreground">
-                      User IDs always excluded from experiment (comma or newline separated)
+                      User IDs always excluded from experiment (comma or newline
+                      separated)
                     </p>
-                    {renderUserListValidation(excludeUsersValidation, 'exclude')}
+                    {renderUserListValidation(
+                      excludeUsersValidation,
+                      "exclude",
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -1108,19 +1309,12 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
               </Button>
             </Link>
             {currentStepIndex < STEPS.length - 1 ? (
-              <Button
-                type="button"
-                onClick={goToNextStep}
-                disabled={isLoading}
-              >
+              <Button type="button" onClick={goToNextStep} disabled={isLoading}>
                 Next
               </Button>
             ) : (
-              <Button
-                type="submit"
-                disabled={isLoading || !canSubmit}
-              >
-                {isLoading ? 'Creating...' : 'Create Experiment'}
+              <Button type="submit" disabled={isLoading || !canSubmit}>
+                {isLoading ? "Creating..." : "Create Experiment"}
               </Button>
             )}
           </div>

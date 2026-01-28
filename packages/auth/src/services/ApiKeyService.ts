@@ -16,12 +16,17 @@
  * - lastUsedAt tracking for monitoring
  */
 
-import { IApiKeyRepository } from '../interfaces/IApiKeyRepository';
-import { IUserRepository } from '../interfaces/IUserRepository';
-import { ApiKey, ApiKeyWithPlaintext, PublicApiKey } from '../models/ApiKey';
-import { generateApiKey, getApiKeyPrefix, getApiKeyLast4, hashApiKey } from '../utils/token';
-import { userHasPermission } from '../models/User';
-import { logger } from '@togglebox/shared';
+import { IApiKeyRepository } from "../interfaces/IApiKeyRepository";
+import { IUserRepository } from "../interfaces/IUserRepository";
+import { ApiKey, ApiKeyWithPlaintext, PublicApiKey } from "../models/ApiKey";
+import {
+  generateApiKey,
+  getApiKeyPrefix,
+  getApiKeyLast4,
+  hashApiKey,
+} from "../utils/token";
+import { userHasPermission } from "../models/User";
+import { logger } from "@togglebox/shared";
 
 /**
  * API key creation input data.
@@ -86,7 +91,7 @@ export class ApiKeyService {
   constructor(
     private apiKeyRepository: IApiKeyRepository,
     private userRepository: IUserRepository,
-    options?: ApiKeyServiceOptions
+    options?: ApiKeyServiceOptions,
   ) {
     // Set defaults for options
     this.options = {
@@ -120,25 +125,25 @@ export class ApiKeyService {
     if (this.options.validateUser) {
       const user = await this.userRepository.findById(data.userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new Error("User not found");
       }
 
       // Validate permissions against user's role permissions (if enabled)
       if (this.options.validatePermissions) {
         const invalidPermissions = data.permissions.filter(
-          (permission) => !userHasPermission(user, permission)
+          (permission) => !userHasPermission(user, permission),
         );
 
         if (invalidPermissions.length > 0) {
           throw new Error(
-            `User does not have the following permissions: ${invalidPermissions.join(', ')}`
+            `User does not have the following permissions: ${invalidPermissions.join(", ")}`,
           );
         }
       }
     }
 
     // Generate API key
-    const key = generateApiKey('live');
+    const key = generateApiKey("live");
     // Use SHA-256 for deterministic hashing (required for GSI2 lookup)
     const keyHash = hashApiKey(key);
     const keyPrefix = getApiKeyPrefix(key);
@@ -203,7 +208,10 @@ export class ApiKeyService {
    * **Security:** Returns null if the key exists but belongs to another user.
    * This prevents information leakage about other users' API keys.
    */
-  async getApiKeyForUser(id: string, userId: string): Promise<PublicApiKey | null> {
+  async getApiKeyForUser(
+    id: string,
+    userId: string,
+  ): Promise<PublicApiKey | null> {
     const apiKey = await this.apiKeyRepository.findById(id);
     if (!apiKey) {
       return null;
@@ -255,7 +263,7 @@ export class ApiKeyService {
         lastUsedAt: new Date(),
       })
       .catch((err) => {
-        logger.error('Failed to update API key lastUsedAt', err);
+        logger.error("Failed to update API key lastUsedAt", err);
       });
 
     return apiKey;
@@ -276,11 +284,11 @@ export class ApiKeyService {
     // Verify the key belongs to the user
     const apiKey = await this.apiKeyRepository.findById(id);
     if (!apiKey) {
-      throw new Error('API key not found');
+      throw new Error("API key not found");
     }
 
     if (apiKey.userId !== userId) {
-      throw new Error('You do not have permission to revoke this API key');
+      throw new Error("You do not have permission to revoke this API key");
     }
 
     // Delete the API key

@@ -61,27 +61,34 @@
  */
 
 // Main exports
-export { createAuthRouter, createAuthMiddlewareForApp, createAuthRepositories } from './factory';
-export type { AuthModuleConfig, DatabaseType } from './factory';
+export {
+  createAuthRouter,
+  createAuthMiddlewareForApp,
+  createAuthRepositories,
+} from "./factory";
+export type { AuthModuleConfig, DatabaseType } from "./factory";
 
 // Models
-export * from './models/User';
-export * from './models/ApiKey';
-export * from './models/PasswordResetToken';
+export * from "./models/User";
+export * from "./models/ApiKey";
+export * from "./models/PasswordResetToken";
 
 // Interfaces
-export * from './interfaces';
+export * from "./interfaces";
 
 // Services (export only the classes, not overlapping types)
-export { UserService } from './services/UserService';
-export { PasswordResetService } from './services/PasswordResetService';
-export { ApiKeyService } from './services/ApiKeyService';
-export type { CreateApiKeyData, ApiKeyServiceOptions } from './services/ApiKeyService';
-export { EmailService, createEmailService } from './services/EmailService';
-export type { EmailServiceConfig } from './services/EmailService';
+export { UserService } from "./services/UserService";
+export { PasswordResetService } from "./services/PasswordResetService";
+export { ApiKeyService } from "./services/ApiKeyService";
+export type {
+  CreateApiKeyData,
+  ApiKeyServiceOptions,
+} from "./services/ApiKeyService";
+export { EmailService, createEmailService } from "./services/EmailService";
+export type { EmailServiceConfig } from "./services/EmailService";
 
 // Middleware
-export * from './middleware/auth';
+export * from "./middleware/auth";
 
 // Utils (export individual exports to avoid conflicts)
 export {
@@ -95,12 +102,12 @@ export {
   getApiKeyLast4,
   generateToken,
   decodeToken,
-} from './utils';
-export { verifyToken as verifyJWT } from './utils/jwt';
-export type { JwtPayload } from './utils/jwt';
+} from "./utils";
+export { verifyToken as verifyJWT } from "./utils/jwt";
+export type { JwtPayload } from "./utils/jwt";
 
 // Validators
-export { validate } from './validators';
+export { validate } from "./validators";
 export type {
   RegisterData,
   LoginData,
@@ -109,7 +116,7 @@ export type {
   PasswordResetRequestData,
   PasswordResetVerifyData,
   PasswordResetCompleteData,
-} from './validators/authSchemas';
+} from "./validators/authSchemas";
 export {
   registerSchema,
   loginSchema,
@@ -119,13 +126,13 @@ export {
   passwordResetVerifySchema,
   passwordResetCompleteSchema,
   createApiKeySchema,
-} from './validators/authSchemas';
+} from "./validators/authSchemas";
 
 // Controllers (export only the classes)
-export { AuthController } from './controllers/AuthController';
-export { UserController } from './controllers/UserController';
-export { PasswordResetController } from './controllers/PasswordResetController';
-export { ApiKeyController } from './controllers/ApiKeyController';
+export { AuthController } from "./controllers/AuthController";
+export { UserController } from "./controllers/UserController";
+export { PasswordResetController } from "./controllers/PasswordResetController";
+export { ApiKeyController } from "./controllers/ApiKeyController";
 
 // Adapters
-export * from './adapters/dynamodb';
+export * from "./adapters/dynamodb";

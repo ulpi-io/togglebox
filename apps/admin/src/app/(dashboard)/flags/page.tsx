@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-import Link from 'next/link';
-import { getFlagsApi, getAllFlagsApi } from '@/lib/api/flags';
-import { getCurrentUserApi } from '@/lib/api/auth';
-import type { Flag, User } from '@/lib/api/types';
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import Link from "next/link";
+import { getFlagsApi, getAllFlagsApi } from "@/lib/api/flags";
+import { getCurrentUserApi } from "@/lib/api/auth";
+import type { Flag, User } from "@/lib/api/types";
 import {
   Badge,
   Button,
@@ -19,15 +19,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@togglebox/ui';
-import { ToggleFlagButton } from '@/components/flags/toggle-flag-button';
-import { DeleteFlagButton } from '@/components/flags/delete-flag-button';
-import { VersionHistory } from '@/components/flags/version-history';
-import { CreateEntityButton } from '@/components/common/create-entity-button';
-import { PlatformEnvFilter, usePlatformEnvFilter } from '@/components/filters/platform-env-filter';
-import { BarChart3, ChevronRight, TrendingUp } from 'lucide-react';
+} from "@togglebox/ui";
+import { ToggleFlagButton } from "@/components/flags/toggle-flag-button";
+import { DeleteFlagButton } from "@/components/flags/delete-flag-button";
+import { VersionHistory } from "@/components/flags/version-history";
+import { CreateEntityButton } from "@/components/common/create-entity-button";
+import {
+  PlatformEnvFilter,
+  usePlatformEnvFilter,
+} from "@/components/filters/platform-env-filter";
+import { BarChart3, ChevronRight, TrendingUp } from "lucide-react";
 
-type FlagFilter = 'all' | 'enabled' | 'disabled';
+type FlagFilter = "all" | "enabled" | "disabled";
 
 function FlagsContent() {
   const { platform, environment } = usePlatformEnvFilter();
@@ -35,23 +38,29 @@ function FlagsContent() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FlagFilter>('all');
+  const [filter, setFilter] = useState<FlagFilter>("all");
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === "admin";
 
-  const enabledCount = useMemo(() => flags.filter((f) => f.enabled).length, [flags]);
-  const disabledCount = useMemo(() => flags.filter((f) => !f.enabled).length, [flags]);
+  const enabledCount = useMemo(
+    () => flags.filter((f) => f.enabled).length,
+    [flags],
+  );
+  const disabledCount = useMemo(
+    () => flags.filter((f) => !f.enabled).length,
+    [flags],
+  );
 
   const filteredFlags = useMemo(() => {
-    if (filter === 'enabled') return flags.filter((f) => f.enabled);
-    if (filter === 'disabled') return flags.filter((f) => !f.enabled);
+    if (filter === "enabled") return flags.filter((f) => f.enabled);
+    if (filter === "disabled") return flags.filter((f) => !f.enabled);
     return flags;
   }, [flags, filter]);
 
   const filterOptions = [
-    { value: 'all' as const, label: 'All', count: flags.length },
-    { value: 'enabled' as const, label: 'Enabled', count: enabledCount },
-    { value: 'disabled' as const, label: 'Disabled', count: disabledCount },
+    { value: "all" as const, label: "All", count: flags.length },
+    { value: "enabled" as const, label: "Enabled", count: enabledCount },
+    { value: "disabled" as const, label: "Disabled", count: disabledCount },
   ];
 
   const loadFlags = useCallback(async () => {
@@ -67,7 +76,7 @@ function FlagsContent() {
       }
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load flags');
+      setError(err instanceof Error ? err.message : "Failed to load flags");
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +87,7 @@ function FlagsContent() {
       const userData = await getCurrentUserApi();
       setUser(userData);
     } catch (err) {
-      console.error('Failed to fetch user:', err);
+      console.error("Failed to fetch user:", err);
     }
   }, []);
 
@@ -162,32 +171,49 @@ function FlagsContent() {
             </TableHeader>
             <TableBody>
               {filteredFlags.map((flag) => (
-                <TableRow key={`${flag.platform}-${flag.environment}-${flag.flagKey}`}>
-                  <TableCell className="font-semibold">{flag.platform}</TableCell>
+                <TableRow
+                  key={`${flag.platform}-${flag.environment}-${flag.flagKey}`}
+                >
+                  <TableCell className="font-semibold">
+                    {flag.platform}
+                  </TableCell>
                   <TableCell>{flag.environment}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">{flag.flagKey}</span>
+                      <span className="font-semibold text-sm">
+                        {flag.flagKey}
+                      </span>
                       {(flag.isActive === undefined || flag.isActive) && (
-                        <Badge status="active" size="sm">Active</Badge>
+                        <Badge status="active" size="sm">
+                          Active
+                        </Badge>
                       )}
                     </div>
                     {flag.name && flag.name !== flag.flagKey && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{flag.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {flag.name}
+                      </p>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" size="sm" className="font-mono text-xs uppercase">
+                    <Badge
+                      variant="outline"
+                      size="sm"
+                      className="font-mono text-xs uppercase"
+                    >
                       {flag.flagType}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant={flag.enabled ? 'default' : 'secondary'} size="sm">
-                      {flag.enabled ? 'Enabled' : 'Disabled'}
+                    <Badge
+                      variant={flag.enabled ? "default" : "secondary"}
+                      size="sm"
+                    >
+                      {flag.enabled ? "Enabled" : "Disabled"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {flag.createdBy || '-'}
+                    {flag.createdBy || "-"}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
@@ -198,8 +224,12 @@ function FlagsContent() {
                       >
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                       </Link>
-                      <Link href={`/platforms/${flag.platform}/environments/${flag.environment}/flags/${flag.flagKey}/edit`}>
-                        <Button variant="outline" size="sm" className="text-xs">Edit</Button>
+                      <Link
+                        href={`/platforms/${flag.platform}/environments/${flag.environment}/flags/${flag.flagKey}/edit`}
+                      >
+                        <Button variant="outline" size="sm" className="text-xs">
+                          Edit
+                        </Button>
                       </Link>
                       {isAdmin && (
                         <DeleteFlagButton
@@ -265,7 +295,9 @@ function FlagsContent() {
           <p className="text-muted-foreground mb-6">
             Create your first feature flag for {environment}
           </p>
-          <Link href={`/flags/create?platform=${platform}&environment=${environment}`}>
+          <Link
+            href={`/flags/create?platform=${platform}&environment=${environment}`}
+          >
             <Button>Create Flag</Button>
           </Link>
         </CardContent>
@@ -281,7 +313,9 @@ function FlagsContent() {
           value={filter}
           onChange={setFilter}
         />
-        <Link href={`/flags/create?platform=${platform}&environment=${environment}`}>
+        <Link
+          href={`/flags/create?platform=${platform}&environment=${environment}`}
+        >
           <Button>Create Flag</Button>
         </Link>
       </div>
@@ -306,9 +340,15 @@ function FlagsContent() {
                     <div className="flex items-center gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm">{flag.flagKey}</span>
+                          <span className="font-semibold text-sm">
+                            {flag.flagKey}
+                          </span>
                           {flag.version && (
-                            <Badge variant="secondary" size="sm" className="font-mono text-xs">
+                            <Badge
+                              variant="secondary"
+                              size="sm"
+                              className="font-mono text-xs"
+                            >
                               v{flag.version}
                             </Badge>
                           )}
@@ -319,7 +359,9 @@ function FlagsContent() {
                           )}
                         </div>
                         {flag.name && flag.name !== flag.flagKey && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{flag.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {flag.name}
+                          </p>
                         )}
                         {flag.description && (
                           <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">
@@ -330,7 +372,11 @@ function FlagsContent() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" size="sm" className="font-mono text-xs uppercase">
+                    <Badge
+                      variant="outline"
+                      size="sm"
+                      className="font-mono text-xs uppercase"
+                    >
                       {flag.flagType}
                     </Badge>
                   </TableCell>
@@ -354,7 +400,7 @@ function FlagsContent() {
                     />
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {flag.createdBy || '-'}
+                    {flag.createdBy || "-"}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
@@ -379,8 +425,12 @@ function FlagsContent() {
                         currentVersion={flag.version}
                         onVersionActivated={loadFlags}
                       />
-                      <Link href={`/platforms/${platform}/environments/${environment}/flags/${flag.flagKey}/edit`}>
-                        <Button variant="outline" size="sm" className="text-xs">Edit</Button>
+                      <Link
+                        href={`/platforms/${platform}/environments/${environment}/flags/${flag.flagKey}/edit`}
+                      >
+                        <Button variant="outline" size="sm" className="text-xs">
+                          Edit
+                        </Button>
                       </Link>
                       {isAdmin && (
                         <DeleteFlagButton
@@ -402,7 +452,8 @@ function FlagsContent() {
       {/* Quick stats summary */}
       <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
         <span>
-          {filteredFlags.length} flag{filteredFlags.length !== 1 ? 's' : ''} shown · {enabledCount} enabled total
+          {filteredFlags.length} flag{filteredFlags.length !== 1 ? "s" : ""}{" "}
+          shown · {enabledCount} enabled total
         </span>
         <Link
           href={`/evaluation?platform=${platform}&environment=${environment}`}

@@ -23,10 +23,16 @@
  * - `listUsers`: Full table scan (high latency, avoid for large datasets)
  */
 
-import { v4 as uuidv4 } from 'uuid';
-import { PutCommand, GetCommand, QueryCommand, DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { User, CreateUserData, UpdateUserData } from '../../models/User';
-import { dynamoDBClient, getUsersTableName } from './database';
+import { v4 as uuidv4 } from "uuid";
+import {
+  PutCommand,
+  GetCommand,
+  QueryCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { User, CreateUserData, UpdateUserData } from "../../models/User";
+import { dynamoDBClient, getUsersTableName } from "./database";
 
 /**
  * Create a new user in DynamoDB.
@@ -69,7 +75,7 @@ export async function createUser(data: CreateUserData): Promise<User> {
       GSI1PK: `USER_EMAIL#${user.email}`,
       GSI1SK: `USER#${user.id}`,
       // GSI2 for all users listing (enables efficient Query instead of Scan)
-      GSI2PK: 'USER#ALL',
+      GSI2PK: "USER#ALL",
       GSI2SK: `USER#${user.id}`,
       // GSI3 for role-based queries (enables efficient countByRole)
       GSI3PK: `USER_ROLE#${user.role}`,
@@ -79,7 +85,7 @@ export async function createUser(data: CreateUserData): Promise<User> {
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     },
-    ConditionExpression: 'attribute_not_exists(PK)',
+    ConditionExpression: "attribute_not_exists(PK)",
   };
 
   try {
@@ -87,7 +93,7 @@ export async function createUser(data: CreateUserData): Promise<User> {
     return user;
   } catch (error: unknown) {
     const err = error as { code?: string; message?: string };
-    if (err.code === 'ConditionalCheckFailedException') {
+    if (err.code === "ConditionalCheckFailedException") {
       throw new Error(`User with ID ${user.id} already exists`);
     }
     throw error;
@@ -140,16 +146,18 @@ export async function findUserById(id: string): Promise<User | null> {
 export async function findUserByEmail(email: string): Promise<User | null> {
   const params = {
     TableName: getUsersTableName(),
-    IndexName: 'GSI1',
-    KeyConditionExpression: 'GSI1PK = :pk',
+    IndexName: "GSI1",
+    KeyConditionExpression: "GSI1PK = :pk",
     ExpressionAttributeValues: {
-      ':pk': `USER_EMAIL#${email}`,
+      ":pk": `USER_EMAIL#${email}`,
     },
     Limit: 1,
   };
 
   const result = await dynamoDBClient.send(new QueryCommand(params));
-  return result.Items && result.Items.length > 0 ? mapToUser(result.Items[0]) : null;
+  return result.Items && result.Items.length > 0
+    ? mapToUser(result.Items[0])
+    : null;
 }
 
 /**
@@ -174,7 +182,10 @@ export async function findUserByEmail(email: string): Promise<User | null> {
  * If email changes, GSI1 must be updated. Current implementation
  * does not support email changes (email is immutable in User model).
  */
-export async function updateUser(id: string, data: UpdateUserData): Promise<User> {
+export async function updateUser(
+  id: string,
+  data: UpdateUserData,
+): Promise<User> {
   const existingUser = await findUserById(id);
   if (!existingUser) {
     throw new Error(`User with ID ${id} not found`);
@@ -195,7 +206,7 @@ export async function updateUser(id: string, data: UpdateUserData): Promise<User
       GSI1PK: `USER_EMAIL#${updatedUser.email}`,
       GSI1SK: `USER#${id}`,
       // GSI2 for all users listing (enables efficient Query instead of Scan)
-      GSI2PK: 'USER#ALL',
+      GSI2PK: "USER#ALL",
       GSI2SK: `USER#${id}`,
       // GSI3 for role-based queries (enables efficient countByRole)
       GSI3PK: `USER_ROLE#${updatedUser.role}`,
@@ -205,9 +216,9 @@ export async function updateUser(id: string, data: UpdateUserData): Promise<User
       updatedAt: updatedUser.updatedAt.toISOString(),
     },
     // Optimistic locking: only update if updatedAt matches expected value
-    ConditionExpression: 'updatedAt = :expectedUpdatedAt',
+    ConditionExpression: "updatedAt = :expectedUpdatedAt",
     ExpressionAttributeValues: {
-      ':expectedUpdatedAt': expectedUpdatedAt,
+      ":expectedUpdatedAt": expectedUpdatedAt,
     },
   };
 
@@ -216,8 +227,10 @@ export async function updateUser(id: string, data: UpdateUserData): Promise<User
     return updatedUser;
   } catch (error: unknown) {
     const err = error as { name?: string; message?: string };
-    if (err.name === 'ConditionalCheckFailedException') {
-      throw new Error(`Concurrent modification detected for user ${id}. Please retry.`);
+    if (err.name === "ConditionalCheckFailedException") {
+      throw new Error(
+        `Concurrent modification detected for user ${id}. Please retry.`,
+      );
     }
     throw error;
   }
@@ -285,10 +298,10 @@ export async function listUsers(options?: {
     if (options?.role) {
       const params = {
         TableName: getUsersTableName(),
-        IndexName: 'GSI3',
-        KeyConditionExpression: 'GSI3PK = :pk',
+        IndexName: "GSI3",
+        KeyConditionExpression: "GSI3PK = :pk",
         ExpressionAttributeValues: {
-          ':pk': `USER_ROLE#${options.role}`,
+          ":pk": `USER_ROLE#${options.role}`,
         },
       };
 
@@ -305,10 +318,10 @@ export async function listUsers(options?: {
     // Use GSI2 for listing all users (more efficient than scan)
     const params = {
       TableName: getUsersTableName(),
-      IndexName: 'GSI2',
-      KeyConditionExpression: 'GSI2PK = :pk',
+      IndexName: "GSI2",
+      KeyConditionExpression: "GSI2PK = :pk",
       ExpressionAttributeValues: {
-        ':pk': 'USER#ALL',
+        ":pk": "USER#ALL",
       },
     };
 
@@ -323,8 +336,13 @@ export async function listUsers(options?: {
   } catch (error: unknown) {
     // Fallback to scan if GSI doesn't exist (for backward compatibility)
     const err = error as { name?: string; message?: string };
-    if (err.message?.includes('GSI') || err.name === 'ResourceNotFoundException') {
-      console.warn('GSI2/GSI3 not found, falling back to table scan. Consider adding GSIs for better performance.');
+    if (
+      err.message?.includes("GSI") ||
+      err.name === "ResourceNotFoundException"
+    ) {
+      console.warn(
+        "GSI2/GSI3 not found, falling back to table scan. Consider adding GSIs for better performance.",
+      );
       return listUsersWithScan(options);
     }
     throw error;
@@ -344,14 +362,14 @@ async function listUsersWithScan(options?: {
   const offset = options?.offset || 0;
 
   // Build scan parameters with proper typing
-  const expressionValues: Record<string, string> = { ':pk': 'USER#' };
-  let filterExpression = 'begins_with(PK, :pk)';
+  const expressionValues: Record<string, string> = { ":pk": "USER#" };
+  let filterExpression = "begins_with(PK, :pk)";
   let expressionNames: Record<string, string> | undefined;
 
   if (options?.role) {
-    filterExpression += ' AND #role = :role';
-    expressionNames = { '#role': 'role' };
-    expressionValues[':role'] = options.role;
+    filterExpression += " AND #role = :role";
+    expressionNames = { "#role": "role" };
+    expressionValues[":role"] = options.role;
   }
 
   const params = {
@@ -389,12 +407,12 @@ export async function countUsersByRole(role: string): Promise<number> {
     // Use GSI3 for efficient role-based count
     const params = {
       TableName: getUsersTableName(),
-      IndexName: 'GSI3',
-      KeyConditionExpression: 'GSI3PK = :pk',
+      IndexName: "GSI3",
+      KeyConditionExpression: "GSI3PK = :pk",
       ExpressionAttributeValues: {
-        ':pk': `USER_ROLE#${role}`,
+        ":pk": `USER_ROLE#${role}`,
       },
-      Select: 'COUNT' as const,
+      Select: "COUNT" as const,
     };
 
     const result = await dynamoDBClient.send(new QueryCommand(params));
@@ -402,8 +420,13 @@ export async function countUsersByRole(role: string): Promise<number> {
   } catch (error: unknown) {
     // Fallback to scan if GSI doesn't exist (for backward compatibility)
     const err = error as { name?: string; message?: string };
-    if (err.message?.includes('GSI') || err.name === 'ResourceNotFoundException') {
-      console.warn('GSI3 not found, falling back to table scan. Consider adding GSI for better performance.');
+    if (
+      err.message?.includes("GSI") ||
+      err.name === "ResourceNotFoundException"
+    ) {
+      console.warn(
+        "GSI3 not found, falling back to table scan. Consider adding GSI for better performance.",
+      );
       return countUsersByRoleWithScan(role);
     }
     throw error;
@@ -417,15 +440,15 @@ export async function countUsersByRole(role: string): Promise<number> {
 async function countUsersByRoleWithScan(role: string): Promise<number> {
   const params = {
     TableName: getUsersTableName(),
-    FilterExpression: 'begins_with(PK, :pk) AND #role = :role',
+    FilterExpression: "begins_with(PK, :pk) AND #role = :role",
     ExpressionAttributeNames: {
-      '#role': 'role',
+      "#role": "role",
     },
     ExpressionAttributeValues: {
-      ':pk': 'USER#',
-      ':role': role,
+      ":pk": "USER#",
+      ":role": role,
     },
-    Select: 'COUNT' as const,
+    Select: "COUNT" as const,
   };
 
   const result = await dynamoDBClient.send(new ScanCommand(params));
@@ -452,7 +475,11 @@ async function countUsersByRoleWithScan(role: string): Promise<number> {
 function mapToUser(item: unknown): User {
   const data = item as Record<string, unknown>;
   const { PK, SK, GSI1PK, GSI1SK, ...userData } = data;
-  const typedData = userData as { createdAt: string; updatedAt: string; [key: string]: unknown };
+  const typedData = userData as {
+    createdAt: string;
+    updatedAt: string;
+    [key: string]: unknown;
+  };
   return {
     ...userData,
     createdAt: new Date(typedData.createdAt),

@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: 'ToggleBox: Remote Config & Feature Flags API'
+  title: "ToggleBox: Remote Config & Feature Flags API"
   description: |
     **ToggleBox** is a multi-platform remote configuration and feature flag management service.
 
@@ -124,7 +124,7 @@ paths:
       description: Returns service status, uptime, and timestamp
       operationId: getHealth
       responses:
-        '200':
+        "200":
           description: Service is healthy
           content:
             application/json:
@@ -178,7 +178,7 @@ paths:
                   enum: [admin, developer, viewer]
                   default: viewer
       responses:
-        '201':
+        "201":
           description: User registered successfully
           content:
             application/json:
@@ -191,23 +191,23 @@ paths:
                     type: object
                     properties:
                       user:
-                        $ref: '#/components/schemas/PublicUser'
+                        $ref: "#/components/schemas/PublicUser"
                       token:
                         type: string
                         description: JWT access token
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '409':
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
           description: Email already exists
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /auth/login:
     post:
@@ -232,7 +232,7 @@ paths:
                 password:
                   type: string
       responses:
-        '200':
+        "200":
           description: Login successful
           content:
             application/json:
@@ -245,23 +245,23 @@ paths:
                     type: object
                     properties:
                       user:
-                        $ref: '#/components/schemas/PublicUser'
+                        $ref: "#/components/schemas/PublicUser"
                       token:
                         type: string
                         description: JWT access token
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
           description: Invalid credentials
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /auth/refresh:
     post:
@@ -273,7 +273,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Token refreshed successfully
           content:
             application/json:
@@ -291,8 +291,8 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /auth/password-reset/request:
     post:
@@ -314,7 +314,7 @@ paths:
                   type: string
                   format: email
       responses:
-        '200':
+        "200":
           description: Reset email sent (always returns success for security)
           content:
             application/json:
@@ -328,10 +328,10 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /auth/password-reset/verify:
     post:
@@ -354,7 +354,7 @@ paths:
                   minLength: 32
                   maxLength: 256
       responses:
-        '200':
+        "200":
           description: Token is valid
           content:
             application/json:
@@ -374,14 +374,14 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '400':
+        "400":
           description: Invalid or expired token
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /auth/password-reset/complete:
     post:
@@ -410,7 +410,7 @@ paths:
                   maxLength: 128
                   description: Must contain uppercase, lowercase, and number
       responses:
-        '200':
+        "200":
           description: Password reset successfully
           content:
             application/json:
@@ -424,14 +424,14 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '400':
+        "400":
           description: Invalid or expired token
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   # ============================================================================
   # USER MANAGEMENT
@@ -448,7 +448,7 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: User profile
           content:
             application/json:
@@ -458,12 +458,12 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/PublicUser'
+                    $ref: "#/components/schemas/PublicUser"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
     patch:
       tags:
@@ -485,7 +485,7 @@ paths:
                   type: string
                   enum: [admin, developer, viewer]
       responses:
-        '200':
+        "200":
           description: Profile updated successfully
           content:
             application/json:
@@ -495,16 +495,16 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/PublicUser'
+                    $ref: "#/components/schemas/PublicUser"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /users/me/password:
     post:
@@ -534,7 +534,7 @@ paths:
                   maxLength: 128
                   description: Must contain uppercase, lowercase, and number
       responses:
-        '200':
+        "200":
           description: Password changed successfully
           content:
             application/json:
@@ -548,16 +548,16 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '400':
+        "400":
           description: Current password is incorrect
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /users:
     get:
@@ -570,7 +570,7 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: List of users
           content:
             application/json:
@@ -582,14 +582,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/PublicUser'
+                      $ref: "#/components/schemas/PublicUser"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /users/{id}:
     get:
@@ -609,7 +609,7 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: User details
           content:
             application/json:
@@ -619,16 +619,16 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/PublicUser'
+                    $ref: "#/components/schemas/PublicUser"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
     delete:
       tags:
@@ -647,14 +647,14 @@ paths:
             type: string
             format: uuid
       responses:
-        '204':
+        "204":
           description: User deleted successfully
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # API KEY MANAGEMENT
@@ -670,7 +670,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: List of API keys
           content:
             application/json:
@@ -682,12 +682,12 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/PublicApiKey'
+                      $ref: "#/components/schemas/PublicApiKey"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
     post:
       tags:
@@ -725,7 +725,7 @@ paths:
                   nullable: true
                   description: Optional expiration date
       responses:
-        '201':
+        "201":
           description: API key created successfully
           content:
             application/json:
@@ -735,18 +735,18 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/ApiKeyWithPlaintext'
+                    $ref: "#/components/schemas/ApiKeyWithPlaintext"
                   message:
                     type: string
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api-keys/{id}:
     get:
@@ -765,7 +765,7 @@ paths:
             type: string
             format: uuid
       responses:
-        '200':
+        "200":
           description: API key details
           content:
             application/json:
@@ -775,14 +775,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/PublicApiKey'
+                    $ref: "#/components/schemas/PublicApiKey"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
     delete:
       tags:
@@ -800,12 +800,12 @@ paths:
             type: string
             format: uuid
       responses:
-        '204':
+        "204":
           description: API key revoked successfully
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # PLATFORMS (Public Read)
@@ -819,7 +819,7 @@ paths:
       description: Retrieve all registered platforms
       operationId: listPlatforms
       responses:
-        '200':
+        "200":
           description: List of platforms
           content:
             application/json:
@@ -831,7 +831,7 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Platform'
+                      $ref: "#/components/schemas/Platform"
                   timestamp:
                     type: string
                     format: date-time
@@ -844,9 +844,9 @@ paths:
       description: Retrieve details of a specific platform
       operationId: getPlatform
       parameters:
-        - $ref: '#/components/parameters/PlatformName'
+        - $ref: "#/components/parameters/PlatformName"
       responses:
-        '200':
+        "200":
           description: Platform details
           content:
             application/json:
@@ -856,12 +856,12 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Platform'
+                    $ref: "#/components/schemas/Platform"
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # PLATFORMS (Internal Write)
@@ -892,7 +892,7 @@ paths:
                 description:
                   type: string
       responses:
-        '201':
+        "201":
           description: Platform created successfully
           content:
             application/json:
@@ -902,18 +902,18 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Platform'
+                    $ref: "#/components/schemas/Platform"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '409':
-          $ref: '#/components/responses/Conflict'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /internal/platforms/{platform}:
     delete:
@@ -926,16 +926,16 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
+        - $ref: "#/components/parameters/Platform"
       responses:
-        '204':
+        "204":
           description: Platform deleted successfully
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # ENVIRONMENTS (Public Read)
@@ -949,9 +949,9 @@ paths:
       description: Retrieve all environments within a platform
       operationId: listEnvironments
       parameters:
-        - $ref: '#/components/parameters/Platform'
+        - $ref: "#/components/parameters/Platform"
       responses:
-        '200':
+        "200":
           description: List of environments
           content:
             application/json:
@@ -963,12 +963,12 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Environment'
+                      $ref: "#/components/schemas/Environment"
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /platforms/{platform}/environments/{environment}:
     get:
@@ -978,10 +978,10 @@ paths:
       description: Retrieve details of a specific environment
       operationId: getEnvironment
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       responses:
-        '200':
+        "200":
           description: Environment details
           content:
             application/json:
@@ -991,12 +991,12 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Environment'
+                    $ref: "#/components/schemas/Environment"
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # ENVIRONMENTS (Internal Write)
@@ -1013,7 +1013,7 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
+        - $ref: "#/components/parameters/Platform"
       requestBody:
         required: true
         content:
@@ -1029,7 +1029,7 @@ paths:
                 description:
                   type: string
       responses:
-        '201':
+        "201":
           description: Environment created successfully
           content:
             application/json:
@@ -1039,20 +1039,20 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Environment'
+                    $ref: "#/components/schemas/Environment"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /internal/platforms/{platform}/environments/{environment}:
     delete:
@@ -1065,17 +1065,17 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       responses:
-        '204':
+        "204":
           description: Environment deleted successfully
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # CONFIG PARAMETERS (Public Read) - Firebase-Style Individual Parameters
@@ -1092,10 +1092,10 @@ paths:
         Returns only the active version of each parameter.
       operationId: getConfigs
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       responses:
-        '200':
+        "200":
           description: Key-value object of all active config parameters
           headers:
             Cache-Control:
@@ -1121,8 +1121,8 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /platforms/{platform}/environments/{environment}/configs/{parameterKey}:
     get:
@@ -1132,11 +1132,11 @@ paths:
       description: Retrieve the active version of a specific config parameter with full metadata.
       operationId: getConfigParameter
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ParameterKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ParameterKey"
       responses:
-        '200':
+        "200":
           description: Config parameter details
           content:
             application/json:
@@ -1146,12 +1146,12 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/ConfigParameter'
+                    $ref: "#/components/schemas/ConfigParameter"
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # CONFIG PARAMETERS (Internal Write) - Firebase-Style Individual Parameters
@@ -1170,8 +1170,8 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       requestBody:
         required: true
         content:
@@ -1185,7 +1185,7 @@ paths:
               properties:
                 parameterKey:
                   type: string
-                  pattern: '^[a-zA-Z][a-zA-Z0-9_.-]*$'
+                  pattern: "^[a-zA-Z][a-zA-Z0-9_.-]*$"
                   description: Unique parameter key (e.g., "app.name", "feature.maxItems")
                 valueType:
                   type: string
@@ -1201,7 +1201,7 @@ paths:
                   type: string
                   description: Group for organizing parameters in the UI
       responses:
-        '201':
+        "201":
           description: Config parameter created successfully
           content:
             application/json:
@@ -1211,26 +1211,26 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/ConfigParameter'
+                    $ref: "#/components/schemas/ConfigParameter"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
           description: Parameter already exists
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /internal/platforms/{platform}/environments/{environment}/configs/list:
     get:
@@ -1245,10 +1245,10 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       responses:
-        '200':
+        "200":
           description: List of config parameters with metadata
           content:
             application/json:
@@ -1260,14 +1260,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ConfigParameter'
+                      $ref: "#/components/schemas/ConfigParameter"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/configs/{parameterKey}:
     patch:
@@ -1282,9 +1282,9 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ParameterKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ParameterKey"
       requestBody:
         required: true
         content:
@@ -1304,7 +1304,7 @@ paths:
                   type: string
                   nullable: true
       responses:
-        '200':
+        "200":
           description: Config parameter updated successfully (new version created)
           content:
             application/json:
@@ -1314,20 +1314,20 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/ConfigParameter'
+                    $ref: "#/components/schemas/ConfigParameter"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
     delete:
       tags:
@@ -1339,18 +1339,18 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ParameterKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ParameterKey"
       responses:
-        '204':
+        "204":
           description: Config parameter deleted successfully
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/configs/{parameterKey}/versions:
     get:
@@ -1363,11 +1363,11 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ParameterKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ParameterKey"
       responses:
-        '200':
+        "200":
           description: Version history for the parameter
           content:
             application/json:
@@ -1379,14 +1379,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/ConfigParameter'
+                      $ref: "#/components/schemas/ConfigParameter"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/configs/{parameterKey}/rollback:
     post:
@@ -1401,9 +1401,9 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ParameterKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ParameterKey"
       requestBody:
         required: true
         content:
@@ -1417,7 +1417,7 @@ paths:
                   type: string
                   description: Version number to rollback to (e.g., "1", "2")
       responses:
-        '200':
+        "200":
           description: Rollback successful
           content:
             application/json:
@@ -1427,18 +1427,18 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/ConfigParameter'
+                    $ref: "#/components/schemas/ConfigParameter"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # FEATURE FLAGS (Public Read)
@@ -1452,10 +1452,10 @@ paths:
       description: Retrieve all feature flags for an environment
       operationId: listFeatureFlags
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       responses:
-        '200':
+        "200":
           description: List of feature flags
           headers:
             Cache-Control:
@@ -1471,12 +1471,12 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/FeatureFlag'
+                      $ref: "#/components/schemas/FeatureFlag"
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /platforms/{platform}/environments/{environment}/flags/{flagKey}:
     get:
@@ -1486,11 +1486,11 @@ paths:
       description: Retrieve details of a specific feature flag
       operationId: getFeatureFlag
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
       responses:
-        '200':
+        "200":
           description: Feature flag details
           content:
             application/json:
@@ -1500,12 +1500,12 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/FeatureFlag'
+                    $ref: "#/components/schemas/FeatureFlag"
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /platforms/{platform}/environments/{environment}/flags/{flagKey}/evaluate:
     get:
@@ -1517,9 +1517,9 @@ paths:
         Returns the resolved value based on targeting rules.
       operationId: evaluateFlagPublic
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
         - name: userId
           in: query
           schema:
@@ -1540,7 +1540,7 @@ paths:
             maxLength: 2
           description: ISO 639-1 language code
       responses:
-        '200':
+        "200":
           description: Flag evaluation result
           headers:
             Cache-Control:
@@ -1555,12 +1555,12 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/EvaluationResult'
+                    $ref: "#/components/schemas/EvaluationResult"
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # FEATURE FLAGS (Internal Write)
@@ -1577,16 +1577,16 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateFeatureFlag'
+              $ref: "#/components/schemas/CreateFeatureFlag"
       responses:
-        '201':
+        "201":
           description: Feature flag created successfully
           content:
             application/json:
@@ -1596,22 +1596,22 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/FeatureFlag'
+                    $ref: "#/components/schemas/FeatureFlag"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}:
     put:
@@ -1624,17 +1624,17 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateFeatureFlag'
+              $ref: "#/components/schemas/UpdateFeatureFlag"
       responses:
-        '200':
+        "200":
           description: Feature flag updated successfully
           content:
             application/json:
@@ -1644,20 +1644,20 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/FeatureFlag'
+                    $ref: "#/components/schemas/FeatureFlag"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
     delete:
       tags:
@@ -1669,18 +1669,18 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
       responses:
-        '204':
+        "204":
           description: Feature flag deleted successfully
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/toggle:
     patch:
@@ -1693,9 +1693,9 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
       requestBody:
         required: true
         content:
@@ -1708,7 +1708,7 @@ paths:
                 enabled:
                   type: boolean
       responses:
-        '200':
+        "200":
           description: Feature flag toggled successfully
           content:
             application/json:
@@ -1718,18 +1718,18 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/FeatureFlag'
+                    $ref: "#/components/schemas/FeatureFlag"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/versions:
     get:
@@ -1742,11 +1742,11 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
       responses:
-        '200':
+        "200":
           description: List of flag versions
           content:
             application/json:
@@ -1758,14 +1758,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/FeatureFlag'
+                      $ref: "#/components/schemas/FeatureFlag"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/versions/{version}:
     get:
@@ -1778,9 +1778,9 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
         - name: version
           in: path
           required: true
@@ -1788,7 +1788,7 @@ paths:
             type: string
           description: Flag version number
       responses:
-        '200':
+        "200":
           description: Flag version details
           content:
             application/json:
@@ -1798,14 +1798,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/FeatureFlag'
+                    $ref: "#/components/schemas/FeatureFlag"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # FEATURE FLAG EVALUATION
@@ -1822,16 +1822,16 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EvaluationContext'
+              $ref: "#/components/schemas/EvaluationContext"
       responses:
-        '200':
+        "200":
           description: Evaluation results for all flags
           content:
             application/json:
@@ -1843,16 +1843,16 @@ paths:
                   data:
                     type: object
                     additionalProperties:
-                      $ref: '#/components/schemas/EvaluationResult'
+                      $ref: "#/components/schemas/EvaluationResult"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/evaluate:
     post:
@@ -1865,17 +1865,17 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EvaluationContext'
+              $ref: "#/components/schemas/EvaluationContext"
       responses:
-        '200':
+        "200":
           description: Evaluation result for the flag
           content:
             application/json:
@@ -1885,16 +1885,16 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/EvaluationResult'
+                    $ref: "#/components/schemas/EvaluationResult"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # EXPERIMENTS (Public Read)
@@ -1908,10 +1908,10 @@ paths:
       description: Retrieve all experiments for an environment
       operationId: listExperiments
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       responses:
-        '200':
+        "200":
           description: List of experiments
           content:
             application/json:
@@ -1923,12 +1923,12 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Experiment'
+                      $ref: "#/components/schemas/Experiment"
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /platforms/{platform}/environments/{environment}/experiments/{experimentKey}:
     get:
@@ -1938,11 +1938,11 @@ paths:
       description: Retrieve details of a specific experiment
       operationId: getExperiment
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       responses:
-        '200':
+        "200":
           description: Experiment details
           content:
             application/json:
@@ -1952,12 +1952,12 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Experiment'
+                    $ref: "#/components/schemas/Experiment"
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /platforms/{platform}/environments/{environment}/experiments/{experimentKey}/assign:
     get:
@@ -1967,9 +1967,9 @@ paths:
       description: Get variation assignment for a user. Returns consistent assignment based on userId.
       operationId: assignVariationPublic
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
         - name: userId
           in: query
           required: true
@@ -1977,7 +1977,7 @@ paths:
             type: string
           description: User identifier for consistent bucketing
       responses:
-        '200':
+        "200":
           description: Variation assignment
           content:
             application/json:
@@ -1987,12 +1987,12 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/VariationAssignment'
+                    $ref: "#/components/schemas/VariationAssignment"
                   timestamp:
                     type: string
                     format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # EXPERIMENTS (Internal Write)
@@ -2009,16 +2009,16 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateExperiment'
+              $ref: "#/components/schemas/CreateExperiment"
       responses:
-        '201':
+        "201":
           description: Experiment created successfully
           content:
             application/json:
@@ -2028,16 +2028,16 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Experiment'
+                    $ref: "#/components/schemas/Experiment"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '409':
-          $ref: '#/components/responses/Conflict'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}:
     put:
@@ -2050,17 +2050,17 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateExperiment'
+              $ref: "#/components/schemas/UpdateExperiment"
       responses:
-        '200':
+        "200":
           description: Experiment updated
           content:
             application/json:
@@ -2070,16 +2070,16 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Experiment'
+                    $ref: "#/components/schemas/Experiment"
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
     delete:
       tags:
@@ -2091,22 +2091,22 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       responses:
-        '204':
+        "204":
           description: Experiment deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
           description: Cannot delete running experiment
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/start:
     post:
@@ -2119,11 +2119,11 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       responses:
-        '200':
+        "200":
           description: Experiment started
           content:
             application/json:
@@ -2133,20 +2133,20 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Experiment'
+                    $ref: "#/components/schemas/Experiment"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
           description: Experiment already running or completed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
 
   /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/pause:
     post:
@@ -2159,11 +2159,11 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       responses:
-        '200':
+        "200":
           description: Experiment paused
           content:
             application/json:
@@ -2173,14 +2173,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Experiment'
+                    $ref: "#/components/schemas/Experiment"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/resume:
     post:
@@ -2193,11 +2193,11 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       responses:
-        '200':
+        "200":
           description: Experiment resumed
           content:
             application/json:
@@ -2207,14 +2207,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Experiment'
+                    $ref: "#/components/schemas/Experiment"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/complete:
     post:
@@ -2227,9 +2227,9 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       requestBody:
         content:
           application/json:
@@ -2240,7 +2240,7 @@ paths:
                   type: string
                   description: Key of the winning variation
       responses:
-        '200':
+        "200":
           description: Experiment completed
           content:
             application/json:
@@ -2250,14 +2250,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Experiment'
+                    $ref: "#/components/schemas/Experiment"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/archive:
     post:
@@ -2270,11 +2270,11 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       responses:
-        '200':
+        "200":
           description: Experiment archived
           content:
             application/json:
@@ -2284,14 +2284,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Experiment'
+                    $ref: "#/components/schemas/Experiment"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/assign:
     post:
@@ -2304,17 +2304,17 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EvaluationContext'
+              $ref: "#/components/schemas/EvaluationContext"
       responses:
-        '200':
+        "200":
           description: Variation assignment
           content:
             application/json:
@@ -2324,14 +2324,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/VariationAssignment'
+                    $ref: "#/components/schemas/VariationAssignment"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/results:
     get:
@@ -2344,11 +2344,11 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       responses:
-        '200':
+        "200":
           description: Experiment results
           content:
             application/json:
@@ -2358,14 +2358,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/ExperimentResults'
+                    $ref: "#/components/schemas/ExperimentResults"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # STATS
@@ -2379,16 +2379,16 @@ paths:
       description: Submit batch of analytics events from SDK
       operationId: processBatchEvents
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BatchEvents'
+              $ref: "#/components/schemas/BatchEvents"
       responses:
-        '200':
+        "200":
           description: Events processed
           content:
             application/json:
@@ -2407,8 +2407,8 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   /internal/platforms/{platform}/environments/{environment}/configs/{configKey}/stats:
     get:
@@ -2421,15 +2421,15 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
         - name: configKey
           in: path
           required: true
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Config statistics
           content:
             application/json:
@@ -2439,14 +2439,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/ConfigStats'
+                    $ref: "#/components/schemas/ConfigStats"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/stats:
     get:
@@ -2459,11 +2459,11 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
       responses:
-        '200':
+        "200":
           description: Flag statistics
           content:
             application/json:
@@ -2473,14 +2473,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/FlagStats'
+                    $ref: "#/components/schemas/FlagStats"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/stats/by-country:
     get:
@@ -2493,11 +2493,11 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
       responses:
-        '200':
+        "200":
           description: Flag statistics by country
           content:
             application/json:
@@ -2509,14 +2509,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/CountryStats'
+                      $ref: "#/components/schemas/CountryStats"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/flags/{flagKey}/stats/daily:
     get:
@@ -2529,9 +2529,9 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/FlagKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/FlagKey"
         - name: days
           in: query
           schema:
@@ -2539,7 +2539,7 @@ paths:
             default: 30
           description: Number of days to retrieve
       responses:
-        '200':
+        "200":
           description: Daily flag statistics
           content:
             application/json:
@@ -2551,14 +2551,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/DailyStats'
+                      $ref: "#/components/schemas/DailyStats"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/stats:
     get:
@@ -2571,11 +2571,11 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       responses:
-        '200':
+        "200":
           description: Experiment statistics
           content:
             application/json:
@@ -2585,14 +2585,14 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/ExperimentStats'
+                    $ref: "#/components/schemas/ExperimentStats"
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/platforms/{platform}/environments/{environment}/experiments/{experimentKey}/conversions:
     post:
@@ -2605,9 +2605,9 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/ExperimentKey'
+        - $ref: "#/components/parameters/Platform"
+        - $ref: "#/components/parameters/Environment"
+        - $ref: "#/components/parameters/ExperimentKey"
       requestBody:
         required: true
         content:
@@ -2626,7 +2626,7 @@ paths:
                   type: number
                   description: Numeric value for revenue/count metrics
       responses:
-        '200':
+        "200":
           description: Conversion recorded
           content:
             application/json:
@@ -2638,12 +2638,12 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ============================================================================
   # CACHE INVALIDATION
@@ -2664,9 +2664,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CacheInvalidation'
+              $ref: "#/components/schemas/CacheInvalidation"
       responses:
-        '200':
+        "200":
           description: Cache invalidation initiated
           content:
             application/json:
@@ -2689,12 +2689,12 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /internal/cache/invalidate-all:
     post:
@@ -2707,7 +2707,7 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: Global cache invalidation initiated
           content:
             application/json:
@@ -2730,10 +2730,10 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   # ============================================================================
   # WEBHOOKS
@@ -2767,7 +2767,7 @@ paths:
           schema:
             type: boolean
       responses:
-        '200':
+        "200":
           description: Cache invalidation initiated
           content:
             application/json:
@@ -2784,10 +2784,10 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /internal/webhook/cache/invalidations/{invalidationId}:
     get:
@@ -2806,7 +2806,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Invalidation status
           content:
             application/json:
@@ -2833,10 +2833,10 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /internal/webhook/cache/invalidations:
     get:
@@ -2849,7 +2849,7 @@ paths:
         - bearerAuth: []
         - apiKeyAuth: []
       responses:
-        '200':
+        "200":
           description: List of cache invalidations
           content:
             application/json:
@@ -2874,8 +2874,8 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
 # ==============================================================================
 # COMPONENTS
@@ -3014,7 +3014,7 @@ components:
 
     ApiKeyWithPlaintext:
       allOf:
-        - $ref: '#/components/schemas/PublicApiKey'
+        - $ref: "#/components/schemas/PublicApiKey"
         - type: object
           required:
             - key
@@ -3085,7 +3085,7 @@ components:
           type: string
         parameterKey:
           type: string
-          pattern: '^[a-zA-Z][a-zA-Z0-9_.-]*$'
+          pattern: "^[a-zA-Z][a-zA-Z0-9_.-]*$"
           description: Unique parameter key (e.g., "app.name", "feature.maxItems")
         version:
           type: string
@@ -3136,7 +3136,7 @@ components:
           type: string
         flagKey:
           type: string
-          pattern: '^[a-z][a-z0-9-]*$'
+          pattern: "^[a-z][a-z0-9-]*$"
           description: Unique identifier (lowercase, hyphenated, must start with letter)
         name:
           type: string
@@ -3164,7 +3164,7 @@ components:
             - type: number
           description: Secondary value (fallback)
         targeting:
-          $ref: '#/components/schemas/FlagTargeting'
+          $ref: "#/components/schemas/FlagTargeting"
         defaultValue:
           type: string
           enum: [A, B]
@@ -3210,7 +3210,7 @@ components:
         countries:
           type: array
           items:
-            $ref: '#/components/schemas/CountryTarget'
+            $ref: "#/components/schemas/CountryTarget"
           description: Country-level targeting rules
         forceIncludeUsers:
           type: array
@@ -3240,7 +3240,7 @@ components:
         languages:
           type: array
           items:
-            $ref: '#/components/schemas/LanguageTarget'
+            $ref: "#/components/schemas/LanguageTarget"
           description: Optional language-specific overrides within this country
 
     LanguageTarget:
@@ -3291,13 +3291,13 @@ components:
         variations:
           type: array
           items:
-            $ref: '#/components/schemas/ExperimentVariation'
+            $ref: "#/components/schemas/ExperimentVariation"
         metrics:
           type: array
           items:
-            $ref: '#/components/schemas/ExperimentMetric'
+            $ref: "#/components/schemas/ExperimentMetric"
         targeting:
-          $ref: '#/components/schemas/ExperimentTargeting'
+          $ref: "#/components/schemas/ExperimentTargeting"
         trafficAllocation:
           type: number
           minimum: 0
@@ -3418,14 +3418,14 @@ components:
         variations:
           type: array
           items:
-            $ref: '#/components/schemas/ExperimentVariation'
+            $ref: "#/components/schemas/ExperimentVariation"
           minItems: 2
         metrics:
           type: array
           items:
-            $ref: '#/components/schemas/ExperimentMetric'
+            $ref: "#/components/schemas/ExperimentMetric"
         targeting:
-          $ref: '#/components/schemas/ExperimentTargeting'
+          $ref: "#/components/schemas/ExperimentTargeting"
         trafficAllocation:
           type: number
           minimum: 0
@@ -3447,13 +3447,13 @@ components:
         variations:
           type: array
           items:
-            $ref: '#/components/schemas/ExperimentVariation'
+            $ref: "#/components/schemas/ExperimentVariation"
         metrics:
           type: array
           items:
-            $ref: '#/components/schemas/ExperimentMetric'
+            $ref: "#/components/schemas/ExperimentMetric"
         targeting:
-          $ref: '#/components/schemas/ExperimentTargeting'
+          $ref: "#/components/schemas/ExperimentTargeting"
         trafficAllocation:
           type: number
           minimum: 0
@@ -3524,7 +3524,13 @@ components:
             properties:
               eventType:
                 type: string
-                enum: [flag_evaluation, config_fetch, experiment_assignment, conversion]
+                enum:
+                  [
+                    flag_evaluation,
+                    config_fetch,
+                    experiment_assignment,
+                    conversion,
+                  ]
               timestamp:
                 type: string
                 format: date-time
@@ -3633,7 +3639,7 @@ components:
       properties:
         flagKey:
           type: string
-          pattern: '^[a-z][a-z0-9-]*$'
+          pattern: "^[a-z][a-z0-9-]*$"
           description: Unique identifier (lowercase, hyphenated, must start with letter)
         name:
           type: string
@@ -3660,7 +3666,7 @@ components:
             - type: number
           description: Secondary value (defaults to false for boolean flags)
         targeting:
-          $ref: '#/components/schemas/FlagTargeting'
+          $ref: "#/components/schemas/FlagTargeting"
         defaultValue:
           type: string
           enum: [A, B]
@@ -3708,7 +3714,7 @@ components:
             - type: string
             - type: number
         targeting:
-          $ref: '#/components/schemas/FlagTargeting'
+          $ref: "#/components/schemas/FlagTargeting"
         defaultValue:
           type: string
           enum: [A, B]
@@ -3801,39 +3807,39 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     Unauthorized:
       description: Unauthorized - Authentication required
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     Forbidden:
       description: Forbidden - Insufficient permissions
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     NotFound:
       description: Not found - Resource does not exist
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     Conflict:
       description: Conflict - Resource already exists
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     ValidationError:
       description: Validation error - Invalid data
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"

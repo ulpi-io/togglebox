@@ -6,9 +6,14 @@
  * Uses Mongoose document IDs (_id) for platform identification.
  */
 
-import { Platform } from '@togglebox/core';
-import { IPlatformRepository, OffsetPaginationParams, TokenPaginationParams, OffsetPaginatedResult } from '../../interfaces';
-import { PlatformModel } from './schemas';
+import { Platform } from "@togglebox/core";
+import {
+  IPlatformRepository,
+  OffsetPaginationParams,
+  TokenPaginationParams,
+  OffsetPaginatedResult,
+} from "../../interfaces";
+import { PlatformModel } from "./schemas";
 
 /**
  * Mongoose implementation of platform repository.
@@ -24,7 +29,7 @@ export class MongoosePlatformRepository implements IPlatformRepository {
    *
    * @throws {Error} If platform with same name already exists (MongoDB duplicate key error 11000)
    */
-  async createPlatform(platform: Omit<Platform, 'id'>): Promise<Platform> {
+  async createPlatform(platform: Omit<Platform, "id">): Promise<Platform> {
     const createdAt = new Date().toISOString();
 
     try {
@@ -79,7 +84,7 @@ export class MongoosePlatformRepository implements IPlatformRepository {
    * **Count Query:** Separate countDocuments() for total.
    */
   async listPlatforms(
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<OffsetPaginatedResult<Platform>> {
     // SECURITY: If no pagination requested, apply hard limit to prevent unbounded queries
     // Skip COUNT query since we're fetching all items anyway
@@ -90,7 +95,7 @@ export class MongoosePlatformRepository implements IPlatformRepository {
         .limit(HARD_LIMIT)
         .exec();
 
-      const items = docs.map(doc => ({
+      const items = docs.map((doc) => ({
         id: doc._id.toString(),
         name: doc.name,
         description: doc.description,
@@ -113,7 +118,7 @@ export class MongoosePlatformRepository implements IPlatformRepository {
       PlatformModel.countDocuments().exec(),
     ]);
 
-    const items = docs.map(doc => ({
+    const items = docs.map((doc) => ({
       id: doc._id.toString(),
       name: doc.name,
       description: doc.description,

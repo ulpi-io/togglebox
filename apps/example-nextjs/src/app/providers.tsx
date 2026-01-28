@@ -1,22 +1,23 @@
-'use client'
+"use client";
 
-import { ToggleBoxProvider } from '@togglebox/sdk-nextjs'
-import type { Config, Flag, Experiment } from '@togglebox/sdk-nextjs'
+import { ToggleBoxProvider } from "@togglebox/sdk-nextjs";
+import type { Config, Flag, Experiment } from "@togglebox/sdk-nextjs";
 
 // Client-side env vars (these are embedded in the client bundle)
 // SECURITY: API key is fetched server-side in layout.tsx, not exposed here
-const API_URL = process.env.NEXT_PUBLIC_TOGGLEBOX_API_URL || 'http://localhost:3000/api/v1'
-const PLATFORM = process.env.NEXT_PUBLIC_TOGGLEBOX_PLATFORM || 'web'
-const ENVIRONMENT = process.env.NEXT_PUBLIC_TOGGLEBOX_ENVIRONMENT || 'staging'
+const API_URL =
+  process.env.NEXT_PUBLIC_TOGGLEBOX_API_URL || "http://localhost:3000/api/v1";
+const PLATFORM = process.env.NEXT_PUBLIC_TOGGLEBOX_PLATFORM || "web";
+const ENVIRONMENT = process.env.NEXT_PUBLIC_TOGGLEBOX_ENVIRONMENT || "staging";
 
 interface ProvidersProps {
-  children: React.ReactNode
+  children: React.ReactNode;
   /** Initial config for SSR hydration (avoids client-side fetch on mount) */
-  initialConfig?: Config | null
+  initialConfig?: Config | null;
   /** Initial flags for SSR hydration */
-  initialFlags?: Flag[]
+  initialFlags?: Flag[];
   /** Initial experiments for SSR hydration */
-  initialExperiments?: Experiment[]
+  initialExperiments?: Experiment[];
 }
 
 /**
@@ -44,5 +45,5 @@ export function Providers({
     >
       {children}
     </ToggleBoxProvider>
-  )
+  );
 }

@@ -24,10 +24,10 @@
 /// <reference types="@cloudflare/workers-types" />
 
 // Dynamic import for cloudflare:node (only available in Workers runtime)
-import { httpServerHandler } from 'cloudflare:node';
-import app from './app';
-import { logger } from '@togglebox/shared';
-import { createDatabaseRepositories } from '@togglebox/database';
+import { httpServerHandler } from "cloudflare:node";
+import app from "./app";
+import { logger } from "@togglebox/shared";
+import { createDatabaseRepositories } from "@togglebox/database";
 
 /**
  * Cloudflare Workers environment bindings
@@ -91,7 +91,8 @@ export interface D1ExecResult {
  * Global variable to store database repositories
  * Initialized once per Worker instance
  */
-let databaseRepositories: ReturnType<typeof createDatabaseRepositories> | null = null;
+let databaseRepositories: ReturnType<typeof createDatabaseRepositories> | null =
+  null;
 
 /**
  * Initialize database repositories with D1 binding
@@ -101,10 +102,10 @@ let databaseRepositories: ReturnType<typeof createDatabaseRepositories> | null =
 function initializeDatabase(db: D1Database) {
   if (!databaseRepositories) {
     databaseRepositories = createDatabaseRepositories({
-      type: 'd1',
+      type: "d1",
       d1Database: db,
     });
-    logger.info('D1 database repositories initialized');
+    logger.info("D1 database repositories initialized");
   }
   return databaseRepositories;
 }
@@ -134,7 +135,11 @@ function initializeDatabase(db: D1Database) {
  * ```
  */
 export default {
-  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    _ctx: ExecutionContext,
+  ): Promise<Response> {
     try {
       // Initialize database with D1 binding
       initializeDatabase(env.DB);
@@ -142,11 +147,11 @@ export default {
       // Log incoming request (SECURITY: redact sensitive headers)
       const headers = Object.fromEntries(request.headers.entries());
       // Remove sensitive headers to prevent secret exposure in logs
-      delete headers['authorization'];
-      delete headers['x-api-key'];
-      delete headers['cookie'];
+      delete headers["authorization"];
+      delete headers["x-api-key"];
+      delete headers["cookie"];
 
-      logger.info('Cloudflare Worker request received', {
+      logger.info("Cloudflare Worker request received", {
         method: request.method,
         url: request.url,
         headers,
@@ -162,28 +167,28 @@ export default {
       const response = await handler(request);
 
       // Log response
-      logger.info('Cloudflare Worker response sent', {
+      logger.info("Cloudflare Worker response sent", {
         status: response.status,
         statusText: response.statusText,
       });
 
       return response;
     } catch (error) {
-      logger.fatal('Cloudflare Worker request failed', error);
+      logger.fatal("Cloudflare Worker request failed", error);
 
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Internal Server Error',
-          message: error instanceof Error ? error.message : 'Unknown error',
+          error: "Internal Server Error",
+          message: error instanceof Error ? error.message : "Unknown error",
           timestamp: new Date().toISOString(),
         }),
         {
           status: 500,
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        }
+        },
       );
     }
   },
@@ -198,8 +203,12 @@ export default {
    * crons = ["0 0 * * *"]  // Run daily at midnight
    * ```
    */
-  async scheduled(event: ScheduledEvent, _env: Env, _ctx: ExecutionContext): Promise<void> {
-    logger.info('Scheduled event triggered', {
+  async scheduled(
+    event: ScheduledEvent,
+    _env: Env,
+    _ctx: ExecutionContext,
+  ): Promise<void> {
+    logger.info("Scheduled event triggered", {
       cron: event.cron,
       scheduledTime: new Date(event.scheduledTime).toISOString(),
     });

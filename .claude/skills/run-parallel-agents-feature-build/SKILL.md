@@ -14,6 +14,7 @@ Automatically detect opportunities for parallel execution and orchestrate multip
 Use this skill automatically when:
 
 **Task List Indicators:**
+
 - The task list contains 3 or more independent tasks or phases
 - Receiving a large plan with multiple unrelated features
 - Tasks are clearly scoped and don't overlap
@@ -21,12 +22,14 @@ Use this skill automatically when:
 - No shared state or cross-dependencies between tasks
 
 **User Triggers:**
+
 - "Build in parallel"
 - "Split this work across agents"
 - "Use multiple agents for this"
 - "Speed this up with parallel execution"
 
 **Common Scenarios:**
+
 - Building independent features or endpoints (e.g., wishlist API, checkout flow, user dashboard)
 - Implementing multiple UI components or microservices simultaneously
 - Generating documentation or schema files for several modules
@@ -39,18 +42,21 @@ Use this skill automatically when:
 Do NOT use parallel agents when:
 
 **Dependencies Exist:**
+
 - Tasks have sequential dependencies (Task B needs Task A's output)
 - Shared state, data, or ownership between tasks
 - The sequence of execution affects the outcome
 - Agents would interfere with each other's work
 
 **Problem Not Decomposed:**
+
 - The problem isn't yet broken into independent units
 - Need to understand full system state first
 - Related failures where fixing one might fix others
 - Careful coordination or debugging across layers is required
 
 **Single Cohesive Task:**
+
 - Working on a single integrated feature
 - Refactoring that touches multiple interconnected parts
 - Tasks that require constant communication between components
@@ -60,6 +66,7 @@ Do NOT use parallel agents when:
 ### Step 1: Analyze the Task List or Request
 
 Examine the current task list or user request to identify:
+
 1. **Number of independent work streams** - Are there 3+ separate features/tasks?
 2. **Dependencies** - Can each task be completed without waiting for others?
 3. **Shared state** - Do tasks modify the same files or data structures?
@@ -72,6 +79,7 @@ If all conditions for parallelization are met, proceed to Step 2.
 For each independent task, determine the best agent type based on:
 
 **Technology Stack Detection:**
+
 - **Laravel backend** → `laravel-senior-engineer`
 - **Next.js frontend or full-stack** → `nextjs-senior-engineer`
 - **React UI components or design system** → `nextjs-senior-engineer` (or use context to infer if pure React)
@@ -84,6 +92,7 @@ For each independent task, determine the best agent type based on:
 - **General tasks (exploration, research)** → `general-purpose`
 
 **File Pattern Analysis:**
+
 ```
 *.php + /app/ + /routes/ → Laravel
 *.tsx + /app/ or /pages/ → Next.js
@@ -100,12 +109,14 @@ For each independent task, determine the best agent type based on:
 For each agent, create a clear, focused brief containing:
 
 **Required Elements:**
+
 1. **Scope of work** - Exactly what to build/analyze/fix
 2. **Expected output** - What deliverables to produce
 3. **Context** - Relevant file paths, existing patterns, constraints
 4. **Success criteria** - How to verify completion
 
 **Brief Template:**
+
 ```
 Build [feature name]:
 - Scope: [specific feature boundaries]
@@ -127,6 +138,7 @@ Use the Task tool to launch multiple agents in parallel:
 ```
 
 **Critical Requirements:**
+
 - Send ALL Task tool calls in ONE message
 - Do NOT wait for agents to complete before launching others
 - Each agent gets its complete brief upfront
@@ -135,6 +147,7 @@ Use the Task tool to launch multiple agents in parallel:
 ### Step 5: Monitor and Aggregate Results
 
 After agents complete:
+
 1. **Collect outputs** from each agent
 2. **Verify deliverables** match expected outputs
 3. **Check for conflicts** (e.g., overlapping file changes)
@@ -142,6 +155,7 @@ After agents complete:
 5. **Report to user** with consolidated findings
 
 **Aggregation Template:**
+
 ```
 Parallel execution complete. Results:
 
@@ -166,6 +180,7 @@ Parallel execution complete. Results:
 "Build the wishlist API, checkout summary, and user dashboard in parallel."
 
 **Execution:**
+
 1. **Detect** three separate feature scopes
 2. **Match agents:**
    - Wishlist API → `laravel-senior-engineer` (backend)
@@ -175,6 +190,7 @@ Parallel execution complete. Results:
 4. **Aggregate** results into merged summary
 
 **Output:**
+
 ```
 Built 3 features in parallel:
 - Wishlist API: Complete (app/Http/Controllers/WishlistController.php, routes/api.php)
@@ -188,6 +204,7 @@ Built 3 features in parallel:
 "Run parallel agents to debug these failing tests."
 
 **Execution:**
+
 1. **Cluster failures** by subsystem:
    - Laravel backend tests
    - Next.js frontend tests
@@ -206,6 +223,7 @@ Built 3 features in parallel:
 "Analyze these 5 code files in parallel for performance bottlenecks."
 
 **Execution:**
+
 1. **Split files** across appropriate agents based on file type
 2. **Run analysis** concurrently (each agent gets 1-2 files)
 3. **Merge findings** into summarized report with:
@@ -217,17 +235,17 @@ Built 3 features in parallel:
 
 Quick reference for matching tasks to agents:
 
-| Agent Type | Best For | Key Indicators |
-|------------|----------|----------------|
-| `laravel-senior-engineer` | Laravel backends, APIs, Eloquent models | `*.php`, `/app/`, Eloquent, Artisan |
-| `nextjs-senior-engineer` | Next.js apps, React Server Components, App Router | `*.tsx`, `/app/`, `/pages/`, `next.config.*` |
-| `nestjs-senior-engineer` | NestJS APIs, microservices, DI architecture | `*.ts`, `@nestjs/*`, `nest-cli.json` |
-| `remix-senior-engineer` | Remix full-stack apps, loaders, actions | `*.tsx`, `remix.config.*`, loaders/actions |
-| `express-senior-engineer` | Express.js APIs, middleware, REST endpoints | `*.js/*.ts`, `express` imports |
-| `expo-react-native-senior-engineer` | Expo mobile apps, cross-platform | `*.tsx`, `app.json`, Expo modules |
-| `flutter-senior-engineer` | Flutter mobile apps, widgets, state mgmt | `*.dart`, `pubspec.yaml`, Flutter widgets |
-| `magento-senior-engineer` | Magento 2 e-commerce, modules | `*.php`, `/app/code/`, Magento DI |
-| `general-purpose` | Exploration, research, general tasks | Non-framework-specific work |
+| Agent Type                          | Best For                                          | Key Indicators                               |
+| ----------------------------------- | ------------------------------------------------- | -------------------------------------------- |
+| `laravel-senior-engineer`           | Laravel backends, APIs, Eloquent models           | `*.php`, `/app/`, Eloquent, Artisan          |
+| `nextjs-senior-engineer`            | Next.js apps, React Server Components, App Router | `*.tsx`, `/app/`, `/pages/`, `next.config.*` |
+| `nestjs-senior-engineer`            | NestJS APIs, microservices, DI architecture       | `*.ts`, `@nestjs/*`, `nest-cli.json`         |
+| `remix-senior-engineer`             | Remix full-stack apps, loaders, actions           | `*.tsx`, `remix.config.*`, loaders/actions   |
+| `express-senior-engineer`           | Express.js APIs, middleware, REST endpoints       | `*.js/*.ts`, `express` imports               |
+| `expo-react-native-senior-engineer` | Expo mobile apps, cross-platform                  | `*.tsx`, `app.json`, Expo modules            |
+| `flutter-senior-engineer`           | Flutter mobile apps, widgets, state mgmt          | `*.dart`, `pubspec.yaml`, Flutter widgets    |
+| `magento-senior-engineer`           | Magento 2 e-commerce, modules                     | `*.php`, `/app/code/`, Magento DI            |
+| `general-purpose`                   | Exploration, research, general tasks              | Non-framework-specific work                  |
 
 See `references/agent_matching_logic.md` for detailed matching rules and edge cases.
 
@@ -236,11 +254,13 @@ See `references/agent_matching_logic.md` for detailed matching rules and edge ca
 ### Scoping Tasks Effectively
 
 **Good Task Scopes:**
+
 - "Build user authentication endpoint with JWT"
 - "Create product listing page with filters"
 - "Implement cart total calculation service"
 
 **Poor Task Scopes:**
+
 - "Build the entire checkout flow" (too broad, likely has dependencies)
 - "Fix the app" (undefined, not decomposed)
 - "Refactor database layer" (touches too many interconnected parts)
@@ -248,6 +268,7 @@ See `references/agent_matching_logic.md` for detailed matching rules and edge ca
 ### Handling Conflicts
 
 If agents modify overlapping files:
+
 1. **Review changes** from each agent
 2. **Identify conflicts** (same lines modified)
 3. **Merge intelligently** or ask user for guidance
@@ -256,6 +277,7 @@ If agents modify overlapping files:
 ### Communication Pattern
 
 Always inform the user BEFORE launching parallel agents:
+
 ```
 I've identified 3 independent features that can be built in parallel:
 1. [Feature 1] - using [agent-type]
@@ -268,6 +290,7 @@ Launching agents now...
 ### Failure Handling
 
 If an agent fails or gets blocked:
+
 - Continue with successful agents
 - Report partial results
 - Provide clear next steps for blocked work

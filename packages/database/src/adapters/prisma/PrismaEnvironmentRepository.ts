@@ -6,14 +6,14 @@
  * Handles foreign key relationships with platforms.
  */
 
-import { PrismaClient } from '.prisma/client-database';
-import { Environment } from '@togglebox/core';
+import { PrismaClient } from ".prisma/client-database";
+import { Environment } from "@togglebox/core";
 import {
   IEnvironmentRepository,
   OffsetPaginationParams,
   TokenPaginationParams,
   OffsetPaginatedResult,
-} from '../../interfaces';
+} from "../../interfaces";
 
 /**
  * Prisma implementation of environment repository.
@@ -31,7 +31,9 @@ export class PrismaEnvironmentRepository implements IEnvironmentRepository {
    * @throws {Error} If platform not found
    * @throws {Error} If environment already exists (Prisma P2002 error)
    */
-  async createEnvironment(environment: Omit<Environment, 'createdAt'>): Promise<Environment> {
+  async createEnvironment(
+    environment: Omit<Environment, "createdAt">,
+  ): Promise<Environment> {
     const createdAt = new Date().toISOString();
 
     // Look up the platform to get its ID for foreign key
@@ -61,9 +63,9 @@ export class PrismaEnvironmentRepository implements IEnvironmentRepository {
         createdAt: created.createdAt,
       };
     } catch (error: unknown) {
-      if ((error as { code?: string }).code === 'P2002') {
+      if ((error as { code?: string }).code === "P2002") {
         throw new Error(
-          `Environment ${environment.environment} already exists for platform ${environment.platform}`
+          `Environment ${environment.environment} already exists for platform ${environment.platform}`,
         );
       }
       throw error;
@@ -76,7 +78,10 @@ export class PrismaEnvironmentRepository implements IEnvironmentRepository {
    * @remarks
    * Uses Prisma composite unique index for efficient lookup.
    */
-  async getEnvironment(platform: string, environment: string): Promise<Environment | null> {
+  async getEnvironment(
+    platform: string,
+    environment: string,
+  ): Promise<Environment | null> {
     const env = await this.prisma.environment.findUnique({
       where: {
         platform_environment: { platform, environment },
@@ -105,7 +110,7 @@ export class PrismaEnvironmentRepository implements IEnvironmentRepository {
    */
   async listEnvironments(
     platform: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<OffsetPaginatedResult<Environment>> {
     // Get total count for metadata
     const total = await this.prisma.environment.count({
@@ -117,7 +122,7 @@ export class PrismaEnvironmentRepository implements IEnvironmentRepository {
       const HARD_LIMIT = 100;
       const environments = await this.prisma.environment.findMany({
         where: { platform },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         take: HARD_LIMIT,
       });
 
@@ -136,7 +141,7 @@ export class PrismaEnvironmentRepository implements IEnvironmentRepository {
 
     const environments = await this.prisma.environment.findMany({
       where: { platform },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip: params.offset,
       take: params.limit,
     });
@@ -151,7 +156,10 @@ export class PrismaEnvironmentRepository implements IEnvironmentRepository {
     return { items, total };
   }
 
-  async deleteEnvironment(platform: string, environment: string): Promise<boolean> {
+  async deleteEnvironment(
+    platform: string,
+    environment: string,
+  ): Promise<boolean> {
     try {
       await this.prisma.environment.delete({
         where: {
@@ -161,7 +169,7 @@ export class PrismaEnvironmentRepository implements IEnvironmentRepository {
       return true;
     } catch (error: unknown) {
       // Prisma P2025 error: Record not found
-      if ((error as { code?: string }).code === 'P2025') {
+      if ((error as { code?: string }).code === "P2025") {
         return false;
       }
       throw error;

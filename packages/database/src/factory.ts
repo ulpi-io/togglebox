@@ -44,16 +44,16 @@
  * ```
  */
 
-import { DatabaseConfig } from './config';
+import { DatabaseConfig } from "./config";
 import {
   IPlatformRepository,
   IEnvironmentRepository,
   IConfigRepository,
   IUsageRepository,
-} from './interfaces';
-import type { IFlagRepository } from '@togglebox/flags';
-import type { IExperimentRepository } from '@togglebox/experiments';
-import type { IStatsRepository } from '@togglebox/stats';
+} from "./interfaces";
+import type { IFlagRepository } from "@togglebox/flags";
+import type { IExperimentRepository } from "@togglebox/experiments";
+import type { IStatsRepository } from "@togglebox/stats";
 
 /**
  * Container for all database repository instances.
@@ -222,27 +222,31 @@ export interface ThreeTierRepositories {
  * // Same method signature, different underlying implementation
  * ```
  */
-export function createDatabaseRepositories(config: DatabaseConfig): DatabaseRepositories {
+export function createDatabaseRepositories(
+  config: DatabaseConfig,
+): DatabaseRepositories {
   switch (config.type) {
-    case 'mysql':
-    case 'postgresql':
-    case 'sqlite':
+    case "mysql":
+    case "postgresql":
+    case "sqlite":
       // Prisma adapter handles MySQL, PostgreSQL, and SQLite
       return createPrismaRepositories(config);
 
-    case 'mongodb':
+    case "mongodb":
       // Mongoose adapter handles MongoDB
       return createMongooseRepositories(config);
 
-    case 'dynamodb':
+    case "dynamodb":
       return createDynamoDBRepositories(config);
 
-    case 'd1':
+    case "d1":
       // Cloudflare D1 adapter
       return createD1Repositories(config);
 
     default:
-      throw new Error(`Unsupported database type: ${(config as { type: unknown }).type}`);
+      throw new Error(
+        `Unsupported database type: ${(config as { type: unknown }).type}`,
+      );
   }
 }
 
@@ -300,30 +304,34 @@ export function createDatabaseRepositories(config: DatabaseConfig): DatabaseRepo
  * const devDb = createPrismaRepositories(sqliteConfig);
  * ```
  */
-function createPrismaRepositories(config: DatabaseConfig): DatabaseRepositories {
-  const { createPrismaRepositories: prismaFactory } = require('./adapters/prisma');
+function createPrismaRepositories(
+  config: DatabaseConfig,
+): DatabaseRepositories {
+  const {
+    createPrismaRepositories: prismaFactory,
+  } = require("./adapters/prisma");
 
   let connectionUrl: string;
   let isSQLite = false;
 
   switch (config.type) {
-    case 'mysql':
+    case "mysql":
       if (!config.mysqlUrl) {
-        throw new Error('MySQL connection URL is required');
+        throw new Error("MySQL connection URL is required");
       }
       connectionUrl = config.mysqlUrl;
       break;
 
-    case 'postgresql':
+    case "postgresql":
       if (!config.postgresUrl) {
-        throw new Error('PostgreSQL connection URL is required');
+        throw new Error("PostgreSQL connection URL is required");
       }
       connectionUrl = config.postgresUrl;
       break;
 
-    case 'sqlite':
+    case "sqlite":
       if (!config.sqliteFile) {
-        throw new Error('SQLite file path is required');
+        throw new Error("SQLite file path is required");
       }
       connectionUrl = `file:${config.sqliteFile}`;
       isSQLite = true;
@@ -390,11 +398,15 @@ function createPrismaRepositories(config: DatabaseConfig): DatabaseRepositories 
  * const replicaDb = createMongooseRepositories(replicaConfig);
  * ```
  */
-function createMongooseRepositories(config: DatabaseConfig): DatabaseRepositories {
-  const { createMongooseRepositories: mongooseFactory } = require('./adapters/mongoose');
+function createMongooseRepositories(
+  config: DatabaseConfig,
+): DatabaseRepositories {
+  const {
+    createMongooseRepositories: mongooseFactory,
+  } = require("./adapters/mongoose");
 
   if (!config.mongoUrl) {
-    throw new Error('MongoDB connection URL is required');
+    throw new Error("MongoDB connection URL is required");
   }
 
   return mongooseFactory(config.mongoUrl);
@@ -453,8 +465,12 @@ function createMongooseRepositories(config: DatabaseConfig): DatabaseRepositorie
  * await localDb.platform.createPlatform({ name: 'web', description: '...' });
  * ```
  */
-function createDynamoDBRepositories(_config: DatabaseConfig): DatabaseRepositories {
-  const { createDynamoDBRepositories: dynamoFactory } = require('./adapters/dynamodb');
+function createDynamoDBRepositories(
+  _config: DatabaseConfig,
+): DatabaseRepositories {
+  const {
+    createDynamoDBRepositories: dynamoFactory,
+  } = require("./adapters/dynamodb");
 
   // Note: DynamoDB configuration is handled by the existing database.ts module
   // which reads from DYNAMODB_TABLE, AWS_REGION environment variables.
@@ -523,17 +539,17 @@ function createDynamoDBRepositories(_config: DatabaseConfig): DatabaseRepositori
  * ```
  */
 function createD1Repositories(config: DatabaseConfig): DatabaseRepositories {
-  const { createD1Repositories: d1Factory } = require('./adapters/d1');
+  const { createD1Repositories: d1Factory } = require("./adapters/d1");
 
-  if (config.type !== 'd1') {
+  if (config.type !== "d1") {
     throw new Error(`Invalid database type for D1: ${config.type}`);
   }
 
   if (!config.d1Database) {
-    throw new Error('D1 database binding is required');
+    throw new Error("D1 database binding is required");
   }
 
-  return d1Factory({ type: 'd1', database: config.d1Database });
+  return d1Factory({ type: "d1", database: config.d1Database });
 }
 
 /**
@@ -621,7 +637,7 @@ let databaseInstance: DatabaseRepositories | null = null;
  */
 export function getDatabase(config?: DatabaseConfig): DatabaseRepositories {
   if (!databaseInstance) {
-    const dbConfig = config || require('./config').loadDatabaseConfig();
+    const dbConfig = config || require("./config").loadDatabaseConfig();
     databaseInstance = createDatabaseRepositories(dbConfig);
   }
   return databaseInstance;
@@ -712,24 +728,28 @@ let threeTierInstance: ThreeTierRepositories | null = null;
  * await threeTier.stats.incrementFlagEvaluation('web', 'prod', 'dark-mode', 'A', 'user-123');
  * ```
  */
-export function createThreeTierRepositories(config: DatabaseConfig): ThreeTierRepositories {
+export function createThreeTierRepositories(
+  config: DatabaseConfig,
+): ThreeTierRepositories {
   switch (config.type) {
-    case 'dynamodb':
+    case "dynamodb":
       return createDynamoDBThreeTierRepos();
 
-    case 'mysql':
-    case 'postgresql':
-    case 'sqlite':
+    case "mysql":
+    case "postgresql":
+    case "sqlite":
       return createPrismaThreeTierRepos(config);
 
-    case 'mongodb':
+    case "mongodb":
       return createMongooseThreeTierRepos(config);
 
-    case 'd1':
+    case "d1":
       return createD1ThreeTierRepos(config);
 
     default:
-      throw new Error(`Unsupported database type: ${(config as { type: unknown }).type}`);
+      throw new Error(
+        `Unsupported database type: ${(config as { type: unknown }).type}`,
+      );
   }
 }
 
@@ -737,44 +757,50 @@ export function createThreeTierRepositories(config: DatabaseConfig): ThreeTierRe
  * Creates DynamoDB three-tier repositories.
  */
 function createDynamoDBThreeTierRepos(): ThreeTierRepositories {
-  const { createDynamoDBThreeTierRepositories } = require('./adapters/dynamodb');
+  const {
+    createDynamoDBThreeTierRepositories,
+  } = require("./adapters/dynamodb");
   return createDynamoDBThreeTierRepositories();
 }
 
 /**
  * Creates Prisma three-tier repositories for MySQL, PostgreSQL, and SQLite.
  */
-function createPrismaThreeTierRepos(config: DatabaseConfig): ThreeTierRepositories {
-  const { createPrismaThreeTierRepositories } = require('./adapters/prisma');
+function createPrismaThreeTierRepos(
+  config: DatabaseConfig,
+): ThreeTierRepositories {
+  const { createPrismaThreeTierRepositories } = require("./adapters/prisma");
 
   let connectionUrl: string;
   let isSQLite = false;
 
   switch (config.type) {
-    case 'mysql':
+    case "mysql":
       if (!config.mysqlUrl) {
-        throw new Error('MySQL connection URL is required');
+        throw new Error("MySQL connection URL is required");
       }
       connectionUrl = config.mysqlUrl;
       break;
 
-    case 'postgresql':
+    case "postgresql":
       if (!config.postgresUrl) {
-        throw new Error('PostgreSQL connection URL is required');
+        throw new Error("PostgreSQL connection URL is required");
       }
       connectionUrl = config.postgresUrl;
       break;
 
-    case 'sqlite':
+    case "sqlite":
       if (!config.sqliteFile) {
-        throw new Error('SQLite file path is required');
+        throw new Error("SQLite file path is required");
       }
       connectionUrl = `file:${config.sqliteFile}`;
       isSQLite = true;
       break;
 
     default:
-      throw new Error(`Invalid database type for Prisma three-tier: ${config.type}`);
+      throw new Error(
+        `Invalid database type for Prisma three-tier: ${config.type}`,
+      );
   }
 
   return createPrismaThreeTierRepositories(connectionUrl, isSQLite);
@@ -783,11 +809,15 @@ function createPrismaThreeTierRepos(config: DatabaseConfig): ThreeTierRepositori
 /**
  * Creates Mongoose three-tier repositories for MongoDB.
  */
-function createMongooseThreeTierRepos(config: DatabaseConfig): ThreeTierRepositories {
-  const { createMongooseThreeTierRepositories } = require('./adapters/mongoose');
+function createMongooseThreeTierRepos(
+  config: DatabaseConfig,
+): ThreeTierRepositories {
+  const {
+    createMongooseThreeTierRepositories,
+  } = require("./adapters/mongoose");
 
   if (!config.mongoUrl) {
-    throw new Error('MongoDB connection URL is required');
+    throw new Error("MongoDB connection URL is required");
   }
 
   return createMongooseThreeTierRepositories(config.mongoUrl);
@@ -797,14 +827,14 @@ function createMongooseThreeTierRepos(config: DatabaseConfig): ThreeTierReposito
  * Creates Cloudflare D1 three-tier repositories.
  */
 function createD1ThreeTierRepos(config: DatabaseConfig): ThreeTierRepositories {
-  const { createD1ThreeTierRepositories } = require('./adapters/d1');
+  const { createD1ThreeTierRepositories } = require("./adapters/d1");
 
-  if (config.type !== 'd1') {
+  if (config.type !== "d1") {
     throw new Error(`Invalid database type for D1 three-tier: ${config.type}`);
   }
 
   if (!config.d1Database) {
-    throw new Error('D1 database binding is required');
+    throw new Error("D1 database binding is required");
   }
 
   return createD1ThreeTierRepositories(config.d1Database);
@@ -836,9 +866,11 @@ function createD1ThreeTierRepos(config: DatabaseConfig): ThreeTierRepositories {
  * await threeTier.stats.incrementFlagEvaluation(...);
  * ```
  */
-export function getThreeTierRepositories(config?: DatabaseConfig): ThreeTierRepositories {
+export function getThreeTierRepositories(
+  config?: DatabaseConfig,
+): ThreeTierRepositories {
   if (!threeTierInstance) {
-    const dbConfig = config || require('./config').loadDatabaseConfig();
+    const dbConfig = config || require("./config").loadDatabaseConfig();
     threeTierInstance = createThreeTierRepositories(dbConfig);
   }
   return threeTierInstance;

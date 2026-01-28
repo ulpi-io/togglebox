@@ -11,9 +11,9 @@
  * **Configuration:** Via environment variables or constructor config.
  */
 
-import nodemailer from 'nodemailer';
-import { IEmailService } from './PasswordResetService';
-import { logger } from '@togglebox/shared';
+import nodemailer from "nodemailer";
+import { IEmailService } from "./PasswordResetService";
+import { logger } from "@togglebox/shared";
 
 /**
  * Email service configuration.
@@ -48,7 +48,7 @@ export class EmailService implements IEmailService {
 
   constructor(config: EmailServiceConfig) {
     this.fromEmail = config.fromEmail;
-    this.fromName = config.fromName || 'Togglebox';
+    this.fromName = config.fromName || "Togglebox";
 
     // Create SMTP transporter
     this.transporter = nodemailer.createTransport({
@@ -73,12 +73,12 @@ export class EmailService implements IEmailService {
    * Reset link format: `${APP_URL}/auth/reset-password?token=${token}`
    */
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
-    const resetUrl = `${process.env['APP_URL'] || 'http://localhost:3000'}/auth/reset-password?token=${token}`;
+    const resetUrl = `${process.env["APP_URL"] || "http://localhost:3000"}/auth/reset-password?token=${token}`;
 
     const mailOptions = {
       from: `"${this.fromName}" <${this.fromEmail}>`,
       to: email,
-      subject: 'Reset Your Password - Togglebox',
+      subject: "Reset Your Password - Togglebox",
       html: this.getPasswordResetEmailTemplate(resetUrl),
       text: this.getPasswordResetEmailText(resetUrl),
     };
@@ -96,7 +96,7 @@ export class EmailService implements IEmailService {
     const mailOptions = {
       from: `"${this.fromName}" <${this.fromEmail}>`,
       to: email,
-      subject: 'Welcome to Togglebox',
+      subject: "Welcome to Togglebox",
       html: this.getWelcomeEmailTemplate(name || email),
       text: this.getWelcomeEmailText(name || email),
     };
@@ -178,7 +178,7 @@ Togglebox - Remote Config Service
     <p>You can now manage feature flags, configurations, and environment settings for your applications.</p>
     <p>Get started by visiting your dashboard:</p>
     <div style="margin: 30px 0;">
-      <a href="${process.env['APP_URL'] || 'http://localhost:3000'}/dashboard"
+      <a href="${process.env["APP_URL"] || "http://localhost:3000"}/dashboard"
          style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
         Go to Dashboard
       </a>
@@ -205,7 +205,7 @@ Thank you for signing up for Togglebox, your remote configuration service.
 
 You can now manage feature flags, configurations, and environment settings for your applications.
 
-Visit your dashboard at: ${process.env['APP_URL'] || 'http://localhost:3000'}/dashboard
+Visit your dashboard at: ${process.env["APP_URL"] || "http://localhost:3000"}/dashboard
 
 If you have any questions, feel free to reach out to our support team.
 
@@ -227,7 +227,7 @@ Togglebox - Remote Config Service
       await this.transporter.verify();
       return true;
     } catch (error) {
-      logger.error('SMTP connection verification failed', error);
+      logger.error("SMTP connection verification failed", error);
       return false;
     }
   }
@@ -249,12 +249,12 @@ Togglebox - Remote Config Service
  */
 export function createEmailService(): EmailService {
   const config: EmailServiceConfig = {
-    smtpHost: process.env['SMTP_HOST'] || 'smtp.gmail.com',
-    smtpPort: parseInt(process.env['SMTP_PORT'] || '587', 10),
-    smtpUser: process.env['SMTP_USER'] || '',
-    smtpPass: process.env['SMTP_PASS'] || '',
-    fromEmail: process.env['FROM_EMAIL'] || 'noreply@togglebox.com',
-    fromName: process.env['FROM_NAME'] || 'Togglebox',
+    smtpHost: process.env["SMTP_HOST"] || "smtp.gmail.com",
+    smtpPort: parseInt(process.env["SMTP_PORT"] || "587", 10),
+    smtpUser: process.env["SMTP_USER"] || "",
+    smtpPass: process.env["SMTP_PASS"] || "",
+    fromEmail: process.env["FROM_EMAIL"] || "noreply@togglebox.com",
+    fromName: process.env["FROM_NAME"] || "Togglebox",
   };
 
   return new EmailService(config);

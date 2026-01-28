@@ -14,6 +14,7 @@ You write test cases (pressure scenarios with subagents), watch them fail (basel
 **Core principle:** If you didn't watch an agent fail without the skill, you don't know if the skill teaches the right thing.
 
 This skill integrates three approaches:
+
 1. **TDD methodology** - RED-GREEN-REFACTOR cycle for documentation
 2. **Anthropic best practices** - Conciseness, progressive disclosure, token efficiency
 3. **Persuasion principles** - Research-backed techniques for ensuring compliance
@@ -31,12 +32,14 @@ A **skill** is a reference guide for proven techniques, patterns, or tools. Skil
 ## When to Create a Skill
 
 **Create when:**
+
 - Technique wasn't intuitively obvious to you
 - You'd reference this again across projects
 - Pattern applies broadly (not project-specific)
 - Others would benefit
 
 **Don't create for:**
+
 - One-off solutions
 - Standard practices well-documented elsewhere
 - Project-specific conventions (put in project config)
@@ -53,6 +56,7 @@ Write skill before testing? Delete it. Start over.
 Edit skill without testing? Same violation.
 
 **No exceptions:**
+
 - Not for "simple additions"
 - Not for "just adding a section"
 - Not for "documentation updates"
@@ -73,6 +77,7 @@ Different skill types need different approaches. Match your strategy to your ski
 **Persuasion strategy:** Authority + Commitment + Social Proof
 
 **Language patterns:**
+
 - Imperative: "YOU MUST", "Never", "Always", "No exceptions"
 - Announcements: "Announce which skill you're using"
 - Universal: "Every time", "X without Y = failure"
@@ -86,6 +91,7 @@ Different skill types need different approaches. Match your strategy to your ski
 **Persuasion strategy:** Moderate Authority + Unity
 
 **Language patterns:**
+
 - Directive but flexible: "Use this approach", "Follow these steps"
 - Collaborative: "We're working together", "Our codebase"
 - Guidance: "This helps ensure...", "Consider this when..."
@@ -99,6 +105,7 @@ Different skill types need different approaches. Match your strategy to your ski
 **Persuasion strategy:** Clarity only, minimal persuasion
 
 **Language patterns:**
+
 - Clear, factual: "The X command does Y"
 - Organized: Tables, lists, progressive disclosure
 - Searchable: Keywords, consistent terminology
@@ -112,12 +119,14 @@ See `references/persuasion-techniques.md` for complete persuasion principles gui
 ### Phase 0: Determine Skill Type & Strategy
 
 **Before starting, identify:**
+
 1. What type of skill is this? (Discipline/Technique/Reference)
 2. What behavior am I trying to change?
 3. Which persuasion principles apply?
 4. What's the appropriate degree of freedom? (High/Medium/Low)
 
 **Degrees of freedom guidance:**
+
 - **High freedom** (text-based): Multiple approaches valid, heuristics guide decisions
 - **Medium freedom** (pseudocode/templates): Preferred pattern exists, some variation acceptable
 - **Low freedom** (specific scripts): Operations are fragile, consistency is critical
@@ -129,6 +138,7 @@ See `references/anthropic-patterns.md` for complete guidance on degrees of freed
 **YOU MUST run baseline testing BEFORE writing any skill content.**
 
 **Steps:**
+
 1. **Create pressure scenarios** (especially for discipline skills)
    - Time pressure: "Complete quickly"
    - Sunk cost: "You've already invested significant effort"
@@ -153,12 +163,14 @@ See `references/anthropic-patterns.md` for complete guidance on degrees of freed
 **Write skill addressing ONLY the specific failures from baseline testing.**
 
 **YAML Frontmatter:**
+
 - Only two fields: `name` and `description`
 - Max 1024 characters total for frontmatter
 - `name`: Letters, numbers, hyphens only (max 64 chars)
 - `description`: Third person, starts with "Use when...", includes specific triggers
 
 **Description best practices:**
+
 ```yaml
 # ❌ BAD: Too abstract, first person
 description: I can help you with skills
@@ -171,30 +183,38 @@ description: Use when creating new skills, editing existing skills, or verifying
 ```
 
 **SKILL.md body structure:**
+
 ```markdown
 # Skill Name
 
 ## Overview
+
 What is this? Core principle in 1-2 sentences.
 
 ## When to Use
+
 Bullet list with SYMPTOMS and use cases
 When NOT to use
 
 ## Core Pattern/Workflow
+
 Step-by-step or before/after examples
 
 ## Quick Reference
+
 Table or bullets for scanning
 
 ## Common Mistakes
+
 What goes wrong + fixes
 
 ## Resources
+
 Links to reference/ files
 ```
 
 **Token efficiency:**
+
 - Keep SKILL.md under 500 lines
 - Move heavy content to reference files
 - Use progressive disclosure: SKILL.md = overview + links
@@ -202,11 +222,13 @@ Links to reference/ files
 - Reference other skills instead of repeating
 
 **Apply appropriate persuasion principles:**
+
 - Discipline skills: Use Authority language ("YOU MUST", "No exceptions")
 - Technique skills: Use Moderate Authority + Unity ("We're working together")
 - Reference skills: Focus on clarity, minimize persuasion
 
 **Run scenarios WITH skill:**
+
 - Same pressure scenarios from baseline
 - Agent should now comply
 - If not, identify what's missing
@@ -218,14 +240,18 @@ Links to reference/ files
 **Bulletproofing techniques:**
 
 1. **Close every loophole explicitly**
+
    ```markdown
    # ❌ Incomplete
+
    Write code before test? Delete it.
 
    # ✅ Complete
+
    Write code before test? Delete it. Start over.
 
    **No exceptions:**
+
    - Don't keep it as "reference"
    - Don't "adapt" it while writing tests
    - Don't look at it
@@ -233,6 +259,7 @@ Links to reference/ files
    ```
 
 2. **Address "spirit vs letter" arguments**
+
    ```markdown
    **Violating the letter of the rules is violating the spirit of the rules.**
    ```
@@ -244,8 +271,10 @@ Links to reference/ files
    | "I'll test after" | Tests passing immediately prove nothing. |
 
 4. **Create red flags list**
+
    ```markdown
    ## Red Flags - STOP and Start Over
+
    - Code before test
    - "I already manually tested it"
    - "This is different because..."
@@ -259,6 +288,7 @@ Links to reference/ files
    - Make violations explicit: "This = failure"
 
 **Re-test until bulletproof:**
+
 - Try new pressure combinations
 - Look for edge cases
 - Test with different model sizes
@@ -268,6 +298,7 @@ Links to reference/ files
 **Progressive disclosure:**
 
 If approaching 500 lines, split into structure:
+
 ```
 skill-name/
 ├── SKILL.md (overview, < 500 lines)
@@ -278,6 +309,7 @@ skill-name/
 ```
 
 **SKILL.md points to files:**
+
 ```markdown
 ## Advanced Patterns
 
@@ -289,16 +321,19 @@ skill-name/
 **Keep references one level deep** - Don't nest references within references.
 
 **For long reference files (>100 lines):**
+
 - Add table of contents at top
 - Use clear section headers
 - Make content scannable
 
 **Test across models:**
+
 - Haiku: Does it provide enough guidance?
 - Sonnet: Is it clear and efficient?
 - Opus: Does it avoid over-explaining?
 
 **Token efficiency check:**
+
 ```bash
 wc -w .claude/skills/skill-name/SKILL.md
 # Aim for < 500 lines
@@ -310,18 +345,21 @@ wc -w .claude/skills/skill-name/SKILL.md
 **IMPORTANT: Use TodoWrite to create todos for EACH checklist item below.**
 
 **Phase 0: Planning**
+
 - [ ] Identified skill type (Discipline/Technique/Reference)
 - [ ] Determined persuasion strategy
 - [ ] Assessed appropriate degree of freedom
 - [ ] Planned file structure (single file vs references)
 
 **Phase 1: RED - Baseline Testing**
+
 - [ ] Created pressure scenarios (3+ combined for discipline skills)
 - [ ] Ran scenarios WITHOUT skill
 - [ ] Documented baseline behavior verbatim
 - [ ] Identified rationalization patterns
 
 **Phase 2: GREEN - Write Minimal Skill**
+
 - [ ] Name uses only letters, numbers, hyphens (max 64 chars)
 - [ ] YAML frontmatter with only name and description (max 1024 chars)
 - [ ] Description starts with "Use when..." in third person
@@ -335,6 +373,7 @@ wc -w .claude/skills/skill-name/SKILL.md
 - [ ] Ran scenarios WITH skill - verified agents now comply
 
 **Phase 3: REFACTOR - Close Loopholes**
+
 - [ ] Identified NEW rationalizations from testing
 - [ ] Added explicit counters for each rationalization
 - [ ] Built rationalization table from all test iterations
@@ -344,6 +383,7 @@ wc -w .claude/skills/skill-name/SKILL.md
 - [ ] Re-tested until bulletproof against pressure
 
 **Phase 4: OPTIMIZE - Anthropic Best Practices**
+
 - [ ] Verified SKILL.md under 500 lines
 - [ ] Used progressive disclosure if needed (reference files)
 - [ ] Kept references one level deep
@@ -356,6 +396,7 @@ wc -w .claude/skills/skill-name/SKILL.md
 - [ ] Verified workflows have clear steps with checklists
 
 **Quality Checks:**
+
 - [ ] No narrative storytelling (focus on reusable patterns)
 - [ ] No multi-language dilution (one great example)
 - [ ] Supporting files only for tools or heavy reference
@@ -363,6 +404,7 @@ wc -w .claude/skills/skill-name/SKILL.md
 - [ ] Avoided offering too many options (default + escape hatch)
 
 **For Skills with Executable Code:**
+
 - [ ] Scripts solve problems (don't punt to Claude)
 - [ ] Error handling is explicit and helpful
 - [ ] No "voodoo constants" (all values justified)
@@ -371,6 +413,7 @@ wc -w .claude/skills/skill-name/SKILL.md
 - [ ] Feedback loops included for quality tasks
 
 **Deployment:**
+
 - [ ] Tested with real usage scenarios
 - [ ] Team feedback incorporated (if applicable)
 - [ ] Committed skill to git (if configured)
@@ -378,16 +421,16 @@ wc -w .claude/skills/skill-name/SKILL.md
 
 ## Common Rationalizations for Skipping Testing
 
-| Excuse | Reality |
-|--------|---------|
-| "Skill is obviously clear" | Clear to you ≠ clear to other agents. Test it. |
-| "It's just a reference" | References can have gaps. Test retrieval. |
-| "Testing is overkill" | Untested skills have issues. Always. 15 min saves hours. |
-| "I'll test if problems emerge" | Problems = agents can't use skill. Test BEFORE. |
-| "Too tedious to test" | Testing < debugging bad skill in production. |
-| "I'm confident it's good" | Overconfidence guarantees issues. Test anyway. |
-| "Academic review is enough" | Reading ≠ using. Test application. |
-| "No time to test" | Deploying untested wastes more time fixing later. |
+| Excuse                         | Reality                                                  |
+| ------------------------------ | -------------------------------------------------------- |
+| "Skill is obviously clear"     | Clear to you ≠ clear to other agents. Test it.           |
+| "It's just a reference"        | References can have gaps. Test retrieval.                |
+| "Testing is overkill"          | Untested skills have issues. Always. 15 min saves hours. |
+| "I'll test if problems emerge" | Problems = agents can't use skill. Test BEFORE.          |
+| "Too tedious to test"          | Testing < debugging bad skill in production.             |
+| "I'm confident it's good"      | Overconfidence guarantees issues. Test anyway.           |
+| "Academic review is enough"    | Reading ≠ using. Test application.                       |
+| "No time to test"              | Deploying untested wastes more time fixing later.        |
 
 **All of these mean: Test before deploying. No exceptions.**
 
@@ -401,9 +444,11 @@ When SKILL.md approaches 500 lines, use these patterns:
 # Skill Name
 
 ## Quick Start
+
 [Basic example inline]
 
 ## Advanced Features
+
 **Feature A**: See [FEATURE-A.md](FEATURE-A.md)
 **Feature B**: See [FEATURE-B.md](FEATURE-B.md)
 **API Reference**: See [REFERENCE.md](REFERENCE.md)
@@ -414,6 +459,7 @@ Claude loads feature files only when needed.
 ### Pattern 2: Domain-Specific Organization
 
 For skills with multiple domains:
+
 ```
 skill-name/
 ├── SKILL.md (overview + navigation)
@@ -429,9 +475,11 @@ User asks about domain A? Claude reads only domain-a.md.
 
 ```markdown
 ## Basic Usage
+
 [Show basic content inline]
 
 ## Advanced
+
 **For complex scenarios**: See [ADVANCED.md](ADVANCED.md)
 **For edge cases**: See [EDGE-CASES.md](EDGE-CASES.md)
 ```
@@ -449,12 +497,13 @@ Copy this checklist and track progress:
 
 \`\`\`
 Task Progress:
+
 - [ ] Step 1: Analyze requirements
 - [ ] Step 2: Create design
 - [ ] Step 3: Implement feature
 - [ ] Step 4: Write tests
 - [ ] Step 5: Verify and deploy
-\`\`\`
+      \`\`\`
 
 **Step 1: Analyze requirements**
 [Detailed instructions for this step]
@@ -488,14 +537,17 @@ This pattern greatly improves output quality.
 ## Anti-Patterns to Avoid
 
 ### ❌ Narrative Example
+
 "In session 2025-10-03, we found empty projectDir caused..."
 **Why bad:** Too specific, not reusable
 
 ### ❌ Multi-Language Dilution
+
 example-js.js, example-py.py, example-go.go
 **Why bad:** Mediocre quality, maintenance burden
 
 ### ❌ Offering Too Many Options
+
 "You can use pypdf, or pdfplumber, or PyMuPDF, or..."
 **Why bad:** Confusing, decision paralysis
 
@@ -503,15 +555,19 @@ example-js.js, example-py.py, example-go.go
 "Use pdfplumber for text extraction. For scanned PDFs, use pdf2image with pytesseract instead."
 
 ### ❌ Time-Sensitive Information
+
 "If you're doing this before August 2025, use old API"
 **Why bad:** Will become wrong
 
 **Better:** Use "old patterns" section:
+
 ```markdown
 ## Current Method
+
 [Current approach]
 
 ## Old Patterns
+
 <details>
 <summary>Legacy v1 API (deprecated 2025-08)</summary>
 [Old approach]
@@ -519,15 +575,18 @@ example-js.js, example-py.py, example-go.go
 ```
 
 ### ❌ Windows-Style Paths
+
 `scripts\helper.py`
 **Why bad:** Fails on Unix systems
 
 **Better:** Always forward slashes: `scripts/helper.py`
 
 ### ❌ Deeply Nested References
+
 ```markdown
 # SKILL.md → advanced.md → details.md → actual info
 ```
+
 **Why bad:** Claude may partially read, missing complete info
 
 **Better:** Keep references one level deep from SKILL.md

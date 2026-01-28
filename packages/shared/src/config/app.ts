@@ -17,19 +17,19 @@
  * while application constants are defined here.
  */
 
-import { env } from './env';
+import { env } from "./env";
 
 /**
  * Application version
  * Can be overridden by npm_package_version environment variable
  */
-export const APP_VERSION = process.env['npm_package_version'] || '1.0.0';
+export const APP_VERSION = process.env["npm_package_version"] || "1.0.0";
 
 /**
  * Application name and description
  */
-export const APP_NAME = 'ToggleBox Config Service';
-export const APP_DESCRIPTION = 'Remote configuration and feature flag service';
+export const APP_NAME = "ToggleBox Config Service";
+export const APP_DESCRIPTION = "Remote configuration and feature flag service";
 
 /**
  * Security Configuration
@@ -62,10 +62,15 @@ export const SECURITY = {
    */
   cors: {
     /** Allowed HTTP methods */
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
 
     /** Allowed request headers */
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Request-ID'],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-API-Key",
+      "X-Request-ID",
+    ],
 
     /** Preflight cache duration in seconds (24 hours = 86,400 seconds) */
     maxAge: 86400,
@@ -87,7 +92,7 @@ export const RATE_LIMIT = {
     max: env?.RATE_LIMIT_MAX_REQUESTS || 100,
 
     /** Error message when limit exceeded */
-    message: 'Too many requests from this IP, please try again later',
+    message: "Too many requests from this IP, please try again later",
   },
 
   /**
@@ -100,7 +105,7 @@ export const RATE_LIMIT = {
     /** Maximum requests per window */
     max: 5,
 
-    message: 'Too many authentication attempts, please try again later',
+    message: "Too many authentication attempts, please try again later",
   },
 
   /**
@@ -113,7 +118,7 @@ export const RATE_LIMIT = {
     /** Maximum requests per window */
     max: 30,
 
-    message: 'Too many write operations, please try again later',
+    message: "Too many write operations, please try again later",
   },
 } as const;
 
@@ -125,13 +130,13 @@ export const REQUEST = {
    * JSON body parser size limit
    * @default '10mb' - Allows large configuration payloads
    */
-  jsonLimit: '10mb',
+  jsonLimit: "10mb",
 
   /**
    * URL-encoded body parser size limit
    * @default '10mb' - Matches JSON limit
    */
-  urlencodedLimit: '10mb',
+  urlencodedLimit: "10mb",
 
   /**
    * URL-encoded parser configuration
@@ -161,15 +166,15 @@ export const CACHE = {
    * Paths that should never be cached
    */
   noCachePaths: [
-    '/api/v1/internal', // All internal write operations
-    '/health', // Health check should reflect current state
+    "/api/v1/internal", // All internal write operations
+    "/health", // Health check should reflect current state
   ],
 
   /**
    * Paths that should be cached
    */
   cachedPaths: [
-    '/api/v1/platforms', // Public read-only endpoints
+    "/api/v1/platforms", // Public read-only endpoints
   ],
 } as const;
 
@@ -223,17 +228,17 @@ export const API = {
   /**
    * API version prefix
    */
-  version: 'v1',
+  version: "v1",
 
   /**
    * API base path
    */
-  basePath: '/api/v1',
+  basePath: "/api/v1",
 
   /**
    * Internal API base path (write operations)
    */
-  internalBasePath: '/api/v1/internal',
+  internalBasePath: "/api/v1/internal",
 } as const;
 
 /**

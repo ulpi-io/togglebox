@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button, Label } from '@togglebox/ui';
+import { useState } from "react";
+import { Button, Label } from "@togglebox/ui";
 
 interface JsonEditorProps {
   name: string;
@@ -10,11 +10,16 @@ interface JsonEditorProps {
   disabled?: boolean;
 }
 
-export function JsonEditor({ name, value, onChange, disabled }: JsonEditorProps) {
+export function JsonEditor({
+  name,
+  value,
+  onChange,
+  disabled,
+}: JsonEditorProps) {
   // Initialize with prop value. Parent can use key prop to reset if needed.
-  const [jsonString, setJsonString] = useState(value || '{}');
+  const [jsonString, setJsonString] = useState(value || "{}");
   const [isValid, setIsValid] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
 
   function handleChange(newValue: string) {
     setJsonString(newValue);
@@ -23,7 +28,7 @@ export function JsonEditor({ name, value, onChange, disabled }: JsonEditorProps)
     try {
       JSON.parse(newValue);
       setIsValid(true);
-      setErrorMessage('');
+      setErrorMessage("");
       onChange?.(newValue);
     } catch (error: any) {
       setIsValid(false);
@@ -37,7 +42,7 @@ export function JsonEditor({ name, value, onChange, disabled }: JsonEditorProps)
       const formatted = JSON.stringify(parsed, null, 2);
       setJsonString(formatted);
       setIsValid(true);
-      setErrorMessage('');
+      setErrorMessage("");
       onChange?.(formatted);
     } catch (error: any) {
       setIsValid(false);
@@ -67,19 +72,18 @@ export function JsonEditor({ name, value, onChange, disabled }: JsonEditorProps)
         onChange={(e) => handleChange(e.target.value)}
         disabled={disabled}
         className={`w-full min-h-[400px] p-4 font-mono text-sm border-2 ${
-          isValid ? 'border-border' : 'border-destructive'
+          isValid ? "border-border" : "border-destructive"
         } focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50`}
         placeholder='{"key": "value"}'
       />
 
       {!isValid && (
-        <p className="text-sm text-destructive">
-          Invalid JSON: {errorMessage}
-        </p>
+        <p className="text-sm text-destructive">Invalid JSON: {errorMessage}</p>
       )}
 
       <p className="text-xs text-muted-foreground">
-        Enter your remote config as valid JSON. Use the Format button to beautify.
+        Enter your remote config as valid JSON. Use the Format button to
+        beautify.
       </p>
     </div>
   );

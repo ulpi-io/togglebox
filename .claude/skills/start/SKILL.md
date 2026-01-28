@@ -39,6 +39,7 @@ The `start` skill ensures proper workflow execution at the beginning of every ta
 **ALWAYS - This skill runs at the start of EVERY conversation and task.**
 
 **Mandatory triggers:**
+
 - Beginning any new task or feature request
 - Starting a debugging session
 - Planning a refactor or code change
@@ -48,6 +49,7 @@ The `start` skill ensures proper workflow execution at the beginning of every ta
 - Before writing ANY code, making ANY changes, or executing ANY work
 
 **User request patterns:**
+
 - "Build...", "Fix...", "Create...", "Implement...", "Add...", "Update..."
 - "Let's start working on..."
 - "I need you to..."
@@ -61,15 +63,18 @@ The `start` skill ensures proper workflow execution at the beginning of every ta
 ### 1. Check for Relevant Skills FIRST
 
 Before doing ANYTHING else, scan all available skills and ask:
+
 - "Does ANY skill match this request?"
 - "Is there a skill for this domain, task type, or workflow?"
 
 **If a relevant skill exists:**
+
 1. Use the Skill tool to invoke it
 2. Announce: "I'm using [Skill Name] to [goal]"
 3. Follow that skill's workflow exactly
 
 **Common rationalizations that mean you're about to fail:**
+
 - "This is just a simple question" → WRONG
 - "I can check git/files quickly" → WRONG
 - "Let me gather information first" → WRONG
@@ -86,21 +91,22 @@ See `references/skill_discovery_patterns.md` for comprehensive skill discovery c
 
 **Match the task domain to the right agent persona:**
 
-| Domain/Technology | Correct Agent | Key Indicators |
-|------------------|---------------|----------------|
-| Laravel backend, APIs, Eloquent | `laravel-senior-engineer` | `*.php`, `/app/`, `/routes/`, Eloquent |
-| Next.js, React Server Components | `nextjs-senior-engineer` | `*.tsx`, `/app/`, `next.config.*` |
-| NestJS APIs, microservices | `nestjs-senior-engineer` | `*.ts`, `@nestjs/*`, DI patterns |
-| Remix full-stack apps | `remix-senior-engineer` | `*.tsx`, `remix.config.*`, loaders |
-| Express.js APIs, middleware | `express-senior-engineer` | `*.js/*.ts`, `express` imports |
-| Expo React Native mobile | `expo-react-native-engineer` | `*.tsx`, `app.json`, Expo modules |
-| Flutter mobile apps | `flutter-senior-engineer` | `*.dart`, `pubspec.yaml` |
-| Magento 2 e-commerce | `magento-senior-engineer` | `*.php`, `/app/code/`, Magento DI |
-| General exploration, research | `general-purpose` or `Explore` | Non-framework work, discovery |
+| Domain/Technology                | Correct Agent                  | Key Indicators                         |
+| -------------------------------- | ------------------------------ | -------------------------------------- |
+| Laravel backend, APIs, Eloquent  | `laravel-senior-engineer`      | `*.php`, `/app/`, `/routes/`, Eloquent |
+| Next.js, React Server Components | `nextjs-senior-engineer`       | `*.tsx`, `/app/`, `next.config.*`      |
+| NestJS APIs, microservices       | `nestjs-senior-engineer`       | `*.ts`, `@nestjs/*`, DI patterns       |
+| Remix full-stack apps            | `remix-senior-engineer`        | `*.tsx`, `remix.config.*`, loaders     |
+| Express.js APIs, middleware      | `express-senior-engineer`      | `*.js/*.ts`, `express` imports         |
+| Expo React Native mobile         | `expo-react-native-engineer`   | `*.tsx`, `app.json`, Expo modules      |
+| Flutter mobile apps              | `flutter-senior-engineer`      | `*.dart`, `pubspec.yaml`               |
+| Magento 2 e-commerce             | `magento-senior-engineer`      | `*.php`, `/app/code/`, Magento DI      |
+| General exploration, research    | `general-purpose` or `Explore` | Non-framework work, discovery          |
 
 See `references/agent_matching_logic.md` for comprehensive agent catalog, detailed matching rules, confidence scoring, edge cases, and delegation brief templates.
 
 **If the task requires a specialized agent:**
+
 1. Identify the correct agent from the table above
 2. Use the Task tool with `subagent_type=[agent-name]`
 3. Provide clear scope, requirements, and success criteria
@@ -113,12 +119,14 @@ See `references/agent_matching_logic.md` for comprehensive agent catalog, detail
 **If a skill includes a checklist, create TodoWrite todos for EACH item.**
 
 **Don't:**
+
 - Work through checklist mentally
 - Skip creating todos "to save time"
 - Batch multiple items into one todo
 - Mark complete without doing them
 
 **Do:**
+
 - Create one todo per checklist item
 - Use clear, specific todo descriptions
 - Mark in_progress before starting
@@ -129,10 +137,12 @@ See `references/agent_matching_logic.md` for comprehensive agent catalog, detail
 ### 4. Follow Mandatory Workflows
 
 **Instructions describe WHAT to do, not permission to skip HOW:**
+
 - User says "Add X" = the goal, NOT permission to bypass workflows
 - User says "Fix Y" = the objective, NOT permission to skip context gathering
 
 **Red flag thoughts:**
+
 - "Instruction was specific enough"
 - "This seems simple"
 - "This is just one thing"
@@ -151,10 +161,12 @@ See `references/agent_matching_logic.md` for comprehensive agent catalog, detail
 **This discovery step only happens when the skill is explicitly invoked, not for every task.**
 
 **How to discover:**
+
 - **Skills**: Read from `<available_skills>` section → list each `<name>` and `<description>`
 - **Agents**: Read from Task tool parameters → list each subagent_type option from the agent catalog
 
 **Example output format:**
+
 ```
 I'm using the start skill. Let me first discover and show you what's available:
 
@@ -178,6 +190,7 @@ Now, let's proceed with your task...
 ### Step 1: Understand the Request
 
 **Parse the user's request to identify:**
+
 1. **Primary objective** - What is the end goal?
 2. **Scope boundaries** - What is included/excluded?
 3. **Success criteria** - How will we know it's done?
@@ -185,6 +198,7 @@ Now, let's proceed with your task...
 
 **Clarifying Questions:**
 If the request is ambiguous, use the AskUserQuestion tool to clarify:
+
 - "Which approach would you prefer?"
 - "Should this handle X edge case?"
 - "Do you want this integrated with existing feature Y?"
@@ -207,6 +221,7 @@ If the request is ambiguous, use the AskUserQuestion tool to clarify:
    - **Simple single-file edits** → Can handle directly if no specialized patterns
 
 **Example decision tree:**
+
 - User: "Add JWT auth to Laravel API" → Identify Laravel, delegate to `laravel-senior-engineer`
 - User: "Build checkout page in Next.js" → Identify Next.js, delegate to `nextjs-senior-engineer`
 - User: "Find all API endpoints" → Use Explore agent for discovery
@@ -217,6 +232,7 @@ See `references/agent_matching_logic.md` for detailed delegation decision trees,
 ### Step 3: Gather Context
 
 **Explore the codebase to understand:**
+
 1. **Existing patterns** - How is similar functionality implemented?
 2. **Related files** - What files will be affected?
 3. **Dependencies** - What systems/modules does this interact with?
@@ -224,6 +240,7 @@ See `references/agent_matching_logic.md` for detailed delegation decision trees,
 5. **Technology stack** - What frameworks, libraries, and patterns are in use?
 
 **Tools to use:**
+
 - Use the Task tool with `subagent_type=Explore` for broad codebase exploration
 - Use Glob to find relevant files by pattern
 - Use Grep to search for existing implementations
@@ -232,6 +249,7 @@ See `references/agent_matching_logic.md` for detailed delegation decision trees,
 **Context gathering is MANDATORY - never skip this step.**
 
 **Example exploration prompts:**
+
 - "Find all authentication-related files"
 - "Search for similar API endpoint patterns"
 - "Locate where user data is currently handled"
@@ -240,18 +258,21 @@ See `references/agent_matching_logic.md` for detailed delegation decision trees,
 ### Step 4: Create a Task Plan
 
 **Use the TodoWrite tool to create a structured plan:**
+
 1. Break down the work into specific, actionable tasks
 2. Identify dependencies between tasks
 3. Note any risks or blockers
 4. Establish clear completion criteria for each task
 
 **Task breakdown principles:**
+
 - Each task should be independently completable
 - Tasks should be ordered logically (dependencies first)
 - Include testing and verification tasks
 - Be specific (not "fix auth" but "add JWT validation to /api/login endpoint")
 
 **Example task list structure:**
+
 ```
 1. Explore existing authentication implementation
 2. Create user login endpoint with JWT generation
@@ -264,12 +285,14 @@ See `references/agent_matching_logic.md` for detailed delegation decision trees,
 ### Step 5: Communicate the Plan
 
 **Before starting implementation, inform the user:**
+
 1. **Summary of understanding** - Restate what you'll build
 2. **Approach** - High-level strategy
 3. **Task breakdown** - Show the todo list
 4. **Estimated scope** - Mention if it's complex/simple
 
 **Template:**
+
 ```
 I'll [restate the goal]. Here's my approach:
 
@@ -286,6 +309,7 @@ Starting with [first task]...
 **Option A: Delegate to Specialized Agent (Preferred for complex work)**
 
 If the task requires specialized domain expertise:
+
 1. Select the correct agent from the technology table
 2. Create a clear, comprehensive brief with:
    - Scope of work
@@ -297,6 +321,7 @@ If the task requires specialized domain expertise:
 5. Review and aggregate results for the user
 
 **Brief template for agent delegation:**
+
 ```
 Build [feature/fix]:
 - Technology: [framework/stack identified]
@@ -310,12 +335,14 @@ Build [feature/fix]:
 **Option B: Execute Directly (For simple tasks)**
 
 For straightforward work not requiring deep domain expertise:
+
 1. Mark the first task as in_progress
 2. Execute the work
 3. Mark completed immediately when done
 4. Move to next task
 
 **Throughout execution:**
+
 - Update todos as you progress
 - Mark tasks completed immediately after finishing
 - Add new tasks if you discover additional work needed
@@ -329,6 +356,7 @@ For straightforward work not requiring deep domain expertise:
 "Add a password reset feature to the Laravel API"
 
 **Start Skill Execution:**
+
 1. **Check Skills:** No specific skill for password reset, continue with start workflow
 2. **Understand:** Need password reset flow (email link, token validation, new password)
 3. **Identify Stack:** Laravel detected (`*.php`, `/app/`, Eloquent patterns)
@@ -352,6 +380,7 @@ For straightforward work not requiring deep domain expertise:
 "The Next.js checkout page is crashing"
 
 **Start Skill Execution:**
+
 1. **Check Skills:** Check if `run-parallel-agents-feature-debug` applies (no, single bug)
 2. **Understand:** Need to identify and fix crash in checkout page
 3. **Identify Stack:** Next.js detected (`*.tsx`, `/app/`, Next.js imports)
@@ -374,6 +403,7 @@ For straightforward work not requiring deep domain expertise:
 "Build the wishlist API, checkout summary, and user dashboard"
 
 **Start Skill Execution:**
+
 1. **Check Skills:** `run-parallel-agents-feature-build` applies (3 independent features)
 2. **Announce:** "I'm using the run-parallel-agents-feature-build skill for this multi-feature request"
 3. **Invoke Skill:** Use Skill tool to load parallel agents skill
@@ -386,6 +416,7 @@ For straightforward work not requiring deep domain expertise:
 "Fix the typo in the README file"
 
 **Start Skill Execution:**
+
 1. **Check Skills:** No specific skill applies
 2. **Understand:** Simple typo fix in markdown file
 3. **Identify Stack:** No specialized framework
@@ -400,6 +431,7 @@ For straightforward work not requiring deep domain expertise:
 ### Context First, Code Second
 
 **Always gather context before writing code:**
+
 - Understand existing patterns
 - Know what's already there
 - Don't duplicate functionality
@@ -408,6 +440,7 @@ For straightforward work not requiring deep domain expertise:
 ### Ask When Unclear
 
 **Use AskUserQuestion for:**
+
 - Multiple valid approaches
 - Unclear requirements
 - Technical decisions (library choice, architecture)
@@ -416,6 +449,7 @@ For straightforward work not requiring deep domain expertise:
 ### Plan Complex Work
 
 **Use TodoWrite for tasks involving:**
+
 - 3+ steps or files
 - Multiple phases
 - Dependencies between steps
@@ -424,6 +458,7 @@ For straightforward work not requiring deep domain expertise:
 ### Skip Planning for Trivial Tasks
 
 **You can skip extensive planning for:**
+
 - Single-file simple edits
 - Clear, well-defined one-step tasks
 - Purely informational requests
@@ -444,22 +479,27 @@ The `start` skill is the entry point that leads to other skills:
 ## Avoiding Common Failures
 
 ### Failure Mode 1: Skipping Skill Check
+
 **Symptom:** Starting work immediately without checking available skills
 **Fix:** ALWAYS scan skills first, even for "simple" tasks
 
 ### Failure Mode 2: Using Wrong Agent
+
 **Symptom:** Doing Laravel work yourself instead of delegating to laravel-senior-engineer
 **Fix:** Match task to agent table, delegate specialized work
 
 ### Failure Mode 3: Skipping Context
+
 **Symptom:** Writing code without understanding existing patterns
 **Fix:** ALWAYS gather context before implementation
 
 ### Failure Mode 4: Ignoring Checklists
+
 **Symptom:** Working through steps mentally without TodoWrite
 **Fix:** Convert every checklist item to a tracked todo
 
 ### Failure Mode 5: Rationalizing Workflow Skips
+
 **Symptom:** "This is too simple to need the workflow"
 **Fix:** Instructions describe WHAT, not permission to skip HOW
 

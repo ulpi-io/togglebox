@@ -6,15 +6,15 @@
  * Supports MySQL, PostgreSQL, and SQLite with offset-based pagination.
  */
 
-import { PrismaClient } from '.prisma/client-database';
-import { Platform } from '@togglebox/core';
+import { PrismaClient } from ".prisma/client-database";
+import { Platform } from "@togglebox/core";
 import {
   IPlatformRepository,
   OffsetPaginationParams,
   TokenPaginationParams,
   OffsetPaginatedResult,
-} from '../../interfaces';
-import { v4 as uuidv4 } from 'uuid';
+} from "../../interfaces";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Prisma implementation of platform repository.
@@ -31,7 +31,7 @@ export class PrismaPlatformRepository implements IPlatformRepository {
    *
    * @throws {Error} If platform with same name already exists (Prisma P2002 error)
    */
-  async createPlatform(platform: Omit<Platform, 'id'>): Promise<Platform> {
+  async createPlatform(platform: Omit<Platform, "id">): Promise<Platform> {
     const id = uuidv4();
     const createdAt = new Date().toISOString();
 
@@ -52,7 +52,7 @@ export class PrismaPlatformRepository implements IPlatformRepository {
         createdAt: created.createdAt,
       };
     } catch (error: unknown) {
-      if ((error as { code?: string }).code === 'P2002') {
+      if ((error as { code?: string }).code === "P2002") {
         throw new Error(`Platform ${platform.name} already exists`);
       }
       throw error;
@@ -85,14 +85,14 @@ export class PrismaPlatformRepository implements IPlatformRepository {
    * **Count Query:** Separate COUNT(*) query for total (may be slow for large tables).
    */
   async listPlatforms(
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<OffsetPaginatedResult<Platform>> {
     // SECURITY: If no pagination requested, apply hard limit to prevent unbounded queries
     // Skip COUNT query since we're fetching all items anyway
     if (!pagination) {
       const HARD_LIMIT = 100;
       const platforms = await this.prisma.platform.findMany({
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         take: HARD_LIMIT,
       });
 
@@ -112,7 +112,7 @@ export class PrismaPlatformRepository implements IPlatformRepository {
 
     const [platforms, total] = await Promise.all([
       this.prisma.platform.findMany({
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: params.offset,
         take: params.limit,
       }),
@@ -137,7 +137,7 @@ export class PrismaPlatformRepository implements IPlatformRepository {
       return true;
     } catch (error: unknown) {
       // Prisma P2025 error: Record not found
-      if ((error as { code?: string }).code === 'P2025') {
+      if ((error as { code?: string }).code === "P2025") {
         return false;
       }
       throw error;
