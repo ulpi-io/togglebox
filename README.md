@@ -11,6 +11,12 @@ Self-host it anywhere or use our [hosted version](https://togglebox.dev) for a f
 
 ---
 
+## Visual Overview
+
+![ToggleBox Overview](./docs/images/togglebox-overview.png)
+
+---
+
 ## Core Features
 
 ### Remote Configs

@@ -1,0 +1,250 @@
+<mxfile host="65bd71144e">
+    <diagram name="ToggleBox Overview" id="togglebox-overview-2024">
+        <mxGraphModel dx="1337" dy="584" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1400" background="#ffffff" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="ToggleBox" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=42;fontStyle=1;fontColor=#1a237e;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="665" y="70" width="300" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="subtitle" value="Open Source Feature Management Platform" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=18;fontStyle=2;fontColor=#5c6bc0;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="565" y="125" width="500" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="tagline" value="Remote Configuration • Feature Flags • A/B Testing" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=14;fontColor=#666666;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="590" y="155" width="450" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier1_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#4caf50;strokeWidth=3;sketch=1;curveFitting=1;jiggle=2;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="274" y="236" width="340" height="320" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier1_icon" value="⚙️" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=40;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="409" y="251" width="70" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier1_title" value="Remote Configuration" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=18;fontStyle=1;fontColor=#2e7d32;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="294" y="301" width="300" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier1_desc" value="Change app settings without deploying code" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=11;fontStyle=2;fontColor=#666666;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="294" y="331" width="300" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier1_features" value="✓ Key-value settings&lt;br&gt;✓ JSON, strings, numbers, booleans&lt;br&gt;✓ Version history &amp; rollback&lt;br&gt;✓ Instant updates (no redeploy)&lt;br&gt;✓ Environment-specific configs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=12;fontColor=#555555;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="304" y="361" width="280" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier1_example_label" value="Example:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=10;fontStyle=1;fontColor=#2e7d32;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="304" y="456" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier1_example" value="• API timeout: 5000ms&lt;br&gt;• Max upload size: 10MB&lt;br&gt;• Support email: help@..." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=10;fontColor=#777777;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="304" y="476" width="200" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier2_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#ff9800;strokeWidth=3;sketch=1;curveFitting=1;jiggle=2;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="674" y="236" width="340" height="320" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier2_icon" value="🚩" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=40;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="809" y="251" width="70" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier2_title" value="Feature Flags" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=18;fontStyle=1;fontColor=#e65100;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="694" y="301" width="300" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier2_desc" value="Control feature visibility &amp; gradual rollouts" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=11;fontStyle=2;fontColor=#666666;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="694" y="331" width="300" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier2_features" value="✓ On/Off toggle for features&lt;br&gt;✓ Percentage-based rollouts&lt;br&gt;✓ Target by country/language&lt;br&gt;✓ User allowlist/blocklist&lt;br&gt;✓ Kill switch for emergencies" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=12;fontColor=#555555;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="704" y="361" width="280" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier2_example_label" value="Example:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=10;fontStyle=1;fontColor=#e65100;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="704" y="456" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier2_example" value="• New checkout: 25% of users&lt;br&gt;• Dark mode: UAE only&lt;br&gt;• Beta feature: VIP users only" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=10;fontColor=#777777;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="704" y="476" width="200" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier3_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1976d2;strokeWidth=3;sketch=1;curveFitting=1;jiggle=2;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="1074" y="236" width="340" height="320" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier3_icon" value="📊" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=40;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1209" y="251" width="70" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier3_title" value="A/B Testing" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=18;fontStyle=1;fontColor=#1565c0;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1094" y="301" width="300" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier3_desc" value="Data-driven decisions with experiments" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=11;fontStyle=2;fontColor=#666666;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1094" y="331" width="300" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier3_features" value="✓ Multiple variants (A/B/C/D...)&lt;br&gt;✓ Traffic allocation control&lt;br&gt;✓ Conversion tracking&lt;br&gt;✓ Statistical significance&lt;br&gt;✓ Winner detection" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=12;fontColor=#555555;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1104" y="361" width="280" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier3_example_label" value="Example:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=10;fontStyle=1;fontColor=#1565c0;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1104" y="456" width="70" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier3_example" value="• Button color: Red vs Blue vs Green&lt;br&gt;• Checkout flow: 1-page vs 3-step&lt;br&gt;• Pricing display: Monthly vs Annual" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=10;fontColor=#777777;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1104" y="476" width="220" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="how_container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#9e9e9e;strokeWidth=2;dashed=1;dashPattern=8 8;sketch=1;curveFitting=1;jiggle=2;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="274" y="586" width="1140" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="how_title" value="How It Works" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=16;fontStyle=1;fontColor=#424242;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="294" y="596" width="150" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="step1_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#9575cd;strokeWidth=2;sketch=1;curveFitting=1;jiggle=2;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="304" y="631" width="200" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="step1_num" value="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9575cd;strokeColor=#7e57c2;strokeWidth=2;fontFamily=Comic Sans MS;fontSize=16;fontStyle=1;fontColor=#ffffff;sketch=1;curveFitting=1;jiggle=2;" parent="1" vertex="1">
+                    <mxGeometry x="389" y="621" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="step1_icon" value="👩‍💼" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=28;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="369" y="651" width="70" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="step1_title" value="Create &amp; Configure" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=12;fontStyle=1;fontColor=#7e57c2;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="314" y="691" width="180" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="step1_desc" value="Product/Dev teams set up&lt;br&gt;flags in Admin Dashboard" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=10;fontColor=#666666;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="314" y="711" width="180" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow12" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#bdbdbd;sketch=1;curveFitting=1;jiggle=2;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="514" y="696" as="sourcePoint"/>
+                        <mxPoint x="564" y="696" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="step2_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#4db6ac;strokeWidth=2;sketch=1;curveFitting=1;jiggle=2;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="574" y="631" width="200" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="step2_num" value="2" style="ellipse;whiteSpace=wrap;html=1;fillColor=#4db6ac;strokeColor=#26a69a;strokeWidth=2;fontFamily=Comic Sans MS;fontSize=16;fontStyle=1;fontColor=#ffffff;sketch=1;curveFitting=1;jiggle=2;" parent="1" vertex="1">
+                    <mxGeometry x="659" y="621" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="step2_icon" value="☁️" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=28;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="639" y="651" width="70" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="step2_title" value="API Stores &amp; Serves" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=12;fontStyle=1;fontColor=#26a69a;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="584" y="691" width="180" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="step2_desc" value="ToggleBox API stores flags&lt;br&gt;and evaluates rules" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=10;fontColor=#666666;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="584" y="711" width="180" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow23" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#bdbdbd;sketch=1;curveFitting=1;jiggle=2;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="784" y="696" as="sourcePoint"/>
+                        <mxPoint x="834" y="696" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="step3_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#64b5f6;strokeWidth=2;sketch=1;curveFitting=1;jiggle=2;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="844" y="631" width="200" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="step3_num" value="3" style="ellipse;whiteSpace=wrap;html=1;fillColor=#64b5f6;strokeColor=#42a5f5;strokeWidth=2;fontFamily=Comic Sans MS;fontSize=16;fontStyle=1;fontColor=#ffffff;sketch=1;curveFitting=1;jiggle=2;" parent="1" vertex="1">
+                    <mxGeometry x="929" y="621" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="step3_icon" value="📱" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=28;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="909" y="651" width="70" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="step3_title" value="App Gets Flags" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=12;fontStyle=1;fontColor=#42a5f5;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="854" y="691" width="180" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="step3_desc" value="Your app fetches flags&lt;br&gt;using our SDK" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=10;fontColor=#666666;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="854" y="711" width="180" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow34" value="" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#bdbdbd;sketch=1;curveFitting=1;jiggle=2;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1054" y="696" as="sourcePoint"/>
+                        <mxPoint x="1104" y="696" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="step4_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#f06292;strokeWidth=2;sketch=1;curveFitting=1;jiggle=2;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="1114" y="631" width="200" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="step4_num" value="4" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f06292;strokeColor=#ec407a;strokeWidth=2;fontFamily=Comic Sans MS;fontSize=16;fontStyle=1;fontColor=#ffffff;sketch=1;curveFitting=1;jiggle=2;" parent="1" vertex="1">
+                    <mxGeometry x="1199" y="621" width="30" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="step4_icon" value="👤" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=28;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1179" y="651" width="70" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="step4_title" value="User Sees Feature" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=12;fontStyle=1;fontColor=#ec407a;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1124" y="691" width="180" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="step4_desc" value="Each user gets the right&lt;br&gt;experience based on rules" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=10;fontColor=#666666;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1124" y="711" width="180" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="targeting_container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#f48fb1;strokeWidth=2;sketch=1;curveFitting=1;jiggle=2;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="274" y="816" width="540" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="targeting_title" value="🎯 Smart Targeting" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=16;fontStyle=1;fontColor=#c2185b;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="294" y="826" width="200" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="targeting_desc" value="Show features to the right users at the right time" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=11;fontStyle=2;fontColor=#666666;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="294" y="851" width="350" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="target1" value="🌍 By Country" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#f48fb1;strokeWidth=1;fontFamily=Comic Sans MS;fontSize=11;sketch=1;curveFitting=1;jiggle=2;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="294" y="886" width="110" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="target2" value="🗣️ By Language" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#f48fb1;strokeWidth=1;fontFamily=Comic Sans MS;fontSize=11;sketch=1;curveFitting=1;jiggle=2;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="414" y="886" width="120" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="target3" value="👤 By User ID" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#f48fb1;strokeWidth=1;fontFamily=Comic Sans MS;fontSize=11;sketch=1;curveFitting=1;jiggle=2;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="544" y="886" width="110" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="target4" value="📊 By Percentage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#f48fb1;strokeWidth=1;fontFamily=Comic Sans MS;fontSize=11;sketch=1;curveFitting=1;jiggle=2;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="664" y="886" width="130" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="target_examples" value="Examples:&lt;br&gt;• &quot;Show to 10% of users in UAE&quot;&lt;br&gt;• &quot;Enable for Arabic language users only&quot;&lt;br&gt;• &quot;Always show to VIP user list&quot;&lt;br&gt;• &quot;Gradually roll out: 5% → 25% → 100%&quot;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=10;fontColor=#555555;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="294" y="931" width="400" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="platforms_container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#7986cb;strokeWidth=2;sketch=1;curveFitting=1;jiggle=2;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="834" y="816" width="300" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="platforms_title" value="🔌 Works Everywhere" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=16;fontStyle=1;fontColor=#3949ab;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="854" y="826" width="200" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="sdk_nextjs" value="Next.js" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#333;strokeWidth=1;fontFamily=Comic Sans MS;fontSize=11;fontColor=#fff;sketch=1;curveFitting=1;jiggle=2;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="854" y="866" width="80" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="sdk_react" value="React" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#61dafb;strokeColor=#333;strokeWidth=1;fontFamily=Comic Sans MS;fontSize=11;fontColor=#000;sketch=1;curveFitting=1;jiggle=2;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="944" y="866" width="70" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="sdk_expo" value="Expo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffff;strokeColor=#333;strokeWidth=1;fontFamily=Comic Sans MS;fontSize=11;fontColor=#000000;sketch=1;curveFitting=1;jiggle=2;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="1024" y="866" width="70" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="sdk_node" value="Node.js" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#68a063;strokeColor=#333;strokeWidth=1;fontFamily=Comic Sans MS;fontSize=11;fontColor=#000000;sketch=1;curveFitting=1;jiggle=2;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="854" y="906" width="80" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="sdk_php" value="PHP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#777bb3;strokeColor=#333;strokeWidth=1;fontFamily=Comic Sans MS;fontSize=11;fontColor=#000000;sketch=1;curveFitting=1;jiggle=2;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="944" y="906" width="70" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="sdk_laravel" value="Laravel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ff2d20;strokeColor=#333;strokeWidth=1;fontFamily=Comic Sans MS;fontSize=11;fontColor=#000000;sketch=1;curveFitting=1;jiggle=2;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="1024" y="906" width="70" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="deploy_label" value="Deploy anywhere:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=10;fontStyle=1;fontColor=#3949ab;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="854" y="951" width="120" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="deploy_options" value="AWS Lambda • Cloudflare Workers • Docker • Self-hosted" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=9;fontColor=#666666;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="854" y="971" width="270" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="benefits_container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2f1;strokeColor=#4db6ac;strokeWidth=2;sketch=1;curveFitting=1;jiggle=2;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="1154" y="816" width="260" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="benefits_title" value="✨ Key Benefits" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=16;fontStyle=1;fontColor=#00897b;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1174" y="826" width="150" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="benefit1" value="🚀 Ship faster&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Release features safely&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=11;fontColor=#555555;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1174" y="861" width="120" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="benefit2" value="🛡️ Reduce risk&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Instant rollback if issues&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=11;fontColor=#555555;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1294" y="861" width="120" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="benefit3" value="📈 Test ideas&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Data-driven decisions&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=11;fontColor=#555555;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1174" y="906" width="120" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="benefit4" value="🔒 Self-hosted&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Your data stays yours&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=11;fontColor=#555555;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1294" y="906" width="120" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="benefit5" value="💰 Open Source&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;No vendor lock-in&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=11;fontColor=#555555;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1174" y="951" width="120" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="benefit6" value="⚡ Real-time&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Changes apply instantly&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontFamily=Comic Sans MS;fontSize=11;fontColor=#555555;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="1294" y="951" width="120" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="bottom_line" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffff;strokeColor=none;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="274" y="1046" width="1140" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="bottom_text" value="ToggleBox: Ship features with confidence. Test ideas with data. Control everything remotely." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Comic Sans MS;fontSize=14;fontStyle=1;fontColor=#000000;sketch=1;" parent="1" vertex="1">
+                    <mxGeometry x="394" y="1054" width="900" height="35" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
