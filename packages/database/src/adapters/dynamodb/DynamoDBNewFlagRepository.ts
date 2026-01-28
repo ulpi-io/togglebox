@@ -20,6 +20,7 @@ import type {
   UpdateRollout,
 } from "@togglebox/flags";
 import type { IFlagRepository, FlagPage } from "@togglebox/flags";
+import { NotFoundError, BadRequestError } from "@togglebox/shared";
 import { dynamoDBClient, getFlagsTableName } from "../../database";
 
 // Type for DynamoDB item
@@ -27,7 +28,7 @@ type DynamoItem = Record<string, unknown>;
 
 /**
  * Safely decode pagination cursor.
- * @throws Error with user-friendly message if cursor is invalid
+ * @throws BadRequestError with user-friendly message if cursor is invalid
  */
 function decodeCursor(
   cursor: string | undefined,
@@ -36,7 +37,7 @@ function decodeCursor(
   try {
     return JSON.parse(Buffer.from(cursor, "base64").toString("utf-8"));
   } catch {
-    throw new Error("Invalid pagination token");
+    throw new BadRequestError("Invalid pagination token");
   }
 }
 
@@ -133,7 +134,7 @@ export class DynamoDBNewFlagRepository implements IFlagRepository {
     // Get current active version
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
 
     // Parse current version and increment
@@ -215,7 +216,7 @@ export class DynamoDBNewFlagRepository implements IFlagRepository {
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
 
     const now = new Date().toISOString();
@@ -374,7 +375,7 @@ export class DynamoDBNewFlagRepository implements IFlagRepository {
   ): Promise<void> {
     const versions = await this.listVersions(platform, environment, flagKey);
     if (versions.length === 0) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
 
     const pk = this.getPK(platform, environment);
@@ -481,7 +482,7 @@ export class DynamoDBNewFlagRepository implements IFlagRepository {
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
 
     const now = new Date().toISOString();

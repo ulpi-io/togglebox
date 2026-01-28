@@ -153,11 +153,7 @@ export class FlagController {
         });
         return;
       }
-      if (
-        error instanceof NotFoundError ||
-        (error instanceof Error &&
-          error.message.toLowerCase().includes("not found"))
-      ) {
+      if (error instanceof NotFoundError) {
         res.status(404).json({
           success: false,
           error: error.message,
@@ -223,11 +219,7 @@ export class FlagController {
         });
         return;
       }
-      if (
-        error instanceof NotFoundError ||
-        (error instanceof Error &&
-          error.message.toLowerCase().includes("not found"))
-      ) {
+      if (error instanceof NotFoundError) {
         res.status(404).json({
           success: false,
           error: error.message,
@@ -303,11 +295,7 @@ export class FlagController {
         });
         return;
       }
-      if (
-        error instanceof NotFoundError ||
-        (error instanceof Error &&
-          error.message.toLowerCase().includes("not found"))
-      ) {
+      if (error instanceof NotFoundError) {
         res.status(404).json({
           success: false,
           error: error.message,
@@ -536,11 +524,7 @@ export class FlagController {
         res.status(204).send();
       });
     } catch (error: unknown) {
-      if (
-        error instanceof NotFoundError ||
-        (error instanceof Error &&
-          error.message.toLowerCase().includes("not found"))
-      ) {
+      if (error instanceof NotFoundError) {
         res.status(404).json({
           success: false,
           error: error.message,

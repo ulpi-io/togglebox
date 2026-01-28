@@ -19,6 +19,7 @@ import {
   TokenPaginationParams,
   PaginatedResult,
 } from "../../interfaces";
+import { NotFoundError, ConflictError } from "@togglebox/shared";
 
 /**
  * Prisma implementation of config parameter repository.
@@ -91,7 +92,7 @@ export class PrismaConfigRepository implements IConfigRepository {
       return this.mapToConfigParameter(created);
     } catch (error: unknown) {
       if ((error as { code?: string }).code === "P2002") {
-        throw new Error(
+        throw new ConflictError(
           `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`,
         );
       }
@@ -121,7 +122,7 @@ export class PrismaConfigRepository implements IConfigRepository {
       });
 
       if (!current) {
-        throw new Error(
+        throw new NotFoundError(
           `Parameter ${parameterKey} not found in ${platform}/${environment}`,
         );
       }

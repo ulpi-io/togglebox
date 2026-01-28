@@ -14,6 +14,7 @@ import {
   TokenPaginationParams,
   OffsetPaginatedResult,
 } from "../../interfaces";
+import { ConflictError } from "@togglebox/shared";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -53,7 +54,7 @@ export class PrismaPlatformRepository implements IPlatformRepository {
       };
     } catch (error: unknown) {
       if ((error as { code?: string }).code === "P2002") {
-        throw new Error(`Platform ${platform.name} already exists`);
+        throw new ConflictError(`Platform ${platform.name} already exists`);
       }
       throw error;
     }

@@ -13,6 +13,7 @@ import {
   TokenPaginationParams,
   OffsetPaginatedResult,
 } from "../../interfaces";
+import { NotFoundError, ConflictError } from "@togglebox/shared";
 
 /**
  * D1 implementation of environment repository.
@@ -43,7 +44,7 @@ export class D1EnvironmentRepository implements IEnvironmentRepository {
       .first<{ id: string }>();
 
     if (!platform) {
-      throw new Error(`Platform ${environment.platform} not found`);
+      throw new NotFoundError(`Platform ${environment.platform} not found`);
     }
 
     try {
@@ -68,7 +69,7 @@ export class D1EnvironmentRepository implements IEnvironmentRepository {
       };
     } catch (error: unknown) {
       if ((error as Error).message?.includes("UNIQUE constraint failed")) {
-        throw new Error(
+        throw new ConflictError(
           `Environment ${environment.environment} already exists for platform ${environment.platform}`,
         );
       }

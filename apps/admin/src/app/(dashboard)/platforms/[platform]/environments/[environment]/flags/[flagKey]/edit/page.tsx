@@ -663,7 +663,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="valueA">Value A (default)</Label>
+                    <Label htmlFor="valueA">Value A</Label>
                     {flagType === "boolean" ? (
                       <Select
                         id="valueA"
@@ -685,12 +685,12 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                       />
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Default value, served when flag is disabled or no rules
-                      match
+                      Served to force-included users, matching targeting rules,
+                      or by rollout percentage
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="valueB">Value B (rollout)</Label>
+                    <Label htmlFor="valueB">Value B</Label>
                     {flagType === "boolean" ? (
                       <Select
                         id="valueB"
@@ -712,7 +712,8 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                       />
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Served when rollout or targeting applies
+                      Served to force-excluded users, matching targeting rules,
+                      or by rollout percentage
                     </p>
                   </div>
                 </div>
@@ -730,7 +731,8 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                         Enable flag
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        When disabled, the flag will serve Value A to all users
+                        When disabled, the flag serves the configured default
+                        value (controlled by &quot;Default Value&quot; below)
                       </p>
                     </div>
                   </div>
@@ -809,9 +811,9 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
                 {!rolloutEnabled && (
                   <p className="text-sm text-muted-foreground">
-                    Without rollout, all users receive Value A (the default).
-                    Enable rollout to gradually release Value B to a percentage
-                    of users.
+                    Without rollout, all users receive the configured default
+                    value. Enable rollout to distribute traffic between Value A
+                    and Value B based on percentages.
                   </p>
                 )}
 

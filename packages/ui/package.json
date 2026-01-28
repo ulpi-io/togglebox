@@ -9,7 +9,7 @@
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./tailwind": "./src/tailwind.ts",
+    "./tailwind": "./src/tailwind/preset.ts",
     "./styles.css": "./src/styles/globals.css"
   },
   "scripts": {

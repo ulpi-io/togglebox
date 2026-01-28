@@ -13,6 +13,7 @@ import {
   TokenPaginationParams,
   OffsetPaginatedResult,
 } from "../../interfaces";
+import { ConflictError } from "@togglebox/shared";
 import { PlatformModel } from "./schemas";
 
 /**
@@ -48,7 +49,7 @@ export class MongoosePlatformRepository implements IPlatformRepository {
     } catch (error: unknown) {
       if ((error as { code?: number }).code === 11000) {
         // Duplicate key error
-        throw new Error(`Platform ${platform.name} already exists`);
+        throw new ConflictError(`Platform ${platform.name} already exists`);
       }
       throw error;
     }

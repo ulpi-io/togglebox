@@ -60,32 +60,6 @@ function handleControllerError(
     return;
   }
 
-  // Fallback: Check error message for legacy errors from repositories
-  // These patterns handle errors thrown by repository methods that don't use custom error types yet
-  if (error instanceof Error) {
-    const lowerMessage = error.message.toLowerCase();
-    if (lowerMessage.includes("not found")) {
-      res.status(404).json({
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
-    if (
-      lowerMessage.includes("cannot") ||
-      lowerMessage.includes("must sum") ||
-      lowerMessage.includes("already")
-    ) {
-      res.status(400).json({
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
-  }
-
   // Unknown error - pass to global error handler
   next(error);
 }
