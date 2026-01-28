@@ -562,11 +562,12 @@ export default function CreateFlagPage() {
                       />
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Default value, served when flag is disabled
+                      Default value, served when flag is disabled or no rules
+                      match
                     </p>
                   </div>
                   <div>
-                    <Label htmlFor="valueB">Value B (variant)</Label>
+                    <Label htmlFor="valueB">Value B (rollout)</Label>
                     {flagType === "boolean" ? (
                       <Select
                         id="valueB"
@@ -586,7 +587,7 @@ export default function CreateFlagPage() {
                       />
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Alternative value for rollouts and targeting
+                      Served when rollout or targeting applies
                     </p>
                   </div>
                 </div>
