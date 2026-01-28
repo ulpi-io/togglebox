@@ -41,6 +41,19 @@ const UpdatePlatformSchema = z.object({
 });
 
 /**
+ * Zod schema for environment creation validation
+ */
+const CreateEnvironmentSchema = z.object({
+  environment: z.string()
+    .min(1, 'Environment name is required')
+    .max(100, 'Environment name must be 100 characters or less')
+    .regex(/^[a-zA-Z0-9-_]+$/, 'Environment name can only contain letters, numbers, hyphens, and underscores'),
+  description: z.string()
+    .max(500, 'Description must be 500 characters or less')
+    .optional(),
+});
+
+/**
  * Zod schema for environment update validation
  */
 const UpdateEnvironmentSchema = z.object({
@@ -219,7 +232,11 @@ export class ConfigController {
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
         this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+          // WARN level since stale cache affects data consistency
+          logger.warn('Cache invalidation failed - stale data may be served', {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.status(201).json({
@@ -290,7 +307,11 @@ export class ConfigController {
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
         this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+          // WARN level since stale cache affects data consistency
+          logger.warn('Cache invalidation failed - stale data may be served', {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.json({
@@ -366,7 +387,11 @@ export class ConfigController {
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
         this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+          // WARN level since stale cache affects data consistency
+          logger.warn('Cache invalidation failed - stale data may be served', {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.status(204).send();
@@ -563,7 +588,11 @@ export class ConfigController {
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
         this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+          // WARN level since stale cache affects data consistency
+          logger.warn('Cache invalidation failed - stale data may be served', {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.json({
@@ -730,7 +759,11 @@ export class ConfigController {
 
         const cachePaths = this.cacheProvider.generateCachePaths(platform);
         this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+          // WARN level since stale cache affects data consistency
+          logger.warn('Cache invalidation failed - stale data may be served', {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.status(204).send();
@@ -857,18 +890,22 @@ export class ConfigController {
   createEnvironment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { platform } = req.params as { platform: string };
-      const { environment, description } = req.body;
 
-      if (!environment || typeof environment !== 'string') {
+      // Validate request body with Zod schema
+      const parseResult = CreateEnvironmentSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        const errorMessages = parseResult.error.errors.map(e => e.message);
         res.status(422).json({
           success: false,
-          error: 'Environment name is required',
+          error: 'Validation failed',
           code: 'VALIDATION_FAILED',
+          details: errorMessages,
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
+      const { environment, description } = parseResult.data;
       const user = (req as unknown as { user?: { id?: string } }).user;
       const createdBy = user?.id;
 
@@ -971,7 +1008,11 @@ export class ConfigController {
 
         const cachePaths = this.cacheProvider.generateCachePaths(platform, environment);
         this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+          // WARN level since stale cache affects data consistency
+          logger.warn('Cache invalidation failed - stale data may be served', {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.status(204).send();

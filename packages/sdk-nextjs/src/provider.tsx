@@ -57,8 +57,8 @@ export function ToggleBoxProvider({
 
     clientRef.current = client
 
-    // Listen for updates from polling
-    client.on('update', (data) => {
+    // Event handlers (extracted for proper cleanup)
+    const handleUpdate = (data: unknown) => {
       const updateData = data as {
         config: Config
         flags: Flag[]
@@ -67,11 +67,15 @@ export function ToggleBoxProvider({
       setConfig(updateData.config)
       setFlags(updateData.flags)
       setExperiments(updateData.experiments)
-    })
+    }
 
-    client.on('error', (err) => {
+    const handleError = (err: unknown) => {
       setError(err as Error)
-    })
+    }
+
+    // Listen for updates from polling
+    client.on('update', handleUpdate)
+    client.on('error', handleError)
 
     // Initial fetch for any data not already provided
     const needsConfig = !initialConfig
@@ -102,6 +106,9 @@ export function ToggleBoxProvider({
     }
 
     return () => {
+      // Explicitly remove event listeners before destroying
+      client.off('update', handleUpdate)
+      client.off('error', handleError)
       client.destroy()
     }
   }, [platform, environment, apiUrl, apiKey, tenantSubdomain, cache, pollingInterval, initialConfig, initialFlags, initialExperiments])

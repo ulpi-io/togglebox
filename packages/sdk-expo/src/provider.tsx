@@ -81,9 +81,8 @@ export function ToggleBoxProvider({
     // BUGFIX: Track mounted state to prevent state updates after unmount
     let isMounted = true
 
-    // Listen for updates from polling
-    // SECURITY: Wrap in try-catch and use void to handle promises without blocking
-    client.on('update', (data) => {
+    // Event handlers (extracted for proper cleanup)
+    const handleUpdate = (data: unknown) => {
       if (!isMounted) return
       try {
         const updateData = data as {
@@ -106,11 +105,15 @@ export function ToggleBoxProvider({
       } catch (err) {
         if (isMounted) setError(err as Error)
       }
-    })
+    }
 
-    client.on('error', (err) => {
+    const handleError = (err: unknown) => {
       if (isMounted) setError(err as Error)
-    })
+    }
+
+    // Listen for updates from polling
+    client.on('update', handleUpdate)
+    client.on('error', handleError)
 
     // Load initial data
     const loadData = async () => {
@@ -168,6 +171,9 @@ export function ToggleBoxProvider({
 
     return () => {
       isMounted = false
+      // Explicitly remove event listeners before destroying
+      client.off('update', handleUpdate)
+      client.off('error', handleError)
       client.destroy()
     }
   }, [platform, environment, apiUrl, apiKey, tenantSubdomain, cache, pollingInterval, persistToStorage, storageTTL])

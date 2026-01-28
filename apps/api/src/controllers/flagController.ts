@@ -584,7 +584,11 @@ export class FlagController {
     ];
 
     this.cacheProvider.invalidateCache(cachePaths).catch((err: unknown) => {
-      logger.error('Cache invalidation failed (non-blocking)', err);
+      // WARN level since stale cache affects data consistency
+      logger.warn('Cache invalidation failed - stale data may be served', {
+        paths: cachePaths,
+        error: err instanceof Error ? err.message : String(err),
+      });
     });
   }
 }

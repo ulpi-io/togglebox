@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ThreeTierRepositories } from '@togglebox/database';
-import { logger, getTokenPaginationParams, withDatabaseContext } from '@togglebox/shared';
+import { logger, getTokenPaginationParams, withDatabaseContext, NotFoundError, ValidationError, BadRequestError } from '@togglebox/shared';
 import {
   CreateExperimentSchema,
   UpdateExperimentSchema,
@@ -12,6 +12,66 @@ import { assignVariation } from '@togglebox/experiments';
 import { calculateSignificance, checkSRM } from '@togglebox/stats';
 import { CacheProvider } from '@togglebox/cache';
 import { z } from 'zod';
+
+/**
+ * Helper to classify errors and return appropriate HTTP status and response.
+ * Uses custom error classes for reliable error type detection.
+ */
+function handleControllerError(error: unknown, res: Response, next: NextFunction): void {
+  // Zod validation errors
+  if (error instanceof z.ZodError) {
+    res.status(422).json({
+      success: false,
+      error: 'Validation failed',
+      details: error.errors.map((e) => e.message),
+      timestamp: new Date().toISOString(),
+    });
+    return;
+  }
+
+  // Custom error types (reliable detection)
+  if (error instanceof NotFoundError) {
+    res.status(404).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+    return;
+  }
+
+  if (error instanceof ValidationError || error instanceof BadRequestError) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+    return;
+  }
+
+  // Fallback: Check error message for legacy errors from repositories
+  // TODO: Update repositories to throw custom error types
+  if (error instanceof Error) {
+    if (error.message.includes('not found')) {
+      res.status(404).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+    if (error.message.includes('Cannot') || error.message.includes('must sum') || error.message.includes('already')) {
+      res.status(400).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+  }
+
+  // Unknown error - pass to global error handler
+  next(error);
+}
 
 /**
  * Controller for Experiments (A/B testing with multiple variants).
@@ -152,15 +212,7 @@ export class ExperimentController {
         });
         return;
       }
-      if (error instanceof Error && (error.message.includes('not found') || error.message.includes('Cannot'))) {
-        res.status(error.message.includes('not found') ? 404 : 400).json({
-          success: false,
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-      next(error);
+      handleControllerError(error, res, next);
     }
   };
 
@@ -205,15 +257,7 @@ export class ExperimentController {
         });
         return;
       }
-      if (error instanceof Error && (error.message.includes('not found') || error.message.includes('Cannot'))) {
-        res.status(error.message.includes('not found') ? 404 : 400).json({
-          success: false,
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-      next(error);
+      handleControllerError(error, res, next);
     }
   };
 
@@ -247,15 +291,7 @@ export class ExperimentController {
         });
       });
     } catch (error: unknown) {
-      if (error instanceof Error && (error.message.includes('not found') || error.message.includes('Cannot'))) {
-        res.status(error.message.includes('not found') ? 404 : 400).json({
-          success: false,
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-      next(error);
+      handleControllerError(error, res, next);
     }
   };
 
@@ -289,15 +325,7 @@ export class ExperimentController {
         });
       });
     } catch (error: unknown) {
-      if (error instanceof Error && (error.message.includes('not found') || error.message.includes('Cannot'))) {
-        res.status(error.message.includes('not found') ? 404 : 400).json({
-          success: false,
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-      next(error);
+      handleControllerError(error, res, next);
     }
   };
 
@@ -359,15 +387,7 @@ export class ExperimentController {
         });
         return;
       }
-      if (error instanceof Error && (error.message.includes('not found') || error.message.includes('Cannot'))) {
-        res.status(error.message.includes('not found') ? 404 : 400).json({
-          success: false,
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-      next(error);
+      handleControllerError(error, res, next);
     }
   };
 
@@ -399,15 +419,7 @@ export class ExperimentController {
         });
       });
     } catch (error: unknown) {
-      if (error instanceof Error && (error.message.includes('not found') || error.message.includes('Cannot'))) {
-        res.status(error.message.includes('not found') ? 404 : 400).json({
-          success: false,
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-      next(error);
+      handleControllerError(error, res, next);
     }
   };
 
@@ -516,15 +528,7 @@ export class ExperimentController {
         res.status(204).send();
       });
     } catch (error: unknown) {
-      if (error instanceof Error && (error.message.includes('not found') || error.message.includes('Cannot'))) {
-        res.status(error.message.includes('not found') ? 404 : 400).json({
-          success: false,
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-      next(error);
+      handleControllerError(error, res, next);
     }
   };
 
@@ -860,15 +864,7 @@ export class ExperimentController {
         });
         return;
       }
-      if (error instanceof Error && (error.message.includes('not found') || error.message.includes('Cannot') || error.message.includes('must sum'))) {
-        res.status(error.message.includes('not found') ? 404 : 400).json({
-          success: false,
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-      next(error);
+      handleControllerError(error, res, next);
     }
   };
 
@@ -882,7 +878,11 @@ export class ExperimentController {
     ];
 
     this.cacheProvider.invalidateCache(cachePaths).catch((err: unknown) => {
-      logger.error('Cache invalidation failed (non-blocking)', err);
+      // WARN level since stale cache affects data consistency
+      logger.warn('Cache invalidation failed - stale data may be served', {
+        paths: cachePaths,
+        error: err instanceof Error ? err.message : String(err),
+      });
     });
   }
 }
