@@ -4,24 +4,24 @@
 
 ToggleBox implements a three-tier system for feature management:
 
-| Tier | Package | Purpose | Use Case |
-|------|---------|---------|----------|
-| **Tier 1** | `@togglebox/configs` | Remote configs | Key-value settings, themes, API URLs |
-| **Tier 2** | `@togglebox/flags` | Feature flags | On/off toggles with targeting |
-| **Tier 3** | `@togglebox/experiments` | A/B experiments | Multi-variant tests with analytics |
+| Tier       | Package                  | Purpose         | Use Case                             |
+| ---------- | ------------------------ | --------------- | ------------------------------------ |
+| **Tier 1** | `@togglebox/configs`     | Remote configs  | Key-value settings, themes, API URLs |
+| **Tier 2** | `@togglebox/flags`       | Feature flags   | On/off toggles with targeting        |
+| **Tier 3** | `@togglebox/experiments` | A/B experiments | Multi-variant tests with analytics   |
 
 ## Multi-Database Architecture
 
 The `@togglebox/database` package provides adapters for:
 
-| Database | Environment Variable | Best For |
-|----------|---------------------|----------|
-| DynamoDB | `DB_TYPE=dynamodb` | AWS Lambda, serverless |
-| Cloudflare D1 | `DB_TYPE=d1` | Cloudflare Workers, edge |
-| PostgreSQL | `DB_TYPE=postgresql` | Self-hosted, full SQL |
-| MySQL | `DB_TYPE=mysql` | Self-hosted, enterprise |
-| MongoDB | `DB_TYPE=mongodb` | Document workloads |
-| SQLite | `DB_TYPE=sqlite` | Local development |
+| Database      | Environment Variable | Best For                 |
+| ------------- | -------------------- | ------------------------ |
+| DynamoDB      | `DB_TYPE=dynamodb`   | AWS Lambda, serverless   |
+| Cloudflare D1 | `DB_TYPE=d1`         | Cloudflare Workers, edge |
+| PostgreSQL    | `DB_TYPE=postgresql` | Self-hosted, full SQL    |
+| MySQL         | `DB_TYPE=mysql`      | Self-hosted, enterprise  |
+| MongoDB       | `DB_TYPE=mongodb`    | Document workloads       |
+| SQLite        | `DB_TYPE=sqlite`     | Local development        |
 
 ### DynamoDB Table Structure (10 Tables)
 
@@ -74,12 +74,14 @@ The API (`apps/api`) supports deployment to:
 Authentication is **optional** and controlled by `ENABLE_AUTHENTICATION` env var.
 
 When enabled:
+
 - JWT-based authentication (`@togglebox/auth`)
 - API key authentication for SDK requests
 - bcrypt password hashing
 - nodemailer for password reset emails
 
 When disabled:
+
 - Network-level security (VPC, API Gateway Resource Policy)
 - Suitable for internal services
 
@@ -87,28 +89,28 @@ When disabled:
 
 The `@togglebox/cache` package supports:
 
-| Provider | Environment | Config |
-|----------|-------------|--------|
-| CloudFront | AWS | `CLOUDFRONT_DISTRIBUTION_ID` |
-| Cloudflare | Workers | `CLOUDFLARE_ZONE_ID`, `CLOUDFLARE_API_TOKEN` |
-| NoOp | Development | No caching |
+| Provider   | Environment | Config                                       |
+| ---------- | ----------- | -------------------------------------------- |
+| CloudFront | AWS         | `CLOUDFRONT_DISTRIBUTION_ID`                 |
+| Cloudflare | Workers     | `CLOUDFLARE_ZONE_ID`, `CLOUDFLARE_API_TOKEN` |
+| NoOp       | Development | No caching                                   |
 
 ## SDKs
 
 ### JavaScript SDKs (TypeScript)
 
-| Package | Platform | Features |
-|---------|----------|----------|
-| `@togglebox/sdk` | Browser/Node.js | Core client |
-| `@togglebox/sdk-nextjs` | Next.js | React hooks, SSR |
-| `@togglebox/sdk-expo` | React Native | Offline storage (MMKV) |
+| Package                 | Platform        | Features               |
+| ----------------------- | --------------- | ---------------------- |
+| `@togglebox/sdk`        | Browser/Node.js | Core client            |
+| `@togglebox/sdk-nextjs` | Next.js         | React hooks, SSR       |
+| `@togglebox/sdk-expo`   | React Native    | Offline storage (MMKV) |
 
 ### PHP SDKs (Composer)
 
-| Package | Platform | Features |
-|---------|----------|----------|
-| `togglebox/sdk-php` | PHP 8.0+ | PSR cache adapters |
-| `togglebox/sdk-laravel` | Laravel | Facade, service provider |
+| Package                 | Platform | Features                 |
+| ----------------------- | -------- | ------------------------ |
+| `togglebox/sdk-php`     | PHP 8.0+ | PSR cache adapters       |
+| `togglebox/sdk-laravel` | Laravel  | Facade, service provider |
 
 ## Experiment State Machine
 
@@ -122,14 +124,14 @@ draft → running → paused → completed → archived
 
 ### State Transitions
 
-| Current State | Action | New State | Endpoint |
-|---------------|--------|-----------|----------|
-| `draft` | Start | `running` | `POST /experiments/:key/start` |
-| `running` | Pause | `paused` | `POST /experiments/:key/pause` |
-| `paused` | Resume | `running` | `POST /experiments/:key/resume` |
-| `running` | Complete | `completed` | `POST /experiments/:key/complete` |
-| `paused` | Complete | `completed` | `POST /experiments/:key/complete` |
-| `completed` | Archive | `archived` | `POST /experiments/:key/archive` |
+| Current State | Action   | New State   | Endpoint                          |
+| ------------- | -------- | ----------- | --------------------------------- |
+| `draft`       | Start    | `running`   | `POST /experiments/:key/start`    |
+| `running`     | Pause    | `paused`    | `POST /experiments/:key/pause`    |
+| `paused`      | Resume   | `running`   | `POST /experiments/:key/resume`   |
+| `running`     | Complete | `completed` | `POST /experiments/:key/complete` |
+| `paused`      | Complete | `completed` | `POST /experiments/:key/complete` |
+| `completed`   | Archive  | `archived`  | `POST /experiments/:key/archive`  |
 
 ### State Constraints
 
@@ -151,12 +153,12 @@ Feature flags use versioning for audit and rollback:
 
 ### When to Create New Version
 
-| Operation | New Version? |
-|-----------|--------------|
-| Change flag key | N/A (new flag) |
-| Change value/targeting rules | Yes |
-| Change rollout percentage | No (in-place) |
-| Toggle enabled state | No (in-place) |
+| Operation                    | New Version?   |
+| ---------------------------- | -------------- |
+| Change flag key              | N/A (new flag) |
+| Change value/targeting rules | Yes            |
+| Change rollout percentage    | No (in-place)  |
+| Toggle enabled state         | No (in-place)  |
 
 ### Version History Endpoints
 
@@ -172,11 +174,13 @@ The API supports two pagination styles based on database backend:
 Used for DynamoDB which doesn't support offset pagination.
 
 **Request:**
+
 ```
 GET /configs/list?limit=20&nextToken=eyJrZXkiOiJ2YWx1ZSJ9
 ```
 
 **Response:**
+
 ```json
 {
   "data": [...],
@@ -192,11 +196,13 @@ GET /configs/list?limit=20&nextToken=eyJrZXkiOiJ2YWx1ZSJ9
 Used for PostgreSQL, MySQL, SQLite, MongoDB.
 
 **Request:**
+
 ```
 GET /configs/list?page=1&perPage=20
 ```
 
 **Response:**
+
 ```json
 {
   "data": [...],

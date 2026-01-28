@@ -24,31 +24,48 @@ Instead of just describing what exists, show HOW to add new things:
 ❌ Poor (4/10): "We use Express.js with controllers"
 ✅ Excellent (10/10):
 
-```markdown
+````markdown
 ## Adding a New API Endpoint
 
 ### Step 1: Choose the Router
-| Router | Auth | Use For |
-|--------|------|---------|
-| publicRouter | conditionalAuth() | Read-only GETs |
-| internalRouter | requireAuth() | All mutations |
+
+| Router         | Auth              | Use For        |
+| -------------- | ----------------- | -------------- |
+| publicRouter   | conditionalAuth() | Read-only GETs |
+| internalRouter | requireAuth()     | All mutations  |
 
 ### Step 2: Create Controller Method
+
 ```typescript
-methodName = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+methodName = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     await withDatabaseContext(req, async () => {
       const startTime = Date.now();
       const result = await this.db.repository.method(platform, environment);
-      logger.logDatabaseOperation("methodName", "table", Date.now() - startTime, true);
-      res.json({ success: true, data: result, timestamp: new Date().toISOString() });
+      logger.logDatabaseOperation(
+        "methodName",
+        "table",
+        Date.now() - startTime,
+        true,
+      );
+      res.json({
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
     });
   } catch (error) {
     next(error);
   }
 };
 ```
-```
+````
+
+````
 
 ### 2. Exact Response Formats with Code
 
@@ -59,24 +76,27 @@ methodName = async (req: Request, res: Response, next: NextFunction): Promise<vo
 ### Success Response
 ```typescript
 { success: true, data: result, timestamp: "2024-01-15T..." }
-```
+````
 
 ### Error Response
+
 ```typescript
 { success: false, error: "Message", code: "ERROR_CODE", details: [...], timestamp: "..." }
 ```
 
 ### Validation Error (Zod)
+
 ```typescript
 res.status(422).json({
   success: false,
   error: "Validation failed",
   code: "VALIDATION_FAILED",
-  details: error.errors.map(err => `${err.path.join(".")}: ${err.message}`),
+  details: error.errors.map((err) => `${err.path.join(".")}: ${err.message}`),
   timestamp: new Date().toISOString(),
 });
 ```
-```
+
+````
 
 ### 3. Permission/Role Tables
 
@@ -92,7 +112,7 @@ res.status(422).json({
 | cache:invalidate | Manual cache purge |
 | user:manage | User administration (admin only) |
 | apikey:manage | API key management |
-```
+````
 
 ### 4. State Machines with Visual Diagrams
 
@@ -101,11 +121,12 @@ res.status(422).json({
 
 ```markdown
 ## Experiment State Machine
-
 ```
+
 draft → running → paused → completed → archived
-              ↓           ↑
-              └───────────┘
+↓ ↑
+└───────────┘
+
 ```
 
 | Current State | Action | New State |
@@ -120,19 +141,21 @@ draft → running → paused → completed → archived
 ❌ Poor: "Routes are in routes/ folder"
 ✅ Excellent:
 
-```markdown
+````markdown
 **Critical:** Specific routes MUST come before parameterized routes.
 
 ```typescript
 // CORRECT ORDER
-router.get("/configs/list", handler);     // /list matched first
+router.get("/configs/list", handler); // /list matched first
 router.get("/configs/:parameterKey", handler); // :parameterKey last
 
 // WRONG ORDER - "list" would match as parameterKey
 router.get("/configs/:parameterKey", handler);
-router.get("/configs/list", handler);  // Never reached!
+router.get("/configs/list", handler); // Never reached!
 ```
-```
+````
+
+````
 
 ### 6. Decision Tables
 
@@ -145,7 +168,7 @@ router.get("/configs/list", handler);  // Never reached!
 | PUT /flags/:key | Yes | Full configuration changes |
 | PATCH /flags/:key/toggle | No | Quick enable/disable |
 | PATCH /flags/:key/rollout | No | Adjust rollout percentage |
-```
+````
 
 ## When to Use
 
@@ -405,24 +428,31 @@ cat jest.config.* vitest.config.* phpunit.xml 2>/dev/null | head -30
 # Development Guide
 
 ## Adding a New API Endpoint
+
 [Step-by-step with actual code]
 
 ## Response Formats
+
 [All response types with TypeScript]
 
 ## Permission Model
+
 [Complete table]
 
 ## Database Patterns
+
 [withDatabaseContext usage, pagination]
 
 ## Cache Invalidation
+
 [When and how to invalidate]
 
 ## State Machines
+
 [For each entity with states]
 
 ## Testing Patterns
+
 [How to test controllers]
 ```
 
@@ -466,14 +496,14 @@ Re-run the quality checklist:
 
 ## Common Mistakes
 
-| Mistake | Fix |
-| ------- | --- |
-| Generic descriptions | Add exact code examples and templates |
-| Missing response formats | Document every response type with TypeScript |
-| No permission table | Create complete permission-to-operation mapping |
-| State list without diagram | Add ASCII diagram + transition table |
-| Routes without ordering rules | Document which route patterns must come first |
-| Only updating one file | Update CLAUDE.md + ALL @imported files + CREATE development-guide.md |
+| Mistake                       | Fix                                                                  |
+| ----------------------------- | -------------------------------------------------------------------- |
+| Generic descriptions          | Add exact code examples and templates                                |
+| Missing response formats      | Document every response type with TypeScript                         |
+| No permission table           | Create complete permission-to-operation mapping                      |
+| State list without diagram    | Add ASCII diagram + transition table                                 |
+| Routes without ordering rules | Document which route patterns must come first                        |
+| Only updating one file        | Update CLAUDE.md + ALL @imported files + CREATE development-guide.md |
 
 ## Key Reminders
 

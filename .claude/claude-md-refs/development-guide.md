@@ -4,11 +4,11 @@
 
 ### Step 1: Choose the Right Router
 
-| Router | File | Auth | Use For |
-|--------|------|------|---------|
-| `publicRouter` | `routes/publicRoutes.ts` | `conditionalAuth()` | Read-only GET endpoints for SDK clients |
-| `internalRouter` | `routes/internalRoutes.ts` | `requireAuth()` | All mutations (POST/PUT/PATCH/DELETE) |
-| `authRouter` | Via `@togglebox/auth` | None / `conditionalAuth()` | Login, register, password reset |
+| Router           | File                       | Auth                       | Use For                                 |
+| ---------------- | -------------------------- | -------------------------- | --------------------------------------- |
+| `publicRouter`   | `routes/publicRoutes.ts`   | `conditionalAuth()`        | Read-only GET endpoints for SDK clients |
+| `internalRouter` | `routes/internalRoutes.ts` | `requireAuth()`            | All mutations (POST/PUT/PATCH/DELETE)   |
+| `authRouter`     | Via `@togglebox/auth`      | None / `conditionalAuth()` | Login, register, password reset         |
 
 ### Step 2: Route Ordering Rules
 
@@ -16,26 +16,26 @@
 
 ```typescript
 // CORRECT - /list comes BEFORE /:key
-router.get('/configs/list', handler);    // Handles /configs/list
-router.get('/configs/count', handler);   // Handles /configs/count
-router.get('/configs/:parameterKey', handler); // Handles /configs/theme
+router.get("/configs/list", handler); // Handles /configs/list
+router.get("/configs/count", handler); // Handles /configs/count
+router.get("/configs/:parameterKey", handler); // Handles /configs/theme
 
 // WRONG - "list" would be matched as parameterKey
-router.get('/configs/:parameterKey', handler);
-router.get('/configs/list', handler); // Never reached!
+router.get("/configs/:parameterKey", handler);
+router.get("/configs/list", handler); // Never reached!
 ```
 
 **Health endpoints** must come BEFORE auth middleware:
 
 ```typescript
 // Health check - always unauthenticated for monitoring
-publicRouter.get('/health', healthHandler);
+publicRouter.get("/health", healthHandler);
 
 // Auth middleware applies to routes below
 publicRouter.use(conditionalAuth());
 
 // These routes require auth (if enabled)
-publicRouter.get('/platforms', listPlatforms);
+publicRouter.get("/platforms", listPlatforms);
 ```
 
 ### Step 3: Create Controller Method
@@ -62,7 +62,7 @@ methodName = async (
       const duration = Date.now() - startTime;
 
       // Log operation
-      logger.logDatabaseOperation('methodName', 'table_name', duration, true);
+      logger.logDatabaseOperation("methodName", "table_name", duration, true);
 
       // Return response
       res.json({
@@ -102,14 +102,14 @@ Implement the method in all adapters:
 ```typescript
 // In publicRoutes.ts (GET) or internalRoutes.ts (mutations)
 router.get(
-  '/platforms/:platform/environments/:environment/newEndpoint',
+  "/platforms/:platform/environments/:environment/newEndpoint",
   asyncHandler(controller.newMethod),
 );
 
 // With permission check (internal routes)
 router.post(
-  '/platforms/:platform/environments/:environment/newEndpoint',
-  requirePermission('config:write'),
+  "/platforms/:platform/environments/:environment/newEndpoint",
+  requirePermission("config:write"),
   asyncHandler(controller.newMethod),
 );
 ```
@@ -211,37 +211,37 @@ router.post(
 
 ### Role-Based Permissions
 
-| Role | Permissions |
-|------|-------------|
-| `admin` | `*` (all permissions) |
+| Role        | Permissions                                                                                                                               |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin`     | `*` (all permissions)                                                                                                                     |
 | `developer` | `config:read`, `config:write`, `config:update`, `config:delete`, `platform:read`, `environment:read`, `cache:invalidate`, `apikey:manage` |
-| `viewer` | `config:read`, `platform:read`, `environment:read` |
+| `viewer`    | `config:read`, `platform:read`, `environment:read`                                                                                        |
 
 ### Permission Reference
 
-| Permission | Use For |
-|------------|---------|
-| `config:read` | Read configs, flags, experiments |
-| `config:write` | Create/update configs, flags, experiments |
-| `config:delete` | Delete configs, flags, experiments |
-| `cache:invalidate` | Manual cache purge |
-| `user:manage` | User administration (admin only) |
-| `apikey:manage` | API key management |
+| Permission         | Use For                                   |
+| ------------------ | ----------------------------------------- |
+| `config:read`      | Read configs, flags, experiments          |
+| `config:write`     | Create/update configs, flags, experiments |
+| `config:delete`    | Delete configs, flags, experiments        |
+| `cache:invalidate` | Manual cache purge                        |
+| `user:manage`      | User administration (admin only)          |
+| `apikey:manage`    | API key management                        |
 
 ### Using Permissions in Routes
 
 ```typescript
 // Require specific permission
 internalRouter.post(
-  '/platforms',
-  requirePermission('config:write'),
+  "/platforms",
+  requirePermission("config:write"),
   asyncHandler(controller.createPlatform),
 );
 
 // Admin-only operations
 internalRouter.delete(
-  '/platforms/:platform',
-  requirePermission('config:delete'),
+  "/platforms/:platform",
+  requirePermission("config:delete"),
   asyncHandler(controller.deletePlatform),
 );
 ```
@@ -253,6 +253,7 @@ internalRouter.delete(
 ### Why withDatabaseContext()
 
 The `withDatabaseContext()` wrapper:
+
 - Handles database connection lifecycle
 - Provides request-scoped configuration for multi-tenancy
 - Required for ALL database operations in controllers
@@ -265,7 +266,11 @@ await withDatabaseContext(req, async () => {
   const result = await this.db.config.getConfigs(platform, environment);
 
   // Response MUST be sent inside this block
-  res.json({ success: true, data: result, timestamp: new Date().toISOString() });
+  res.json({
+    success: true,
+    data: result,
+    timestamp: new Date().toISOString(),
+  });
 });
 ```
 
@@ -274,9 +279,9 @@ await withDatabaseContext(req, async () => {
 Catches async errors and passes them to error middleware:
 
 ```typescript
-import { asyncHandler } from '@togglebox/shared';
+import { asyncHandler } from "@togglebox/shared";
 
-router.get('/endpoint', asyncHandler(controller.method));
+router.get("/endpoint", asyncHandler(controller.method));
 ```
 
 ---
@@ -297,7 +302,7 @@ try {
   await this.cacheProvider.invalidateCache(cachePaths);
 } catch (err) {
   // WARN level - don't fail the request
-  logger.warn('Cache invalidation failed - stale data may be served', {
+  logger.warn("Cache invalidation failed - stale data may be served", {
     paths: cachePaths,
     error: err instanceof Error ? err.message : String(err),
   });
@@ -309,14 +314,10 @@ try {
 ```typescript
 // Config parameters
 `/api/v1/platforms/${platform}/environments/${environment}/configs`
-
 // Feature flags
-`/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}`
-`/api/v1/platforms/${platform}/environments/${environment}/flags`
-
+`/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}``/api/v1/platforms/${platform}/environments/${environment}/flags`
 // Experiments
-`/api/v1/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`
-`/api/v1/platforms/${platform}/environments/${environment}/experiments`
+`/api/v1/platforms/${platform}/environments/${environment}/experiments/${experimentKey}``/api/v1/platforms/${platform}/environments/${environment}/experiments`;
 ```
 
 ---
@@ -329,15 +330,15 @@ try {
 const CreatePlatformSchema = z.object({
   name: z
     .string()
-    .min(1, 'Platform name is required')
-    .max(100, 'Platform name must be 100 characters or less')
+    .min(1, "Platform name is required")
+    .max(100, "Platform name must be 100 characters or less")
     .regex(
       /^[a-zA-Z0-9-_]+$/,
-      'Platform name can only contain letters, numbers, hyphens, and underscores',
+      "Platform name can only contain letters, numbers, hyphens, and underscores",
     ),
   description: z
     .string()
-    .max(500, 'Description must be 500 characters or less')
+    .max(500, "Description must be 500 characters or less")
     .optional(),
 });
 ```
@@ -352,10 +353,10 @@ try {
   if (error instanceof z.ZodError) {
     res.status(422).json({
       success: false,
-      error: 'Validation failed',
-      code: 'VALIDATION_FAILED',
+      error: "Validation failed",
+      code: "VALIDATION_FAILED",
       details: error.errors.map(
-        (err) => `${err.path.join('.')}: ${err.message}`,
+        (err) => `${err.path.join(".")}: ${err.message}`,
       ),
       timestamp: new Date().toISOString(),
     });
@@ -372,18 +373,22 @@ try {
 ### Custom Error Classes
 
 ```typescript
-import { NotFoundError, ValidationError, BadRequestError } from '@togglebox/shared';
+import {
+  NotFoundError,
+  ValidationError,
+  BadRequestError,
+} from "@togglebox/shared";
 
 // In controller
 if (!result) {
-  throw new NotFoundError('Parameter not found');
+  throw new NotFoundError("Parameter not found");
 }
 
 // Or return directly
 if (!result) {
   res.status(404).json({
     success: false,
-    error: 'Parameter not found',
+    error: "Parameter not found",
     timestamp: new Date().toISOString(),
   });
   return;
@@ -401,7 +406,7 @@ function handleControllerError(
   if (error instanceof z.ZodError) {
     res.status(422).json({
       success: false,
-      error: 'Validation failed',
+      error: "Validation failed",
       details: error.errors.map((e) => e.message),
       timestamp: new Date().toISOString(),
     });
@@ -439,14 +444,17 @@ function handleControllerError(
 Use `getSmartPaginationParams()` to handle both pagination styles:
 
 ```typescript
-import { getSmartPaginationParams, createPaginationMeta } from '@togglebox/shared';
+import {
+  getSmartPaginationParams,
+  createPaginationMeta,
+} from "@togglebox/shared";
 
 const { isToken, params, page, perPage } = getSmartPaginationParams(req);
 
 const result = await this.db.config.listActive(platform, environment, params);
 
 // Handle both pagination types
-if ('total' in result && result.total !== undefined) {
+if ("total" in result && result.total !== undefined) {
   // Offset-based (SQL/MongoDB)
   const paginationMeta = createPaginationMeta(page, perPage, result.total);
   res.json({
@@ -472,7 +480,9 @@ if ('total' in result && result.total !== undefined) {
 ### Query Parameters
 
 **Offset-based (SQL):**
+
 - `?page=1&perPage=20`
 
 **Token-based (DynamoDB):**
+
 - `?nextToken=eyJrZXkiOiJ2YWx1ZSJ9&limit=20`

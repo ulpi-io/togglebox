@@ -80,5 +80,6 @@ docker-compose up -d dynamodb-local
 ## Demo Credentials
 
 After running `pnpm seed`:
+
 - **Email:** `admin@togglebox.com`
 - **Password:** `Parola123!`

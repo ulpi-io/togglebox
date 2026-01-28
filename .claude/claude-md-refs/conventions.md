@@ -10,21 +10,21 @@
 
 The CI workflow (`.github/workflows/ci.yml`) runs:
 
-| Job | Description |
-|-----|-------------|
-| `lint` | ESLint across all packages |
-| `typecheck` | TypeScript build (includes Prisma generate) |
-| `test` | Jest tests (currently optional) |
-| `security-audit` | `pnpm audit --audit-level moderate` |
-| `format-check` | Prettier check |
+| Job              | Description                                 |
+| ---------------- | ------------------------------------------- |
+| `lint`           | ESLint across all packages                  |
+| `typecheck`      | TypeScript build (includes Prisma generate) |
+| `test`           | Jest tests (currently optional)             |
+| `security-audit` | `pnpm audit --audit-level moderate`         |
+| `format-check`   | Prettier check                              |
 
 All jobs must pass before merging.
 
 ## Deployment Workflows
 
-| Workflow | Trigger | Target |
-|----------|---------|--------|
-| `deploy-aws-lambda.yml` | Manual or push to `main` (apps/api changes) | AWS Lambda |
+| Workflow                        | Trigger                                     | Target             |
+| ------------------------------- | ------------------------------------------- | ------------------ |
+| `deploy-aws-lambda.yml`         | Manual or push to `main` (apps/api changes) | AWS Lambda         |
 | `deploy-cloudflare-workers.yml` | Manual or push to `main` (apps/api changes) | Cloudflare Workers |
 
 Both support `staging` and `production` environments.
@@ -41,28 +41,28 @@ Both support `staging` and `production` environments.
 
 ### Naming Conventions
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Files | kebab-case | `user-service.ts` |
-| Classes | PascalCase | `UserService` |
-| Functions/Variables | camelCase | `getUserById` |
-| Constants | UPPER_SNAKE_CASE | `MAX_RETRY_ATTEMPTS` |
-| Routes | kebab-case | `/api/v1/user-profiles` |
+| Type                | Convention       | Example                 |
+| ------------------- | ---------------- | ----------------------- |
+| Files               | kebab-case       | `user-service.ts`       |
+| Classes             | PascalCase       | `UserService`           |
+| Functions/Variables | camelCase        | `getUserById`           |
+| Constants           | UPPER_SNAKE_CASE | `MAX_RETRY_ATTEMPTS`    |
+| Routes              | kebab-case       | `/api/v1/user-profiles` |
 
 ### Package Names
 
-| Type | Pattern | Example |
-|------|---------|---------|
-| Core packages | `@togglebox/<name>` | `@togglebox/core` |
-| JS SDKs | `@togglebox/sdk-<platform>` | `@togglebox/sdk-nextjs` |
-| PHP SDKs | `togglebox/sdk-<name>` | `togglebox/sdk-laravel` |
+| Type          | Pattern                     | Example                 |
+| ------------- | --------------------------- | ----------------------- |
+| Core packages | `@togglebox/<name>`         | `@togglebox/core`       |
+| JS SDKs       | `@togglebox/sdk-<platform>` | `@togglebox/sdk-nextjs` |
+| PHP SDKs      | `togglebox/sdk-<name>`      | `togglebox/sdk-laravel` |
 
 ## Validation
 
 Use **Zod** for runtime validation:
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 const schema = z.object({
   platformName: z.string().min(1).max(100),
@@ -77,8 +77,8 @@ type Input = z.infer<typeof schema>;
 Use **Pino** for structured logging:
 
 ```typescript
-logger.info({ userId, action: 'created' }, 'User created');
-logger.error({ err, userId }, 'Failed to create user');
+logger.info({ userId, action: "created" }, "User created");
+logger.error({ err, userId }, "Failed to create user");
 ```
 
 ## Error Handling
@@ -87,14 +87,17 @@ Use custom error classes with HTTP status codes:
 
 ```typescript
 class AppError extends Error {
-  constructor(message: string, public statusCode: number) {
+  constructor(
+    message: string,
+    public statusCode: number,
+  ) {
     super(message);
     this.isOperational = true;
   }
 }
 
 class NotFoundError extends AppError {
-  constructor(message = 'Resource not found') {
+  constructor(message = "Resource not found") {
     super(message, 404);
   }
 }
@@ -141,17 +144,17 @@ All API responses follow a consistent format:
 
 ### HTTP Status Codes
 
-| Status | Use |
-|--------|-----|
-| 200 | Success (GET, PUT, PATCH) |
-| 201 | Created (POST) |
-| 204 | No Content (DELETE) |
-| 400 | Bad Request |
-| 401 | Unauthorized |
-| 403 | Forbidden |
-| 404 | Not Found |
-| 422 | Validation Error |
-| 500 | Internal Server Error |
+| Status | Use                       |
+| ------ | ------------------------- |
+| 200    | Success (GET, PUT, PATCH) |
+| 201    | Created (POST)            |
+| 204    | No Content (DELETE)       |
+| 400    | Bad Request               |
+| 401    | Unauthorized              |
+| 403    | Forbidden                 |
+| 404    | Not Found                 |
+| 422    | Validation Error          |
+| 500    | Internal Server Error     |
 
 ## Controller Method Template
 
@@ -171,7 +174,7 @@ methodName = async (
 
     // Optional: Get authenticated user
     const user = (req as AuthenticatedRequest).user;
-    const createdBy = user?.email || 'system@togglebox.dev';
+    const createdBy = user?.email || "system@togglebox.dev";
 
     // Optional: Validate body with Zod
     const bodyData = Schema.parse(req.body);
@@ -184,7 +187,7 @@ methodName = async (
       const duration = Date.now() - startTime;
 
       // Log operation
-      logger.logDatabaseOperation('methodName', 'table_name', duration, true);
+      logger.logDatabaseOperation("methodName", "table_name", duration, true);
 
       // Optional: Invalidate cache after mutations
       await this.cacheProvider.invalidateCache([cachePath]);
@@ -201,10 +204,10 @@ methodName = async (
     if (error instanceof z.ZodError) {
       res.status(422).json({
         success: false,
-        error: 'Validation failed',
-        code: 'VALIDATION_FAILED',
+        error: "Validation failed",
+        code: "VALIDATION_FAILED",
         details: error.errors.map(
-          (err) => `${err.path.join('.')}: ${err.message}`,
+          (err) => `${err.path.join(".")}: ${err.message}`,
         ),
         timestamp: new Date().toISOString(),
       });
@@ -233,17 +236,20 @@ import {
   NotFoundError,
   ValidationError,
   BadRequestError,
-} from '@togglebox/shared';
+} from "@togglebox/shared";
 ```
 
 ### From @togglebox/database
 
 ```typescript
-import { DatabaseRepositories, ThreeTierRepositories } from '@togglebox/database';
+import {
+  DatabaseRepositories,
+  ThreeTierRepositories,
+} from "@togglebox/database";
 ```
 
 ### From @togglebox/cache
 
 ```typescript
-import { CacheProvider } from '@togglebox/cache';
+import { CacheProvider } from "@togglebox/cache";
 ```

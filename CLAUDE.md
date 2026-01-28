@@ -53,27 +53,27 @@ pnpm seed                 # Seed demo data
 
 ## Key Technologies
 
-| Layer | Technology |
-|-------|------------|
-| API | Express.js 5, TypeScript, Zod |
-| Admin | Next.js 15, React 19, Tailwind, shadcn/ui |
-| Database | DynamoDB, PostgreSQL, MySQL, MongoDB, SQLite, D1 |
-| Auth | JWT, bcrypt (optional) |
-| Logging | Pino |
-| Deployment | AWS Lambda, Cloudflare Workers, Docker |
+| Layer      | Technology                                       |
+| ---------- | ------------------------------------------------ |
+| API        | Express.js 5, TypeScript, Zod                    |
+| Admin      | Next.js 15, React 19, Tailwind, shadcn/ui        |
+| Database   | DynamoDB, PostgreSQL, MySQL, MongoDB, SQLite, D1 |
+| Auth       | JWT, bcrypt (optional)                           |
+| Logging    | Pino                                             |
+| Deployment | AWS Lambda, Cloudflare Workers, Docker           |
 
 ## Database Configuration
 
 Set `DB_TYPE` environment variable:
 
-| Value | Database | Use Case |
-|-------|----------|----------|
-| `dynamodb` | AWS DynamoDB | AWS Lambda |
-| `d1` | Cloudflare D1 | Cloudflare Workers |
-| `postgresql` | PostgreSQL | Self-hosted |
-| `mysql` | MySQL | Enterprise |
-| `mongodb` | MongoDB | Document store |
-| `sqlite` | SQLite | Local development |
+| Value        | Database      | Use Case           |
+| ------------ | ------------- | ------------------ |
+| `dynamodb`   | AWS DynamoDB  | AWS Lambda         |
+| `d1`         | Cloudflare D1 | Cloudflare Workers |
+| `postgresql` | PostgreSQL    | Self-hosted        |
+| `mysql`      | MySQL         | Enterprise         |
+| `mongodb`    | MongoDB       | Document store     |
+| `sqlite`     | SQLite        | Local development  |
 
 ## API Patterns
 
@@ -82,7 +82,7 @@ Set `DB_TYPE` environment variable:
 Keep handlers thin - HTTP concerns only:
 
 ```typescript
-router.post('/', validateConfig, async (req, res, next) => {
+router.post("/", validateConfig, async (req, res, next) => {
   try {
     const config = await configService.create(req.body);
     res.status(201).json({ data: config });
@@ -128,55 +128,65 @@ class ConfigService {
 ### JavaScript
 
 ```typescript
-import { ToggleBoxClient } from '@togglebox/sdk';
+import { ToggleBoxClient } from "@togglebox/sdk";
 
 const client = new ToggleBoxClient({
-  platform: 'web',
-  environment: 'production',
-  apiUrl: 'https://api.example.com',
+  platform: "web",
+  environment: "production",
+  apiUrl: "https://api.example.com",
 });
 
 // Remote config (Tier 1)
-const theme = await client.getConfigValue('theme', 'light');
+const theme = await client.getConfigValue("theme", "light");
 
 // Feature flag (Tier 2)
-const enabled = await client.isFlagEnabled('new-feature', { userId });
+const enabled = await client.isFlagEnabled("new-feature", { userId });
 
 // Experiment (Tier 3)
-const variant = await client.getVariant('checkout-test', { userId });
+const variant = await client.getVariant("checkout-test", { userId });
 ```
 
 ### Next.js
 
 ```tsx
-import { ToggleBoxProvider, useConfig, useFlag, useExperiment, useAnalytics } from '@togglebox/sdk-nextjs';
+import {
+  ToggleBoxProvider,
+  useConfig,
+  useFlag,
+  useExperiment,
+  useAnalytics,
+} from "@togglebox/sdk-nextjs";
 
 // Wrap app
 <ToggleBoxProvider platform="web" environment="production" apiUrl={url}>
   <App />
-</ToggleBoxProvider>
+</ToggleBoxProvider>;
 
 // Tier 1: Remote configs
 const { config, getConfigValue, isLoading } = useConfig();
-const apiUrl = await getConfigValue('api_url', 'https://default.api.com');
+const apiUrl = await getConfigValue("api_url", "https://default.api.com");
 
 // Tier 2: Feature flags
-const { flag, exists, checkEnabled } = useFlag('dark-mode');
+const { flag, exists, checkEnabled } = useFlag("dark-mode");
 const enabled = await checkEnabled();
 
 // Tier 3: Experiments
-const { experiment, getVariant } = useExperiment('checkout-test', { userId });
+const { experiment, getVariant } = useExperiment("checkout-test", { userId });
 const variant = await getVariant();
 
 // Analytics
 const { trackEvent, trackConversion } = useAnalytics();
-trackEvent('button_clicked', { userId }, { properties: { button: 'checkout' } });
+trackEvent(
+  "button_clicked",
+  { userId },
+  { properties: { button: "checkout" } },
+);
 ```
 
 ### Expo
 
 ```tsx
-import { ToggleBoxProvider, useToggleBox } from '@togglebox/sdk-expo';
+import { ToggleBoxProvider, useToggleBox } from "@togglebox/sdk-expo";
 
 // Provider with offline support
 <ToggleBoxProvider
@@ -186,7 +196,7 @@ import { ToggleBoxProvider, useToggleBox } from '@togglebox/sdk-expo';
   persistToStorage={true}
 >
   <App />
-</ToggleBoxProvider>
+</ToggleBoxProvider>;
 ```
 
 ## Security
