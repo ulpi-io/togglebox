@@ -16,7 +16,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.705.0",
     "@aws-sdk/lib-dynamodb": "^3.705.0",
-    "@prisma/client": "^5.7.0",
+    "@prisma/client": "^7.3.0",
     "@togglebox/core": "workspace:*",
     "@togglebox/database": "workspace:*",
     "@togglebox/shared": "workspace:*",
@@ -34,7 +34,7 @@
     "@types/nodemailer": "^6.4.14",
     "@types/uuid": "^9.0.7",
     "express": "^5.2.1",
-    "prisma": "^5.7.0",
+    "prisma": "^7.3.0",
     "typescript": "^5.7.2"
   },
   "publishConfig": {
