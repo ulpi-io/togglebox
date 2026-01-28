@@ -157,6 +157,8 @@ fi
 # ============================================================================
 # 4. PLATFORMS TABLE
 # ============================================================================
+# GSI1: List all platforms (GSI1PK=PLATFORM, GSI1SK=PLATFORM#<name>)
+# ============================================================================
 TABLE_NAME="togglebox-platforms"
 echo ""
 echo "[4/10] Creating '${TABLE_NAME}' table..."
@@ -172,8 +174,12 @@ else
         --table-name "${TABLE_NAME}" \
         --attribute-definitions \
             AttributeName=PK,AttributeType=S \
+            AttributeName=GSI1PK,AttributeType=S \
+            AttributeName=GSI1SK,AttributeType=S \
         --key-schema \
             AttributeName=PK,KeyType=HASH \
+        --global-secondary-indexes \
+            "IndexName=GSI1,KeySchema=[{AttributeName=GSI1PK,KeyType=HASH},{AttributeName=GSI1SK,KeyType=RANGE}],Projection={ProjectionType=ALL}" \
         --billing-mode PAY_PER_REQUEST \
         --endpoint-url "${ENDPOINT}" \
         --region "${REGION}" \

@@ -71,13 +71,19 @@ function ConfigsContent() {
   const loadParameters = useCallback(async () => {
     try {
       setIsLoading(true);
-      if (!platform || !environment) {
-        // Load all config parameters across all platforms/environments
-        const data = await getAllConfigsApi();
-        setParameters(data);
-      } else {
+      if (platform && environment) {
+        // Both platform and environment selected - use specific API
         const data = await listConfigParametersApi(platform, environment);
         setParameters(data);
+      } else {
+        // Load all config parameters, then filter by platform if specified
+        const data = await getAllConfigsApi();
+        if (platform) {
+          // Filter by platform only (no environment selected yet)
+          setParameters(data.filter((p) => p.platform === platform));
+        } else {
+          setParameters(data);
+        }
       }
       setError(null);
     } catch (err) {

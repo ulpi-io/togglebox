@@ -35,6 +35,25 @@ function getAuthToken(): string | null {
 }
 
 /**
+ * Clear auth token and redirect to login page.
+ * Called when API returns 401 Unauthorized.
+ */
+function handleUnauthorized(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  // Clear the auth token cookie
+  document.cookie =
+    "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+  // Redirect to login page (avoid redirect loop if already on login)
+  if (!window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login";
+  }
+}
+
+/**
  * Browser-side API client for making authenticated requests.
  *
  * @template T - Expected response data type
@@ -102,6 +121,12 @@ export async function browserApiClient<T>(
   });
 
   if (!response.ok) {
+    // Handle 401 Unauthorized - immediately log out and redirect to login
+    if (response.status === 401) {
+      handleUnauthorized();
+      throw new ApiError(401, "Session expired. Redirecting to login...");
+    }
+
     // Check Content-Type to determine how to parse the error
     const contentType = response.headers.get("content-type") || "";
     let errorMessage = `HTTP ${response.status}`;

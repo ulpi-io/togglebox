@@ -2,7 +2,7 @@
 // Supports MySQL, PostgreSQL, and SQLite
 
 datasource db {
-  provider = "postgresql" // Can be changed to "mysql" or "sqlite"
+  provider = "sqlite" // Can be changed to "mysql" or "postgresql"
   url      = env("DATABASE_URL")
 }
 

@@ -1,12 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Select } from "@togglebox/ui";
 import { getPlatformsApi, getEnvironmentsApi } from "@/lib/api/platforms";
 import type { Platform, Environment } from "@/lib/api/types";
 
 const STORAGE_KEY = "togglebox-platform-env-filter";
+
+// Official React 18+ way to safely detect hydration
+function useIsHydrated() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
 
 interface StoredFilter {
   platform: string | null;
@@ -226,17 +241,19 @@ export function PlatformEnvFilter({
 // Hook for using platform/env selection in pages
 export function usePlatformEnvFilter() {
   const searchParams = useSearchParams();
+  const isHydrated = useIsHydrated();
 
   const { platform, environment } = useMemo(() => {
     const urlPlatform = searchParams.get("platform");
     const urlEnvironment = searchParams.get("environment");
 
-    if (urlPlatform && urlEnvironment) {
+    // If URL has platform (with or without environment), use URL values
+    if (urlPlatform) {
       return { platform: urlPlatform, environment: urlEnvironment };
     }
 
-    // Try localStorage (only runs on client, wrapped in try/catch for Safari private mode)
-    if (typeof window !== "undefined") {
+    // Only read localStorage after hydration to avoid multiple renders
+    if (isHydrated) {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -249,7 +266,7 @@ export function usePlatformEnvFilter() {
     }
 
     return { platform: null, environment: null };
-  }, [searchParams]);
+  }, [searchParams, isHydrated]);
 
   return { platform, environment };
 }
