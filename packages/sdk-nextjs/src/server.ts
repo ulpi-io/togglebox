@@ -21,7 +21,7 @@ export interface ServerOptions {
 }
 
 // ============================================================================
-// Server Result Types (mirror client hook results, minus loading/refresh)
+// Server Result Types (mirror client hook results, minus isLoading/error/refresh)
 // ============================================================================
 
 export interface ServerConfigResult {
@@ -35,9 +35,12 @@ export interface ServerFlagsResult {
   isFlagEnabled: (flagKey: string, context?: FlagContext) => boolean;
 }
 
-export interface ServerExperimentResult {
-  experiment: Experiment | null;
-  variant: VariantAssignment | null;
+/** Single flag result - mirrors useFlag() hook */
+export interface ServerFlagResult {
+  flag: Flag | null;
+  exists: boolean;
+  /** Whether the flag is enabled for the given context */
+  enabled: boolean;
 }
 
 export interface ServerExperimentsResult {
@@ -47,6 +50,14 @@ export interface ServerExperimentsResult {
     experimentKey: string,
     context: ExperimentContext,
   ) => VariantAssignment | null;
+}
+
+/** Single experiment result - mirrors useExperiment() hook */
+export interface ServerExperimentResult {
+  experiment: Experiment | null;
+  exists: boolean;
+  /** The assigned variant for the given context */
+  variant: VariantAssignment | null;
 }
 
 export interface ServerAnalyticsResult {
@@ -61,8 +72,6 @@ export interface ServerAnalyticsResult {
     data: ConversionData,
   ) => Promise<void>;
   flushStats: () => Promise<void>;
-  /** Cleanup client resources. Call this if you don't call flushStats() */
-  close: () => void;
 }
 
 // ============================================================================
@@ -147,7 +156,7 @@ export async function getConfig(
  *     apiKey: 'tb_live_xxxxx', // Required if authentication is enabled
  *   })
  *
- *   const showNewFeature = await isFlagEnabled('new-feature', { userId: 'user-123' })
+ *   const showNewFeature = isFlagEnabled('new-feature', { userId: 'user-123' })
  *   return showNewFeature ? <NewFeature /> : <OldFeature />
  * }
  * ```
@@ -183,7 +192,63 @@ export async function getFlags(
 }
 
 /**
+ * Fetch a single feature flag on the server (Tier 2)
+ * Mirrors useFlag() hook API
+ *
+ * @example
+ * ```tsx
+ * // Server Component
+ * import { getFlag } from '@togglebox/sdk-nextjs/server'
+ *
+ * export default async function Page() {
+ *   const { flag, exists, enabled } = await getFlag('dark-mode', { userId: 'user-123' }, {
+ *     platform: 'web',
+ *     environment: 'production',
+ *     apiUrl: 'https://api.example.com/api/v1',
+ *     apiKey: 'tb_live_xxxxx', // Required if authentication is enabled
+ *   })
+ *
+ *   return enabled ? <DarkTheme /> : <LightTheme />
+ * }
+ * ```
+ */
+export async function getFlag(
+  flagKey: string,
+  context: FlagContext | undefined,
+  options: ServerOptions,
+): Promise<ServerFlagResult> {
+  const client = createServerClient(options);
+
+  try {
+    const flags = await client.getFlags();
+    const flag = flags.find((f) => f.flagKey === flagKey) || null;
+
+    let enabled = false;
+    if (flag) {
+      const result = evaluateFlag(flag, context ?? { userId: "anonymous" });
+      enabled = result.servedValue === "A";
+    }
+
+    return {
+      flag,
+      exists: !!flag,
+      enabled,
+    };
+  } catch (error) {
+    console.error("Failed to fetch server flag:", error);
+    return {
+      flag: null,
+      exists: false,
+      enabled: false,
+    };
+  } finally {
+    client.destroy();
+  }
+}
+
+/**
  * Fetch a single experiment and assign variant on the server (Tier 3)
+ * Mirrors useExperiment() hook API
  *
  * @example
  * ```tsx
@@ -191,14 +256,14 @@ export async function getFlags(
  * import { getExperiment } from '@togglebox/sdk-nextjs/server'
  *
  * export default async function Page() {
- *   const { experiment, variant } = await getExperiment('cta-test', { userId: 'user-123' }, {
+ *   const { experiment, exists, variant } = await getExperiment('cta-test', { userId: 'user-123' }, {
  *     platform: 'web',
  *     environment: 'production',
  *     apiUrl: 'https://api.example.com/api/v1',
  *     apiKey: 'tb_live_xxxxx', // Required if authentication is enabled
  *   })
  *
- *   return variant === 'new-cta' ? <NewCTA /> : <OldCTA />
+ *   return variant?.variationKey === 'new-cta' ? <NewCTA /> : <OldCTA />
  * }
  * ```
  */
@@ -219,10 +284,10 @@ export async function getExperiment(
     // on hydration, causing inflated exposure counts and distorted conversion rates
     const variant = experiment ? assignVariation(experiment, context) : null;
 
-    return { experiment, variant };
+    return { experiment, exists: !!experiment, variant };
   } catch (error) {
     console.error("Failed to fetch server experiment:", error);
-    return { experiment: null, variant: null };
+    return { experiment: null, exists: false, variant: null };
   } finally {
     client.destroy();
   }
@@ -284,6 +349,7 @@ export async function getExperiments(
 
 /**
  * Get analytics functions for server-side tracking
+ * Mirrors useAnalytics() hook API
  *
  * @example
  * ```tsx
@@ -299,7 +365,7 @@ export async function getExperiments(
  *   })
  *
  *   await trackConversion('checkout-test', { userId }, { metricId: 'purchase', value: amount })
- *   await flushStats()
+ *   await flushStats() // Always call flushStats() to send events and cleanup
  * }
  * ```
  */
@@ -329,10 +395,6 @@ export async function getAnalytics(
       } finally {
         client.destroy();
       }
-    },
-    // Cleanup client if flushStats() is never called (prevents memory leak)
-    close: () => {
-      client.destroy();
     },
   };
 }
