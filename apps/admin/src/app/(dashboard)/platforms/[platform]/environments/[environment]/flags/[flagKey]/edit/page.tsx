@@ -731,7 +731,8 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                         Enable flag
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        When disabled, the flag will serve Value A to all users
+                        When disabled, the flag serves the configured default
+                        value (controlled by &quot;Default Value&quot; below)
                       </p>
                     </div>
                   </div>
@@ -810,9 +811,9 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
                 {!rolloutEnabled && (
                   <p className="text-sm text-muted-foreground">
-                    Without rollout, all users receive Value A (the default).
-                    Enable rollout to gradually release Value B to a percentage
-                    of users.
+                    Without rollout, all users receive the configured default
+                    value. Enable rollout to distribute traffic between Value A
+                    and Value B based on percentages.
                   </p>
                 )}
 
