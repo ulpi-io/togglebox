@@ -41,7 +41,8 @@ const iconMap = {
 };
 
 interface AlertProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof alertVariants> {
   onClose?: () => void;
 }
