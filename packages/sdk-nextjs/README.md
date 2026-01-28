@@ -38,7 +38,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
 // app/layout.tsx
 import { Providers } from "./providers";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html>
       <body>
@@ -53,7 +57,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ```tsx
 // app/page.tsx
-import { getConfig, getFlag, getExperiment } from "@togglebox/sdk-nextjs/server";
+import {
+  getConfig,
+  getFlag,
+  getExperiment,
+} from "@togglebox/sdk-nextjs/server";
 
 const serverOptions = {
   platform: "web",
@@ -86,14 +94,14 @@ export default async function Page() {
 
 ## Three-Tier Architecture
 
-| Tier | Feature        | Client Hook       | Server Function   |
-| ---- | -------------- | ----------------- | ----------------- |
-| 1    | Remote Configs | `useConfig()`     | `getConfig()`     |
-| 2    | Feature Flags  | `useFlags()`      | `getFlags()`      |
-| 2    | Single Flag    | `useFlag()`       | `getFlag()`       |
-| 3    | Experiments    | `useExperiments()`| `getExperiments()`|
-| 3    | Single Experiment | `useExperiment()` | `getExperiment()` |
-| -    | Analytics      | `useAnalytics()`  | `getAnalytics()`  |
+| Tier | Feature           | Client Hook        | Server Function    |
+| ---- | ----------------- | ------------------ | ------------------ |
+| 1    | Remote Configs    | `useConfig()`      | `getConfig()`      |
+| 2    | Feature Flags     | `useFlags()`       | `getFlags()`       |
+| 2    | Single Flag       | `useFlag()`        | `getFlag()`        |
+| 3    | Experiments       | `useExperiments()` | `getExperiments()` |
+| 3    | Single Experiment | `useExperiment()`  | `getExperiment()`  |
+| -    | Analytics         | `useAnalytics()`   | `getAnalytics()`   |
 
 ## Client Hooks API
 
@@ -121,7 +129,9 @@ const enabled = await isFlagEnabled("new-checkout", { userId: "user-123" });
 ### useFlag
 
 ```tsx
-const { flag, exists, isLoading, checkEnabled } = useFlag("dark-mode", { userId });
+const { flag, exists, isLoading, checkEnabled } = useFlag("dark-mode", {
+  userId,
+});
 
 // Check if enabled
 const enabled = await checkEnabled();
@@ -132,18 +142,22 @@ const enabled = await checkEnabled();
 ```tsx
 const { experiments, getVariant, isLoading, error, refresh } = useExperiments();
 
-// Get variant assignment
+// Get variant assignment (returns variationKey string or null)
 const variant = await getVariant("checkout-test", { userId: "user-123" });
-console.log(variant?.variationKey); // "control", "variant_1", etc.
+console.log(variant); // "control", "variant_1", etc.
 ```
 
 ### useExperiment
 
 ```tsx
-const { experiment, exists, isLoading, getVariant } = useExperiment("checkout-test", { userId });
+const { experiment, exists, isLoading, getVariant } = useExperiment(
+  "checkout-test",
+  { userId },
+);
 
-// Get assigned variant
+// Get assigned variant (returns variationKey string or null)
 const variant = await getVariant();
+console.log(variant); // "control", "variant_1", etc.
 ```
 
 ### useAnalytics
@@ -155,10 +169,14 @@ const { trackEvent, trackConversion, flushStats } = useAnalytics();
 trackEvent("button_click", { userId }, { properties: { button: "checkout" } });
 
 // Track conversion for experiment
-await trackConversion("checkout-test", { userId }, {
-  metricName: "purchase",
-  value: 99.99,
-});
+await trackConversion(
+  "checkout-test",
+  { userId },
+  {
+    metricName: "purchase",
+    value: 99.99,
+  },
+);
 
 // Flush pending stats
 await flushStats();
@@ -187,7 +205,11 @@ const enabled = isFlagEnabled("new-checkout", { userId: "user-123" });
 ### getFlag
 
 ```tsx
-const { flag, exists, enabled } = await getFlag("dark-mode", { userId: "user-123" }, serverOptions);
+const { flag, exists, enabled } = await getFlag(
+  "dark-mode",
+  { userId: "user-123" },
+  serverOptions,
+);
 
 if (enabled) {
   // Show dark mode
@@ -208,7 +230,7 @@ const variant = getVariant("checkout-test", { userId: "user-123" });
 const { experiment, exists, variant } = await getExperiment(
   "checkout-test",
   { userId: "user-123" },
-  serverOptions
+  serverOptions,
 );
 
 if (variant?.variationKey === "new-checkout") {
@@ -219,9 +241,14 @@ if (variant?.variationKey === "new-checkout") {
 ### getAnalytics
 
 ```tsx
-const { trackEvent, trackConversion, flushStats } = await getAnalytics(serverOptions);
+const { trackEvent, trackConversion, flushStats } =
+  await getAnalytics(serverOptions);
 
-await trackConversion("checkout-test", { userId }, { metricName: "purchase", value: 99.99 });
+await trackConversion(
+  "checkout-test",
+  { userId },
+  { metricName: "purchase", value: 99.99 },
+);
 await flushStats(); // Always call to send events and cleanup
 ```
 
@@ -232,25 +259,20 @@ await flushStats(); // Always call to send events and cleanup
   // Required
   platform="web"
   environment="staging"
-
   // API Configuration (choose one)
-  apiUrl="https://your-api.com/api/v1"    // Self-hosted
+  apiUrl="https://your-api.com/api/v1" // Self-hosted
   // OR
-  tenantSubdomain="acme"                   // Cloud: https://acme.togglebox.dev
-
+  tenantSubdomain="acme" // Cloud: https://acme.togglebox.dev
   // Optional
-  apiKey="tb_live_xxxxx"                   // API key for authentication
-  configVersion="stable"                   // "stable", "latest", or specific version
-
+  apiKey="tb_live_xxxxx" // API key for authentication
+  configVersion="stable" // "stable", "latest", or specific version
   // Caching
   cache={{
     enabled: true,
-    ttl: 300000,                           // 5 minutes
+    ttl: 300000, // 5 minutes
   }}
-
   // Auto-refresh
-  pollingInterval={60000}                  // Poll every minute (0 to disable)
-
+  pollingInterval={60000} // Poll every minute (0 to disable)
   // SSR Hydration (from server fetch)
   initialConfig={serverConfig}
   initialFlags={serverFlags}
@@ -266,7 +288,11 @@ Fetch data on the server and hydrate the client:
 
 ```tsx
 // app/layout.tsx
-import { getConfig, getFlags, getExperiments } from "@togglebox/sdk-nextjs/server";
+import {
+  getConfig,
+  getFlags,
+  getExperiments,
+} from "@togglebox/sdk-nextjs/server";
 import { Providers } from "./providers";
 
 const serverOptions = {
@@ -275,7 +301,11 @@ const serverOptions = {
   apiUrl: process.env.TOGGLEBOX_API_URL!,
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [{ config }, { flags }, { experiments }] = await Promise.all([
     getConfig(serverOptions),
     getFlags(serverOptions),
@@ -336,21 +366,27 @@ function CheckoutPage({ userId }: { userId: string }) {
   const [variant, setVariant] = useState<string | null>(null);
 
   useEffect(() => {
-    getVariant().then((v) => setVariant(v?.variationKey || null));
+    getVariant().then(setVariant);
   }, [getVariant]);
 
   const handlePurchase = async (amount: number) => {
     // Process payment...
 
-    await trackConversion("checkout-test", { userId }, {
-      metricName: "purchase",
-      value: amount,
-    });
+    await trackConversion(
+      "checkout-test",
+      { userId },
+      {
+        metricName: "purchase",
+        value: amount,
+      },
+    );
     await flushStats();
   };
 
-  if (variant === "one-page") return <OnePageCheckout onPurchase={handlePurchase} />;
-  if (variant === "express") return <ExpressCheckout onPurchase={handlePurchase} />;
+  if (variant === "one-page")
+    return <OnePageCheckout onPurchase={handlePurchase} />;
+  if (variant === "express")
+    return <ExpressCheckout onPurchase={handlePurchase} />;
   return <DefaultCheckout onPurchase={handlePurchase} />;
 }
 ```

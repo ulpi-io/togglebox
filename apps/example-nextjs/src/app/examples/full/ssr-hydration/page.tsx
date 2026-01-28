@@ -1,7 +1,9 @@
 import {
   getConfig,
   getFlags,
+  getFlag,
   getExperiments,
+  getExperiment,
 } from "@togglebox/sdk-nextjs/server";
 
 // Server-side env vars (no NEXT_PUBLIC_ prefix needed for server components)
@@ -18,7 +20,7 @@ const PLATFORM =
 const ENVIRONMENT =
   process.env.TOGGLEBOX_ENVIRONMENT ||
   process.env.NEXT_PUBLIC_TOGGLEBOX_ENVIRONMENT ||
-  "production";
+  "staging";
 
 export default async function Page() {
   const serverOptions = {
@@ -28,10 +30,19 @@ export default async function Page() {
     apiKey: API_KEY, // Required if authentication is enabled
   };
 
-  const [{ config }, { flags }, { experiments }] = await Promise.all([
+  // Fetch all data in parallel - bulk and single-entity APIs
+  const [
+    { config },
+    { flags },
+    { flag: darkModeFlag, exists: darkModeExists, enabled: darkModeEnabled },
+    { experiments },
+    { experiment: ctaExperiment, exists: ctaExists, variant: ctaVariant },
+  ] = await Promise.all([
     getConfig(serverOptions),
     getFlags(serverOptions),
+    getFlag("dark-mode", { userId: "ssr-user" }, serverOptions),
     getExperiments(serverOptions),
+    getExperiment("checkout-test", { userId: "ssr-user" }, serverOptions),
   ]);
 
   const theme = (config?.theme as string) ?? "light";
@@ -83,6 +94,30 @@ export default async function Page() {
             Theme from config
           </h3>
           <p className="text-lg font-mono">{theme}</p>
+        </div>
+
+        {/* Single-entity API results */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-gray-500 mb-1">dark-mode (getFlag)</p>
+            <p className="text-lg font-semibold text-blue-700">
+              {darkModeExists
+                ? darkModeEnabled
+                  ? "Enabled"
+                  : "Disabled"
+                : "Not Found"}
+            </p>
+          </div>
+          <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <p className="text-xs text-gray-500 mb-1">
+              checkout-test (getExperiment)
+            </p>
+            <p className="text-lg font-semibold text-orange-700">
+              {ctaExists
+                ? ctaVariant?.variationKey || "No variant"
+                : "Not Found"}
+            </p>
+          </div>
         </div>
 
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">

@@ -11,6 +11,165 @@ After installing framework agents, CLAUDE.md and its imported files contain gene
 
 **Core principle:** Discover, don't assume. Analyze the codebase to find actual patterns instead of keeping generic examples.
 
+**Quality target:** 10/10 AI agent effectiveness - documentation should enable an AI to implement features correctly on the first attempt.
+
+## What Makes 10/10 Documentation
+
+AI agents are most effective when documentation provides:
+
+### 1. Step-by-Step Implementation Guides
+
+Instead of just describing what exists, show HOW to add new things:
+
+❌ Poor (4/10): "We use Express.js with controllers"
+✅ Excellent (10/10):
+
+````markdown
+## Adding a New API Endpoint
+
+### Step 1: Choose the Router
+
+| Router         | Auth              | Use For        |
+| -------------- | ----------------- | -------------- |
+| publicRouter   | conditionalAuth() | Read-only GETs |
+| internalRouter | requireAuth()     | All mutations  |
+
+### Step 2: Create Controller Method
+
+```typescript
+methodName = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    await withDatabaseContext(req, async () => {
+      const startTime = Date.now();
+      const result = await this.db.repository.method(platform, environment);
+      logger.logDatabaseOperation(
+        "methodName",
+        "table",
+        Date.now() - startTime,
+        true,
+      );
+      res.json({
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+```
+````
+
+````
+
+### 2. Exact Response Formats with Code
+
+❌ Poor: "API returns JSON with success flag"
+✅ Excellent:
+
+```markdown
+### Success Response
+```typescript
+{ success: true, data: result, timestamp: "2024-01-15T..." }
+````
+
+### Error Response
+
+```typescript
+{ success: false, error: "Message", code: "ERROR_CODE", details: [...], timestamp: "..." }
+```
+
+### Validation Error (Zod)
+
+```typescript
+res.status(422).json({
+  success: false,
+  error: "Validation failed",
+  code: "VALIDATION_FAILED",
+  details: error.errors.map((err) => `${err.path.join(".")}: ${err.message}`),
+  timestamp: new Date().toISOString(),
+});
+```
+
+````
+
+### 3. Permission/Role Tables
+
+❌ Poor: "Auth uses roles with permissions"
+✅ Excellent:
+
+```markdown
+| Permission | Use Case |
+|------------|----------|
+| config:read | Read configs, flags, experiments |
+| config:write | Create/update configs, flags, experiments |
+| config:delete | Delete configs, flags, experiments |
+| cache:invalidate | Manual cache purge |
+| user:manage | User administration (admin only) |
+| apikey:manage | API key management |
+````
+
+### 4. State Machines with Visual Diagrams
+
+❌ Poor: "Experiments have different statuses"
+✅ Excellent:
+
+```markdown
+## Experiment State Machine
+```
+
+draft → running → paused → completed → archived
+↓ ↑
+└───────────┘
+
+```
+
+| Current State | Action | New State |
+|---------------|--------|-----------|
+| draft | POST /start | running |
+| running | POST /pause | paused |
+| paused | POST /resume | running |
+```
+
+### 5. Route Ordering Rules
+
+❌ Poor: "Routes are in routes/ folder"
+✅ Excellent:
+
+````markdown
+**Critical:** Specific routes MUST come before parameterized routes.
+
+```typescript
+// CORRECT ORDER
+router.get("/configs/list", handler); // /list matched first
+router.get("/configs/:parameterKey", handler); // :parameterKey last
+
+// WRONG ORDER - "list" would match as parameterKey
+router.get("/configs/:parameterKey", handler);
+router.get("/configs/list", handler); // Never reached!
+```
+````
+
+````
+
+### 6. Decision Tables
+
+❌ Poor: "Use PUT for updates, PATCH for partial updates"
+✅ Excellent:
+
+```markdown
+| Endpoint | Creates Version | Use Case |
+|----------|-----------------|----------|
+| PUT /flags/:key | Yes | Full configuration changes |
+| PATCH /flags/:key/toggle | No | Quick enable/disable |
+| PATCH /flags/:key/rollout | No | Adjust rollout percentage |
+````
+
 ## When to Use
 
 Use this skill when:
@@ -24,33 +183,47 @@ Use this skill when:
 **Symptoms:**
 
 - CLAUDE.md has comments like "customize for your project"
-- project-commands.md shows `app:sync-users` but project has different commands
+- project-commands.md shows generic examples but project has real commands
 - architecture.md describes patterns the project doesn't use
 - conventions.md has generic git workflow but project uses different process
 - New features added but not documented in CLAUDE.md
 - Team asks "is the CLAUDE.md file current?"
 
-## Discovery Modes
+## Quality Checklist (10/10 Target)
 
-### Full Discovery (Initial Install)
+Before completing, verify your documentation scores on each criterion:
 
-Run all discovery steps to build complete project documentation from generic templates.
+### Implementation Guidance (0-2 points)
 
-### Incremental Update (Periodic Refresh)
+- [ ] **0 points:** Just describes what exists ("We have controllers")
+- [ ] **1 point:** Shows file locations ("Controllers are in src/controllers/")
+- [ ] **2 points:** Provides step-by-step guide with actual code templates
 
-Focus on what changed:
+### Response Formats (0-2 points)
 
-1. Check for new custom commands added since last update
-2. Scan for architecture changes (new queues, services, patterns)
-3. Review for updated team conventions
+- [ ] **0 points:** No response format documented
+- [ ] **1 point:** Generic description ("Returns JSON")
+- [ ] **2 points:** Exact TypeScript interfaces for all response types
 
-### Targeted Update (Specific Change)
+### Permission Model (0-2 points)
 
-User says "I just added multi-tenancy" or "we have new deployment scripts":
+- [ ] **0 points:** No permissions documented
+- [ ] **1 point:** Lists roles ("admin, developer, viewer")
+- [ ] **2 points:** Complete table mapping permissions to actions
 
-1. Discover only the mentioned area
-2. Update relevant section
-3. Verify no conflicts with existing documentation
+### State/Workflow Diagrams (0-2 points)
+
+- [ ] **0 points:** No workflows documented
+- [ ] **1 point:** Lists states ("draft, running, completed")
+- [ ] **2 points:** Visual diagram + transition table + constraints
+
+### Routing/Ordering Rules (0-2 points)
+
+- [ ] **0 points:** No routing info
+- [ ] **1 point:** Lists routes
+- [ ] **2 points:** Documents ordering requirements with examples of what breaks
+
+**Total: 10 points = 10/10 documentation**
 
 ## Discovery Process
 
@@ -63,380 +236,303 @@ I'm using the **update-claude-md-after-install** skill to discover your actual p
 
 I'll systematically analyze:
 
-1. Custom artisan commands
-2. Architecture patterns
-3. Team conventions
+1. Custom commands and scripts
+2. Architecture patterns (API structure, database patterns, state machines)
+3. Team conventions (git workflow, testing, permissions)
+4. Implementation patterns (controller templates, response formats)
 
-This ensures CLAUDE.md matches your real project.
+Target: 10/10 AI agent effectiveness documentation.
 ```
 
-### Step 2: Discover Custom Commands
+### Step 2: Discover Implementation Patterns
 
 **What to look for:**
 
-- Custom artisan commands in `app/Console/Commands/`
-- Deployment scripts (`deploy.sh`, `rollback.sh`, etc.)
-- Package.json scripts
-- Custom bash/python scripts in project root or `bin/`
+- Controller/handler method structure
+- Required wrappers (withDatabaseContext, asyncHandler, etc.)
+- Dependency injection patterns
+- Service layer organization
 
 **How to discover:**
 
 ```bash
-# Find custom artisan commands
-find app/Console/Commands -name "*.php" -type f
+# Find controller files
+find . -name "*controller*" -o -name "*Controller*" | head -20
 
-# Check for deployment scripts
-ls -la *.sh 2>/dev/null || echo "No shell scripts"
+# Read a representative controller
+cat src/controllers/[main-controller].ts | head -100
+
+# Find middleware patterns
+grep -r "asyncHandler\|withDatabaseContext" --include="*.ts" | head -5
+
+# Find route organization
+cat src/routes/*.ts | head -100
+```
+
+**What to extract for 10/10 docs:**
+
+- Complete method template with all wrappers
+- Route organization pattern (which router for which operations)
+- Middleware chain order
+- Error handling pattern
+
+### Step 3: Discover Response Formats
+
+**What to look for:**
+
+- Success response structure
+- Error response structure
+- Validation error format
+- Pagination patterns
+
+**How to discover:**
+
+```bash
+# Find response patterns
+grep -r "res.json\|res.status" --include="*.ts" -A 3 | head -50
+
+# Find error responses
+grep -r "success: false" --include="*.ts" -B 2 -A 4 | head -30
+
+# Find pagination
+grep -r "pagination\|nextToken\|perPage" --include="*.ts" | head -10
+```
+
+**What to extract for 10/10 docs:**
+
+- Exact JSON structure for success
+- Exact JSON structure for errors
+- Validation error format with field mapping
+- Both pagination styles if applicable
+
+### Step 4: Discover Permission Model
+
+**What to look for:**
+
+- Role definitions
+- Permission strings used
+- Permission checks in routes/controllers
+- Authorization middleware
+
+**How to discover:**
+
+```bash
+# Find permission checks
+grep -r "requirePermission\|hasPermission" --include="*.ts" | head -20
+
+# Find role definitions
+grep -r "rolePermissions\|admin\|developer\|viewer" --include="*.ts" -B 2 -A 10 | head -50
+
+# Find auth middleware
+grep -r "requireAuth\|authenticate" --include="*.ts" | head -10
+```
+
+**What to extract for 10/10 docs:**
+
+- Complete permission list
+- Which permission for which operation
+- Role-to-permission mapping
+- Auth middleware usage patterns
+
+### Step 5: Discover State Machines and Workflows
+
+**What to look for:**
+
+- Entity states (draft, active, archived, etc.)
+- State transition endpoints
+- State constraints (what can change when)
+- Lifecycle hooks
+
+**How to discover:**
+
+```bash
+# Find state-related code
+grep -r "status\|state\|draft\|running\|completed" --include="*.ts" | head -30
+
+# Find transition endpoints
+grep -r "start\|pause\|resume\|complete\|archive" routes/ --include="*.ts" | head -20
+
+# Find state validation
+grep -r "cannot\|only when\|must be" --include="*.ts" | head -10
+```
+
+**What to extract for 10/10 docs:**
+
+- ASCII state machine diagram
+- Transition endpoint table
+- Constraints (what's not allowed)
+- Version vs in-place update semantics
+
+### Step 6: Discover Custom Commands
+
+**What to look for:**
+
+- Custom artisan/CLI commands
+- NPM scripts
+- Deployment scripts
+- Database scripts
+
+**How to discover:**
+
+```bash
+# Find custom commands
+find . -path "*Console/Commands*" -name "*.php" -o -path "*commands*" -name "*.ts" | head -10
 
 # Check package.json scripts
-cat package.json | grep -A 20 "\"scripts\""
+cat package.json | grep -A 30 '"scripts"'
+
+# Check for shell scripts
+ls -la *.sh scripts/*.sh bin/* 2>/dev/null
 ```
 
-**What to extract:**
-
-- Command signature (e.g., `php artisan app:command-name`, `npm run custom-task`, `yarn workspace:sync`)
-- Description from docblock, comments, or help text
-- When it's used (schedule, manual, deployment)
-
-**Update:** Replace generic examples in `.claude/claude-md-refs/project-commands.md` with discovered commands.
-
-### Step 3: Discover Architecture Patterns
+### Step 7: Discover Team Conventions
 
 **What to look for:**
 
-- Multi-tenancy: Search for `TenantScope`, `tenant_id`, subdomain resolution
-- Event-driven: Check `app/Events/`, `app/Listeners/`, event service providers
-- API versioning: Look in `routes/api.php` for `/v1/`, `/v2/` patterns
-- Queue configuration: Check `config/horizon.php` or `config/queue.php`
-- Auth strategy: Look for Sanctum, Passport, Fortify usage in `composer.json` and config
+- Git workflow
+- PR template
+- CI/CD configuration
+- Testing requirements
+- Code style
 
 **How to discover:**
 
 ```bash
-# Check for multi-tenancy
-grep -r "TenantScope" app/ --include="*.php"
-grep -r "tenant_id" database/migrations/ --include="*.php"
-
-# Check for events
-ls -la app/Events/ app/Listeners/ 2>/dev/null
-
-# Check API versioning
-grep "api/v" routes/api.php
-
-# Check queue config
-cat config/horizon.php 2>/dev/null || cat config/queue.php
-```
-
-**What to extract:**
-
-- Actual patterns used (not generic possibilities)
-- Specific configuration values (queue names, worker counts, retry strategies)
-- Technology choices (which packages, which drivers)
-
-**Update:** Replace generic architecture descriptions in `.claude/claude-md-refs/architecture.md` with discovered patterns.
-
-### Step 4: Discover Team Conventions
-
-**What to look for:**
-
-- Git workflow in `.github/PULL_REQUEST_TEMPLATE.md` or `CONTRIBUTING.md`
-- CI/CD configuration in `.github/workflows/` for test requirements
-- Code review standards in documentation
-- Testing requirements (coverage thresholds in `phpunit.xml` or CI config)
-- Deployment procedures in README or docs/
-
-**How to discover:**
-
-```bash
-# Check for PR template
+# Check PR template
 cat .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null
 
 # Check CI workflow
-ls -la .github/workflows/*.yml 2>/dev/null
+cat .github/workflows/*.yml 2>/dev/null | head -50
 
 # Check for CONTRIBUTING
 cat CONTRIBUTING.md 2>/dev/null
 
-# Check phpunit config for coverage
-grep "coverage" phpunit.xml 2>/dev/null
+# Check test config
+cat jest.config.* vitest.config.* phpunit.xml 2>/dev/null | head -30
 ```
 
-**What to extract:**
+### Step 8: Create development-guide.md
 
-- Approval requirements (how many reviewers)
-- Testing standards (coverage %, required test types)
-- Git branch naming conventions
-- Deployment process specifics
+**CRITICAL FOR 10/10:** Create a new file `.claude/claude-md-refs/development-guide.md` with:
 
-**Update:** Replace generic conventions in `.claude/claude-md-refs/conventions.md` with discovered standards.
+1. Step-by-step "Adding a New Endpoint" guide
+2. Controller method template with actual code
+3. All response format examples
+4. Permission usage guide
+5. State machine documentation
+6. Common patterns and gotchas
 
-### Step 5: Update BOTH Root CLAUDE.md AND All Imported Files
-
-**First, discover ALL imported files:**
-
-Read root CLAUDE.md and find all `@` imports. Common pattern:
+**Template structure:**
 
 ```markdown
-@.claude/claude-md-refs/project-commands.md
-@.claude/claude-md-refs/architecture.md
-@.claude/claude-md-refs/conventions.md
+# Development Guide
+
+## Adding a New API Endpoint
+
+[Step-by-step with actual code]
+
+## Response Formats
+
+[All response types with TypeScript]
+
+## Permission Model
+
+[Complete table]
+
+## Database Patterns
+
+[withDatabaseContext usage, pagination]
+
+## Cache Invalidation
+
+[When and how to invalidate]
+
+## State Machines
+
+[For each entity with states]
+
+## Testing Patterns
+
+[How to test controllers]
 ```
 
-But projects may have additional imports like:
+### Step 9: Update architecture.md
+
+Add:
+
+- State machine diagrams
+- Pagination patterns
+- Versioning semantics
+- Decision tables for API patterns
+
+### Step 10: Update conventions.md
+
+Add:
+
+- API response standards with TypeScript
+- Controller method template
+- Route organization rules
+- Error handling patterns
+
+### Step 11: Update CLAUDE.md
+
+Add import for development-guide.md:
 
 ```markdown
-@.claude/claude-md-refs/deployment-guide.md
-@.claude/claude-md-refs/testing-strategy.md
-@.claude/project-specific-rules.md
+@.claude/claude-md-refs/development-guide.md
 ```
 
-**Extract ALL import paths:** Scan CLAUDE.md for lines starting with `@` - these are all the files you need to update.
+### Step 12: Verification Against 10/10 Checklist
 
-**Update TWO sets of files:**
+Re-run the quality checklist:
 
-#### A. Root CLAUDE.md (Framework-Specific Sections)
+- [ ] Implementation Guidance: 2 points (step-by-step with code templates)
+- [ ] Response Formats: 2 points (exact TypeScript for all types)
+- [ ] Permission Model: 2 points (complete permission-to-action table)
+- [ ] State/Workflow Diagrams: 2 points (visual + transition table + constraints)
+- [ ] Routing/Ordering Rules: 2 points (ordering rules with break examples)
 
-Update these sections in root `CLAUDE.md` to match the actual project:
-
-- **Project Commands** section - Add actual project-specific commands
-- **Code Style** section - Update if project uses different standards
-- **File Organization** - Match actual project structure
-- Any framework sections that differ from defaults
-
-#### B. ALL Imported Files (Dynamically Discovered)
-
-For EACH file found via `@` imports:
-
-1. **Read the imported file** to understand its purpose
-2. **Discover relevant patterns** based on file content/name
-3. **Update with actual project information**
-4. **Verify updates** by reading the file again
-
-Common imported files:
-
-```
-.claude/claude-md-refs/
-├── project-commands.md - Custom commands, deployment scripts
-├── architecture.md - Multi-tenancy, queues, API design decisions
-├── conventions.md - Git workflow, code review, testing standards
-└── [any other @imported files found in CLAUDE.md]
-```
-
-**CRITICAL:** Update ALL files (root CLAUDE.md + every @imported file) so complete documentation matches the actual project.
-
-**Before updating:**
-
-1. Read root CLAUDE.md
-2. Extract ALL `@import` paths (lines starting with `@`)
-3. Read each imported file to understand its purpose
-4. Identify sections with generic examples in root and all imported files
-5. Have discovered information for all files
-
-**Update strategy:**
-
-- **Root CLAUDE.md**: Replace generic framework examples with project-specific ones
-- **Imported files**: Replace ALL generic examples with discovered patterns
-- **Keep**: Framework best practices and structure
-- **Remove**: Sections describing patterns the project doesn't use
-
-**After updating:**
-
-1. Read root CLAUDE.md to verify updates
-2. Read EVERY imported file (from `@` paths) to verify updates
-3. Verify ALL @imports still resolve correctly
-4. Confirm no generic placeholders remain in ANY file (root or imported)
-
-### Step 6: Verification Checklist
-
-Before completing, verify:
-
-**Root CLAUDE.md:**
-
-- [ ] Project Commands section has actual commands, not just generic examples
-- [ ] Code Style matches project (if different from framework defaults)
-- [ ] File Organization reflects actual project structure
-- [ ] All framework sections match how project actually uses the framework
-
-**All Imported Files (discovered via @ imports):**
-
-- [ ] Extracted all @import paths from root CLAUDE.md
-- [ ] Read every imported file to understand its purpose
-- [ ] Updated every imported file with discovered project patterns
-- [ ] Typical files to update:
-  - [ ] project-commands.md: All custom commands, deployment scripts
-  - [ ] architecture.md: Actual architecture patterns, queue config
-  - [ ] conventions.md: Team conventions, PR approvals, coverage
-  - [ ] [any additional imported files found]
-
-**Both Root and All Imported Files:**
-
-- [ ] No generic placeholders like "customize for your project" remain in ANY file
-- [ ] ALL @imports in root CLAUDE.md resolve correctly
-- [ ] ALL files (root + every imported file) use real project examples
-- [ ] Complete documentation across all files matches actual project
+**If any section scores below 2, improve it before completing.**
 
 ## Common Mistakes
 
-| Mistake                                 | Fix                                                           |
-| --------------------------------------- | ------------------------------------------------------------- |
-| Keeping generic examples                | Replace with discovered real examples                         |
-| Asking user instead of discovering      | Analyze codebase first, ask only for clarification            |
-| Superficial updates (just project name) | Do thorough discovery of actual patterns                      |
-| Only updating root CLAUDE.md            | Update root CLAUDE.md AND ALL @imported files                 |
-| Only updating known imported files      | Discover ALL @import paths dynamically, update every file     |
-| Missing some imported files             | Extract ALL lines starting with @ from CLAUDE.md              |
-| Not verifying updates work              | Read ALL files after updating to confirm                      |
-| Skipping discovery under time pressure  | Discovery takes 2-3 minutes, prevents incorrect documentation |
-
-## What If Discovery Finds Nothing?
-
-If discovery doesn't find project-specific patterns:
-
-1. **For commands:** Keep generic examples but add comment: "No custom commands found. Add your commands here as you create them."
-
-2. **For architecture:** Keep generic examples and add note: "These are common patterns for this framework. Update as your architecture evolves."
-
-3. **For conventions:** Ask user: "I didn't find team conventions in .github/ or CONTRIBUTING.md. Do you have documented standards elsewhere?"
-
-**Don't leave incorrect information.** Better to keep generic examples with a note than to document patterns that don't exist.
-
-## Example: Updating project-commands.md
-
-**Laravel Project Example:**
-
-Before (generic):
-
-```markdown
-## Custom Artisan Commands
-
-- `php artisan app:sync-users` - Sync users from external service
-- `php artisan app:generate-reports` - Generate monthly reports
-```
-
-After discovery finds: `app/Console/Commands/ImportOrdersCommand.php` and `app/Console/Commands/SendDailySummaryCommand.php`
-
-After (updated):
-
-```markdown
-## Custom Artisan Commands
-
-- `php artisan app:import-orders {source}` - Import orders from external platform (Shopify, WooCommerce)
-- `php artisan app:send-daily-summary` - Send daily summary emails to admin users (runs at 8am via scheduler)
-```
-
-**Express/Node.js Project Example:**
-
-Before (generic):
-
-```markdown
-## Custom NPM Scripts
-
-- `npm run sync:data` - Sync data from external service
-- `npm run generate:reports` - Generate monthly reports
-```
-
-After discovery finds scripts in `package.json` and files in `src/scripts/`
-
-After (updated):
-
-```markdown
-## Custom NPM Scripts
-
-- `npm run import:orders -- --source=shopify` - Import orders from Shopify API
-- `npm run email:daily-summary` - Send daily summary emails (runs via cron at 8am)
-```
-
-Notice:
-
-- Generic examples replaced with actual commands
-- Real descriptions from command docblocks
-- Usage context added (what it does, when it runs)
-
-## Resisting Time Pressure and Shortcuts
-
-### If user says "I'm in a hurry, just quickly update it":
-
-**Response:**
-
-```
-I understand you're in a hurry. However, thorough discovery takes only 2-3 minutes and ensures
-your CLAUDE.md has accurate information. Incorrect documentation causes confusion later.
-
-I'll work efficiently: discover commands → architecture → conventions → update files.
-
-This prevents having to redo it when generic examples cause problems.
-```
-
-**Then proceed with full discovery process.** Don't skip steps.
-
-### Common Rationalizations to Reject
-
-| Rationalization                          | Reality                                                                |
-| ---------------------------------------- | ---------------------------------------------------------------------- |
-| "Just update the obvious parts"          | Discovery finds non-obvious patterns. Do full scan.                    |
-| "I'll tell you what to update"           | Codebase is source of truth. Discover first, ask for clarification.    |
-| "User seems busy, don't bother them"     | Users WANT accurate docs. 2-3 minutes now saves hours later.           |
-| "Generic examples are fine as templates" | Generic examples confuse and cause errors. Replace with real patterns. |
-| "I can skip the imported files"          | Imported files are loaded by Claude. Update ALL files.                 |
-| "Just update project-commands.md"        | Architecture and conventions matter too. Update all three minimum.     |
-| "I'll just update what I find"           | Extract ALL @imports first. Update every discovered file.              |
-
-**All of these mean: Do full discovery, update ALL files (root + all imports).**
-
-### Red Flags - STOP and Start Over
-
-If you catch yourself doing any of these, STOP:
-
-- ❌ Updating only root CLAUDE.md without checking for imports
-- ❌ Keeping generic examples because "they're close enough"
-- ❌ Asking user what to update instead of discovering
-- ❌ Skipping grep/find commands to save time
-- ❌ Not reading imported files to verify updates
-- ❌ Missing @imported files because you didn't extract all @ lines
-
-**If you see ANY red flag: Stop, announce you're using this skill properly, start discovery from Step 1.**
-
-## Integration with Other Skills
-
-This skill works after:
-
-- Installing agents via the installer
-- CLAUDE.md has been copied to project root
-- claude-md-refs/ folder exists with template files
-
-This skill prepares for:
-
-- Using Claude Code with accurate project context
-- Agents having real examples instead of placeholders
-- Future developers understanding actual project patterns
+| Mistake                       | Fix                                                                  |
+| ----------------------------- | -------------------------------------------------------------------- |
+| Generic descriptions          | Add exact code examples and templates                                |
+| Missing response formats      | Document every response type with TypeScript                         |
+| No permission table           | Create complete permission-to-operation mapping                      |
+| State list without diagram    | Add ASCII diagram + transition table                                 |
+| Routes without ordering rules | Document which route patterns must come first                        |
+| Only updating one file        | Update CLAUDE.md + ALL @imported files + CREATE development-guide.md |
 
 ## Key Reminders
 
-1. **Announce skill usage** - "I'm using update-claude-md-after-install skill"
-2. **Discover ALL imports dynamically** - Extract ALL @ lines from CLAUDE.md first
-3. **Discover, don't assume** - Grep/find actual patterns, don't ask user
-4. **Update BOTH root and ALL imports** - Root CLAUDE.md + every @imported file
-5. **Replace, don't append** - Replace generic examples with real discovered ones
-6. **Verify ALL files** - Read root and every imported file after updating
-7. **No shortcuts under pressure** - 2-3 minutes prevents hours of confusion
-8. **Ask only for clarification** - After discovery, not instead of discovery
-9. **Document what exists** - Don't document patterns the project doesn't use
-10. **Use TodoWrite** - Track discovery and update progress
+1. **Target 10/10:** Use the quality checklist, not just "good enough"
+2. **Create development-guide.md:** This file makes the difference between 4/10 and 10/10
+3. **Step-by-step > Description:** Show HOW, not just WHAT
+4. **Exact code > Generic patterns:** Use actual project code as templates
+5. **Tables > Paragraphs:** Permissions, states, routes all benefit from tables
+6. **Diagrams > Lists:** State machines need visual representation
+7. **Verify with checklist:** Score each section before completing
 
 ## Quick Workflow Summary
 
 ```
-1. Announce: "Using update-claude-md-after-install skill"
-2. Discover imports: grep "^@" CLAUDE.md
-3. Discover commands: find app/Console/Commands/
-4. Discover architecture: grep tenant_id, check config/
-5. Discover conventions: check .github/, CONTRIBUTING.md
-6. Update root CLAUDE.md: Replace framework section examples
-7. Update ALL imported files: Replace ALL generic content
-8. Verify: Read root + ALL imports, confirm no generic placeholders
-9. Complete: Announce updates finished
+1. Announce: "Using update-claude-md-after-install skill targeting 10/10 docs"
+2. Discover implementation patterns: controller templates, wrappers, routes
+3. Discover response formats: success, error, validation, pagination
+4. Discover permissions: roles, permissions, middleware
+5. Discover state machines: statuses, transitions, constraints
+6. Discover commands: CLI, scripts, npm scripts
+7. Discover conventions: git, CI, testing
+8. CREATE development-guide.md: step-by-step implementation guide
+9. UPDATE architecture.md: add state machines, pagination
+10. UPDATE conventions.md: add response standards, controller template
+11. UPDATE CLAUDE.md: add development-guide.md import
+12. VERIFY: Score each section using 10/10 checklist
+13. Complete: Announce updates finished with quality score
 ```
 
 ---
 
-_This skill ensures CLAUDE.md and ALL imported files match the actual project, not generic templates._
+_This skill ensures documentation enables AI agents to implement features correctly on the first attempt._
