@@ -89,16 +89,17 @@ api_call() {
   echo "${http_code}|${body}"
 }
 
-# Helper function for authenticated API calls (uses API_KEY)
+# Helper function for authenticated API calls (prefers JWT_TOKEN for seeding)
 auth_api_call() {
   local method=$1
   local path=$2
   local data=$3
 
-  if [ -n "$API_KEY" ]; then
-    api_call "$method" "$path" "$data" "X-API-Key: $API_KEY"
-  elif [ -n "$JWT_TOKEN" ]; then
+  # Prefer JWT token for seeding as it's more reliable
+  if [ -n "$JWT_TOKEN" ]; then
     api_call "$method" "$path" "$data" "Authorization: Bearer $JWT_TOKEN"
+  elif [ -n "$API_KEY" ]; then
+    api_call "$method" "$path" "$data" "X-API-Key: $API_KEY"
   else
     api_call "$method" "$path" "$data" ""
   fi
