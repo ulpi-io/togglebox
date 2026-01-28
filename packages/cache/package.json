@@ -30,7 +30,7 @@
     "directory": "packages/cache"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudfront": "^3.705.0",
+    "@aws-sdk/client-cloudfront": "^3.975.0",
     "@togglebox/shared": "workspace:*"
   },
   "peerDependencies": {

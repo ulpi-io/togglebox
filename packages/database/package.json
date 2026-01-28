@@ -18,8 +18,8 @@
     "prisma:deploy": "npm run schema:generate && prisma migrate deploy"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.705.0",
-    "@aws-sdk/lib-dynamodb": "^3.705.0",
+    "@aws-sdk/client-dynamodb": "^3.975.0",
+    "@aws-sdk/lib-dynamodb": "^3.975.0",
     "@prisma/client": "^5.7.0",
     "@togglebox/configs": "workspace:*",
     "@togglebox/core": "workspace:*",
