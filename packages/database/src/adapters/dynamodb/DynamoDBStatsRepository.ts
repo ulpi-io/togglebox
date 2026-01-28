@@ -14,7 +14,7 @@
  * - Read operations: Aggregate across all shards for complete stats
  */
 
-import { UpdateCommand, GetCommand, QueryCommand, DeleteCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { UpdateCommand, GetCommand, QueryCommand, DeleteCommand, BatchWriteCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import type {
   ConfigStats,
   FlagStats,
@@ -22,6 +22,7 @@ import type {
   FlagStatsDaily,
   ExperimentStats,
   ExperimentMetricStats,
+  CustomEventStats,
   StatsEvent,
 } from '@togglebox/stats';
 import type { IStatsRepository } from '@togglebox/stats';
@@ -458,8 +459,9 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     const now = new Date().toISOString();
     const today = now.split('T')[0];
 
-    // Update metric stats
-    let updateExpression = 'ADD conversions :inc, sampleSize :inc SET lastConversionAt = :now, experimentKey = :expKey, variationKey = :varKey, metricId = :metricId';
+    // Build ADD section first (DynamoDB requires all ADD operations together before SET)
+    // Note: 'count' is a reserved word in DynamoDB, so we use ExpressionAttributeNames
+    let addExpression = 'ADD conversions :inc, sampleSize :inc, #count :inc';
     const expressionAttributeValues: Record<string, unknown> = {
       ':inc': 1,
       ':now': now,
@@ -469,35 +471,44 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     };
 
     if (value !== undefined) {
-      updateExpression += ' ADD sumValue :value';
+      addExpression += ', sumValue :value';
       expressionAttributeValues[':value'] = value;
     }
+
+    // Then SET section
+    const updateExpression = `${addExpression} SET lastConversionAt = :now, experimentKey = :expKey, variationKey = :varKey, metricId = :metricId`;
 
     await dynamoDBClient.send(new UpdateCommand({
       TableName: this.getTableName(),
       Key: { PK: pk, SK: sk },
       UpdateExpression: updateExpression,
+      ExpressionAttributeNames: { '#count': 'count' },
       ExpressionAttributeValues: expressionAttributeValues,
     }));
 
     // Update daily metric stats
     const dailySK = `STATS#EXP#${experimentKey}#VAR#${variationKey}#METRIC#${metricId}#DATE#${today}`;
-    let dailyUpdateExpression = 'ADD conversions :inc, sampleSize :inc SET #date = :date';
+    // Build ADD section first (DynamoDB requires all ADD operations together before SET)
+    // Note: 'count' is a reserved word in DynamoDB, so we use ExpressionAttributeNames
+    let dailyAddExpression = 'ADD conversions :inc, sampleSize :inc, #count :inc';
     const dailyExpressionAttributeValues: Record<string, unknown> = {
       ':inc': 1,
       ':date': today,
     };
 
     if (value !== undefined) {
-      dailyUpdateExpression += ' ADD sumValue :value';
+      dailyAddExpression += ', sumValue :value';
       dailyExpressionAttributeValues[':value'] = value;
     }
+
+    // Then SET section
+    const dailyUpdateExpression = `${dailyAddExpression} SET #date = :date`;
 
     await dynamoDBClient.send(new UpdateCommand({
       TableName: this.getTableName(),
       Key: { PK: pk, SK: dailySK },
       UpdateExpression: dailyUpdateExpression,
-      ExpressionAttributeNames: { '#date': 'date' },
+      ExpressionAttributeNames: { '#date': 'date', '#count': 'count' },
       ExpressionAttributeValues: dailyExpressionAttributeValues,
     }));
   }
@@ -610,6 +621,78 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   }
 
   // =========================================================================
+  // CUSTOM EVENT STATS
+  // =========================================================================
+
+  /**
+   * Record a custom event.
+   */
+  async recordCustomEvent(
+    platform: string,
+    environment: string,
+    eventName: string,
+    userId?: string,
+    properties?: Record<string, unknown>
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    const eventId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    // Store custom events with time-based PK for efficient querying
+    const pk = `CUSTOM#${platform}#${environment}`;
+    const sk = `EVENT#${eventName}#${now}#${eventId}`;
+
+    await dynamoDBClient.send(new PutCommand({
+      TableName: this.getTableName(),
+      Item: {
+        PK: pk,
+        SK: sk,
+        platform,
+        environment,
+        eventName,
+        userId: userId || null,
+        properties: properties || null,
+        timestamp: now,
+      },
+    }));
+  }
+
+  /**
+   * Get custom events for a platform/environment.
+   */
+  async getCustomEvents(
+    platform: string,
+    environment: string,
+    eventName?: string,
+    limit: number = 100
+  ): Promise<CustomEventStats[]> {
+    const pk = `CUSTOM#${platform}#${environment}`;
+    const skPrefix = eventName ? `EVENT#${eventName}#` : 'EVENT#';
+
+    const result = await dynamoDBClient.send(new QueryCommand({
+      TableName: this.getTableName(),
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+      ExpressionAttributeValues: {
+        ':pk': pk,
+        ':prefix': skPrefix,
+      },
+      ScanIndexForward: false, // Most recent first
+      Limit: limit,
+    }));
+
+    return (result.Items || []).map(item => {
+      const dynItem = item as DynamoItem;
+      return {
+        platform: dynItem['platform'] as string,
+        environment: dynItem['environment'] as string,
+        eventName: dynItem['eventName'] as string,
+        userId: (dynItem['userId'] as string) || undefined,
+        properties: (dynItem['properties'] as Record<string, unknown>) || undefined,
+        timestamp: dynItem['timestamp'] as string,
+      };
+    });
+  }
+
+  // =========================================================================
   // BATCH PROCESSING
   // =========================================================================
 
@@ -666,9 +749,13 @@ export class DynamoDBStatsRepository implements IStatsRepository {
             break;
 
           case 'custom_event':
-            // Custom events are accepted but not persisted to database yet.
-            // Log for visibility instead of silently dropping.
-            console.log(`[stats] Custom event received: ${event.eventName} (userId: ${event.userId ?? 'anonymous'})`);
+            await this.recordCustomEvent(
+              platform,
+              environment,
+              event.eventName,
+              event.userId,
+              event.properties
+            );
             break;
         }
       } catch (error) {

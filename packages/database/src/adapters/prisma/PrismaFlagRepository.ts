@@ -433,8 +433,8 @@ export class PrismaFlagRepository implements IFlagRepository {
       description: row.description || undefined,
       enabled: row.enabled,
       flagType: row.flagType as 'boolean' | 'string' | 'number',
-      valueA: this.safeParse(row.valueA, null),
-      valueB: this.safeParse(row.valueB, null),
+      valueA: this.safeParse(row.valueA, false),
+      valueB: this.safeParse(row.valueB, false),
       targeting: this.safeParse(row.targeting, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
       defaultValue: row.defaultValue as 'A' | 'B',
       // Percentage rollout (defaults for backward compatibility)

@@ -154,6 +154,24 @@ export const ExperimentStatsSchema = z.object({
 export type ExperimentStats = z.infer<typeof ExperimentStatsSchema>;
 
 // ============================================================================
+// CUSTOM EVENT STATS
+// ============================================================================
+
+/**
+ * Stored custom event record.
+ */
+export const CustomEventStatsSchema = z.object({
+  platform: z.string(),
+  environment: z.string(),
+  eventName: z.string(),
+  userId: z.string().optional(),
+  properties: z.record(z.unknown()).optional(),
+  timestamp: z.string().datetime(),
+});
+
+export type CustomEventStats = z.infer<typeof CustomEventStatsSchema>;
+
+// ============================================================================
 // SDK EVENTS
 // ============================================================================
 

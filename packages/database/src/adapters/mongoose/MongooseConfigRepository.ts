@@ -128,7 +128,7 @@ export class MongooseConfigRepository implements IConfigRepository {
     // 3. Try to use transactions for atomicity (requires replica set)
     const session = await ConfigParameterModel.startSession();
     try {
-      let created: IConfigParameterDocument;
+      let created: IConfigParameterDocument | undefined;
 
       await session.withTransaction(async () => {
         // Deactivate old version
@@ -170,7 +170,10 @@ export class MongooseConfigRepository implements IConfigRepository {
         created = docs[0];
       });
 
-      return this.mapToConfigParameter(created!);
+      if (!created) {
+        throw new Error('Failed to create new config parameter version');
+      }
+      return this.mapToConfigParameter(created);
     } catch (error: unknown) {
       // If transactions are not available, fall back to non-transactional update
       const errorCode = (error as { code?: number }).code;

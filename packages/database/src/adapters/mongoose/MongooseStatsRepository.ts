@@ -13,10 +13,11 @@ import type {
   FlagStatsDaily,
   ExperimentStats,
   ExperimentMetricStats,
+  CustomEventStats,
   StatsEvent,
 } from '@togglebox/stats';
 import type { IStatsRepository } from '@togglebox/stats';
-import { StatsModel } from './schemas';
+import { StatsModel, CustomEventModel } from './schemas';
 
 /**
  * Simple concurrency limiter for batch processing.
@@ -368,6 +369,7 @@ export class MongooseStatsRepository implements IStatsRepository {
     const incFields: Record<string, number> = {
       conversions: 1,
       sampleSize: 1,
+      count: 1,
     };
 
     if (value !== undefined) {
@@ -400,6 +402,7 @@ export class MongooseStatsRepository implements IStatsRepository {
     const dailyIncFields: Record<string, number> = {
       conversions: 1,
       sampleSize: 1,
+      count: 1,
     };
 
     if (value !== undefined) {
@@ -495,8 +498,62 @@ export class MongooseStatsRepository implements IStatsRepository {
       date: doc.date ?? '',
       sampleSize: doc.sampleSize ?? 0,
       sum: doc.sumValue ?? 0,
-      count: doc.conversions ?? 0,
+      count: doc.count ?? 0,
       conversions: doc.conversions ?? 0,
+    }));
+  }
+
+  // =========================================================================
+  // CUSTOM EVENT STATS
+  // =========================================================================
+
+  /**
+   * Record a custom event.
+   */
+  async recordCustomEvent(
+    platform: string,
+    environment: string,
+    eventName: string,
+    userId?: string,
+    properties?: Record<string, unknown>
+  ): Promise<void> {
+    const now = new Date().toISOString();
+
+    await CustomEventModel.create({
+      platform,
+      environment,
+      eventName,
+      userId,
+      properties,
+      timestamp: now,
+    });
+  }
+
+  /**
+   * Get custom events for a platform/environment.
+   */
+  async getCustomEvents(
+    platform: string,
+    environment: string,
+    eventName?: string,
+    limit: number = 100
+  ): Promise<CustomEventStats[]> {
+    const query: Record<string, unknown> = { platform, environment };
+    if (eventName) {
+      query['eventName'] = eventName;
+    }
+
+    const docs = await CustomEventModel.find(query)
+      .sort({ timestamp: -1 })
+      .limit(limit);
+
+    return docs.map(doc => ({
+      platform: doc.platform,
+      environment: doc.environment,
+      eventName: doc.eventName,
+      userId: doc.userId,
+      properties: doc.properties,
+      timestamp: doc.timestamp,
     }));
   }
 
@@ -557,9 +614,13 @@ export class MongooseStatsRepository implements IStatsRepository {
             break;
 
           case 'custom_event':
-            // Custom events are accepted but not persisted to database yet.
-            // Log for visibility instead of silently dropping.
-            console.log(`[stats] Custom event received: ${event.eventName} (userId: ${event.userId ?? 'anonymous'})`);
+            await this.recordCustomEvent(
+              platform,
+              environment,
+              event.eventName,
+              event.userId,
+              event.properties
+            );
             break;
         }
       } catch (error) {

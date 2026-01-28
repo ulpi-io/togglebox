@@ -13,6 +13,7 @@ import type {
   FlagStatsDaily,
   ExperimentStats,
   ExperimentMetricStats,
+  CustomEventStats,
   StatsEvent,
 } from '@togglebox/stats';
 import type { IStatsRepository } from '@togglebox/stats';
@@ -412,7 +413,7 @@ export class D1StatsRepository implements IStatsRepository {
     const today = now.split('T')[0];
 
     // Update metric stats
-    let updateQuery = `UPDATE experiment_metric_stats SET conversions = conversions + 1, sampleSize = sampleSize + 1, lastConversionAt = ?1`;
+    let updateQuery = `UPDATE experiment_metric_stats SET conversions = conversions + 1, sampleSize = sampleSize + 1, count = count + 1, lastConversionAt = ?1`;
     const updateParams: unknown[] = [now];
 
     if (value !== undefined) {
@@ -431,15 +432,15 @@ export class D1StatsRepository implements IStatsRepository {
     if (updateResult.meta.rows_written === 0) {
       await this.db
         .prepare(
-          `INSERT INTO experiment_metric_stats (platform, environment, experimentKey, variationKey, metricId, conversions, sampleSize, sumValue, lastConversionAt)
-          VALUES (?1, ?2, ?3, ?4, ?5, 1, 1, ?6, ?7)`
+          `INSERT INTO experiment_metric_stats (platform, environment, experimentKey, variationKey, metricId, conversions, sampleSize, count, sumValue, lastConversionAt)
+          VALUES (?1, ?2, ?3, ?4, ?5, 1, 1, 1, ?6, ?7)`
         )
         .bind(platform, environment, experimentKey, variationKey, metricId, value || 0, now)
         .run();
     }
 
     // Update daily metric stats
-    let dailyUpdateQuery = `UPDATE experiment_metric_stats_daily SET conversions = conversions + 1, sampleSize = sampleSize + 1`;
+    let dailyUpdateQuery = `UPDATE experiment_metric_stats_daily SET conversions = conversions + 1, sampleSize = sampleSize + 1, count = count + 1`;
     const dailyUpdateParams: unknown[] = [];
 
     if (value !== undefined) {
@@ -458,8 +459,8 @@ export class D1StatsRepository implements IStatsRepository {
     if (dailyUpdateResult.meta.rows_written === 0) {
       await this.db
         .prepare(
-          `INSERT INTO experiment_metric_stats_daily (platform, environment, experimentKey, variationKey, metricId, date, conversions, sampleSize, sumValue)
-          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, 1, ?7)`
+          `INSERT INTO experiment_metric_stats_daily (platform, environment, experimentKey, variationKey, metricId, date, conversions, sampleSize, count, sumValue)
+          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, 1, 1, ?7)`
         )
         .bind(platform, environment, experimentKey, variationKey, metricId, today, value || 0)
         .run();
@@ -515,7 +516,7 @@ export class D1StatsRepository implements IStatsRepository {
   ): Promise<ExperimentMetricStats[]> {
     const result = await this.db
       .prepare(
-        `SELECT date, sampleSize, sumValue, conversions
+        `SELECT date, sampleSize, sumValue, count, conversions
         FROM experiment_metric_stats_daily
         WHERE platform = ?1 AND environment = ?2 AND experimentKey = ?3 AND variationKey = ?4 AND metricId = ?5
         ORDER BY date ASC`
@@ -525,6 +526,7 @@ export class D1StatsRepository implements IStatsRepository {
         date: string;
         sampleSize: number;
         sumValue: number;
+        count: number;
         conversions: number;
       }>();
 
@@ -537,8 +539,79 @@ export class D1StatsRepository implements IStatsRepository {
       date: row.date,
       sampleSize: row.sampleSize,
       sum: row.sumValue,
-      count: 0, // Not tracked separately in this implementation
+      count: row.count,
       conversions: row.conversions,
+    }));
+  }
+
+  // =========================================================================
+  // CUSTOM EVENT STATS
+  // =========================================================================
+
+  /**
+   * Record a custom event.
+   */
+  async recordCustomEvent(
+    platform: string,
+    environment: string,
+    eventName: string,
+    userId?: string,
+    properties?: Record<string, unknown>
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    await this.db
+      .prepare(
+        `INSERT INTO custom_event_stats (id, platform, environment, eventName, userId, properties, timestamp)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+      )
+      .bind(id, platform, environment, eventName, userId || null, properties ? JSON.stringify(properties) : null, now)
+      .run();
+  }
+
+  /**
+   * Get custom events for a platform/environment.
+   */
+  async getCustomEvents(
+    platform: string,
+    environment: string,
+    eventName?: string,
+    limit: number = 100
+  ): Promise<CustomEventStats[]> {
+    let query = `SELECT platform, environment, eventName, userId, properties, timestamp
+      FROM custom_event_stats
+      WHERE platform = ?1 AND environment = ?2`;
+
+    const params: unknown[] = [platform, environment];
+
+    if (eventName) {
+      query += ` AND eventName = ?3`;
+      params.push(eventName);
+    }
+
+    query += ` ORDER BY timestamp DESC LIMIT ?${params.length + 1}`;
+    params.push(limit);
+
+    const result = await this.db
+      .prepare(query)
+      .bind(...params)
+      .all<{
+        platform: string;
+        environment: string;
+        eventName: string;
+        userId: string | null;
+        properties: string | null;
+        timestamp: string;
+      }>();
+
+    return (result.results || []).map(row => ({
+      platform: row.platform,
+      environment: row.environment,
+      eventName: row.eventName,
+      userId: row.userId ?? undefined,
+      properties: row.properties ? JSON.parse(row.properties) : undefined,
+      timestamp: row.timestamp,
     }));
   }
 
@@ -599,9 +672,13 @@ export class D1StatsRepository implements IStatsRepository {
             break;
 
           case 'custom_event':
-            // Custom events are accepted but not persisted to database yet.
-            // Log for visibility instead of silently dropping.
-            console.log(`[stats] Custom event received: ${event.eventName} (userId: ${event.userId ?? 'anonymous'})`);
+            await this.recordCustomEvent(
+              platform,
+              environment,
+              event.eventName,
+              event.userId,
+              event.properties
+            );
             break;
         }
       } catch (error) {

@@ -12,6 +12,7 @@ import type {
   FlagStatsDaily,
   ExperimentStats,
   ExperimentMetricStats,
+  CustomEventStats,
   StatsEvent,
 } from './types';
 
@@ -145,6 +146,33 @@ export interface IStatsRepository {
     variationKey: string,
     metricId: string
   ): Promise<ExperimentMetricStats[]>;
+
+  // =========================================================================
+  // CUSTOM EVENT STATS
+  // =========================================================================
+
+  /**
+   * Record a custom event.
+   */
+  recordCustomEvent(
+    platform: string,
+    environment: string,
+    eventName: string,
+    userId?: string,
+    properties?: Record<string, unknown>
+  ): Promise<void>;
+
+  /**
+   * Get custom events for a platform/environment.
+   *
+   * @param limit - Maximum number of events to return (default: 100)
+   */
+  getCustomEvents(
+    platform: string,
+    environment: string,
+    eventName?: string,
+    limit?: number
+  ): Promise<CustomEventStats[]>;
 
   // =========================================================================
   // BATCH PROCESSING

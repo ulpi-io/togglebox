@@ -119,7 +119,10 @@ export function ToggleBoxProvider({
             setIsLoading(false)
 
             // Fetch fresh data in background
-            client.refresh().catch(console.error)
+            client
+              .refresh()
+              .then(() => setError(null))
+              .catch((err) => setError(err as Error))
             return
           }
         }

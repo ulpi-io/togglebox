@@ -341,6 +341,7 @@ export interface IStatsDocument extends Document {
   conversions?: number;
   sampleSize?: number;
   sumValue?: number;
+  count?: number;
   lastConversionAt?: string;
 
   updatedAt: string;
@@ -389,6 +390,7 @@ const StatsSchema = new Schema<IStatsDocument>({
   conversions: { type: Number, required: false },
   sampleSize: { type: Number, required: false },
   sumValue: { type: Number, required: false },
+  count: { type: Number, required: false },
   lastConversionAt: { type: String, required: false },
 
   updatedAt: { type: String, required: true },
@@ -402,3 +404,36 @@ StatsSchema.index({ platform: 1, environment: 1, statsType: 1, key: 1, subKey: 1
  * Stats Mongoose model.
  */
 export const StatsModel = mongoose.model<IStatsDocument>('Stats', StatsSchema);
+
+/**
+ * Custom Event document interface for Mongoose.
+ */
+export interface ICustomEventDocument extends Document {
+  platform: string;
+  environment: string;
+  eventName: string;
+  userId?: string;
+  properties?: Record<string, unknown>;
+  timestamp: string;
+}
+
+/**
+ * Custom Event schema.
+ */
+const CustomEventSchema = new Schema<ICustomEventDocument>({
+  platform: { type: String, required: true },
+  environment: { type: String, required: true },
+  eventName: { type: String, required: true },
+  userId: { type: String, required: false },
+  properties: { type: Schema.Types.Mixed, required: false },
+  timestamp: { type: String, required: true },
+});
+
+// Compound indexes for custom event queries
+CustomEventSchema.index({ platform: 1, environment: 1, eventName: 1 });
+CustomEventSchema.index({ platform: 1, environment: 1, timestamp: -1 });
+
+/**
+ * CustomEvent Mongoose model.
+ */
+export const CustomEventModel = mongoose.model<ICustomEventDocument>('CustomEvent', CustomEventSchema);
