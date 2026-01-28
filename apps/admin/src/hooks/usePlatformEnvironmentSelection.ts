@@ -29,7 +29,7 @@ export function usePlatformEnvironmentSelection(): PlatformEnvironmentSelection 
 
   // Load platforms on mount
   useEffect(() => {
-    setLoadingPlatforms(true);
+    // loadingPlatforms is initialized to true, no need to set it again
     getPlatformsApi()
       .then(setPlatforms)
       .catch(console.error)
@@ -38,16 +38,40 @@ export function usePlatformEnvironmentSelection(): PlatformEnvironmentSelection 
 
   // Load environments when platform changes
   useEffect(() => {
-    if (selectedPlatform) {
+    if (!selectedPlatform) {
+      setEnvironments([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadEnvironments = async () => {
+      // Defer state updates to avoid synchronous setState in effect body
+      await Promise.resolve();
+      if (cancelled) return;
+
       setLoadingEnvironments(true);
       setSelectedEnvironment("");
-      getEnvironmentsApi(selectedPlatform)
-        .then(setEnvironments)
-        .catch(console.error)
-        .finally(() => setLoadingEnvironments(false));
-    } else {
-      setEnvironments([]);
-    }
+
+      try {
+        const data = await getEnvironmentsApi(selectedPlatform);
+        if (!cancelled) {
+          setEnvironments(data);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (!cancelled) {
+          setLoadingEnvironments(false);
+        }
+      }
+    };
+
+    loadEnvironments();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedPlatform]);
 
   return {
