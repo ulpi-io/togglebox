@@ -24,6 +24,7 @@ import { ToggleFlagButton } from "@/components/flags/toggle-flag-button";
 import { DeleteFlagButton } from "@/components/flags/delete-flag-button";
 import { VersionHistory } from "@/components/flags/version-history";
 import { CreateEntityButton } from "@/components/common/create-entity-button";
+import { SdkCodeDialog } from "@/components/common/sdk-code-dialog";
 import {
   PlatformEnvFilter,
   usePlatformEnvFilter,
@@ -246,6 +247,12 @@ function FlagsContent() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
+                      <SdkCodeDialog
+                        type="flag"
+                        platform={flag.platform}
+                        environment={flag.environment}
+                        itemKey={flag.flagKey}
+                      />
                       <Link
                         href={`/platforms/${flag.platform}/environments/${flag.environment}/flags/${flag.flagKey}/stats`}
                         className="p-2 rounded-lg hover:bg-muted transition-colors"
@@ -433,6 +440,12 @@ function FlagsContent() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
+                      <SdkCodeDialog
+                        type="flag"
+                        platform={platform}
+                        environment={environment}
+                        itemKey={flag.flagKey}
+                      />
                       <Link
                         href={`/evaluation?platform=${platform}&environment=${environment}&flagKey=${flag.flagKey}`}
                         className="p-2 rounded-lg hover:bg-muted transition-colors"

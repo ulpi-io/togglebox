@@ -27,6 +27,7 @@ import {
 import { ConfigParameterHistory } from "@/components/configs/config-parameter-history";
 import { DeleteConfigParameterButton } from "@/components/configs/delete-config-parameter-button";
 import { CreateEntityButton } from "@/components/common/create-entity-button";
+import { SdkCodeDialog } from "@/components/common/sdk-code-dialog";
 import {
   PlatformEnvFilter,
   usePlatformEnvFilter,
@@ -253,6 +254,12 @@ function ConfigsContent() {
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
+                          <SdkCodeDialog
+                            type="config"
+                            platform={param.platform}
+                            environment={param.environment}
+                            itemKey={param.parameterKey}
+                          />
                           <ConfigParameterHistory
                             platform={param.platform}
                             environment={param.environment}
@@ -260,6 +267,17 @@ function ConfigsContent() {
                             currentVersion={param.version}
                             onVersionChange={loadParameters}
                           />
+                          <Link
+                            href={`/platforms/${param.platform}/environments/${param.environment}/configs/${param.parameterKey}/edit`}
+                          >
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                            >
+                              Edit
+                            </Button>
+                          </Link>
                           {isAdmin && (
                             <DeleteConfigParameterButton
                               platform={param.platform}
@@ -418,6 +436,12 @@ function ConfigsContent() {
                           </TableCell>
                           <TableCell>
                             <div className="flex justify-end gap-2">
+                              <SdkCodeDialog
+                                type="config"
+                                platform={param.platform}
+                                environment={param.environment}
+                                itemKey={param.parameterKey}
+                              />
                               <ConfigParameterHistory
                                 platform={param.platform}
                                 environment={param.environment}
@@ -425,6 +449,17 @@ function ConfigsContent() {
                                 currentVersion={param.version}
                                 onVersionChange={loadParameters}
                               />
+                              <Link
+                                href={`/platforms/${param.platform}/environments/${param.environment}/configs/${param.parameterKey}/edit`}
+                              >
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs"
+                                >
+                                  Edit
+                                </Button>
+                              </Link>
                               {isAdmin && (
                                 <DeleteConfigParameterButton
                                   platform={param.platform}

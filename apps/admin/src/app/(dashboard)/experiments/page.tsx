@@ -23,6 +23,7 @@ import {
 import { ExperimentStatusBadge } from "@/components/experiments/experiment-status-badge";
 import { ExperimentActions } from "@/components/experiments/experiment-actions";
 import { CreateEntityButton } from "@/components/common/create-entity-button";
+import { SdkCodeDialog } from "@/components/common/sdk-code-dialog";
 import {
   PlatformEnvFilter,
   usePlatformEnvFilter,
@@ -269,6 +270,13 @@ function ExperimentsContent() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
+                      <SdkCodeDialog
+                        type="experiment"
+                        platform={experiment.platform}
+                        environment={experiment.environment}
+                        itemKey={experiment.experimentKey}
+                        metricEventName={experiment.primaryMetric?.eventName}
+                      />
                       <Link
                         href={`/platforms/${experiment.platform}/environments/${experiment.environment}/experiments/${experiment.experimentKey}`}
                         className="p-2 rounded-lg hover:bg-muted transition-colors"
@@ -467,6 +475,13 @@ function ExperimentsContent() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
+                      <SdkCodeDialog
+                        type="experiment"
+                        platform={platform}
+                        environment={environment}
+                        itemKey={experiment.experimentKey}
+                        metricEventName={experiment.primaryMetric?.eventName}
+                      />
                       <Link
                         href={`/platforms/${platform}/environments/${environment}/experiments/${experiment.experimentKey}`}
                         className="p-2 rounded-lg hover:bg-muted transition-colors"
