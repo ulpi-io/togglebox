@@ -731,7 +731,10 @@ export function SdkCodeDialog({
                 <div className="relative">
                   <pre className="p-4 bg-gray-950 rounded-lg font-mono text-xs overflow-x-auto border border-gray-800 max-h-96 overflow-y-auto text-gray-300">
                     <code>
-                      {highlightCode(codeSnippet, getLanguageForSdk(selectedSdk))}
+                      {highlightCode(
+                        codeSnippet,
+                        getLanguageForSdk(selectedSdk),
+                      )}
                     </code>
                   </pre>
                   <Button

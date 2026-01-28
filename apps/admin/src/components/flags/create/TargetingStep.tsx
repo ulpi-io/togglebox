@@ -107,10 +107,7 @@ export function TargetingStep({
                     <Select
                       value={pair.serveValue}
                       onChange={(e) =>
-                        onServeValueChange(
-                          pair.id,
-                          e.target.value as "A" | "B",
-                        )
+                        onServeValueChange(pair.id, e.target.value as "A" | "B")
                       }
                     >
                       <option value="A">Serve A</option>

@@ -1,4 +1,8 @@
-export { BasicInfoStep, type BasicInfoStepProps, type FlagType } from "./BasicInfoStep";
+export {
+  BasicInfoStep,
+  type BasicInfoStepProps,
+  type FlagType,
+} from "./BasicInfoStep";
 export { ValuesStep, type ValuesStepProps } from "./ValuesStep";
 export {
   TargetingStep,

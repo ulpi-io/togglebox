@@ -267,7 +267,10 @@ export default function CreateFlagPage() {
           serveValue: pair.serveValue,
           languages:
             validLangs.length > 0
-              ? validLangs.map((l) => ({ language: l, serveValue: pair.serveValue }))
+              ? validLangs.map((l) => ({
+                  language: l,
+                  serveValue: pair.serveValue,
+                }))
               : undefined,
         };
       });
