@@ -4,6 +4,7 @@
 
 Self-host it anywhere or use our [hosted version](https://togglebox.dev) for a fully managed experience.
 
+[![GitHub](https://img.shields.io/github/stars/ulpi-io/togglebox?style=social)](https://github.com/ulpi-io/togglebox)
 [![License: ELv2](https://img.shields.io/badge/License-ELv2-blue.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-8.x-orange.svg)](https://pnpm.io/)
@@ -54,7 +55,7 @@ Track flag evaluations, experiment exposures, and configuration fetches. Know wh
 
 ```bash
 # Clone the repository
-git clone https://github.com/togglebox/togglebox.git
+git clone https://github.com/ulpi-io/togglebox.git
 cd togglebox
 
 # Install dependencies
@@ -390,7 +391,8 @@ pnpm lint
 
 - [Documentation](/.claude/claude-md-refs/)
 - [ToggleBox Cloud](https://togglebox.dev)
-- [GitHub Issues](https://github.com/togglebox/togglebox/issues)
+- [GitHub](https://github.com/ulpi-io/togglebox)
+- [GitHub Issues](https://github.com/ulpi-io/togglebox/issues)
 
 ---
 
