@@ -82,4 +82,15 @@ export interface IUserRepository {
     offset?: number;
     role?: string;
   }): Promise<{ users: User[]; total: number }>;
+
+  /**
+   * Counts users with a specific role.
+   *
+   * @param role - Role to count (admin, developer, viewer)
+   * @returns Number of users with the specified role
+   *
+   * @remarks
+   * SECURITY: Used to prevent demoting the last admin user.
+   */
+  countByRole(role: string): Promise<number>;
 }

@@ -34,7 +34,6 @@ import type {
   FlagEvaluationResult,
   Experiment,
   VariantAssignment,
-  ConfigVersion,
 } from '@/lib/api/types';
 import { Clock, Zap, Database, Flag as FlagIcon, FlaskConical, Layers } from 'lucide-react';
 
@@ -95,7 +94,7 @@ export default function EvaluationPage() {
   const [isLoadingExperiments, setIsLoadingExperiments] = useState(false);
 
   // Results with timing
-  const [configResult, setConfigResult] = useState<TimedResult<ConfigVersion> | null>(null);
+  const [configResult, setConfigResult] = useState<TimedResult<Record<string, unknown>> | null>(null);
   const [flagResult, setFlagResult] = useState<TimedResult<FlagEvaluationResult> | null>(null);
   const [experimentResult, setExperimentResult] = useState<TimedResult<VariantAssignment> | null>(null);
   const [allFlagsResult, setAllFlagsResult] = useState<TimedResult<Flag[]> | null>(null);
@@ -107,17 +106,23 @@ export default function EvaluationPage() {
 
   // Load platforms on mount
   useEffect(() => {
+    let isMounted = true;
+
     async function loadPlatforms() {
       try {
         const data = await getPlatformsApi();
-        setPlatforms(data);
-      } catch (err) {
-        console.error('Failed to load platforms:', err);
+        if (isMounted) setPlatforms(data);
+      } catch {
+        // Silently ignore
       } finally {
-        setIsLoadingPlatforms(false);
+        if (isMounted) setIsLoadingPlatforms(false);
       }
     }
     loadPlatforms();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Load environments when platform changes
@@ -130,22 +135,28 @@ export default function EvaluationPage() {
       return;
     }
 
+    let isMounted = true;
+
     async function loadEnvironments() {
       setIsLoadingEnvironments(true);
       try {
         const data = await getEnvironmentsApi(platform);
+        if (!isMounted) return;
         setEnvironments(data);
         setEnvironment('');
         setFlags([]);
         setFlagKey('');
-      } catch (err) {
-        console.error('Failed to load environments:', err);
-        setEnvironments([]);
+      } catch {
+        if (isMounted) setEnvironments([]);
       } finally {
-        setIsLoadingEnvironments(false);
+        if (isMounted) setIsLoadingEnvironments(false);
       }
     }
     loadEnvironments();
+
+    return () => {
+      isMounted = false;
+    };
   }, [platform]);
 
   // Load flags and experiments when environment changes
@@ -158,6 +169,8 @@ export default function EvaluationPage() {
       return;
     }
 
+    let isMounted = true;
+
     async function loadFlagsAndExperiments() {
       setIsLoadingFlags(true);
       setIsLoadingExperiments(true);
@@ -166,20 +179,28 @@ export default function EvaluationPage() {
           getFlagsApi(platform, environment),
           getExperimentsApi(platform, environment),
         ]);
+        if (!isMounted) return;
         setFlags(flagsData);
         setExperiments(experimentsData.filter((e) => e.status === 'running' || e.status === 'paused'));
         setFlagKey('');
         setExperimentKey('');
-      } catch (err) {
-        console.error('Failed to load flags/experiments:', err);
-        setFlags([]);
-        setExperiments([]);
+      } catch {
+        if (isMounted) {
+          setFlags([]);
+          setExperiments([]);
+        }
       } finally {
-        setIsLoadingFlags(false);
-        setIsLoadingExperiments(false);
+        if (isMounted) {
+          setIsLoadingFlags(false);
+          setIsLoadingExperiments(false);
+        }
       }
     }
     loadFlagsAndExperiments();
+
+    return () => {
+      isMounted = false;
+    };
   }, [platform, environment]);
 
   // Clear results when type changes
@@ -610,18 +631,20 @@ export default function EvaluationPage() {
                 </div>
                 <div className="border border-black/20 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="text-xl font-black">v{configResult.data.versionLabel}</div>
-                    <Badge variant={configResult.data.isStable ? 'default' : 'secondary'}>
-                      {configResult.data.isStable ? 'STABLE' : 'UNSTABLE'}
+                    <div className="text-xl font-black">
+                      {Object.keys(configResult.data).length} Parameters
+                    </div>
+                    <Badge variant="default">
+                      Firebase-style
                     </Badge>
                   </div>
                   <div className="text-sm text-muted-foreground mb-3">
-                    Created: {new Date(configResult.data.createdAt).toLocaleString()}
+                    Key-value pairs (active versions only)
                   </div>
                   <div>
                     <div className="text-sm font-bold mb-2">Config Data:</div>
                     <pre className="p-3 bg-muted border border-black/10 rounded font-mono text-xs max-h-64 overflow-auto">
-                      {JSON.stringify(configResult.data.config, null, 2)}
+                      {JSON.stringify(configResult.data, null, 2)}
                     </pre>
                   </div>
                 </div>
@@ -815,16 +838,16 @@ export default function EvaluationPage() {
                 </div>
 
                 {/* Config */}
-                {allDataResult.data.config && (
+                {allDataResult.data.config && Object.keys(allDataResult.data.config).length > 0 && (
                   <div className="border border-black/20 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-bold text-sm">Config</span>
                       <Badge variant="default" size="sm">
-                        v{allDataResult.data.config.versionLabel}
+                        {Object.keys(allDataResult.data.config).length} params
                       </Badge>
                     </div>
                     <pre className="text-xs font-mono bg-muted p-2 rounded max-h-32 overflow-auto">
-                      {JSON.stringify(allDataResult.data.config.config, null, 2)}
+                      {JSON.stringify(allDataResult.data.config, null, 2)}
                     </pre>
                   </div>
                 )}

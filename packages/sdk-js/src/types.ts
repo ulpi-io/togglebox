@@ -1,4 +1,3 @@
-import type { Config } from '@togglebox/configs'
 import type {
   Flag,
   EvaluationContext as FlagContext,
@@ -13,9 +12,12 @@ import type {
 } from '@togglebox/experiments'
 import type { StatsEvent } from '@togglebox/stats'
 
-// Re-export types from packages for SDK consumers
-// Tier 1: Remote Configs
-export type { Config }
+// Tier 1: Remote Configs (Firebase-style key-value)
+/**
+ * Remote config object - key-value pairs with typed values.
+ * All values are parsed from their stored type (string, number, boolean, json).
+ */
+export type Config = Record<string, unknown>
 
 // Tier 2: Feature Flags (2-value model)
 export type {
@@ -51,6 +53,9 @@ export interface StatsOptions {
 
   /** Maximum retry attempts for failed sends (default: 3) */
   maxRetries?: number
+
+  /** Maximum queue size to prevent unbounded memory growth (default: 1000) */
+  maxQueueSize?: number
 }
 
 /**
@@ -92,15 +97,6 @@ export interface ClientOptions {
   /** Custom fetch implementation (defaults to global fetch) */
   fetchImpl?: typeof fetch
 
-  /**
-   * Config version to fetch (default: 'stable')
-   * @remarks
-   * - 'stable': Latest stable version (default)
-   * - 'latest': Latest version (may be unstable)
-   * - '1.2.3': Specific version label
-   */
-  configVersion?: string
-
   /** Stats configuration */
   stats?: StatsOptions
 }
@@ -117,13 +113,14 @@ export interface CacheOptions {
 }
 
 /**
- * Configuration response from API
+ * Configuration response from API (Firebase-style key-value)
+ * @remarks
+ * The API returns all active config parameters as a key-value object.
+ * Each value is already parsed to its typed form (string, number, boolean, json).
  */
 export interface ConfigResponse {
-  config: Config
-  version: string
-  timestamp: string
-  isStable: boolean
+  /** Key-value config object */
+  data: Config
 }
 
 /**
@@ -198,28 +195,3 @@ export interface HealthCheckResponse {
   uptime: number
 }
 
-/**
- * Config version metadata (without full config data)
- */
-export interface ConfigVersionMeta {
-  /** Platform name */
-  platform: string
-
-  /** Environment name */
-  environment: string
-
-  /** Version timestamp */
-  versionTimestamp: string
-
-  /** Version label (e.g., '1.0.0') */
-  versionLabel: string
-
-  /** Whether this version is marked as stable */
-  isStable: boolean
-
-  /** User who created this version */
-  createdBy: string
-
-  /** Creation timestamp */
-  createdAt: string
-}

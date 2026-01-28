@@ -55,6 +55,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
         {children}
         {onClose && (
           <button
+            type="button"
             onClick={onClose}
             className="absolute right-4 top-4 rounded-md p-1 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-black/20"
           >

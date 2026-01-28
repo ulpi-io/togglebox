@@ -1,4 +1,5 @@
-import { getPlatformsApi, getEnvironmentsApi, getConfigVersionsApi } from './platforms';
+import { getPlatformsApi, getEnvironmentsApi } from './platforms';
+import { listConfigParametersApi } from './configs';
 import { getFlagsApi } from './flags';
 import { getExperimentsApi } from './experiments';
 import { getUsersApi } from './users';
@@ -9,7 +10,7 @@ import type { FlagStats, FlagCountryStats, FlagDailyStats } from './types';
 export interface DashboardStats {
   totalPlatforms: number;
   totalEnvironments: number;
-  totalConfigVersions: number;
+  totalConfigParameters: number;
   totalFlags: number;
   totalExperiments: number;
   totalUsers: number;
@@ -36,17 +37,14 @@ export interface DashboardStats {
 export async function getDashboardStatsApi(): Promise<DashboardStats> {
   try {
     // Fetch all platforms
-    console.log('[Stats] Fetching platforms...');
     const platforms = await getPlatformsApi();
-    console.log('[Stats] Platforms fetched:', platforms?.length ?? 0, platforms);
 
     // Handle case where platforms is null/undefined
     if (!platforms || !Array.isArray(platforms)) {
-      console.warn('[Stats] No platforms returned or invalid response');
       return {
         totalPlatforms: 0,
         totalEnvironments: 0,
-        totalConfigVersions: 0,
+        totalConfigParameters: 0,
         totalFlags: 0,
         totalExperiments: 0,
         totalUsers: 0,
@@ -55,7 +53,7 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
     }
 
     let totalEnvironments = 0;
-    let totalConfigVersions = 0;
+    let totalConfigParameters = 0;
     let totalFlags = 0;
     let totalExperiments = 0;
 
@@ -63,53 +61,34 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
     await Promise.all(
       platforms.map(async (platform) => {
         try {
-          console.log(`[Stats] Fetching environments for platform: ${platform.name}`);
           const environments = await getEnvironmentsApi(platform.name);
-          console.log(`[Stats] Environments for ${platform.name}:`, environments?.length ?? 0);
 
           if (!environments || !Array.isArray(environments)) {
-            console.warn(`[Stats] No environments for platform ${platform.name}`);
             return;
           }
 
           totalEnvironments += environments.length;
 
-          // For each environment, fetch configs and flags in parallel
+          // For each environment, fetch config parameters, flags, and experiments in parallel
           await Promise.all(
             environments.map(async (env) => {
               try {
-                console.log(`[Stats] Fetching configs/flags/experiments for ${platform.name}/${env.environment}`);
-                const [configs, flags, experiments] = await Promise.all([
-                  getConfigVersionsApi(platform.name, env.environment).catch((err) => {
-                    console.warn(`[Stats] Failed to fetch configs for ${platform.name}/${env.environment}:`, err);
-                    return [];
-                  }),
-                  getFlagsApi(platform.name, env.environment).catch((err) => {
-                    console.warn(`[Stats] Failed to fetch flags for ${platform.name}/${env.environment}:`, err);
-                    return [];
-                  }),
-                  getExperimentsApi(platform.name, env.environment).catch((err) => {
-                    console.warn(`[Stats] Failed to fetch experiments for ${platform.name}/${env.environment}:`, err);
-                    return [];
-                  }),
+                const [configParams, flags, experiments] = await Promise.all([
+                  listConfigParametersApi(platform.name, env.environment).catch(() => []),
+                  getFlagsApi(platform.name, env.environment).catch(() => []),
+                  getExperimentsApi(platform.name, env.environment).catch(() => []),
                 ]);
 
-                const configCount = Array.isArray(configs) ? configs.length : 0;
-                const flagCount = Array.isArray(flags) ? flags.length : 0;
-                const experimentCount = Array.isArray(experiments) ? experiments.length : 0;
-
-                console.log(`[Stats] ${platform.name}/${env.environment}: ${configCount} configs, ${flagCount} flags, ${experimentCount} experiments`);
-
-                totalConfigVersions += configCount;
-                totalFlags += flagCount;
-                totalExperiments += experimentCount;
-              } catch (err) {
-                console.warn(`[Stats] Error fetching data for ${platform.name}/${env.environment}:`, err);
+                totalConfigParameters += Array.isArray(configParams) ? configParams.length : 0;
+                totalFlags += Array.isArray(flags) ? flags.length : 0;
+                totalExperiments += Array.isArray(experiments) ? experiments.length : 0;
+              } catch {
+                // Silently ignore individual environment errors
               }
             })
           );
-        } catch (err) {
-          console.warn(`[Stats] Error fetching environments for ${platform.name}:`, err);
+        } catch {
+          // Silently ignore platform errors
         }
       })
     );
@@ -125,29 +104,25 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
       ]);
       totalUsers = Array.isArray(users) ? users.length : 0;
       totalApiKeys = Array.isArray(apiKeys) ? apiKeys.length : 0;
-    } catch (err) {
-      console.warn('[Stats] Failed to fetch users/API keys:', err);
+    } catch {
+      // Silently ignore
     }
 
-    const stats = {
+    return {
       totalPlatforms: platforms.length,
       totalEnvironments,
-      totalConfigVersions,
+      totalConfigParameters,
       totalFlags,
       totalExperiments,
       totalUsers,
       totalApiKeys,
     };
-
-    console.log('[Stats] Final stats:', stats);
-    return stats;
-  } catch (err) {
-    console.error('[Stats] Failed to load dashboard stats:', err);
+  } catch {
     // Return zeros if API calls fail (graceful degradation)
     return {
       totalPlatforms: 0,
       totalEnvironments: 0,
-      totalConfigVersions: 0,
+      totalConfigParameters: 0,
       totalFlags: 0,
       totalExperiments: 0,
       totalUsers: 0,

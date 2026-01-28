@@ -34,6 +34,12 @@ export interface CollectorOptions {
 
   /** Whether stats collection is enabled (default: true) */
   enabled?: boolean;
+
+  /** Maximum queue size to prevent unbounded memory growth (default: 1000) */
+  maxQueueSize?: number;
+
+  /** Request timeout in milliseconds (default: 10000) */
+  requestTimeoutMs?: number;
 }
 
 /**
@@ -75,6 +81,8 @@ export class StatsCollector {
       maxRetries: 3,
       apiKey: '',
       enabled: true,
+      maxQueueSize: 1000,
+      requestTimeoutMs: 10000,
       ...options,
     };
 
@@ -181,6 +189,13 @@ export class StatsCollector {
   private queueEvent(event: StatsEvent): void {
     if (!this.options.enabled) return;
 
+    // Enforce max queue size to prevent unbounded memory growth
+    if (this.queue.length >= this.options.maxQueueSize) {
+      // Drop oldest event to make room
+      this.queue.shift();
+      console.warn('[ToggleBox Stats] Queue full, dropping oldest event');
+    }
+
     this.queue.push(event);
 
     // Auto-flush if batch size reached
@@ -206,9 +221,16 @@ export class StatsCollector {
     try {
       await this.sendWithRetry(batch);
     } catch (error) {
-      // Put events back at the front of the queue
-      this.queue.unshift(...events);
-      console.error('[ToggleBox Stats] Failed to send events:', error);
+      // Only re-queue for transient errors (network failures, server errors)
+      // Don't re-queue for client errors (4xx) as they will never succeed (poison batch)
+      const isClientError = error instanceof Error && error.message.startsWith('Client error:');
+      if (isClientError) {
+        console.error('[ToggleBox Stats] Dropping invalid batch (client error):', error);
+      } else {
+        // Re-queue events for transient errors (may succeed on retry)
+        this.queue.unshift(...events);
+        console.error('[ToggleBox Stats] Failed to send events (will retry):', error);
+      }
     } finally {
       this.isFlushing = false;
     }
@@ -218,12 +240,15 @@ export class StatsCollector {
    * Send batch with retry logic.
    */
   private async sendWithRetry(batch: StatsEventBatch): Promise<void> {
-    const { apiUrl, platform, environment, apiKey, maxRetries } = this.options;
+    const { apiUrl, platform, environment, apiKey, maxRetries, requestTimeoutMs = 10000 } = this.options;
     const url = `${apiUrl}/api/v1/platforms/${platform}/environments/${environment}/stats/events`;
 
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
+
       try {
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
@@ -237,7 +262,10 @@ export class StatsCollector {
           method: 'POST',
           headers,
           body: JSON.stringify(batch),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (response.ok) {
           return; // Success
@@ -250,7 +278,12 @@ export class StatsCollector {
 
         lastError = new Error(`Server error: ${response.status}`);
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          lastError = new Error(`Request timed out after ${requestTimeoutMs}ms`);
+        } else {
+          lastError = error instanceof Error ? error : new Error(String(error));
+        }
       }
 
       // Exponential backoff

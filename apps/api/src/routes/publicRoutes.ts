@@ -76,12 +76,46 @@ publicRouter.get('/platforms/:platform/environments', asyncHandler(configControl
 publicRouter.get('/platforms/:platform/environments/:environment', asyncHandler(configController.getEnvironment));
 
 // ============================================================================
-// CONFIG VERSION READ ENDPOINTS
+// CONFIG PARAMETER READ ENDPOINTS (Tier 1: Firebase-style individual parameters)
 // ============================================================================
 
-publicRouter.get('/platforms/:platform/environments/:environment/versions', asyncHandler(configController.listVersions));
-publicRouter.get('/platforms/:platform/environments/:environment/versions/latest/stable', asyncHandler(configController.getLatestStableVersion));
-publicRouter.get('/platforms/:platform/environments/:environment/versions/:version', asyncHandler(configController.getVersion));
+/**
+ * SDK endpoint: Get all active config parameters as key-value object
+ * Returns: { parameterKey: value, ... } with values parsed by type
+ *
+ * Example response: { "storeName": "My Store", "maxItems": 100, "isDark": true }
+ */
+publicRouter.get('/platforms/:platform/environments/:environment/configs', asyncHandler(configController.getConfigs));
+
+/**
+ * List all active config parameters with metadata
+ * Returns paginated list with full parameter details (for admin UI)
+ *
+ * NOTE: This route MUST come before /:parameterKey to avoid "list" being matched as a parameter key
+ */
+publicRouter.get('/platforms/:platform/environments/:environment/configs/list', asyncHandler(configController.listConfigParameters));
+
+/**
+ * Count active config parameters in an environment
+ * Returns: { count: number }
+ *
+ * NOTE: This route MUST come before /:parameterKey to avoid "count" being matched as a parameter key
+ */
+publicRouter.get('/platforms/:platform/environments/:environment/configs/count', asyncHandler(configController.countConfigParameters));
+
+/**
+ * List all versions of a config parameter (version history)
+ * Returns array of all versions for the parameter
+ *
+ * NOTE: This route MUST come before /:parameterKey to avoid "versions" being matched incorrectly
+ */
+publicRouter.get('/platforms/:platform/environments/:environment/configs/:parameterKey/versions', asyncHandler(configController.listConfigParameterVersions));
+
+/**
+ * Get active version of a specific config parameter
+ * Returns full parameter metadata including version, type, description
+ */
+publicRouter.get('/platforms/:platform/environments/:environment/configs/:parameterKey', asyncHandler(configController.getConfigParameter));
 
 // ============================================================================
 // FLAG READ ENDPOINTS (Tier 2: 2-value model)

@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
 import { publicRouter, internalRouter, authRouter } from './routes';
-import { logger, errorHandler, notFoundHandler, corsHeaders, securityHeaders, requestId, sanitizeInput, defaultDatabaseContext, config } from '@togglebox/shared';
+import { logger, errorHandler, notFoundHandler, securityHeaders, requestId, sanitizeInput, defaultDatabaseContext, config } from '@togglebox/shared';
 import { cacheHeaders, noCacheHeaders } from '@togglebox/cache';
 
 // Load environment variables from .env file
@@ -49,8 +49,8 @@ app.use(cors({
   methods: [...config.appConfig.SECURITY.cors.methods],
   allowedHeaders: [...config.appConfig.SECURITY.cors.allowedHeaders],
   maxAge: config.appConfig.SECURITY.cors.maxAge,
+  credentials: true,
 }));
-app.use(corsHeaders);
 
 // Request middleware
 app.use(requestId);
@@ -97,14 +97,13 @@ app.use(defaultDatabaseContext());
 
 // Health check endpoint (before routes)
 // Simple liveness check - doesn't verify dependencies
+// Note: environment and version removed to prevent information disclosure
 app.get('/health', (_req, res) => {
   res.json({
     success: true,
     message: `${config.appConfig.APP_NAME} is running`,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: config.env.NODE_ENV,
-    version: config.appConfig.APP_VERSION,
   });
 });
 
@@ -172,16 +171,17 @@ app.get('/', (_req, res) => {
         ready: '/ready',
         platforms: `${config.appConfig.API.basePath}/platforms`,
         environments: `${config.appConfig.API.basePath}/platforms/:platform/environments`,
-        versions: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/versions`,
-        latestStable: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/versions/latest/stable`,
+        configs: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/configs`,
+        flags: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/flags`,
+        experiments: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/experiments`,
         webhookStatus: `${config.appConfig.API.basePath}/webhook/cache/invalidations`,
       },
       internal: {
         createPlatform: `POST ${config.appConfig.API.internalBasePath}/platforms`,
         createEnvironment: `POST ${config.appConfig.API.internalBasePath}/platforms/:platform/environments`,
-        createVersion: `POST ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/versions`,
-        updateVersion: `PUT ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/versions/:version`,
-        deleteVersion: `DELETE ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/versions/:version`,
+        createConfigParameter: `POST ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/configs`,
+        updateConfigParameter: `PATCH ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/configs/:parameterKey`,
+        deleteConfigParameter: `DELETE ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/configs/:parameterKey`,
         cacheInvalidate: `POST ${config.appConfig.API.internalBasePath}/cache/invalidate`,
         webhookInvalidate: `GET ${config.appConfig.API.internalBasePath}/webhook/cache/invalidate`,
       },

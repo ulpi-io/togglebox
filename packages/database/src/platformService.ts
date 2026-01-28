@@ -21,7 +21,7 @@ import { Platform } from '@togglebox/core';
 import { v4 as uuidv4 } from 'uuid';
 import { dynamoDBClient, getPlatformsTableName } from './database';
 import { TokenPaginationParams, TokenPaginatedResult } from './interfaces/IPagination';
-import { PutCommand, GetCommand, DeleteCommand, ScanCommand, ScanCommandInput, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand, DeleteCommand, QueryCommand, QueryCommandInput, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 /**
  * Type guard for DynamoDB errors with a name property.
@@ -80,6 +80,9 @@ export async function createPlatform(platform: Omit<Platform, 'id'>): Promise<Pl
     TableName: getPlatformsTableName(),
     Item: {
       PK: `PLATFORM#${platform.name}`,
+      // SECURITY: GSI1 keys enable efficient listing without full table scan
+      GSI1PK: 'PLATFORM',
+      GSI1SK: `PLATFORM#${platform.name}`,
       ...platformWithId,
     },
     ConditionExpression: 'attribute_not_exists(PK)',
@@ -202,9 +205,14 @@ export async function listPlatforms(
     };
   }
 
-  // Explicit pagination: return single page using Scan (platforms table has no GSI)
-  const params: ScanCommandInput = {
+  // SECURITY: Use Query on GSI1 instead of Scan for efficient listing
+  const params: QueryCommandInput = {
     TableName: getPlatformsTableName(),
+    IndexName: 'GSI1',
+    KeyConditionExpression: 'GSI1PK = :pk',
+    ExpressionAttributeValues: {
+      ':pk': 'PLATFORM',
+    },
     Limit: pagination.limit,
   };
 
@@ -219,7 +227,7 @@ export async function listPlatforms(
     }
   }
 
-  const result = await dynamoDBClient.send(new ScanCommand(params));
+  const result = await dynamoDBClient.send(new QueryCommand(params));
   const items = result.Items ? result.Items.map((item) => mapToPlatform(item as Record<string, unknown>)) : [];
 
   // Encode LastEvaluatedKey as base64 token for next page
@@ -316,7 +324,8 @@ export async function deletePlatform(name: string): Promise<boolean> {
  * ```
  */
 function mapToPlatform(item: Record<string, unknown>): Platform {
-  const { PK, ...platformData } = item;
+  // Strip DynamoDB key fields (PK, GSI1PK, GSI1SK)
+  const { PK, GSI1PK, GSI1SK, ...platformData } = item;
   return platformData as Platform;
 }
 

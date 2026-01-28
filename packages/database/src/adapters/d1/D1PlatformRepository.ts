@@ -99,10 +99,12 @@ export class D1PlatformRepository implements IPlatformRepository {
 
     const total = countResult?.count || 0;
 
-    // If no pagination requested, fetch ALL items
+    // SECURITY: If no pagination requested, apply hard limit to prevent unbounded queries
     if (!pagination) {
+      const HARD_LIMIT = 100;
       const result = await this.db
-        .prepare('SELECT id, name, description, createdAt FROM platforms ORDER BY createdAt DESC')
+        .prepare('SELECT id, name, description, createdAt FROM platforms ORDER BY createdAt DESC LIMIT ?1')
+        .bind(HARD_LIMIT)
         .all<Platform>();
 
       const items = result.results

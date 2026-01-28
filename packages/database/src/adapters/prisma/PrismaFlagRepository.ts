@@ -389,6 +389,18 @@ export class PrismaFlagRepository implements IFlagRepository {
   }
 
   /**
+   * Safely parse JSON with fallback value.
+   * Prevents crashes from corrupted or malformed data.
+   */
+  private safeParse<T>(raw: string, fallback: T): T {
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return fallback;
+    }
+  }
+
+  /**
    * Convert database row to Flag type.
    * Includes defaults for rollout fields for backward compatibility.
    */
@@ -421,9 +433,9 @@ export class PrismaFlagRepository implements IFlagRepository {
       description: row.description || undefined,
       enabled: row.enabled,
       flagType: row.flagType as 'boolean' | 'string' | 'number',
-      valueA: JSON.parse(row.valueA),
-      valueB: JSON.parse(row.valueB),
-      targeting: JSON.parse(row.targeting),
+      valueA: this.safeParse(row.valueA, null),
+      valueB: this.safeParse(row.valueB, null),
+      targeting: this.safeParse(row.targeting, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
       defaultValue: row.defaultValue as 'A' | 'B',
       // Percentage rollout (defaults for backward compatibility)
       rolloutEnabled: row.rolloutEnabled ?? false,

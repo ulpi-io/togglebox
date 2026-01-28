@@ -39,11 +39,32 @@ pnpm install
 # Build SDK packages
 pnpm build:packages
 
+# Start the API (required for the examples)
+pnpm dev:api
+
+# Seed demo data (in another terminal) - creates demo user, flags, experiments
+./scripts/seed-demo-data.sh
+
 # Start the example app
 pnpm dev:example-expo
 ```
 
 Scan the QR code with Expo Go or press `i` for iOS simulator / `a` for Android emulator.
+
+### Demo Data
+
+The seed script creates demo data for this app:
+
+| Type | Key | Description |
+|------|-----|-------------|
+| **Platform** | `mobile` | Platform identifier |
+| **Environment** | `staging` | Environment for this app |
+| **Flag** | `dark-mode` | Toggle dark mode UI |
+| **Flag** | `biometric-auth` | Enable biometric authentication |
+| **Experiment** | `cta-test` | A/B test with `control`, `variant_a`, `variant_b` |
+| **Config** | `theme`, `apiTimeout` | Remote configuration values |
+
+**Demo Admin:** `admin@togglebox.com` / `Parola123!`
 
 ### Environment Variables
 

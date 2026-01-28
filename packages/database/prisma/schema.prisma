@@ -31,7 +31,6 @@ model Platform {
 
   // Relations
   environments Environment[]
-  versions     ConfigVersion[]
   featureFlags FeatureFlag[]
 
   @@map("platforms")
@@ -56,8 +55,7 @@ model Environment {
   createdAt   String // ISO-8601 timestamp
 
   // Relations
-  platformRef  Platform        @relation(fields: [platformId], references: [id], onDelete: Cascade)
-  versions     ConfigVersion[]
+  platformRef  Platform    @relation(fields: [platformId], references: [id], onDelete: Cascade)
   featureFlags FeatureFlag[]
 
   @@id([platform, environment])
@@ -66,34 +64,39 @@ model Environment {
 }
 
 // ============================================================================
-// CONFIG VERSION MODEL
+// CONFIG PARAMETER MODEL (Firebase-style individual versioned parameters)
 // ============================================================================
 
-/// Represents an immutable versioned configuration
-model ConfigVersion {
-  // Composite primary key
-  platform         String
-  environment      String
-  versionTimestamp String // ISO-8601 timestamp, serves as version identifier
+/// Represents an individual config parameter with version history
+/// Each edit creates a new version; only one version is active per parameterKey
+/// Up to 2000 parameters per platform/environment
+model ConfigParameter {
+  // Composite primary key (includes version)
+  platform      String
+  environment   String
+  parameterKey  String
+  version       String // "1", "2", "3" - auto-incremented on edit
 
-  // Foreign key to Platform
-  platformId  String
+  // Value
+  valueType     String // 'string' | 'number' | 'boolean' | 'json'
+  defaultValue  String // All values stored as strings, parsed by valueType
 
-  // Fields
-  versionLabel String?  // Optional user-friendly label (e.g., "v1.0.0")
-  isStable     Boolean  @default(false)
-  config       String // JSON stored as text for cross-database compatibility
-  createdBy    String // Email of creator
-  createdAt    String // ISO-8601 timestamp (same as versionTimestamp)
+  // Metadata
+  description    String?
+  parameterGroup String?
 
-  // Relations
-  platformRef    Platform    @relation(fields: [platformId], references: [id], onDelete: Cascade)
-  environmentRef Environment @relation(fields: [platform, environment], references: [platform, environment], onDelete: Cascade)
+  // Versioning
+  isActive Boolean @default(true) // Only one version active per parameterKey
 
-  @@id([platform, environment, versionTimestamp])
-  @@index([platform, environment, isStable]) // For getLatestStableVersion queries
-  @@index([platformId])
-  @@map("config_versions")
+  // Audit
+  createdBy String
+  createdAt String // ISO-8601 timestamp
+
+  @@id([platform, environment, parameterKey, version])
+  @@index([platform, environment, isActive]) // For getConfigs/listActive queries
+  @@index([platform, environment, parameterKey]) // For listVersions queries
+  @@index([platform, environment, parameterGroup]) // For listByGroup queries
+  @@map("config_parameters")
 }
 
 // ============================================================================

@@ -43,7 +43,8 @@ togglebox/
 │   ├── api/                   # Express.js API (multi-platform: Lambda, Workers, Docker)
 │   ├── admin/                 # Admin dashboard (Next.js 15)
 │   ├── example-nextjs/        # Example Next.js app using SDK
-│   └── example-expo/          # Example Expo/React Native app using SDK
+│   ├── example-expo/          # Example Expo/React Native app using SDK
+│   └── example-nodejs/        # Example Node.js app using SDK
 ├── packages/
 │   ├── core/                  # Core business logic, types, and hashing utilities
 │   ├── database/              # Multi-database abstraction (DynamoDB, Prisma, Mongoose, D1)
@@ -152,6 +153,7 @@ pnpm dev:api              # Start API development server (tsx watch)
 pnpm dev:admin            # Start admin dashboard (Next.js)
 pnpm dev:example-nextjs   # Start example Next.js app
 pnpm dev:example-expo     # Start example Expo app
+pnpm dev:example-nodejs   # Start example Node.js app
 pnpm build                # Build all packages + apps
 pnpm build:packages       # Build only workspace packages
 pnpm build:api            # Build only API

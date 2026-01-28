@@ -7,9 +7,11 @@ import { z } from 'zod';
 
 /**
  * Schema for batch events request.
+ * Maximum 100 events per batch to prevent DoS attacks and align with SDK schema.
+ * Note: SDKs batch events (default: 20 per batch), so 100 is generous.
  */
 const BatchEventsSchema = z.object({
-  events: z.array(StatsEventSchema),
+  events: z.array(StatsEventSchema).min(1).max(100),
 });
 
 /**
@@ -210,7 +212,9 @@ export class StatsController {
         environment: string;
         flagKey: string;
       };
-      const days = parseInt(req.query['days'] as string) || 30;
+      // Validate days: minimum 1, maximum 365, default 30
+      const rawDays = parseInt(req.query['days'] as string) || 30;
+      const days = Math.min(Math.max(rawDays, 1), 365);
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
@@ -274,15 +278,49 @@ export class StatsController {
           return;
         }
 
+        // Fetch experiment to get metric IDs and traffic allocation
+        const experiment = await this.repos.experiment.get(platform, environment, experimentKey);
+
+        // Populate metricResults from experiment metrics
+        let metricResults = stats.metricResults;
+        if (experiment && stats.variations.length > 0) {
+          const metricIds = [
+            experiment.primaryMetric?.id,
+            ...(experiment.secondaryMetrics?.map((m) => m.id) ?? []),
+          ].filter(Boolean) as string[];
+
+          if (metricIds.length > 0) {
+            // Fetch metric stats for all variations and metrics
+            const metricStatsPromises = stats.variations.flatMap((v) =>
+              metricIds.map((metricId) =>
+                this.repos.stats.getExperimentMetricStats(
+                  platform,
+                  environment,
+                  experimentKey,
+                  v.variationKey,
+                  metricId
+                )
+              )
+            );
+
+            const allMetricStats = await Promise.all(metricStatsPromises);
+            metricResults = allMetricStats.flat();
+          }
+        }
+
         // Calculate SRM if we have variation data
         let srm: (SRMResult & { severity: string }) | null = null;
 
         if (stats.variations.length >= 2) {
-          // Parse expected ratios or default to equal distribution
+          // Parse expected ratios, use experiment's trafficAllocation, or default to equal distribution
           let expectedRatios: number[];
 
           if (expectedRatiosParam) {
+            // Use explicit ratios from query param
             expectedRatios = expectedRatiosParam.split(',').map((r) => parseFloat(r.trim()));
+          } else if (experiment?.trafficAllocation?.length) {
+            // Use configured traffic allocation (convert from percentage to ratio)
+            expectedRatios = experiment.trafficAllocation.map((t) => t.percentage / 100);
           } else {
             // Default to equal distribution
             const equalRatio = 1 / stats.variations.length;
@@ -318,6 +356,7 @@ export class StatsController {
           success: true,
           data: {
             ...stats,
+            metricResults,
             srm,
           },
           timestamp: new Date().toISOString(),

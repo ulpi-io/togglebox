@@ -60,10 +60,10 @@ export function PlatformEnvFilter({
         setSelectedEnvironment(urlEnvironment);
       }
     } else {
-      // Try localStorage
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
+      // Try localStorage (wrapped in try/catch for Safari private mode)
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
           const parsed: StoredFilter = JSON.parse(stored);
           if (parsed.platform) {
             setSelectedPlatform(parsed.platform);
@@ -71,9 +71,9 @@ export function PlatformEnvFilter({
               setSelectedEnvironment(parsed.environment);
             }
           }
-        } catch {
-          // Ignore invalid stored data
         }
+      } catch {
+        // Ignore storage errors (Safari private mode, quota exceeded, etc.)
       }
     }
   }, [searchParams]);
@@ -112,8 +112,12 @@ export function PlatformEnvFilter({
   // Update URL and localStorage when selection changes
   const updateUrlAndStorage = useCallback(
     (platform: string | null, environment: string | null) => {
-      // Update localStorage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ platform, environment }));
+      // Update localStorage (wrapped in try/catch for Safari private mode)
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ platform, environment }));
+      } catch {
+        // Ignore storage errors (Safari private mode, quota exceeded, etc.)
+      }
 
       // Update URL
       const params = new URLSearchParams(searchParams.toString());
@@ -220,16 +224,16 @@ export function usePlatformEnvFilter() {
       return { platform: urlPlatform, environment: urlEnvironment };
     }
 
-    // Try localStorage (only runs on client)
+    // Try localStorage (only runs on client, wrapped in try/catch for Safari private mode)
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
           const parsed: StoredFilter = JSON.parse(stored);
           return { platform: parsed.platform, environment: parsed.environment };
-        } catch {
-          // Ignore invalid stored data
         }
+      } catch {
+        // Ignore storage errors (Safari private mode, quota exceeded, etc.)
       }
     }
 

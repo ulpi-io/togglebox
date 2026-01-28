@@ -2,80 +2,52 @@
 
 import { useConfig } from '@togglebox/sdk-nextjs'
 
-/**
- * Remote Configuration Example
- *
- * This example shows how to:
- *   1. Fetch remote configuration with useConfig()
- *   2. Access configuration values with type safety
- *   3. Provide fallback defaults for missing values
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * WHY useConfig?
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Remote configuration allows you to:
- *   - Change app behavior without deploying new code
- *   - A/B test different settings
- *   - Roll out changes gradually
- *   - Kill switches for problematic features
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * HOW IT WORKS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * 1. useConfig() fetches config from ToggleBox API via the provider
- * 2. Config is cached and refreshed automatically (via pollingInterval)
- * 3. Returns { config, isLoading, error, refresh }
- *
- * The config object is whatever JSON you stored in ToggleBox admin:
- *   { "theme": "dark", "maxRetries": 5, "apiEndpoint": "..." }
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * BEST PRACTICES
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Always provide fallback defaults:
- *   const theme = config?.theme ?? 'light'  // Works even if config fails to load
- *
- * Type your config values:
- *   const maxRetries = (config?.maxRetries as number) ?? 3
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- */
-export default function UseConfigExample() {
-  // useConfig() returns the remote config object from ToggleBox
-  // The config is automatically fetched when the component mounts
-  const { config, isLoading } = useConfig()
+export default function Page() {
+  const { config, isLoading, error, refresh } = useConfig()
 
-  // Show loading state while fetching config
   if (isLoading) {
-    return <div>Loading config...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      </div>
+    )
   }
 
-  // Access entire config object (useful for debugging)
-  const allConfig = config || {}
+  if (error) {
+    return (
+      <div className="min-h-screen p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="font-semibold text-red-800">Error</p>
+          <p className="text-red-600 text-sm">{error.message}</p>
+        </div>
+      </div>
+    )
+  }
 
-  // Access specific values with type casting and fallbacks
-  // ALWAYS provide fallbacks - config may be empty on first load or if API fails
-  const apiEndpoint = (config?.apiEndpoint as string) || 'https://api.example.com'
-  const maxRetries = (config?.maxRetries as number) || 3
-  const theme = (config?.theme as string) || 'light'
+  const theme = (config?.theme as string) ?? 'light'
+  const apiTimeout = (config?.apiTimeout as number) ?? 5000
 
   return (
-    <div className="space-y-4">
-      <div className="p-4 bg-gray-50 rounded-lg">
-        <h2 className="font-bold mb-2">Config Values</h2>
-        <p>API Endpoint: {apiEndpoint}</p>
-        <p>Max Retries: {maxRetries}</p>
-        <p>Theme: {theme}</p>
-      </div>
+    <div className="min-h-screen p-8">
+      <h1 className="text-2xl font-bold mb-6">Remote Config</h1>
 
-      <div className="p-4 bg-gray-50 rounded-lg">
-        <h2 className="font-bold mb-2">Full Config ({Object.keys(allConfig).length} keys)</h2>
-        <pre className="text-sm overflow-auto">
-          {JSON.stringify(allConfig, null, 2)}
-        </pre>
+      <div className="space-y-4 max-w-md">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p className="text-xs text-gray-500 mb-1">theme</p>
+          <p className="text-lg font-medium">{theme}</p>
+        </div>
+
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p className="text-xs text-gray-500 mb-1">apiTimeout</p>
+          <p className="text-lg font-medium">{apiTimeout}ms</p>
+        </div>
+
+        <button
+          onClick={refresh}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Refresh Config
+        </button>
       </div>
     </div>
   )

@@ -19,6 +19,46 @@ import type { IStatsRepository } from '@togglebox/stats';
 import { StatsModel } from './schemas';
 
 /**
+ * Simple concurrency limiter for batch processing.
+ * Limits the number of concurrent promises to avoid overwhelming the database.
+ */
+function pLimit(concurrency: number): <T>(fn: () => Promise<T>) => Promise<T> {
+  let active = 0;
+  const queue: (() => void)[] = [];
+
+  const next = (): void => {
+    if (queue.length > 0 && active < concurrency) {
+      active++;
+      const resolve = queue.shift()!;
+      resolve();
+    }
+  };
+
+  return <T>(fn: () => Promise<T>): Promise<T> => {
+    return new Promise<T>((resolve, reject) => {
+      const run = async (): Promise<void> => {
+        try {
+          const result = await fn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        } finally {
+          active--;
+          next();
+        }
+      };
+
+      if (active < concurrency) {
+        active++;
+        run();
+      } else {
+        queue.push(() => run());
+      }
+    });
+  };
+}
+
+/**
  * Mongoose implementation of Stats repository.
  *
  * @remarks
@@ -465,52 +505,69 @@ export class MongooseStatsRepository implements IStatsRepository {
 
   /**
    * Process a batch of events from SDK.
+   * Uses parallel processing with concurrency limit for better performance.
    */
   async processBatch(
     platform: string,
     environment: string,
     events: StatsEvent[]
   ): Promise<void> {
-    for (const event of events) {
-      switch (event.type) {
-        case 'config_fetch':
-          await this.incrementConfigFetch(platform, environment, event.key, event.clientId);
-          break;
+    // Limit concurrency to avoid overwhelming the database
+    const limit = pLimit(25);
 
-        case 'flag_evaluation':
-          await this.incrementFlagEvaluation(
-            platform,
-            environment,
-            event.flagKey,
-            event.value,
-            event.userId,
-            event.country
-          );
-          break;
+    const processEvent = async (event: StatsEvent): Promise<void> => {
+      try {
+        switch (event.type) {
+          case 'config_fetch':
+            await this.incrementConfigFetch(platform, environment, event.key, event.clientId);
+            break;
 
-        case 'experiment_exposure':
-          await this.recordExperimentExposure(
-            platform,
-            environment,
-            event.experimentKey,
-            event.variationKey,
-            event.userId
-          );
-          break;
+          case 'flag_evaluation':
+            await this.incrementFlagEvaluation(
+              platform,
+              environment,
+              event.flagKey,
+              event.value,
+              event.userId,
+              event.country
+            );
+            break;
 
-        case 'conversion':
-          await this.recordConversion(
-            platform,
-            environment,
-            event.experimentKey,
-            event.metricName, // metricName maps to metricId
-            event.variationKey,
-            event.userId,
-            event.value
-          );
-          break;
+          case 'experiment_exposure':
+            await this.recordExperimentExposure(
+              platform,
+              environment,
+              event.experimentKey,
+              event.variationKey,
+              event.userId
+            );
+            break;
+
+          case 'conversion':
+            await this.recordConversion(
+              platform,
+              environment,
+              event.experimentKey,
+              event.metricName, // metricName maps to metricId
+              event.variationKey,
+              event.userId,
+              event.value
+            );
+            break;
+
+          case 'custom_event':
+            // Custom events are accepted but not persisted to database yet.
+            // Log for visibility instead of silently dropping.
+            console.log(`[stats] Custom event received: ${event.eventName} (userId: ${event.userId ?? 'anonymous'})`);
+            break;
+        }
+      } catch (error) {
+        // Log error but don't fail the entire batch
+        console.error(`Failed to process ${event.type} event:`, error);
       }
-    }
+    };
+
+    await Promise.all(events.map((event) => limit(() => processEvent(event))));
   }
 
   // =========================================================================

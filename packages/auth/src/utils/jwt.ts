@@ -186,34 +186,37 @@ export function verifyToken(token: string): JwtPayload | null {
     }) as JwtPayload;
     return decoded;
   } catch (error) {
-    // Log detailed error for debugging
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('[JWT] Verification failed:', errorMessage);
+    // SECURITY: Only log detailed debug info in development to prevent sensitive data leakage
+    if (process.env['NODE_ENV'] === 'development') {
+      // Log detailed error for debugging
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[JWT] Verification failed:', errorMessage);
 
-    // Log additional debug info (don't log the full token for security)
-    const tokenPreview = token.substring(0, 20) + '...';
-    console.error('[JWT] Debug info:', {
-      tokenPreview,
-      tokenLength: token.length,
-      expectedIssuer: JWT_ISSUER,
-      expectedAudience: JWT_AUDIENCE,
-      secretLength: JWT_SECRET.length,
-    });
+      // Log additional debug info (don't log the full token for security)
+      const tokenPreview = token.substring(0, 20) + '...';
+      console.error('[JWT] Debug info:', {
+        tokenPreview,
+        tokenLength: token.length,
+        expectedIssuer: JWT_ISSUER,
+        expectedAudience: JWT_AUDIENCE,
+        secretLength: JWT_SECRET.length,
+      });
 
-    // Try to decode token without verification to see the claims
-    try {
-      const unverifiedPayload = jwt.decode(token);
-      if (unverifiedPayload && typeof unverifiedPayload === 'object') {
-        const payload = unverifiedPayload as Record<string, unknown>;
-        console.error('[JWT] Token claims (unverified):', {
-          iss: payload['iss'],
-          aud: payload['aud'],
-          exp: payload['exp'],
-          id: payload['id'],
-        });
+      // Try to decode token without verification to see the claims
+      try {
+        const unverifiedPayload = jwt.decode(token);
+        if (unverifiedPayload && typeof unverifiedPayload === 'object') {
+          const payload = unverifiedPayload as Record<string, unknown>;
+          console.error('[JWT] Token claims (unverified):', {
+            iss: payload['iss'],
+            aud: payload['aud'],
+            exp: payload['exp'],
+            id: payload['id'],
+          });
+        }
+      } catch (decodeError) {
+        console.error('[JWT] Could not decode token for debugging');
       }
-    } catch (decodeError) {
-      console.error('[JWT] Could not decode token for debugging');
     }
 
     return null;

@@ -303,6 +303,12 @@ export type Experiment = z.infer<typeof ExperimentSchema>;
 
 /**
  * Schema for creating a new Experiment.
+ *
+ * @remarks
+ * Includes the same validation refinements as ExperimentSchema:
+ * - Traffic allocation must sum to 100%
+ * - Control variation must exist in variations
+ * - All traffic allocation keys must exist in variations
  */
 export const CreateExperimentSchema = ExperimentBaseSchema.omit({
   version: true,
@@ -314,12 +320,38 @@ export const CreateExperimentSchema = ExperimentBaseSchema.omit({
   winner: true,
   createdAt: true,
   updatedAt: true,
-});
+}).refine(
+  (data) => {
+    // Validate traffic allocation sums to 100
+    const total = data.trafficAllocation.reduce((sum, t) => sum + t.percentage, 0);
+    return Math.abs(total - 100) < 0.01;
+  },
+  { message: 'Traffic allocation must sum to 100%' }
+).refine(
+  (data) => {
+    // Validate control variation exists
+    return data.variations.some((v) => v.key === data.controlVariation);
+  },
+  { message: 'Control variation must exist in variations' }
+).refine(
+  (data) => {
+    // Validate all traffic allocation keys exist
+    const variationKeys = new Set(data.variations.map((v) => v.key));
+    return data.trafficAllocation.every((t) => variationKeys.has(t.variationKey));
+  },
+  { message: 'All traffic allocation keys must exist in variations' }
+);
 
 export type CreateExperiment = z.infer<typeof CreateExperimentSchema>;
 
 /**
  * Schema for updating an Experiment.
+ *
+ * @remarks
+ * Includes validation refinements for consistency when updating:
+ * - If trafficAllocation is provided, it must sum to 100%
+ * - If controlVariation is provided with variations, control must exist
+ * - If trafficAllocation is provided with variations, keys must exist
  */
 export const UpdateExperimentSchema = z.object({
   name: z.string().min(1).optional(),
@@ -337,7 +369,30 @@ export const UpdateExperimentSchema = z.object({
   scheduledStartAt: z.string().datetime().optional(),
   scheduledEndAt: z.string().datetime().optional(),
   createdBy: z.string().email('Invalid email format'),
-});
+}).refine(
+  (data) => {
+    // If trafficAllocation is provided, it must sum to 100%
+    if (!data.trafficAllocation) return true;
+    const total = data.trafficAllocation.reduce((sum, t) => sum + t.percentage, 0);
+    return Math.abs(total - 100) < 0.01;
+  },
+  { message: 'Traffic allocation must sum to 100%' }
+).refine(
+  (data) => {
+    // If both controlVariation and variations are provided, control must exist
+    if (!data.controlVariation || !data.variations) return true;
+    return data.variations.some((v) => v.key === data.controlVariation);
+  },
+  { message: 'Control variation must exist in variations' }
+).refine(
+  (data) => {
+    // If both trafficAllocation and variations are provided, keys must exist
+    if (!data.trafficAllocation || !data.variations) return true;
+    const variationKeys = new Set(data.variations.map((v) => v.key));
+    return data.trafficAllocation.every((t) => variationKeys.has(t.variationKey));
+  },
+  { message: 'All traffic allocation keys must exist in variations' }
+);
 
 export type UpdateExperiment = z.infer<typeof UpdateExperimentSchema>;
 

@@ -179,20 +179,33 @@ export type CreateFlag = z.infer<typeof CreateFlagSchema>;
 /**
  * Schema for updating a Flag (creates new version).
  */
-export const UpdateFlagSchema = z.object({
-  name: z.string().min(1).optional(),
-  description: z.string().optional(),
-  enabled: z.boolean().optional(),
-  valueA: FlagValueSchema.optional(),
-  valueB: FlagValueSchema.optional(),
-  targeting: TargetingSchema.optional(),
-  defaultValue: z.enum(['A', 'B']).optional(),
-  // Percentage rollout
-  rolloutEnabled: z.boolean().optional(),
-  rolloutPercentageA: z.number().min(0).max(100).optional(),
-  rolloutPercentageB: z.number().min(0).max(100).optional(),
-  createdBy: z.string().email('Invalid email format'),
-});
+export const UpdateFlagSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    description: z.string().optional(),
+    enabled: z.boolean().optional(),
+    valueA: FlagValueSchema.optional(),
+    valueB: FlagValueSchema.optional(),
+    targeting: TargetingSchema.optional(),
+    defaultValue: z.enum(['A', 'B']).optional(),
+    // Percentage rollout
+    rolloutEnabled: z.boolean().optional(),
+    rolloutPercentageA: z.number().min(0).max(100).optional(),
+    rolloutPercentageB: z.number().min(0).max(100).optional(),
+    createdBy: z.string().email('Invalid email format'),
+  })
+  .superRefine((data, ctx) => {
+    // If both percentages are provided, they must sum to 100
+    if (data.rolloutPercentageA !== undefined && data.rolloutPercentageB !== undefined) {
+      if (data.rolloutPercentageA + data.rolloutPercentageB !== 100) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'rolloutPercentageA + rolloutPercentageB must equal 100',
+          path: ['rolloutPercentageA'],
+        });
+      }
+    }
+  });
 
 /**
  * Schema for updating rollout settings (in-place, no new version).

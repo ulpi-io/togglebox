@@ -4,153 +4,223 @@
  * Zod schemas and TypeScript types for remote configuration management (Tier 1).
  *
  * @remarks
- * All schemas are used for validating HTTP request/response payloads and database operations.
- * TypeScript types are automatically inferred from Zod schemas using z.infer<>.
+ * Remote Configs contain versioned parameters. Each parameter belongs to a
+ * platform/environment and has version history. Only one version is active at a time.
  */
 
 import { z } from 'zod';
 
 /**
- * Schema for configuration JSON objects.
+ * System limits for config parameters.
+ */
+export const CONFIG_LIMITS = {
+  /** Maximum parameters per platform/environment */
+  MAX_PARAMETERS_PER_ENV: 2000,
+  /** Maximum parameter key length */
+  MAX_KEY_LENGTH: 256,
+  /** Maximum parameter value length (as string) */
+  MAX_VALUE_LENGTH: 10_000,
+} as const;
+
+/**
+ * Parameter key validation regex.
+ * Must start with a letter, contain only letters, numbers, underscores, and hyphens.
+ * This matches the validation in configController.ts.
+ */
+const PARAMETER_KEY_REGEX = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+
+/**
+ * Schema for value types supported by config parameters.
+ */
+export const ConfigValueTypeSchema = z.enum(['string', 'number', 'boolean', 'json']);
+
+/**
+ * Schema for config parameters.
  *
  * @remarks
- * Accepts a flexible key-value structure where values can be:
- * - string
- * - number
- * - boolean
- * - nested objects (passthrough allows any structure)
- *
- * No enforced schema - applications define their own configuration structure.
- * Size limit: 300KB (to stay within DynamoDB 400KB item limit with metadata).
+ * Each parameter is versioned. Only one version is active at a time.
+ * Editing a parameter creates a new version and marks it active.
  *
  * @example
  * ```ts
- * // Valid configuration examples
- * const config1 = {
- *   apiUrl: 'https://api.example.com',
- *   timeout: 5000,
- *   enableLogging: true,
+ * const param: ConfigParameter = {
+ *   platform: 'web',
+ *   environment: 'production',
+ *   parameterKey: 'api_url',
+ *   version: '2',
+ *   valueType: 'string',
+ *   defaultValue: 'https://api.example.com',
+ *   description: 'Backend API URL',
+ *   isActive: true,
+ *   createdBy: 'user@example.com',
+ *   createdAt: '2024-01-01T00:00:00Z',
  * };
- *
- * const config2 = {
- *   api: {
- *     baseUrl: 'https://api.example.com',
- *     endpoints: {
- *       users: '/v1/users',
- *       posts: '/v1/posts',
- *     },
- *   },
- *   features: {
- *     darkMode: true,
- *     analytics: false,
- *   },
- *   limits: {
- *     maxRequests: 1000,
- *     rateLimit: 100,
- *   },
- * };
- *
- * // Validate config
- * ConfigSchema.parse(config1); // ✅ Valid
- * ConfigSchema.parse(config2); // ✅ Valid
- *
- * // Size limit validation
- * const tooLarge = { data: 'x'.repeat(350_000) };
- * ConfigSchema.parse(tooLarge); // ❌ Throws: "Config size exceeds 300KB limit"
  * ```
  */
-export const ConfigSchema = z.record(
-  z.string(),
-  z.union([z.string(), z.number(), z.boolean(), z.object({}).passthrough()])
-).refine(
-  (config) => JSON.stringify(config).length < 300_000,
-  { message: 'Config size exceeds 300KB limit (DynamoDB constraint)' }
-);
+export const ConfigParameterSchema = z.object({
+  // Identity (composite key: platform + environment + parameterKey + version)
+  platform: z.string().min(1),
+  environment: z.string().min(1),
+  parameterKey: z
+    .string()
+    .min(1)
+    .max(CONFIG_LIMITS.MAX_KEY_LENGTH)
+    .regex(PARAMETER_KEY_REGEX, 'Must start with a letter, containing only letters, numbers, underscores, and hyphens'),
+  version: z.string().min(1), // "1", "2", "3" etc.
 
-/**
- * Schema for configuration version objects.
- *
- * @remarks
- * Represents an immutable versioned configuration within an environment.
- * Versions are identified by versionLabel (semantic version) for human-readable URLs.
- *
- * **Fields:**
- * - platform: Application/service identifier
- * - environment: Deployment environment (e.g., "production", "staging")
- * - versionLabel: Semantic version identifier (e.g., "1.0.0", "2.1.0") - PRIMARY KEY for lookups
- * - versionTimestamp: Auto-generated ISO-8601 timestamp for audit trail
- * - isStable: Flag indicating production-ready status
- * - config: Arbitrary JSON configuration data (max 300KB)
- * - createdBy: Email of creator
- * - createdAt: Timestamp when created (same as versionTimestamp)
- *
- * **Version Identification:**
- * versionLabel is the primary identifier for get/delete/update operations.
- * Must be unique within a platform/environment combination.
- * Format: Semantic versioning (e.g., "1.0.0", "2.1.0-beta.1")
- *
- * **Immutability:**
- * Once created, versions cannot be modified. To fix errors, create a new version.
- * Only the isStable flag can be changed via separate endpoint.
- */
-export const VersionSchema = z.object({
-  platform: z.string(),
-  environment: z.string(),
-  versionLabel: z.string().min(1, 'Version label is required'),
-  versionTimestamp: z.string().datetime(),
-  isStable: z.boolean().default(false),
-  config: ConfigSchema,
+  // Value
+  valueType: ConfigValueTypeSchema,
+  defaultValue: z.string().max(CONFIG_LIMITS.MAX_VALUE_LENGTH),
+
+  // Metadata
+  description: z.string().max(500).optional(),
+  parameterGroup: z.string().max(100).optional(),
+
+  // Versioning
+  isActive: z.boolean().default(true), // Only one version active per parameterKey
+
+  // Audit
   createdBy: z.string().email(),
   createdAt: z.string().datetime(),
 });
 
 /**
- * Schema for creating a new version (omits auto-generated fields).
- *
- * @remarks
- * versionTimestamp and createdAt are auto-generated by the service.
- * Users must provide platform, environment, versionLabel, and config.
- *
- * **Required Fields:**
- * - platform: Platform identifier
- * - environment: Environment name
- * - versionLabel: Semantic version (e.g., "1.0.0") - used as primary identifier
- * - config: Configuration payload
- * - createdBy: Creator email
- *
- * **Optional Fields:**
- * - isStable: Whether this version is production-ready (default: false)
+ * Schema for creating a config parameter.
+ * Validates that defaultValue is valid for the specified valueType.
  */
-export const CreateVersionSchema = VersionSchema.omit({
-  versionTimestamp: true,
-  createdAt: true,
+export const CreateConfigParameterSchema = z.object({
+  platform: z.string().min(1),
+  environment: z.string().min(1),
+  parameterKey: z
+    .string()
+    .min(1)
+    .max(CONFIG_LIMITS.MAX_KEY_LENGTH)
+    .regex(PARAMETER_KEY_REGEX, 'Must start with a letter, containing only letters, numbers, underscores, and hyphens'),
+  valueType: ConfigValueTypeSchema,
+  defaultValue: z.string().max(CONFIG_LIMITS.MAX_VALUE_LENGTH),
+  description: z.string().max(500).optional(),
+  parameterGroup: z.string().max(100).optional(),
+  createdBy: z.string().email(),
+}).superRefine((data, ctx) => {
+  // Validate defaultValue against valueType
+  if (data.valueType === 'number') {
+    const num = parseFloat(data.defaultValue);
+    if (!Number.isFinite(num)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `defaultValue "${data.defaultValue}" is not a valid number`,
+        path: ['defaultValue'],
+      });
+    }
+  } else if (data.valueType === 'json') {
+    try {
+      JSON.parse(data.defaultValue);
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `defaultValue is not valid JSON`,
+        path: ['defaultValue'],
+      });
+    }
+  } else if (data.valueType === 'boolean') {
+    if (data.defaultValue !== 'true' && data.defaultValue !== 'false') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `defaultValue must be "true" or "false" for boolean type`,
+        path: ['defaultValue'],
+      });
+    }
+  }
 });
 
 /**
- * Schema for cache invalidation requests.
- *
- * @remarks
- * Supports different levels of granularity:
- * - global: true - Invalidate all caches
- * - platform only - Invalidate platform-level caches
- * - platform + environment - Invalidate environment-level caches
- * - platform + environment + version - Invalidate specific version
+ * Schema for updating a config parameter (creates new version).
+ * Validates that defaultValue is valid for valueType when both are provided.
  */
-export const CacheInvalidationSchema = z.object({
-  platform: z.string().optional(),
-  environment: z.string().optional(),
-  version: z.string().optional(),
-  global: z.boolean().optional(),
+export const UpdateConfigParameterSchema = z.object({
+  valueType: ConfigValueTypeSchema.optional(),
+  defaultValue: z.string().max(CONFIG_LIMITS.MAX_VALUE_LENGTH).optional(),
+  description: z.string().max(500).optional().nullable(),
+  parameterGroup: z.string().max(100).optional().nullable(),
+  createdBy: z.string().email(), // Who made this edit
+}).superRefine((data, ctx) => {
+  // Only validate if both valueType and defaultValue are provided
+  if (data.valueType && data.defaultValue !== undefined) {
+    if (data.valueType === 'number') {
+      const num = parseFloat(data.defaultValue);
+      if (!Number.isFinite(num)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `defaultValue "${data.defaultValue}" is not a valid number`,
+          path: ['defaultValue'],
+        });
+      }
+    } else if (data.valueType === 'json') {
+      try {
+        JSON.parse(data.defaultValue);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `defaultValue is not valid JSON`,
+          path: ['defaultValue'],
+        });
+      }
+    } else if (data.valueType === 'boolean') {
+      if (data.defaultValue !== 'true' && data.defaultValue !== 'false') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `defaultValue must be "true" or "false" for boolean type`,
+          path: ['defaultValue'],
+        });
+      }
+    }
+  }
 });
 
-/** Configuration object type - flexible key-value structure */
-export type Config = z.infer<typeof ConfigSchema>;
+// Types
+export type ConfigValueType = z.infer<typeof ConfigValueTypeSchema>;
+export type ConfigParameter = z.infer<typeof ConfigParameterSchema>;
+export type CreateConfigParameter = z.infer<typeof CreateConfigParameterSchema>;
+export type UpdateConfigParameter = z.infer<typeof UpdateConfigParameterSchema>;
 
-/** Configuration version type */
-export type Version = z.infer<typeof VersionSchema>;
+// ============================================================================
+// Helpers
+// ============================================================================
 
-/** Create version request type */
-export type CreateVersion = z.infer<typeof CreateVersionSchema>;
+/**
+ * Parses a stored string value to its typed value.
+ */
+export function parseConfigValue(value: string, valueType: ConfigValueType): unknown {
+  switch (valueType) {
+    case 'boolean':
+      return value === 'true';
+    case 'number': {
+      const num = parseFloat(value);
+      // SECURITY: Guard against NaN - return null for invalid number strings
+      if (!Number.isFinite(num)) {
+        return null;
+      }
+      return num;
+    }
+    case 'json':
+      try {
+        return JSON.parse(value);
+      } catch {
+        return null;
+      }
+    default:
+      return value;
+  }
+}
 
-/** Cache invalidation request type */
-export type CacheInvalidation = z.infer<typeof CacheInvalidationSchema>;
+/**
+ * Serializes a typed value to string for storage.
+ */
+export function serializeConfigValue(value: unknown, valueType: ConfigValueType): string {
+  switch (valueType) {
+    case 'json':
+      return JSON.stringify(value);
+    default:
+      return String(value);
+  }
+}

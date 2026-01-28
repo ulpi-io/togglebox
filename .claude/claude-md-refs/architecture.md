@@ -22,6 +22,7 @@ Architecture decisions and patterns for ToggleBox dual monorepo structure.
 - **apps/admin**: Admin dashboard (Next.js 15)
 - **apps/example-nextjs**: Example Next.js app demonstrating SDK usage
 - **apps/example-expo**: Example Expo/React Native app demonstrating SDK usage
+- **apps/example-nodejs**: Example Node.js app demonstrating SDK usage
 
 **Packages:**
 - **packages/core**: Core business logic, types, and hashing utilities

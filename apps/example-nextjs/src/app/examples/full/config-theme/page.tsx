@@ -1,61 +1,11 @@
 'use client'
 
-import { useConfig } from '@togglebox/sdk-nextjs'
 import { useEffect, useMemo } from 'react'
+import { useConfig } from '@togglebox/sdk-nextjs'
 
-/**
- * Config-Driven Theming Example (Full Implementation)
- *
- * This example shows how to:
- *   1. Use remote config to drive UI theming
- *   2. Apply config values to CSS variables
- *   3. Provide sensible fallback defaults
- *   4. Update theme dynamically when config changes
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * USE CASE: REMOTE THEMING
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Why use remote config for theming?
- *   - A/B test different color schemes
- *   - Seasonal or promotional themes
- *   - Brand customization for white-label apps
- *   - Fix theme bugs without deploying
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * HOW IT WORKS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * 1. useConfig() fetches remote config from ToggleBox
- * 2. Config contains a "theme" object: { primaryColor: '#3b82f6', ... }
- * 3. We merge remote theme with default values (fallback if not set)
- * 4. Theme values are applied to CSS custom properties
- * 5. CSS variables update the UI: var(--color-primary)
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * REMOTE CONFIG STRUCTURE
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * In ToggleBox admin, your config might look like:
- *
- *   {
- *     "theme": {
- *       "primaryColor": "#6366f1",
- *       "secondaryColor": "#64748b",
- *       "accentColor": "#f59e0b",
- *       "borderRadius": "12px"
- *     }
- *   }
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- */
-export default function ConfigTheme() {
-  // useConfig() returns the entire config object
-  // The config structure depends on what you stored in ToggleBox admin
-  const { config, isLoading } = useConfig()
+export default function Page() {
+  const { config, isLoading, refresh } = useConfig()
 
-  // Define default theme values - used when config is loading or missing
-  // IMPORTANT: Always have defaults so your app works even if ToggleBox is down
   const defaultTheme = useMemo(() => ({
     primaryColor: '#3b82f6',
     secondaryColor: '#6b7280',
@@ -63,18 +13,14 @@ export default function ConfigTheme() {
     borderRadius: '8px',
   }), [])
 
-  // Get theme from config or use defaults
-  // config?.theme accesses the nested "theme" object from your remote config
   const themeConfig = config?.theme as Record<string, string> | undefined
   const theme = useMemo(() => ({
-    ...defaultTheme,          // Start with defaults
-    ...(themeConfig || {}),   // Override with remote values (if available)
+    ...defaultTheme,
+    ...(themeConfig || {}),
   }), [defaultTheme, themeConfig])
 
-  // Apply theme to CSS custom properties
-  // This allows any CSS to use: var(--color-primary)
   useEffect(() => {
-    if (isLoading) return  // Don't apply until config is loaded
+    if (isLoading) return
     const root = document.documentElement
     root.style.setProperty('--color-primary', theme.primaryColor)
     root.style.setProperty('--color-secondary', theme.secondaryColor)
@@ -83,38 +29,62 @@ export default function ConfigTheme() {
   }, [theme, isLoading])
 
   if (isLoading) {
-    return <div className="animate-pulse">Loading theme...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-4">
-      <h1 style={{ color: theme.primaryColor }} className="text-2xl font-bold">
-        Themed Heading
+    <div className="min-h-screen p-8">
+      <h1 style={{ color: theme.primaryColor }} className="text-3xl font-bold mb-6">
+        Config-Driven Theme
       </h1>
 
-      <p style={{ color: theme.secondaryColor }}>
-        This text uses the secondary color from remote config.
-      </p>
+      <div className="max-w-md space-y-6">
+        <p style={{ color: theme.secondaryColor }}>
+          This text uses the secondary color from remote config.
+        </p>
 
-      <div className="flex gap-3">
-        <button
-          style={{
-            backgroundColor: theme.primaryColor,
-            borderRadius: theme.borderRadius,
-          }}
-          className="px-4 py-2 text-white"
-        >
-          Primary Button
-        </button>
+        <div className="flex gap-3">
+          <button
+            style={{ backgroundColor: theme.primaryColor, borderRadius: theme.borderRadius }}
+            className="px-4 py-2 text-white"
+          >
+            Primary Button
+          </button>
+          <button
+            style={{ backgroundColor: theme.accentColor, borderRadius: theme.borderRadius }}
+            className="px-4 py-2 text-white"
+          >
+            Accent Button
+          </button>
+        </div>
+
+        <div className="p-4 bg-gray-50 rounded-lg">
+          <h3 className="font-semibold mb-3 text-gray-900">Current Theme</h3>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            {Object.entries(theme).map(([key, value]) => (
+              <div key={key} className="flex items-center gap-2">
+                <span className="text-gray-500">{key}:</span>
+                <span className="font-mono">{value}</span>
+                {value.startsWith('#') && (
+                  <div
+                    className="w-4 h-4 rounded border border-gray-300"
+                    style={{ backgroundColor: value }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
 
         <button
-          style={{
-            backgroundColor: theme.accentColor,
-            borderRadius: theme.borderRadius,
-          }}
-          className="px-4 py-2 text-white"
+          onClick={refresh}
+          className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50"
         >
-          Accent Button
+          Refresh Theme
         </button>
       </div>
     </div>

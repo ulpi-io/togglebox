@@ -1,7 +1,6 @@
-import type { Config } from '@togglebox/configs'
 import type { Flag } from '@togglebox/flags'
 import type { Experiment } from '@togglebox/experiments'
-import type { StoredData, StorageAdapter } from './types'
+import type { StoredData, StorageAdapter, Config } from './types'
 
 const STORAGE_KEY_PREFIX = '@togglebox/config'
 

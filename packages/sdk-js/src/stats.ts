@@ -1,6 +1,7 @@
 import type { StatsEvent } from '@togglebox/stats'
 import type { StatsOptions, EventListener } from './types'
 import { HttpClient } from './http'
+import { NetworkError } from './errors'
 
 /**
  * Stats Reporter
@@ -15,6 +16,7 @@ export class StatsReporter {
   private options: Required<StatsOptions>
   private queue: StatsEvent[] = []
   private flushTimer: NodeJS.Timeout | null = null
+  private isFlushing = false
   private onFlush: EventListener | null = null
   private onError: EventListener | null = null
 
@@ -34,6 +36,7 @@ export class StatsReporter {
       batchSize: options.batchSize ?? 20,
       flushIntervalMs: options.flushIntervalMs ?? 10000,
       maxRetries: options.maxRetries ?? 3,
+      maxQueueSize: options.maxQueueSize ?? 1000,
     }
     this.onFlush = onFlush ?? null
     this.onError = onError ?? null
@@ -61,7 +64,8 @@ export class StatsReporter {
     flagKey: string,
     value: 'A' | 'B',
     userId: string,
-    country?: string
+    country?: string,
+    language?: string
   ): void {
     this.queueEvent({
       type: 'flag_evaluation',
@@ -69,6 +73,7 @@ export class StatsReporter {
       value,
       userId,
       country,
+      language,
       timestamp: new Date().toISOString(),
     })
   }
@@ -112,11 +117,33 @@ export class StatsReporter {
   }
 
   /**
+   * Track a custom event (general analytics, not tied to experiments).
+   */
+  trackCustomEvent(
+    eventName: string,
+    userId: string,
+    properties?: Record<string, unknown>
+  ): void {
+    this.queueEvent({
+      type: 'custom_event',
+      eventName,
+      userId,
+      properties,
+      timestamp: new Date().toISOString(),
+    } as StatsEvent)
+  }
+
+  /**
    * Queue an event for sending.
    */
   private queueEvent(event: StatsEvent): void {
     if (!this.options.enabled) {
       return
+    }
+
+    // Enforce max queue size to prevent unbounded memory growth
+    if (this.queue.length >= this.options.maxQueueSize) {
+      this.queue.shift() // Drop oldest event
     }
 
     this.queue.push(event)
@@ -131,9 +158,11 @@ export class StatsReporter {
    * Flush queued events to the API.
    */
   async flush(): Promise<void> {
-    if (this.queue.length === 0) {
+    if (this.isFlushing || this.queue.length === 0) {
       return
     }
+
+    this.isFlushing = true
 
     const events = [...this.queue]
     this.queue = []
@@ -142,9 +171,18 @@ export class StatsReporter {
       await this.sendWithRetry(events)
       this.onFlush?.({ eventCount: events.length })
     } catch (error) {
-      // Re-queue failed events
-      this.queue = [...events, ...this.queue]
+      // Only re-queue on non-4xx errors (4xx = client error, won't succeed on retry)
+      const isClientError =
+        error instanceof NetworkError &&
+        error.statusCode !== undefined &&
+        error.statusCode >= 400 &&
+        error.statusCode < 500
+      if (!isClientError) {
+        this.queue = [...events, ...this.queue]
+      }
       this.onError?.(error)
+    } finally {
+      this.isFlushing = false
     }
   }
 

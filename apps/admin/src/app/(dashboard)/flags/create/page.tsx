@@ -23,8 +23,10 @@ import {
 type FlagType = 'boolean' | 'string' | 'number';
 
 interface CountryLanguagePair {
+  id: string;
   country: string;
   languages: string;
+  serveValue: 'A' | 'B';
 }
 
 interface ValidationResult {
@@ -91,7 +93,8 @@ function validateLanguages(input: string): { valid: string[]; invalid: string[];
   const invalid: string[] = [];
   const duplicates: string[] = [];
 
-  const validPattern = /^[a-z]{2,3}$/;
+  // Backend requires exactly 2 letters (ISO 639-1)
+  const validPattern = /^[a-z]{2}$/;
 
   for (const entry of entries) {
     if (!validPattern.test(entry)) {
@@ -235,40 +238,65 @@ export default function CreateFlagPage() {
     }
   };
 
-  const parseValue = (val: string, type: FlagType): string | number | boolean => {
+  const parseValue = (val: string, type: FlagType): string | number | boolean | null => {
     if (type === 'boolean') return val === 'true';
-    if (type === 'number') return Number(val) || 0;
+    if (type === 'number') {
+      const parsed = Number(val);
+      if (val.trim() === '' || Number.isNaN(parsed)) {
+        return null; // Signal invalid number
+      }
+      return parsed;
+    }
     return val;
   };
 
-  const handleCountryChange = (index: number, country: string) => {
+  const handleCountryChange = (id: string, country: string) => {
     const { formatted } = validateCountryCode(country);
-    setCountryLanguagePairs(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], country: formatted };
-      return updated;
-    });
+    setCountryLanguagePairs(prev =>
+      prev.map(pair => pair.id === id ? { ...pair, country: formatted } : pair)
+    );
   };
 
-  const handleLanguagesChange = (index: number, languages: string) => {
-    setCountryLanguagePairs(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], languages };
-      return updated;
-    });
+  const handleLanguagesChange = (id: string, languages: string) => {
+    setCountryLanguagePairs(prev =>
+      prev.map(pair => pair.id === id ? { ...pair, languages } : pair)
+    );
+  };
+
+  const handleServeValueChange = (id: string, serveValue: 'A' | 'B') => {
+    setCountryLanguagePairs(prev =>
+      prev.map(pair => pair.id === id ? { ...pair, serveValue } : pair)
+    );
   };
 
   const addCountryLanguagePair = () => {
-    setCountryLanguagePairs(prev => [...prev, { country: '', languages: '' }]);
+    setCountryLanguagePairs(prev => [...prev, {
+      id: crypto.randomUUID(),
+      country: '',
+      languages: '',
+      serveValue: 'A',
+    }]);
   };
 
-  const removeCountryLanguagePair = (index: number) => {
-    setCountryLanguagePairs(prev => prev.filter((_, i) => i !== index));
+  const removeCountryLanguagePair = (id: string) => {
+    setCountryLanguagePairs(prev => prev.filter(pair => pair.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!allStepsValid || !platform || !environment) return;
+
+    // Validate number values
+    const parsedValueA = parseValue(valueA, flagType);
+    const parsedValueB = parseValue(valueB, flagType);
+    if (parsedValueA === null) {
+      setError('Value A must be a valid number');
+      return;
+    }
+    if (parsedValueB === null) {
+      setError('Value B must be a valid number');
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -282,7 +310,10 @@ export default function CreateFlagPage() {
         const { valid: validLangs } = validateLanguages(pair.languages);
         return {
           country: pair.country.trim().toUpperCase(),
-          languages: validLangs.length > 0 ? validLangs.map(l => ({ language: l })) : undefined,
+          serveValue: pair.serveValue,
+          languages: validLangs.length > 0
+            ? validLangs.map(l => ({ language: l, serveValue: pair.serveValue }))
+            : undefined,
         };
       });
 
@@ -293,8 +324,8 @@ export default function CreateFlagPage() {
         description: description.trim() || undefined,
         flagType,
         enabled,
-        valueA: parseValue(valueA, flagType),
-        valueB: parseValue(valueB, flagType),
+        valueA: parsedValueA,
+        valueB: parsedValueB,
         targeting: {
           countries: validCountries.length > 0 ? validCountries : undefined,
           forceIncludeUsers: includeUsersValidation.valid.length > 0 ? includeUsersValidation.valid : undefined,
@@ -543,15 +574,15 @@ export default function CreateFlagPage() {
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {countryLanguagePairs.map((pair, index) => {
+                      {countryLanguagePairs.map((pair) => {
                         const countryValidation = validateCountryCode(pair.country);
                         const langValidation = validateLanguages(pair.languages);
                         return (
-                          <div key={index} className="flex gap-2 items-start">
-                            <div className="flex-1">
+                          <div key={pair.id} className="flex gap-2 items-start">
+                            <div className="w-20">
                               <Input
                                 value={pair.country}
-                                onChange={(e) => handleCountryChange(index, e.target.value)}
+                                onChange={(e) => handleCountryChange(pair.id, e.target.value)}
                                 placeholder="US"
                                 maxLength={2}
                                 className={`font-mono uppercase ${
@@ -559,13 +590,13 @@ export default function CreateFlagPage() {
                                 }`}
                               />
                               {pair.country && !countryValidation.valid && (
-                                <p className="text-xs text-destructive mt-1">Invalid country code</p>
+                                <p className="text-xs text-destructive mt-1">Invalid</p>
                               )}
                             </div>
-                            <div className="flex-[2]">
+                            <div className="flex-1">
                               <Input
                                 value={pair.languages}
-                                onChange={(e) => handleLanguagesChange(index, e.target.value)}
+                                onChange={(e) => handleLanguagesChange(pair.id, e.target.value)}
                                 placeholder="en, es, fr (optional)"
                                 className={langValidation.invalid.length > 0 ? 'border-destructive' : ''}
                               />
@@ -575,11 +606,20 @@ export default function CreateFlagPage() {
                                 </p>
                               )}
                             </div>
+                            <div className="w-24">
+                              <Select
+                                value={pair.serveValue}
+                                onChange={(e) => handleServeValueChange(pair.id, e.target.value as 'A' | 'B')}
+                              >
+                                <option value="A">Serve A</option>
+                                <option value="B">Serve B</option>
+                              </Select>
+                            </div>
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => removeCountryLanguagePair(index)}
+                              onClick={() => removeCountryLanguagePair(pair.id)}
                             >
                               ×
                             </Button>

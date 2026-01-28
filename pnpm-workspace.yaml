@@ -25,3 +25,4 @@ packages:
   # Example Applications
   - 'apps/example-nextjs'
   - 'apps/example-expo'
+  - 'apps/example-nodejs'

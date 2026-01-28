@@ -2,10 +2,9 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { ToggleBoxClient } from '@togglebox/sdk'
-import type { Config } from '@togglebox/configs'
 import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
 import type { Experiment, ExperimentContext } from '@togglebox/experiments'
-import type { ToggleBoxProviderProps, ToggleBoxContextValue, ConversionData, EventData } from './types'
+import type { ToggleBoxProviderProps, ToggleBoxContextValue, ConversionData, EventData, Config } from './types'
 
 const ToggleBoxContext = createContext<ToggleBoxContextValue | null>(null)
 
@@ -25,7 +24,6 @@ export function ToggleBoxProvider({
   tenantSubdomain,
   cache,
   pollingInterval = 0,
-  configVersion,
   initialConfig,
   initialFlags,
   initialExperiments,
@@ -38,7 +36,9 @@ export function ToggleBoxProvider({
   // Tier 3: Experiments
   const [experiments, setExperiments] = useState<Experiment[]>(initialExperiments || [])
 
-  const [isLoading, setIsLoading] = useState(!initialConfig)
+  // isLoading should be true if ANY data needs to be fetched
+  const initialNeedsFetch = !initialConfig || !initialFlags?.length || !initialExperiments?.length
+  const [isLoading, setIsLoading] = useState(initialNeedsFetch)
   const [error, setError] = useState<Error | null>(null)
 
   const clientRef = useRef<ToggleBoxClient | null>(null)
@@ -53,7 +53,6 @@ export function ToggleBoxProvider({
       tenantSubdomain,
       cache,
       pollingInterval,
-      configVersion,
     })
 
     clientRef.current = client
@@ -74,17 +73,22 @@ export function ToggleBoxProvider({
       setError(err as Error)
     })
 
-    // Initial fetch if no initial data
-    if (!initialConfig) {
+    // Initial fetch for any data not already provided
+    const needsConfig = !initialConfig
+    const needsFlags = !initialFlags || initialFlags.length === 0
+    const needsExperiments = !initialExperiments || initialExperiments.length === 0
+    const needsFetch = needsConfig || needsFlags || needsExperiments
+
+    if (needsFetch) {
       Promise.all([
-        client.getConfig(),
-        client.getFlags(),
-        client.getExperiments(),
+        needsConfig ? client.getConfig() : Promise.resolve(initialConfig!),
+        needsFlags ? client.getFlags() : Promise.resolve(initialFlags!),
+        needsExperiments ? client.getExperiments() : Promise.resolve(initialExperiments!),
       ])
         .then(([configData, flagsData, experimentsData]) => {
-          setConfig(configData)
-          setFlags(flagsData)
-          setExperiments(experimentsData)
+          if (needsConfig) setConfig(configData)
+          if (needsFlags) setFlags(flagsData)
+          if (needsExperiments) setExperiments(experimentsData)
           setError(null)
         })
         .catch((err) => {
@@ -93,12 +97,14 @@ export function ToggleBoxProvider({
         .finally(() => {
           setIsLoading(false)
         })
+    } else {
+      setIsLoading(false)
     }
 
     return () => {
       client.destroy()
     }
-  }, [platform, environment, apiUrl, apiKey, tenantSubdomain, pollingInterval, configVersion, initialConfig])
+  }, [platform, environment, apiUrl, apiKey, tenantSubdomain, cache, pollingInterval, initialConfig, initialFlags, initialExperiments])
 
   const refresh = useCallback(async () => {
     if (!clientRef.current) return

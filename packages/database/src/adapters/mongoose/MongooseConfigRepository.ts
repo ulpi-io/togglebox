@@ -1,81 +1,92 @@
 /**
- * Mongoose adapter for configuration version operations.
+ * Mongoose adapter for config parameter operations (Firebase-style).
  *
  * @remarks
- * Implements `IConfigRepository` using Mongoose ODM for MongoDB.
- * Handles JSON serialization for configuration payloads and versioning logic.
+ * Implements `IConfigRepository` for individual versioned config parameters.
+ * Each parameter has version history; only one version is active at a time.
  */
 
-import { Version } from '@togglebox/configs';
-import { IConfigRepository, OffsetPaginationParams, TokenPaginationParams, OffsetPaginatedResult } from '../../interfaces';
-import { ConfigVersionModel, PlatformModel } from './schemas';
+import {
+  ConfigParameter,
+  CreateConfigParameter,
+  UpdateConfigParameter,
+  parseConfigValue,
+} from '@togglebox/configs';
+import {
+  IConfigRepository,
+  OffsetPaginationParams,
+  TokenPaginationParams,
+  PaginatedResult,
+} from '../../interfaces';
+import { ConfigParameterModel, IConfigParameterDocument } from './schemas';
 
 /**
- * Mongoose implementation of configuration repository.
+ * Mongoose implementation of config parameter repository.
  *
  * @remarks
- * **JSON Handling:** Config stored as JSON string, parsed/stringified automatically.
- * **Versioning:** Auto-generated ISO-8601 timestamps ensure chronological ordering.
- * **Stable Versions:** Compound index (platform + environment + isStable) for fast queries.
- * **Lean Queries:** Uses .lean().select() for performance when only ID needed.
+ * Uses MongoDB transactions for atomic version updates (requires replica set).
+ * Parameters are versioned - edits create new versions.
  */
 export class MongooseConfigRepository implements IConfigRepository {
+  // ============================================================================
+  // PUBLIC (SDK)
+  // ============================================================================
+
   /**
-   * Creates a new configuration version.
-   *
-   * @param version - Version data (versionTimestamp and createdAt are auto-generated)
-   * @returns Created version with generated timestamp
-   *
-   * @remarks
-   * **PERFORMANCE NOTE**: Uses lean query to get only platformId instead of full document.
-   * Controller validation ensures platform exists, but we still need the ID for foreign key.
-   *
-   * @throws {Error} If version timestamp collision occurs (duplicate key error)
-   * @throws {Error} If platform not found (should not happen if controller validates correctly)
+   * Gets all active parameters as key-value object for SDK consumption.
    */
-  async createVersion(version: Omit<Version, 'versionTimestamp' | 'createdAt'>): Promise<Version> {
-    const timestamp = new Date().toISOString();
+  async getConfigs(
+    platform: string,
+    environment: string
+  ): Promise<Record<string, unknown>> {
+    const params = await ConfigParameterModel.find({
+      platform,
+      environment,
+      isActive: true,
+    }).exec();
 
-    // Look up the platform to get its ID (lean query for performance)
-    // Controller already validated platform exists, so this should always succeed
-    const platformDoc = await PlatformModel.findOne({ name: version.platform })
-      .select('_id') // Only select the ID field we need
-      .lean() // Return plain object instead of Mongoose document
-      .exec();
-
-    if (!platformDoc) {
-      // This should never happen if controller validates correctly
-      throw new Error(`Platform ${version.platform} not found`);
+    const configs: Record<string, unknown> = {};
+    for (const param of params) {
+      configs[param.parameterKey] = parseConfigValue(
+        param.defaultValue,
+        param.valueType
+      );
     }
 
+    return configs;
+  }
+
+  // ============================================================================
+  // ADMIN CRUD
+  // ============================================================================
+
+  /**
+   * Creates a new parameter (version 1).
+   */
+  async create(param: CreateConfigParameter): Promise<ConfigParameter> {
+    const timestamp = new Date().toISOString();
+    const version = '1';
+
     try {
-      const doc = await ConfigVersionModel.create({
-        platform: version.platform,
-        environment: version.environment,
-        versionTimestamp: timestamp,
-        platformId: platformDoc._id,
-        versionLabel: version.versionLabel,
-        isStable: version.isStable ?? false,
-        config: JSON.stringify(version.config),
-        createdBy: version.createdBy,
+      const doc = await ConfigParameterModel.create({
+        platform: param.platform,
+        environment: param.environment,
+        parameterKey: param.parameterKey,
+        version,
+        valueType: param.valueType,
+        defaultValue: param.defaultValue,
+        description: param.description ?? null,
+        parameterGroup: param.parameterGroup ?? null,
+        isActive: true,
+        createdBy: param.createdBy,
         createdAt: timestamp,
       });
 
-      return {
-        platform: doc.platform,
-        environment: doc.environment,
-        versionLabel: doc.versionLabel,
-        versionTimestamp: doc.versionTimestamp,
-        isStable: doc.isStable,
-        config: JSON.parse(doc.config),
-        createdBy: doc.createdBy,
-        createdAt: doc.createdAt,
-      };
+      return this.mapToConfigParameter(doc);
     } catch (error: unknown) {
       if ((error as { code?: number }).code === 11000) {
-        // Duplicate key error
         throw new Error(
-          `Version with timestamp ${timestamp} already exists (extremely rare collision)`
+          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`
         );
       }
       throw error;
@@ -83,168 +94,306 @@ export class MongooseConfigRepository implements IConfigRepository {
   }
 
   /**
-   * Gets configuration version by versionLabel.
+   * Updates a parameter (creates new version, marks it active).
    *
    * @remarks
-   * Uses versionLabel as the human-readable identifier for consistency
-   * across all database adapters (DynamoDB, Prisma, D1, Mongoose).
+   * SECURITY: Uses MongoDB transactions for atomic version updates.
+   * If transactions are unavailable (no replica set), falls back to
+   * non-transactional updates with error recovery.
    */
-  async getVersion(
+  async update(
     platform: string,
     environment: string,
-    versionLabel: string
-  ): Promise<Version | null> {
-    const doc = await ConfigVersionModel.findOne({
+    parameterKey: string,
+    updates: UpdateConfigParameter
+  ): Promise<ConfigParameter> {
+    // 1. Get current active version
+    const current = await ConfigParameterModel.findOne({
       platform,
       environment,
-      versionLabel,
+      parameterKey,
+      isActive: true,
     }).exec();
 
-    if (!doc) {
-      return null;
+    if (!current) {
+      throw new Error(
+        `Parameter ${parameterKey} not found in ${platform}/${environment}`
+      );
     }
 
-    return {
-      platform: doc.platform,
-      environment: doc.environment,
-      versionLabel: doc.versionLabel,
-      versionTimestamp: doc.versionTimestamp,
-      isStable: doc.isStable,
-      config: JSON.parse(doc.config),
-      createdBy: doc.createdBy,
-      createdAt: doc.createdAt,
-    };
-  }
+    // 2. Calculate next version
+    const nextVersion = String(parseInt(current.version, 10) + 1);
+    const timestamp = new Date().toISOString();
 
-  async getLatestStableVersion(platform: string, environment: string): Promise<Version | null> {
-    const doc = await ConfigVersionModel.findOne({
-      platform,
-      environment,
-      isStable: true,
-    })
-      .sort({ versionTimestamp: -1 })
-      .exec();
+    // 3. Try to use transactions for atomicity (requires replica set)
+    const session = await ConfigParameterModel.startSession();
+    try {
+      let created: IConfigParameterDocument;
 
-    if (!doc) {
-      return null;
+      await session.withTransaction(async () => {
+        // Deactivate old version
+        await ConfigParameterModel.updateOne(
+          {
+            platform,
+            environment,
+            parameterKey,
+            version: current.version,
+          },
+          { isActive: false }
+        ).session(session);
+
+        // Create new version
+        const docs = await ConfigParameterModel.create(
+          [
+            {
+              platform,
+              environment,
+              parameterKey,
+              version: nextVersion,
+              valueType: updates.valueType ?? current.valueType,
+              defaultValue: updates.defaultValue ?? current.defaultValue,
+              description:
+                updates.description !== undefined
+                  ? (updates.description ?? null)
+                  : current.description,
+              parameterGroup:
+                updates.parameterGroup !== undefined
+                  ? (updates.parameterGroup ?? null)
+                  : current.parameterGroup,
+              isActive: true,
+              createdBy: updates.createdBy,
+              createdAt: timestamp,
+            },
+          ],
+          { session }
+        );
+        created = docs[0];
+      });
+
+      return this.mapToConfigParameter(created!);
+    } catch (error: unknown) {
+      // If transactions are not available, fall back to non-transactional update
+      const errorCode = (error as { code?: number }).code;
+      if (errorCode === 263 || errorCode === 20) {
+        // 263: CannotCreateSession (no replica set), 20: IllegalOperation
+        // Fall back to non-transactional update
+        await ConfigParameterModel.updateOne(
+          {
+            platform,
+            environment,
+            parameterKey,
+            version: current.version,
+          },
+          { isActive: false }
+        ).exec();
+
+        const created = await ConfigParameterModel.create({
+          platform,
+          environment,
+          parameterKey,
+          version: nextVersion,
+          valueType: updates.valueType ?? current.valueType,
+          defaultValue: updates.defaultValue ?? current.defaultValue,
+          description:
+            updates.description !== undefined
+              ? (updates.description ?? null)
+              : current.description,
+          parameterGroup:
+            updates.parameterGroup !== undefined
+              ? (updates.parameterGroup ?? null)
+              : current.parameterGroup,
+          isActive: true,
+          createdBy: updates.createdBy,
+          createdAt: timestamp,
+        });
+
+        return this.mapToConfigParameter(created);
+      }
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    return {
-      platform: doc.platform,
-      environment: doc.environment,
-      versionLabel: doc.versionLabel,
-      versionTimestamp: doc.versionTimestamp,
-      isStable: doc.isStable,
-      config: JSON.parse(doc.config),
-      createdBy: doc.createdBy,
-      createdAt: doc.createdAt,
-    };
-  }
-
-  async listVersions(
-    platform: string,
-    environment: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
-  ): Promise<OffsetPaginatedResult<Version>> {
-    // Get total count for metadata
-    const total = await ConfigVersionModel.countDocuments({ platform, environment }).exec();
-
-    // If no pagination requested, fetch ALL items
-    if (!pagination) {
-      const docs = await ConfigVersionModel.find({ platform, environment })
-        .sort({ versionTimestamp: -1 })
-        .exec();
-
-      const items = docs.map(doc => ({
-        platform: doc.platform,
-        environment: doc.environment,
-        versionLabel: doc.versionLabel,
-        versionTimestamp: doc.versionTimestamp,
-        isStable: doc.isStable,
-        config: JSON.parse(doc.config),
-        createdBy: doc.createdBy,
-        createdAt: doc.createdAt,
-      }));
-
-      return { items, total };
-    }
-
-    // Explicit pagination: return single page
-    const params = pagination as OffsetPaginationParams;
-
-    const docs = await ConfigVersionModel.find({ platform, environment })
-      .sort({ versionTimestamp: -1 })
-      .skip(params.offset)
-      .limit(params.limit)
-      .exec();
-
-    const items = docs.map(doc => ({
-      platform: doc.platform,
-      environment: doc.environment,
-      versionLabel: doc.versionLabel,
-      versionTimestamp: doc.versionTimestamp,
-      isStable: doc.isStable,
-      config: JSON.parse(doc.config),
-      createdBy: doc.createdBy,
-      createdAt: doc.createdAt,
-    }));
-
-    return { items, total };
   }
 
   /**
-   * Deletes a configuration version by versionLabel.
-   *
-   * @remarks
-   * Uses versionLabel as the human-readable identifier for consistency
-   * across all database adapters (DynamoDB, Prisma, D1, Mongoose).
-   *
-   * @returns true if deleted, false if version doesn't exist
+   * Deletes a parameter (all versions).
    */
-  async deleteVersion(
+  async delete(
     platform: string,
     environment: string,
-    versionLabel: string
+    parameterKey: string
   ): Promise<boolean> {
-    const result = await ConfigVersionModel.deleteOne({
+    const result = await ConfigParameterModel.deleteMany({
       platform,
       environment,
-      versionLabel,
+      parameterKey,
     }).exec();
 
     return result.deletedCount > 0;
   }
 
   /**
-   * Marks a configuration version as stable.
-   *
-   * @param platform - Platform name
-   * @param environment - Environment name
-   * @param versionLabel - Version label to mark as stable
-   * @returns Updated version if found, null otherwise
+   * Gets the active version of a parameter.
    */
-  async markVersionStable(
+  async getActive(
     platform: string,
     environment: string,
-    versionLabel: string
-  ): Promise<Version | null> {
-    const doc = await ConfigVersionModel.findOneAndUpdate(
-      { platform, environment, versionLabel },
-      { isStable: true },
-      { new: true }
-    ).exec();
+    parameterKey: string
+  ): Promise<ConfigParameter | null> {
+    const param = await ConfigParameterModel.findOne({
+      platform,
+      environment,
+      parameterKey,
+      isActive: true,
+    }).exec();
 
-    if (!doc) {
+    return param ? this.mapToConfigParameter(param) : null;
+  }
+
+  /**
+   * Lists all active parameters with metadata.
+   */
+  async listActive(
+    platform: string,
+    environment: string,
+    pagination?: OffsetPaginationParams | TokenPaginationParams
+  ): Promise<PaginatedResult<ConfigParameter>> {
+    // Get total count
+    const total = await ConfigParameterModel.countDocuments({
+      platform,
+      environment,
+      isActive: true,
+    }).exec();
+
+    // Use offset-based pagination for Mongoose
+    const offsetPagination = pagination as OffsetPaginationParams | undefined;
+
+    const params = await ConfigParameterModel.find({
+      platform,
+      environment,
+      isActive: true,
+    })
+      .sort({ parameterKey: 1 })
+      .skip(offsetPagination?.offset ?? 0)
+      .limit(offsetPagination?.limit ?? 100)
+      .exec();
+
+    return {
+      items: params.map((p) => this.mapToConfigParameter(p)),
+      total,
+    };
+  }
+
+  /**
+   * Lists all versions of a parameter.
+   */
+  async listVersions(
+    platform: string,
+    environment: string,
+    parameterKey: string
+  ): Promise<ConfigParameter[]> {
+    const params = await ConfigParameterModel.find({
+      platform,
+      environment,
+      parameterKey,
+    })
+      .sort({ version: -1 }) // Newest first (descending by version number as string)
+      .exec();
+
+    return params.map((p) => this.mapToConfigParameter(p));
+  }
+
+  /**
+   * Rolls back to a previous version (marks it active).
+   */
+  async rollback(
+    platform: string,
+    environment: string,
+    parameterKey: string,
+    version: string
+  ): Promise<ConfigParameter | null> {
+    // 1. Check target version exists
+    const targetVersion = await ConfigParameterModel.findOne({
+      platform,
+      environment,
+      parameterKey,
+      version,
+    }).exec();
+
+    if (!targetVersion) {
       return null;
     }
 
+    // 2. Get current active version
+    const currentActive = await ConfigParameterModel.findOne({
+      platform,
+      environment,
+      parameterKey,
+      isActive: true,
+    }).exec();
+
+    // If target is already active, return it
+    if (currentActive?.version === version) {
+      return this.mapToConfigParameter(currentActive);
+    }
+
+    // 3. Deactivate current version (if exists)
+    if (currentActive) {
+      await ConfigParameterModel.updateOne(
+        {
+          platform,
+          environment,
+          parameterKey,
+          version: currentActive.version,
+        },
+        { isActive: false }
+      ).exec();
+    }
+
+    // 4. Activate target version
+    const updated = await ConfigParameterModel.findOneAndUpdate(
+      {
+        platform,
+        environment,
+        parameterKey,
+        version,
+      },
+      { isActive: true },
+      { new: true }
+    ).exec();
+
+    return updated ? this.mapToConfigParameter(updated) : null;
+  }
+
+  /**
+   * Counts active parameters in an environment.
+   */
+  async count(platform: string, environment: string): Promise<number> {
+    return ConfigParameterModel.countDocuments({
+      platform,
+      environment,
+      isActive: true,
+    }).exec();
+  }
+
+  // ============================================================================
+  // PRIVATE HELPERS
+  // ============================================================================
+
+  /**
+   * Maps Mongoose document to ConfigParameter type.
+   */
+  private mapToConfigParameter(doc: IConfigParameterDocument): ConfigParameter {
     return {
       platform: doc.platform,
       environment: doc.environment,
-      versionLabel: doc.versionLabel,
-      versionTimestamp: doc.versionTimestamp,
-      isStable: doc.isStable,
-      config: JSON.parse(doc.config),
+      parameterKey: doc.parameterKey,
+      version: doc.version,
+      valueType: doc.valueType,
+      defaultValue: doc.defaultValue,
+      description: doc.description ?? undefined,
+      parameterGroup: doc.parameterGroup ?? undefined,
+      isActive: doc.isActive,
       createdBy: doc.createdBy,
       createdAt: doc.createdAt,
     };

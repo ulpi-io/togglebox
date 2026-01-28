@@ -97,6 +97,37 @@ export class ExperimentController {
       });
 
       await withDatabaseContext(req, async () => {
+        // Fetch current experiment to validate merged state
+        const current = await this.repos.experiment.get(platform, environment, experimentKey);
+        if (!current) {
+          throw new Error(`Experiment ${experimentKey} not found`);
+        }
+
+        // Merge update data with current data
+        const mergedVariations = bodyData.variations ?? current.variations;
+        const mergedControlVariation = bodyData.controlVariation ?? current.controlVariation;
+        const mergedTrafficAllocation = bodyData.trafficAllocation ?? current.trafficAllocation;
+
+        // Validate merged state: control variation must exist in variations
+        const variationKeys = new Set(mergedVariations.map((v) => v.key));
+        if (!variationKeys.has(mergedControlVariation)) {
+          throw new Error(`Control variation "${mergedControlVariation}" does not exist in variations. Valid variations: ${[...variationKeys].join(', ')}`);
+        }
+
+        // Validate merged state: all traffic allocation keys must exist in variations
+        const invalidTrafficKeys = mergedTrafficAllocation
+          .filter((t) => !variationKeys.has(t.variationKey))
+          .map((t) => t.variationKey);
+        if (invalidTrafficKeys.length > 0) {
+          throw new Error(`Traffic allocation contains invalid variation keys: ${invalidTrafficKeys.join(', ')}. Valid variations: ${[...variationKeys].join(', ')}`);
+        }
+
+        // Validate merged state: traffic allocation must sum to 100%
+        const totalPercentage = mergedTrafficAllocation.reduce((sum, t) => sum + t.percentage, 0);
+        if (Math.abs(totalPercentage - 100) >= 0.01) {
+          throw new Error(`Traffic allocation must sum to 100%, got ${totalPercentage}%`);
+        }
+
         const startTime = Date.now();
         const experiment = await this.repos.experiment.update(platform, environment, experimentKey, bodyData);
         const duration = Date.now() - startTime;
@@ -285,6 +316,17 @@ export class ExperimentController {
       const { winner, completedBy } = CompleteExperimentSchema.parse(req.body);
 
       await withDatabaseContext(req, async () => {
+        // Validate winner exists in experiment variations
+        if (winner) {
+          const current = await this.repos.experiment.get(platform, environment, experimentKey);
+          if (!current) {
+            throw new Error(`Experiment ${experimentKey} not found`);
+          }
+          if (!current.variations.some((v) => v.key === winner)) {
+            throw new Error(`Winner variation "${winner}" does not exist in experiment ${experimentKey}. Valid variations: ${current.variations.map(v => v.key).join(', ')}`);
+          }
+        }
+
         const startTime = Date.now();
         const experiment = await this.repos.experiment.complete(
           platform,

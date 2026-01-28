@@ -23,6 +23,8 @@
     "dev:admin": "pnpm --filter admin dev",
     "dev:example-nextjs": "pnpm --filter example-nextjs dev",
     "dev:example-expo": "pnpm --filter example-expo start",
+    "dev:example-nodejs": "pnpm --filter example-nodejs dev",
+    "build:example-nodejs": "pnpm --filter example-nodejs build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "lint:fix": "pnpm -r lint:fix",

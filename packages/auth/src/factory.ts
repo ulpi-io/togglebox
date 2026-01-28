@@ -110,17 +110,6 @@ export interface AuthModuleConfig {
    * @defaultValue true
    */
   authEnabled?: boolean;
-
-  /**
-   * Base path for routes (defaults to '/auth')
-   *
-   * @remarks
-   * **Not yet implemented** - all routes mounted at root of router.
-   * Use `app.use('/custom-path', authRouter)` for custom base paths.
-   *
-   * @deprecated Not implemented
-   */
-  basePath?: string;
 }
 
 /**

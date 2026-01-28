@@ -71,7 +71,6 @@ class ToggleBoxManager
                     enabled: $cacheConfig['enabled'] ?? true,
                     ttl: $cacheConfig['ttl'] ?? 300,
                 ),
-                configVersion: $this->config['config_version'] ?? 'stable',
             ),
             $cache,
         );
@@ -217,18 +216,6 @@ class ToggleBoxManager
         $this->client()->trackEvent($eventName, $context, $data);
     }
 
-    // ==================== TIER 1 EXTENDED METHODS ====================
-
-    /**
-     * List all configuration versions.
-     *
-     * @return array<array{version: string, isStable: bool, createdAt: string}>
-     */
-    public function configVersions(): array
-    {
-        return $this->client()->getConfigVersions();
-    }
-
     // ==================== TIER 2 EXTENDED METHODS ====================
 
     /**
@@ -286,7 +273,7 @@ class ToggleBoxManager
         return new FlagContext(
             userId: $userId ?? $this->resolveUserId(),
             country: $country,
-            language: $language ?? app()->getLocale(),
+            language: $this->normalizeLanguage($language),
         );
     }
 
@@ -298,8 +285,27 @@ class ToggleBoxManager
         return new ExperimentContext(
             userId: $userId ?? $this->resolveUserId(),
             country: $country,
-            language: $language ?? app()->getLocale(),
+            language: $this->normalizeLanguage($language),
         );
+    }
+
+    /**
+     * Normalize language to 2-letter ISO code.
+     * SECURITY: Extract language code from locales like "en_US" or "en-US".
+     */
+    private function normalizeLanguage(?string $language): ?string
+    {
+        $locale = $language ?? app()->getLocale();
+        if ($locale === null) {
+            return null;
+        }
+
+        // Extract 2-letter language code from locale like "en_US" or "en-US"
+        if (strlen($locale) > 2) {
+            return substr($locale, 0, 2);
+        }
+
+        return $locale;
     }
 
     private function resolveUserId(): string

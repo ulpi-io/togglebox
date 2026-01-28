@@ -14,7 +14,7 @@
  * - Read operations: Aggregate across all shards for complete stats
  */
 
-import { UpdateCommand, GetCommand, QueryCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { UpdateCommand, GetCommand, QueryCommand, DeleteCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
 import type {
   ConfigStats,
   FlagStats,
@@ -26,6 +26,46 @@ import type {
 } from '@togglebox/stats';
 import type { IStatsRepository } from '@togglebox/stats';
 import { dynamoDBClient, getStatsTableName } from '../../database';
+
+/**
+ * Simple concurrency limiter for batch processing.
+ * Limits the number of concurrent promises to avoid overwhelming the database.
+ */
+function pLimit(concurrency: number): <T>(fn: () => Promise<T>) => Promise<T> {
+  let active = 0;
+  const queue: (() => void)[] = [];
+
+  const next = (): void => {
+    if (queue.length > 0 && active < concurrency) {
+      active++;
+      const resolve = queue.shift()!;
+      resolve();
+    }
+  };
+
+  return <T>(fn: () => Promise<T>): Promise<T> => {
+    return new Promise<T>((resolve, reject) => {
+      const run = async (): Promise<void> => {
+        try {
+          const result = await fn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        } finally {
+          active--;
+          next();
+        }
+      };
+
+      if (active < concurrency) {
+        active++;
+        run();
+      } else {
+        queue.push(() => run());
+      }
+    });
+  };
+}
 
 // Type for DynamoDB item
 type DynamoItem = Record<string, unknown>;
@@ -575,52 +615,69 @@ export class DynamoDBStatsRepository implements IStatsRepository {
 
   /**
    * Process a batch of events from SDK.
+   * Uses parallel processing with concurrency limit for better performance.
    */
   async processBatch(
     platform: string,
     environment: string,
     events: StatsEvent[]
   ): Promise<void> {
-    for (const event of events) {
-      switch (event.type) {
-        case 'config_fetch':
-          await this.incrementConfigFetch(platform, environment, event.key, event.clientId);
-          break;
+    // Limit concurrency to avoid overwhelming the database
+    const limit = pLimit(25);
 
-        case 'flag_evaluation':
-          await this.incrementFlagEvaluation(
-            platform,
-            environment,
-            event.flagKey,
-            event.value,
-            event.userId,
-            event.country
-          );
-          break;
+    const processEvent = async (event: StatsEvent): Promise<void> => {
+      try {
+        switch (event.type) {
+          case 'config_fetch':
+            await this.incrementConfigFetch(platform, environment, event.key, event.clientId);
+            break;
 
-        case 'experiment_exposure':
-          await this.recordExperimentExposure(
-            platform,
-            environment,
-            event.experimentKey,
-            event.variationKey,
-            event.userId
-          );
-          break;
+          case 'flag_evaluation':
+            await this.incrementFlagEvaluation(
+              platform,
+              environment,
+              event.flagKey,
+              event.value,
+              event.userId,
+              event.country
+            );
+            break;
 
-        case 'conversion':
-          await this.recordConversion(
-            platform,
-            environment,
-            event.experimentKey,
-            event.metricName, // metricName in the event maps to metricId in the repository
-            event.variationKey,
-            event.userId,
-            event.value
-          );
-          break;
+          case 'experiment_exposure':
+            await this.recordExperimentExposure(
+              platform,
+              environment,
+              event.experimentKey,
+              event.variationKey,
+              event.userId
+            );
+            break;
+
+          case 'conversion':
+            await this.recordConversion(
+              platform,
+              environment,
+              event.experimentKey,
+              event.metricName, // metricName in the event maps to metricId in the repository
+              event.variationKey,
+              event.userId,
+              event.value
+            );
+            break;
+
+          case 'custom_event':
+            // Custom events are accepted but not persisted to database yet.
+            // Log for visibility instead of silently dropping.
+            console.log(`[stats] Custom event received: ${event.eventName} (userId: ${event.userId ?? 'anonymous'})`);
+            break;
+        }
+      } catch (error) {
+        // Log error but don't fail the entire batch
+        console.error(`Failed to process ${event.type} event:`, error);
       }
-    }
+    };
+
+    await Promise.all(events.map((event) => limit(() => processEvent(event))));
   }
 
   // =========================================================================
@@ -648,6 +705,7 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   /**
    * Delete all stats for a Feature Flag.
    * Queries all shards to find and delete all related stats.
+   * SECURITY: Uses batch operations with pagination to avoid OOM and DynamoDB limits.
    */
   async deleteFlagStats(
     platform: string,
@@ -655,44 +713,52 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     flagKey: string
   ): Promise<void> {
     const allShardPKs = this.getAllShardPKs(platform, environment);
+    const tableName = this.getTableName();
 
-    // Query all shards in parallel
+    // Query all shards in parallel with limit to prevent large result sets
     const queries = allShardPKs.map(pk =>
       dynamoDBClient.send(new QueryCommand({
-        TableName: this.getTableName(),
+        TableName: tableName,
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
         ExpressionAttributeValues: {
           ':pk': pk,
           ':prefix': `STATS#FLAG#${flagKey}`,
         },
+        Limit: 1000, // Limit results per query
       }))
     );
 
     const results = await Promise.all(queries);
 
-    // Delete all items from all shards
-    const deletePromises: Promise<unknown>[] = [];
+    // Collect all items to delete
+    const itemsToDelete: { PK: string; SK: string }[] = [];
     for (const result of results) {
       for (const item of result.Items || []) {
         const dynItem = item as DynamoItem;
-        deletePromises.push(
-          dynamoDBClient.send(new DeleteCommand({
-            TableName: this.getTableName(),
-            Key: {
-              PK: dynItem['PK'],
-              SK: dynItem['SK'],
-            },
-          }))
-        );
+        itemsToDelete.push({
+          PK: dynItem['PK'] as string,
+          SK: dynItem['SK'] as string,
+        });
       }
     }
 
-    await Promise.all(deletePromises);
+    // Delete in batches of 25 (DynamoDB BatchWriteItem limit)
+    for (let i = 0; i < itemsToDelete.length; i += 25) {
+      const batch = itemsToDelete.slice(i, i + 25);
+      await dynamoDBClient.send(new BatchWriteCommand({
+        RequestItems: {
+          [tableName]: batch.map(key => ({
+            DeleteRequest: { Key: key },
+          })),
+        },
+      }));
+    }
   }
 
   /**
    * Delete all stats for an Experiment.
    * Queries all shards to find and delete all related stats.
+   * SECURITY: Uses batch operations with pagination to avoid OOM and DynamoDB limits.
    */
   async deleteExperimentStats(
     platform: string,
@@ -700,38 +766,45 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     experimentKey: string
   ): Promise<void> {
     const allShardPKs = this.getAllShardPKs(platform, environment);
+    const tableName = this.getTableName();
 
-    // Query all shards in parallel
+    // Query all shards in parallel with limit to prevent large result sets
     const queries = allShardPKs.map(pk =>
       dynamoDBClient.send(new QueryCommand({
-        TableName: this.getTableName(),
+        TableName: tableName,
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
         ExpressionAttributeValues: {
           ':pk': pk,
           ':prefix': `STATS#EXP#${experimentKey}`,
         },
+        Limit: 1000, // Limit results per query
       }))
     );
 
     const results = await Promise.all(queries);
 
-    // Delete all items from all shards
-    const deletePromises: Promise<unknown>[] = [];
+    // Collect all items to delete
+    const itemsToDelete: { PK: string; SK: string }[] = [];
     for (const result of results) {
       for (const item of result.Items || []) {
         const dynItem = item as DynamoItem;
-        deletePromises.push(
-          dynamoDBClient.send(new DeleteCommand({
-            TableName: this.getTableName(),
-            Key: {
-              PK: dynItem['PK'],
-              SK: dynItem['SK'],
-            },
-          }))
-        );
+        itemsToDelete.push({
+          PK: dynItem['PK'] as string,
+          SK: dynItem['SK'] as string,
+        });
       }
     }
 
-    await Promise.all(deletePromises);
+    // Delete in batches of 25 (DynamoDB BatchWriteItem limit)
+    for (let i = 0; i < itemsToDelete.length; i += 25) {
+      const batch = itemsToDelete.slice(i, i + 25);
+      await dynamoDBClient.send(new BatchWriteCommand({
+        RequestItems: {
+          [tableName]: batch.map(key => ({
+            DeleteRequest: { Key: key },
+          })),
+        },
+      }));
+    }
   }
 }

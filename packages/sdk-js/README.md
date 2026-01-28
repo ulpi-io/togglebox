@@ -105,39 +105,15 @@ const theme = await client.getConfigValue<{ primary: string; secondary: string }
 )
 ```
 
-### Version-Specific Configs
+### Get All Configs
 
 ```typescript
-// Fetch the latest stable version (default)
-const stableConfig = await client.getConfig()
+// Fetch all active config parameters as key-value object
+const config = await client.getConfig()
 
-// Fetch a specific version for rollback
-const v1Config = await client.getConfigVersion('1.2.3')
-
-// Fetch the absolute latest (may be unstable)
-const latestConfig = await client.getConfigVersion('latest')
-
-// Pin client to always fetch a specific version
-const client = new ToggleBoxClient({
-  platform: 'mobile',
-  environment: 'production',
-  apiUrl: 'https://api.example.com',
-  configVersion: '2.0.0', // All getConfig() calls fetch this version
-})
-```
-
-### List Config Versions
-
-```typescript
-// Get all available config versions
-const versions = await client.getConfigVersions()
-
-versions.forEach((v) => {
-  console.log(`${v.versionLabel} - stable: ${v.isStable}, created: ${v.createdAt}`)
-})
-
-// Find the latest stable version
-const stableVersion = versions.find((v) => v.isStable)
+// Access values directly
+const apiUrl = config['api.url']
+const maxRetries = config['app.maxRetries']
 ```
 
 ---
@@ -523,15 +499,13 @@ interface ClientOptions {
 |--------|-------------|
 | `checkConnection()` | Verify API connectivity and get health status |
 
-### Remote Configs (Tier 1)
+### Remote Configs (Tier 1) - Firebase-Style Parameters
 
 | Method | Description |
 |--------|-------------|
-| `getConfig()` | Get configuration using configured version (default: stable) |
-| `getConfigVersion(version)` | Get a specific config version |
+| `getConfig()` | Get all active config parameters as key-value object |
 | `getConfigValue<T>(key, defaultValue)` | Get a specific config value with type safety |
 | `getAllConfigs()` | Alias for getConfig() |
-| `getConfigVersions()` | List all config versions with metadata |
 
 ### Feature Flags (Tier 2)
 
@@ -663,7 +637,6 @@ import type {
   ConversionData,
   StatsOptions,
   HealthCheckResponse,
-  ConfigVersionMeta,
 } from '@togglebox/sdk'
 ```
 

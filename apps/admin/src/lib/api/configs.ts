@@ -1,16 +1,16 @@
 import { browserApiClient } from './browser-client';
-import type { ConfigVersion, Platform, Environment } from './types';
+import type { ConfigParameter, Platform, Environment } from './types';
 
 /**
- * Get all configs across all platforms and environments.
+ * Get all config parameters across all platforms and environments.
  * Used when no filter is applied.
  */
-export async function getAllConfigsApi(): Promise<(ConfigVersion & { platform: string; environment: string })[]> {
+export async function getAllConfigsApi(): Promise<ConfigParameter[]> {
   // First, get all platforms
   const platforms = await browserApiClient<Platform[]>('/api/v1/platforms');
 
-  // For each platform, get environments and then configs
-  const allConfigs: (ConfigVersion & { platform: string; environment: string })[] = [];
+  // For each platform, get environments and then config parameters
+  const allConfigs: ConfigParameter[] = [];
 
   await Promise.all(
     platforms.map(async (platform) => {
@@ -22,24 +22,12 @@ export async function getAllConfigsApi(): Promise<(ConfigVersion & { platform: s
         await Promise.all(
           environments.map(async (env) => {
             try {
-              const versions = await browserApiClient<ConfigVersion[]>(
-                `/api/v1/platforms/${platform.name}/environments/${env.environment}/versions`
+              const params = await browserApiClient<ConfigParameter[]>(
+                `/api/v1/platforms/${platform.name}/environments/${env.environment}/configs/list`
               );
-              // Only get the latest stable or latest version for each environment
-              const sortedVersions = [...versions].sort(
-                (a, b) => new Date(b.versionTimestamp).getTime() - new Date(a.versionTimestamp).getTime()
-              );
-              const stableVersion = sortedVersions.find((v) => v.isStable);
-              const displayVersion = stableVersion || sortedVersions[0];
-              if (displayVersion) {
-                allConfigs.push({
-                  ...displayVersion,
-                  platform: platform.name,
-                  environment: env.environment,
-                });
-              }
+              allConfigs.push(...params);
             } catch {
-              // Environment may have no configs, skip it
+              // Environment may have no config parameters, skip it
             }
           })
         );
@@ -52,59 +40,142 @@ export async function getAllConfigsApi(): Promise<(ConfigVersion & { platform: s
   return allConfigs;
 }
 
-export async function getConfigVersionsApi(
+/**
+ * Get all active config parameters for SDK consumption (key-value object).
+ */
+export async function getConfigsApi(
   platform: string,
   environment: string
-): Promise<ConfigVersion[]> {
-  return browserApiClient(`/api/v1/platforms/${platform}/environments/${environment}/versions`);
+): Promise<Record<string, unknown>> {
+  return browserApiClient(`/api/v1/platforms/${platform}/environments/${environment}/configs`);
 }
 
-export async function createConfigVersionApi(
+/**
+ * List all active config parameters with full metadata.
+ */
+export async function listConfigParametersApi(
+  platform: string,
+  environment: string
+): Promise<ConfigParameter[]> {
+  return browserApiClient(`/api/v1/platforms/${platform}/environments/${environment}/configs/list`);
+}
+
+/**
+ * Get a specific config parameter's active version.
+ */
+export async function getConfigParameterApi(
   platform: string,
   environment: string,
-  version: string,
-  config: Record<string, unknown>,
-  isStable?: boolean
-): Promise<ConfigVersion> {
-  return browserApiClient(`/api/v1/internal/platforms/${platform}/environments/${environment}/versions`, {
+  parameterKey: string
+): Promise<ConfigParameter> {
+  return browserApiClient(`/api/v1/platforms/${platform}/environments/${environment}/configs/${parameterKey}`);
+}
+
+/**
+ * Get all versions of a specific config parameter.
+ */
+export async function listConfigParameterVersionsApi(
+  platform: string,
+  environment: string,
+  parameterKey: string
+): Promise<ConfigParameter[]> {
+  return browserApiClient(
+    `/api/v1/platforms/${platform}/environments/${environment}/configs/${parameterKey}/versions`
+  );
+}
+
+/**
+ * Create a new config parameter (version 1).
+ */
+export async function createConfigParameterApi(
+  platform: string,
+  environment: string,
+  parameterKey: string,
+  valueType: 'string' | 'number' | 'boolean' | 'json',
+  defaultValue: string,
+  options?: {
+    description?: string;
+    parameterGroup?: string;
+  }
+): Promise<ConfigParameter> {
+  return browserApiClient(`/api/v1/internal/platforms/${platform}/environments/${environment}/configs`, {
     method: 'POST',
     body: JSON.stringify({
-      version,
-      config,
-      isStable,
+      parameterKey,
+      valueType,
+      defaultValue,
+      description: options?.description,
+      parameterGroup: options?.parameterGroup,
     }),
   });
 }
 
-export async function markConfigStableApi(
+/**
+ * Update a config parameter (creates new version).
+ */
+export async function updateConfigParameterApi(
   platform: string,
   environment: string,
-  version: string
-): Promise<void> {
+  parameterKey: string,
+  updates: {
+    valueType?: 'string' | 'number' | 'boolean' | 'json';
+    defaultValue?: string;
+    description?: string | null;
+    parameterGroup?: string | null;
+  }
+): Promise<ConfigParameter> {
   return browserApiClient(
-    `/api/v1/internal/platforms/${platform}/environments/${environment}/versions/${version}/mark-stable`,
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/configs/${parameterKey}`,
     {
       method: 'PATCH',
+      body: JSON.stringify(updates),
     }
   );
 }
 
-export async function deleteConfigVersionApi(
+/**
+ * Delete a config parameter (all versions).
+ */
+export async function deleteConfigParameterApi(
   platform: string,
   environment: string,
-  version: string
+  parameterKey: string
 ): Promise<void> {
   return browserApiClient(
-    `/api/v1/internal/platforms/${platform}/environments/${environment}/versions/${version}`,
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/configs/${parameterKey}`,
     {
       method: 'DELETE',
     }
   );
 }
 
-export async function getLatestStableConfigApi(
+/**
+ * Rollback a config parameter to a previous version.
+ */
+export async function rollbackConfigParameterApi(
+  platform: string,
+  environment: string,
+  parameterKey: string,
+  version: string
+): Promise<ConfigParameter> {
+  return browserApiClient(
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/configs/${parameterKey}/rollback`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ version }),
+    }
+  );
+}
+
+/**
+ * Count active config parameters in an environment.
+ */
+export async function countConfigParametersApi(
   platform: string,
   environment: string
-): Promise<ConfigVersion> {
-  return browserApiClient(`/api/v1/platforms/${platform}/environments/${environment}/versions/latest/stable`);
+): Promise<number> {
+  const result = await browserApiClient<{ count: number }>(
+    `/api/v1/platforms/${platform}/environments/${environment}/configs/count`
+  );
+  return result.count;
 }

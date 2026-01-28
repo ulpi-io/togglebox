@@ -1,349 +1,436 @@
 /**
- * Cloudflare D1 adapter for configuration version operations.
+ * Cloudflare D1 adapter for config parameter operations (Firebase-style).
  *
  * @remarks
- * Implements `IConfigRepository` using Cloudflare D1 database.
- * Handles JSON serialization for configuration payloads and versioning logic.
+ * Implements `IConfigRepository` for individual versioned config parameters.
+ * Each parameter has version history; only one version is active at a time.
  */
 
-import { Version } from '@togglebox/configs';
-import { IConfigRepository, OffsetPaginationParams, TokenPaginationParams, OffsetPaginatedResult } from '../../interfaces';
+import {
+  ConfigParameter,
+  CreateConfigParameter,
+  UpdateConfigParameter,
+  parseConfigValue,
+} from '@togglebox/configs';
+import {
+  IConfigRepository,
+  OffsetPaginationParams,
+  TokenPaginationParams,
+  PaginatedResult,
+} from '../../interfaces';
 
 /**
- * D1 implementation of configuration repository.
+ * D1 result row type for config parameters.
+ */
+interface ConfigParameterRow {
+  platform: string;
+  environment: string;
+  parameterKey: string;
+  version: string;
+  valueType: string;
+  defaultValue: string;
+  description: string | null;
+  parameterGroup: string | null;
+  isActive: number; // SQLite uses 0/1 for boolean
+  createdBy: string;
+  createdAt: string;
+}
+
+/**
+ * D1 implementation of config parameter repository.
  *
  * @remarks
- * **JSON Handling:** Config stored as JSON string, parsed/stringified automatically.
- * **Versioning:** Auto-generated ISO-8601 timestamps ensure chronological ordering.
- * **Stable Versions:** WHERE clause filtering for fast latest-stable queries.
- * **SQLite Booleans:** Uses 0/1 for boolean fields (SQLite has no native boolean type).
+ * Uses SQLite transactions for atomic version updates.
+ * Parameters are versioned - edits create new versions.
+ * **SQLite Booleans:** Uses 0/1 for boolean fields.
  */
 export class D1ConfigRepository implements IConfigRepository {
   constructor(private db: D1Database) {}
 
+  // ============================================================================
+  // PUBLIC (SDK)
+  // ============================================================================
+
   /**
-   * Creates a new configuration version.
-   *
-   * @param version - Version data (versionTimestamp and createdAt are auto-generated)
-   * @returns Created version with generated timestamp
-   *
-   * @throws {Error} If platform not found
+   * Gets all active parameters as key-value object for SDK consumption.
    */
-  async createVersion(version: Omit<Version, 'versionTimestamp' | 'createdAt'>): Promise<Version> {
-    const versionTimestamp = new Date().toISOString();
-    const createdAt = versionTimestamp;
+  async getConfigs(
+    platform: string,
+    environment: string
+  ): Promise<Record<string, unknown>> {
+    const result = await this.db
+      .prepare(
+        `SELECT parameterKey, defaultValue, valueType
+        FROM config_parameters
+        WHERE platform = ?1 AND environment = ?2 AND isActive = 1`
+      )
+      .bind(platform, environment)
+      .all<{ parameterKey: string; defaultValue: string; valueType: string }>();
 
-    // Get platformId from platform name
-    const platform = await this.db
-      .prepare('SELECT id FROM platforms WHERE name = ?1')
-      .bind(version.platform)
-      .first<{ id: string }>();
-
-    if (!platform) {
-      throw new Error(`Platform ${version.platform} not found`);
+    const configs: Record<string, unknown> = {};
+    if (result.results) {
+      for (const param of result.results) {
+        configs[param.parameterKey] = parseConfigValue(
+          param.defaultValue,
+          param.valueType as 'string' | 'number' | 'boolean' | 'json'
+        );
+      }
     }
 
-    // Serialize config object to JSON string
-    const configJson = JSON.stringify(version.config);
+    return configs;
+  }
 
-    await this.db
+  // ============================================================================
+  // ADMIN CRUD
+  // ============================================================================
+
+  /**
+   * Creates a new parameter (version 1).
+   */
+  async create(param: CreateConfigParameter): Promise<ConfigParameter> {
+    const timestamp = new Date().toISOString();
+    const version = '1';
+
+    try {
+      await this.db
+        .prepare(
+          `INSERT INTO config_parameters
+          (platform, environment, parameterKey, version, valueType, defaultValue, description, parameterGroup, isActive, createdBy, createdAt)
+          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, ?9, ?10)`
+        )
+        .bind(
+          param.platform,
+          param.environment,
+          param.parameterKey,
+          version,
+          param.valueType,
+          param.defaultValue,
+          param.description ?? null,
+          param.parameterGroup ?? null,
+          param.createdBy,
+          timestamp
+        )
+        .run();
+
+      return {
+        platform: param.platform,
+        environment: param.environment,
+        parameterKey: param.parameterKey,
+        version,
+        valueType: param.valueType,
+        defaultValue: param.defaultValue,
+        description: param.description,
+        parameterGroup: param.parameterGroup,
+        isActive: true,
+        createdBy: param.createdBy,
+        createdAt: timestamp,
+      };
+    } catch (error: unknown) {
+      const errMessage = (error as Error).message || '';
+      if (errMessage.includes('UNIQUE constraint failed') || errMessage.includes('PRIMARY KEY')) {
+        throw new Error(
+          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Updates a parameter (creates new version, marks it active).
+   *
+   * @remarks
+   * SECURITY: Uses D1 batch to execute both operations atomically.
+   * This ensures we never end up with two active versions or no active version.
+   */
+  async update(
+    platform: string,
+    environment: string,
+    parameterKey: string,
+    updates: UpdateConfigParameter
+  ): Promise<ConfigParameter> {
+    // 1. Get current active version
+    const current = await this.db
       .prepare(
-        `INSERT INTO config_versions
-        (platform, environment, versionTimestamp, platformId, versionLabel, isStable, config, createdBy, createdAt)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`
+        `SELECT * FROM config_parameters
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND isActive = 1`
+      )
+      .bind(platform, environment, parameterKey)
+      .first<ConfigParameterRow>();
+
+    if (!current) {
+      throw new Error(
+        `Parameter ${parameterKey} not found in ${platform}/${environment}`
+      );
+    }
+
+    // 2. Calculate next version
+    const nextVersion = String(parseInt(current.version, 10) + 1);
+    const timestamp = new Date().toISOString();
+
+    // 3. Prepare new values
+    const newValueType = updates.valueType ?? current.valueType;
+    const newDefaultValue = updates.defaultValue ?? current.defaultValue;
+    const newDescription = updates.description !== undefined
+      ? (updates.description ?? null)
+      : current.description;
+    const newParameterGroup = updates.parameterGroup !== undefined
+      ? (updates.parameterGroup ?? null)
+      : current.parameterGroup;
+
+    // 4. SECURITY: Use batch to execute both operations atomically
+    const deactivateStmt = this.db
+      .prepare(
+        `UPDATE config_parameters SET isActive = 0
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`
+      )
+      .bind(platform, environment, parameterKey, current.version);
+
+    const insertStmt = this.db
+      .prepare(
+        `INSERT INTO config_parameters
+        (platform, environment, parameterKey, version, valueType, defaultValue, description, parameterGroup, isActive, createdBy, createdAt)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, ?9, ?10)`
       )
       .bind(
-        version.platform,
-        version.environment,
-        versionTimestamp,
-        platform.id,
-        version.versionLabel || null,
-        version.isStable ? 1 : 0, // SQLite boolean
-        configJson,
-        version.createdBy,
-        createdAt
-      )
-      .run();
+        platform,
+        environment,
+        parameterKey,
+        nextVersion,
+        newValueType,
+        newDefaultValue,
+        newDescription,
+        newParameterGroup,
+        updates.createdBy,
+        timestamp
+      );
+
+    await this.db.batch([deactivateStmt, insertStmt]);
 
     return {
-      platform: version.platform,
-      environment: version.environment,
-      versionLabel: version.versionLabel,
-      versionTimestamp,
-      isStable: version.isStable,
-      config: version.config,
-      createdBy: version.createdBy,
-      createdAt,
+      platform,
+      environment,
+      parameterKey,
+      version: nextVersion,
+      valueType: newValueType as 'string' | 'number' | 'boolean' | 'json',
+      defaultValue: newDefaultValue,
+      description: newDescription ?? undefined,
+      parameterGroup: newParameterGroup ?? undefined,
+      isActive: true,
+      createdBy: updates.createdBy,
+      createdAt: timestamp,
     };
   }
 
   /**
-   * Gets configuration version by versionLabel.
-   *
-   * @remarks
-   * Uses versionLabel as the human-readable identifier for consistency
-   * across all database adapters (DynamoDB, Prisma, D1).
-   * JSON config is parsed back to object automatically.
+   * Deletes a parameter (all versions).
    */
-  async getVersion(
+  async delete(
     platform: string,
     environment: string,
-    versionLabel: string
-  ): Promise<Version | null> {
-    const result = await this.db
-      .prepare(
-        `SELECT platform, environment, versionTimestamp, versionLabel, isStable, config, createdBy, createdAt
-        FROM config_versions
-        WHERE platform = ?1 AND environment = ?2 AND versionLabel = ?3`
-      )
-      .bind(platform, environment, versionLabel)
-      .first<{
-        platform: string;
-        environment: string;
-        versionTimestamp: string;
-        versionLabel: string | null;
-        isStable: number;
-        config: string;
-        createdBy: string;
-        createdAt: string;
-      }>();
-
-    if (!result) {
-      return null;
-    }
-
-    return {
-      platform: result.platform,
-      environment: result.environment,
-      versionLabel: result.versionLabel ?? '',
-      versionTimestamp: result.versionTimestamp,
-      isStable: Boolean(result.isStable),
-      config: JSON.parse(result.config),
-      createdBy: result.createdBy,
-      createdAt: result.createdAt,
-    };
-  }
-
-  /**
-   * Gets latest stable version for platform and environment.
-   *
-   * @remarks
-   * **Query:** WHERE isStable=1, ORDER BY versionTimestamp DESC, LIMIT 1.
-   * **SQLite Boolean:** Uses 1 for true (SQLite integer comparison).
-   */
-  async getLatestStableVersion(platform: string, environment: string): Promise<Version | null> {
-    const result = await this.db
-      .prepare(
-        `SELECT platform, environment, versionTimestamp, versionLabel, isStable, config, createdBy, createdAt
-        FROM config_versions
-        WHERE platform = ?1 AND environment = ?2 AND isStable = 1
-        ORDER BY versionTimestamp DESC
-        LIMIT 1`
-      )
-      .bind(platform, environment)
-      .first<{
-        platform: string;
-        environment: string;
-        versionTimestamp: string;
-        versionLabel: string | null;
-        isStable: number;
-        config: string;
-        createdBy: string;
-        createdAt: string;
-      }>();
-
-    if (!result) {
-      return null;
-    }
-
-    return {
-      platform: result.platform,
-      environment: result.environment,
-      versionLabel: result.versionLabel ?? '',
-      versionTimestamp: result.versionTimestamp,
-      isStable: Boolean(result.isStable),
-      config: JSON.parse(result.config),
-      createdBy: result.createdBy,
-      createdAt: result.createdAt,
-    };
-  }
-
-  /**
-   * Lists all versions for environment with optional pagination.
-   *
-   * @remarks
-   * **Includes:** ALL versions (stable and unstable) for version history.
-   * **Sorting:** By versionTimestamp descending (newest first).
-   * **Pagination:** Optional - fetches ALL items if not provided, single page if provided.
-   */
-  async listVersions(
-    platform: string,
-    environment: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
-  ): Promise<OffsetPaginatedResult<Version>> {
-    // Get total count for metadata
-    const countResult = await this.db
-      .prepare('SELECT COUNT(*) as count FROM config_versions WHERE platform = ?1 AND environment = ?2')
-      .bind(platform, environment)
-      .first<{ count: number }>();
-
-    const total = countResult?.count || 0;
-
-    // If no pagination requested, fetch ALL items
-    if (!pagination) {
-      const result = await this.db
-        .prepare(
-          `SELECT platform, environment, versionTimestamp, versionLabel, isStable, config, createdBy, createdAt
-          FROM config_versions
-          WHERE platform = ?1 AND environment = ?2
-          ORDER BY versionTimestamp DESC`
-        )
-        .bind(platform, environment)
-        .all<{
-          platform: string;
-          environment: string;
-          versionTimestamp: string;
-          versionLabel: string | null;
-          isStable: number;
-          config: string;
-          createdBy: string;
-          createdAt: string;
-        }>();
-
-      const items = result.results
-        ? result.results.map((v) => ({
-            platform: v.platform,
-            environment: v.environment,
-            versionLabel: v.versionLabel ?? '',
-            versionTimestamp: v.versionTimestamp,
-            isStable: Boolean(v.isStable),
-            config: JSON.parse(v.config),
-            createdBy: v.createdBy,
-            createdAt: v.createdAt,
-          }))
-        : [];
-
-      return { items, total };
-    }
-
-    // Explicit pagination: return single page
-    const params = pagination as OffsetPaginationParams;
-
-    const result = await this.db
-      .prepare(
-        `SELECT platform, environment, versionTimestamp, versionLabel, isStable, config, createdBy, createdAt
-        FROM config_versions
-        WHERE platform = ?1 AND environment = ?2
-        ORDER BY versionTimestamp DESC
-        LIMIT ?3 OFFSET ?4`
-      )
-      .bind(platform, environment, params.limit, params.offset)
-      .all<{
-        platform: string;
-        environment: string;
-        versionTimestamp: string;
-        versionLabel: string | null;
-        isStable: number;
-        config: string;
-        createdBy: string;
-        createdAt: string;
-      }>();
-
-    const items = result.results
-      ? result.results.map((v) => ({
-          platform: v.platform,
-          environment: v.environment,
-          versionLabel: v.versionLabel ?? '',
-          versionTimestamp: v.versionTimestamp,
-          isStable: Boolean(v.isStable),
-          config: JSON.parse(v.config),
-          createdBy: v.createdBy,
-          createdAt: v.createdAt,
-        }))
-      : [];
-
-    return { items, total };
-  }
-
-  /**
-   * Deletes a configuration version by versionLabel.
-   *
-   * @remarks
-   * Uses versionLabel as the human-readable identifier for consistency
-   * across all database adapters (DynamoDB, Prisma, D1).
-   * Uses D1's meta.rows_written to detect if row was deleted.
-   *
-   * @returns true if deleted, false if version doesn't exist
-   */
-  async deleteVersion(
-    platform: string,
-    environment: string,
-    versionLabel: string
+    parameterKey: string
   ): Promise<boolean> {
     const result = await this.db
       .prepare(
-        'DELETE FROM config_versions WHERE platform = ?1 AND environment = ?2 AND versionLabel = ?3'
+        `DELETE FROM config_parameters
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3`
       )
-      .bind(platform, environment, versionLabel)
+      .bind(platform, environment, parameterKey)
       .run();
 
     return result.meta.rows_written > 0;
   }
 
   /**
-   * Marks a configuration version as stable.
-   *
-   * @param platform - Platform name
-   * @param environment - Environment name
-   * @param versionLabel - Version label to mark as stable
-   * @returns Updated version if found, null otherwise
+   * Gets the active version of a parameter.
    */
-  async markVersionStable(
+  async getActive(
     platform: string,
     environment: string,
-    versionLabel: string
-  ): Promise<Version | null> {
-    // First find the version by versionLabel
+    parameterKey: string
+  ): Promise<ConfigParameter | null> {
     const result = await this.db
       .prepare(
-        `SELECT platform, environment, versionTimestamp, versionLabel, isStable, config, createdBy, createdAt
-        FROM config_versions
-        WHERE platform = ?1 AND environment = ?2 AND versionLabel = ?3`
+        `SELECT * FROM config_parameters
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND isActive = 1`
       )
-      .bind(platform, environment, versionLabel)
-      .first<{
-        platform: string;
-        environment: string;
-        versionTimestamp: string;
-        versionLabel: string | null;
-        isStable: number;
-        config: string;
-        createdBy: string;
-        createdAt: string;
-      }>();
+      .bind(platform, environment, parameterKey)
+      .first<ConfigParameterRow>();
 
-    if (!result) {
+    return result ? this.mapToConfigParameter(result) : null;
+  }
+
+  /**
+   * Lists all active parameters with metadata.
+   */
+  async listActive(
+    platform: string,
+    environment: string,
+    pagination?: OffsetPaginationParams | TokenPaginationParams
+  ): Promise<PaginatedResult<ConfigParameter>> {
+    // Get total count
+    const countResult = await this.db
+      .prepare(
+        `SELECT COUNT(*) as count FROM config_parameters
+        WHERE platform = ?1 AND environment = ?2 AND isActive = 1`
+      )
+      .bind(platform, environment)
+      .first<{ count: number }>();
+
+    const total = countResult?.count || 0;
+
+    // Use offset-based pagination
+    const offsetPagination = pagination as OffsetPaginationParams | undefined;
+    const limit = offsetPagination?.limit ?? 100;
+    const offset = offsetPagination?.offset ?? 0;
+
+    const result = await this.db
+      .prepare(
+        `SELECT * FROM config_parameters
+        WHERE platform = ?1 AND environment = ?2 AND isActive = 1
+        ORDER BY parameterKey ASC
+        LIMIT ?3 OFFSET ?4`
+      )
+      .bind(platform, environment, limit, offset)
+      .all<ConfigParameterRow>();
+
+    const items = result.results
+      ? result.results.map((row) => this.mapToConfigParameter(row))
+      : [];
+
+    return { items, total };
+  }
+
+  /**
+   * Lists all versions of a parameter.
+   */
+  async listVersions(
+    platform: string,
+    environment: string,
+    parameterKey: string
+  ): Promise<ConfigParameter[]> {
+    const result = await this.db
+      .prepare(
+        `SELECT * FROM config_parameters
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3
+        ORDER BY CAST(version AS INTEGER) DESC`
+      )
+      .bind(platform, environment, parameterKey)
+      .all<ConfigParameterRow>();
+
+    return result.results
+      ? result.results.map((row) => this.mapToConfigParameter(row))
+      : [];
+  }
+
+  /**
+   * Rolls back to a previous version (marks it active).
+   *
+   * @remarks
+   * SECURITY: Uses D1 batch to execute both operations atomically.
+   */
+  async rollback(
+    platform: string,
+    environment: string,
+    parameterKey: string,
+    version: string
+  ): Promise<ConfigParameter | null> {
+    // 1. Check target version exists
+    const targetVersion = await this.db
+      .prepare(
+        `SELECT * FROM config_parameters
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`
+      )
+      .bind(platform, environment, parameterKey, version)
+      .first<ConfigParameterRow>();
+
+    if (!targetVersion) {
       return null;
     }
 
-    // Update the version to be stable
-    await this.db
+    // 2. Get current active version
+    const currentActive = await this.db
       .prepare(
-        `UPDATE config_versions SET isStable = 1
-         WHERE platform = ?1 AND environment = ?2 AND versionTimestamp = ?3`
+        `SELECT version FROM config_parameters
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND isActive = 1`
       )
-      .bind(platform, environment, result.versionTimestamp)
-      .run();
+      .bind(platform, environment, parameterKey)
+      .first<{ version: string }>();
+
+    // If target is already active, return it
+    if (currentActive?.version === version) {
+      return this.mapToConfigParameter(targetVersion);
+    }
+
+    // 3. SECURITY: Use batch to execute both operations atomically
+    if (currentActive) {
+      const deactivateStmt = this.db
+        .prepare(
+          `UPDATE config_parameters SET isActive = 0
+          WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`
+        )
+        .bind(platform, environment, parameterKey, currentActive.version);
+
+      const activateStmt = this.db
+        .prepare(
+          `UPDATE config_parameters SET isActive = 1
+          WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`
+        )
+        .bind(platform, environment, parameterKey, version);
+
+      await this.db.batch([deactivateStmt, activateStmt]);
+    } else {
+      // No current active version, just activate target
+      await this.db
+        .prepare(
+          `UPDATE config_parameters SET isActive = 1
+          WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`
+        )
+        .bind(platform, environment, parameterKey, version)
+        .run();
+    }
 
     return {
-      platform: result.platform,
-      environment: result.environment,
-      versionLabel: result.versionLabel ?? '',
-      versionTimestamp: result.versionTimestamp,
-      isStable: true,
-      config: JSON.parse(result.config),
-      createdBy: result.createdBy,
-      createdAt: result.createdAt,
+      ...this.mapToConfigParameter(targetVersion),
+      isActive: true,
+    };
+  }
+
+  /**
+   * Counts active parameters in an environment.
+   */
+  async count(platform: string, environment: string): Promise<number> {
+    const result = await this.db
+      .prepare(
+        `SELECT COUNT(*) as count FROM config_parameters
+        WHERE platform = ?1 AND environment = ?2 AND isActive = 1`
+      )
+      .bind(platform, environment)
+      .first<{ count: number }>();
+
+    return result?.count || 0;
+  }
+
+  // ============================================================================
+  // PRIVATE HELPERS
+  // ============================================================================
+
+  /**
+   * Maps D1 row to ConfigParameter type.
+   */
+  private mapToConfigParameter(row: ConfigParameterRow): ConfigParameter {
+    return {
+      platform: row.platform,
+      environment: row.environment,
+      parameterKey: row.parameterKey,
+      version: row.version,
+      valueType: row.valueType as 'string' | 'number' | 'boolean' | 'json',
+      defaultValue: row.defaultValue,
+      description: row.description ?? undefined,
+      parameterGroup: row.parameterGroup ?? undefined,
+      isActive: Boolean(row.isActive),
+      createdBy: row.createdBy,
+      createdAt: row.createdAt,
     };
   }
 }

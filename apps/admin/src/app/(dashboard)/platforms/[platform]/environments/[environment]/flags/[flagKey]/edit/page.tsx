@@ -31,8 +31,10 @@ interface EditFlagPageProps {
 type FlagType = 'boolean' | 'string' | 'number';
 
 interface CountryLanguagePair {
+  id: string;
   country: string;
   languages: string;
+  serveValue: 'A' | 'B';
 }
 
 interface ValidationResult {
@@ -100,7 +102,8 @@ function validateLanguages(input: string): { valid: string[]; invalid: string[];
   const invalid: string[] = [];
   const duplicates: string[] = [];
 
-  const validPattern = /^[a-z]{2,3}$/;
+  // Backend requires exactly 2 letters (ISO 639-1)
+  const validPattern = /^[a-z]{2}$/;
 
   for (const entry of entries) {
     if (!validPattern.test(entry)) {
@@ -206,17 +209,19 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
       setValueA(String(data.valueA));
       setValueB(String(data.valueB));
 
-      // Load rollout settings
+      // Load rollout settings - use schema defaults (100/0) not 50/50
       setRolloutEnabled(data.rolloutEnabled || false);
-      setRolloutPercentageA(data.rolloutPercentageA ?? 50);
-      setRolloutPercentageB(data.rolloutPercentageB ?? 50);
+      setRolloutPercentageA(data.rolloutPercentageA ?? 100);
+      setRolloutPercentageB(data.rolloutPercentageB ?? 0);
 
-      // Convert API targeting format to UI format
+      // Convert API targeting format to UI format, preserving serveValue
       if (data.targeting?.countries?.length) {
         setCountryLanguagePairs(
           data.targeting.countries.map((c) => ({
+            id: crypto.randomUUID(),
             country: c.country,
             languages: c.languages?.map((l) => l.language).join(', ') || '',
+            serveValue: c.serveValue || 'A',
           }))
         );
       } else {
@@ -238,28 +243,38 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
   // Country/Language pair management
   function addCountryLanguagePair() {
-    setCountryLanguagePairs([...countryLanguagePairs, { country: '', languages: '' }]);
+    setCountryLanguagePairs([...countryLanguagePairs, {
+      id: crypto.randomUUID(),
+      country: '',
+      languages: '',
+      serveValue: 'A',
+    }]);
   }
 
   function updateCountryLanguagePair(
-    index: number,
-    update: Partial<{ country: string; languages: string }>
+    id: string,
+    update: Partial<{ country: string; languages: string; serveValue: 'A' | 'B' }>
   ) {
-    const updated = [...countryLanguagePairs];
-    updated[index] = { ...updated[index], ...update };
-    setCountryLanguagePairs(updated);
+    setCountryLanguagePairs(prev =>
+      prev.map(pair => pair.id === id ? { ...pair, ...update } : pair)
+    );
   }
 
-  function removeCountryLanguagePair(index: number) {
-    setCountryLanguagePairs(countryLanguagePairs.filter((_, i) => i !== index));
+  function removeCountryLanguagePair(id: string) {
+    setCountryLanguagePairs(prev => prev.filter(pair => pair.id !== id));
   }
 
-  function parseValue(raw: string, type: FlagType): boolean | string | number {
+  function parseValue(raw: string, type: FlagType): boolean | string | number | null {
     switch (type) {
       case 'boolean':
         return raw === 'true';
-      case 'number':
-        return parseFloat(raw) || 0;
+      case 'number': {
+        const parsed = Number(raw);
+        if (raw.trim() === '' || Number.isNaN(parsed)) {
+          return null; // Signal invalid number
+        }
+        return parsed;
+      }
       default:
         return raw;
     }
@@ -350,24 +365,40 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
       return;
     }
 
+    // Validate number values
+    const parsedValueA = parseValue(valueA, flagType);
+    const parsedValueB = parseValue(valueB, flagType);
+    if (parsedValueA === null) {
+      setError('Value A must be a valid number');
+      return;
+    }
+    if (parsedValueB === null) {
+      setError('Value B must be a valid number');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Build targeting object
+      // Build targeting object with serveValue
       const targeting: {
-        countries?: { country: string; languages?: { language: string }[] }[];
+        countries?: { country: string; serveValue: 'A' | 'B'; languages?: { language: string; serveValue: 'A' | 'B' }[] }[];
         forceIncludeUsers?: string[];
         forceExcludeUsers?: string[];
       } = {};
 
       const validPairs = countryLanguagePairs.filter(p => p.country.trim());
       if (validPairs.length > 0) {
-        targeting.countries = validPairs.map(pair => ({
-          country: pair.country.trim().toUpperCase(),
-          languages: pair.languages.trim()
-            ? pair.languages.split(',').map(l => ({ language: l.trim().toLowerCase() }))
-            : undefined,
-        }));
+        targeting.countries = validPairs.map(pair => {
+          const validLangs = validateLanguages(pair.languages);
+          return {
+            country: pair.country.trim().toUpperCase(),
+            serveValue: pair.serveValue,
+            languages: validLangs.valid.length > 0
+              ? validLangs.valid.map(l => ({ language: l, serveValue: pair.serveValue }))
+              : undefined,
+          };
+        });
       }
 
       // Use validated user lists
@@ -382,8 +413,8 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
         name: name.trim(),
         description: description.trim() || undefined,
         enabled,
-        valueA: parseValue(valueA, flagType),
-        valueB: parseValue(valueB, flagType),
+        valueA: parsedValueA,
+        valueB: parsedValueB,
         targeting: Object.keys(targeting).length > 0 ? targeting : undefined,
       });
 
@@ -700,7 +731,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
                 {!rolloutEnabled && (
                   <p className="text-sm text-muted-foreground">
-                    When disabled, all users receive Value A by default. Enable rollout for gradual feature releases.
+                    When disabled, users receive the configured default value (Value B by default). Enable rollout for gradual feature releases.
                   </p>
                 )}
 
@@ -756,21 +787,21 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {countryLanguagePairs.map((pair, index) => {
+                      {countryLanguagePairs.map((pair) => {
                         const countryValidation = validateCountryCode(pair.country);
                         const langValidation = validateLanguages(pair.languages);
                         const hasCountryError = pair.country.trim() && !countryValidation.valid;
                         const hasLangError = langValidation.invalid.length > 0;
 
                         return (
-                          <div key={index} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                          <div key={pair.id} className="p-3 bg-muted/50 rounded-lg space-y-2">
                             <div className="flex items-start gap-3">
-                              <div className="flex-1 grid grid-cols-2 gap-3">
+                              <div className="flex-1 grid grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                   <Label className="text-xs">Country Code (2-letter ISO)</Label>
                                   <Input
                                     value={pair.country}
-                                    onChange={(e) => updateCountryLanguagePair(index, { country: e.target.value.toUpperCase() })}
+                                    onChange={(e) => updateCountryLanguagePair(pair.id, { country: e.target.value.toUpperCase() })}
                                     placeholder="e.g., AE"
                                     disabled={isLoading}
                                     className={`uppercase ${hasCountryError ? 'border-destructive' : ''}`}
@@ -784,7 +815,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                                   <Label className="text-xs">Languages (comma-separated)</Label>
                                   <Input
                                     value={pair.languages}
-                                    onChange={(e) => updateCountryLanguagePair(index, { languages: e.target.value })}
+                                    onChange={(e) => updateCountryLanguagePair(pair.id, { languages: e.target.value })}
                                     placeholder="e.g., en, ar"
                                     disabled={isLoading}
                                     className={hasLangError ? 'border-destructive' : ''}
@@ -801,16 +832,27 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                                   )}
                                   {langValidation.invalid.length > 0 && (
                                     <p className="text-xs text-destructive">
-                                      Invalid: {langValidation.invalid.join(', ')} (must be 2-3 lowercase letters)
+                                      Invalid: {langValidation.invalid.join(', ')} (must be 2 lowercase letters)
                                     </p>
                                   )}
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Serve Value</Label>
+                                  <Select
+                                    value={pair.serveValue}
+                                    onChange={(e) => updateCountryLanguagePair(pair.id, { serveValue: e.target.value as 'A' | 'B' })}
+                                    disabled={isLoading}
+                                  >
+                                    <option value="A">Serve A</option>
+                                    <option value="B">Serve B</option>
+                                  </Select>
                                 </div>
                               </div>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removeCountryLanguagePair(index)}
+                                onClick={() => removeCountryLanguagePair(pair.id)}
                                 disabled={isLoading}
                                 className="text-destructive hover:text-destructive mt-5"
                               >
@@ -821,7 +863,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                         );
                       })}
                       <p className="text-xs text-muted-foreground">
-                        Each country can have multiple languages. Leave languages empty for all languages in that country.
+                        Each country can have multiple languages. Leave languages empty for all languages in that country. Serve Value determines which value (A or B) is served when users match this targeting rule.
                       </p>
                     </div>
                   )}

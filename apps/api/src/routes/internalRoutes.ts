@@ -92,22 +92,72 @@ internalRouter.patch('/platforms/:platform/environments/:environment',
 );
 
 // ============================================================================
-// CONFIG VERSION WRITE ENDPOINTS
+// CONFIG PARAMETER ENDPOINTS (Tier 1: Firebase-style individual parameters)
 // ============================================================================
 
-internalRouter.post('/platforms/:platform/environments/:environment/versions',
-  requirePermission('config:write'),
-  asyncHandler(configController.createVersion)
+/**
+ * List all active config parameters with metadata (for admin UI)
+ * Returns paginated list with full parameter details
+ *
+ * NOTE: This route MUST come before /:parameterKey to avoid "list" being matched as a parameter key
+ */
+internalRouter.get('/platforms/:platform/environments/:environment/configs/list',
+  requirePermission('config:read'),
+  asyncHandler(configController.listConfigParameters)
 );
 
-internalRouter.delete('/platforms/:platform/environments/:environment/versions/:version',
+/**
+ * Count active config parameters in an environment
+ * Returns: { count: number }
+ *
+ * NOTE: This route MUST come before /:parameterKey to avoid "count" being matched as a parameter key
+ */
+internalRouter.get('/platforms/:platform/environments/:environment/configs/count',
+  requirePermission('config:read'),
+  asyncHandler(configController.countConfigParameters)
+);
+
+/**
+ * Create a new config parameter (version 1)
+ * Body: { parameterKey, valueType, defaultValue, description?, parameterGroup? }
+ */
+internalRouter.post('/platforms/:platform/environments/:environment/configs',
+  requirePermission('config:write'),
+  asyncHandler(configController.createConfigParameter)
+);
+
+/**
+ * Update a config parameter (creates new version, marks it active)
+ * Body: { valueType?, defaultValue?, description?, parameterGroup? }
+ */
+internalRouter.patch('/platforms/:platform/environments/:environment/configs/:parameterKey',
+  requirePermission('config:write'),
+  asyncHandler(configController.updateConfigParameter)
+);
+
+/**
+ * Delete a config parameter (all versions)
+ */
+internalRouter.delete('/platforms/:platform/environments/:environment/configs/:parameterKey',
   requirePermission('config:delete'),
-  asyncHandler(configController.deleteVersion)
+  asyncHandler(configController.deleteConfigParameter)
 );
 
-internalRouter.patch('/platforms/:platform/environments/:environment/versions/:version/mark-stable',
+/**
+ * List all versions of a config parameter (version history)
+ */
+internalRouter.get('/platforms/:platform/environments/:environment/configs/:parameterKey/versions',
+  requirePermission('config:read'),
+  asyncHandler(configController.listConfigParameterVersions)
+);
+
+/**
+ * Rollback a config parameter to a previous version
+ * Body: { version: "1" | "2" | ... }
+ */
+internalRouter.post('/platforms/:platform/environments/:environment/configs/:parameterKey/rollback',
   requirePermission('config:write'),
-  asyncHandler(configController.markVersionStable)
+  asyncHandler(configController.rollbackConfigParameter)
 );
 
 // ============================================================================

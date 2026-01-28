@@ -13,7 +13,7 @@ import { logger } from '@togglebox/shared';
 
 const authRouter = createAuthRouter({
   dbType: (process.env['DB_TYPE'] || 'dynamodb') as 'mysql' | 'postgresql' | 'sqlite' | 'mongodb' | 'dynamodb' | 'd1',
-  authEnabled: true,
+  authEnabled: process.env['ENABLE_AUTHENTICATION'] === 'true',
 });
 
 logger.info('Auth module loaded');

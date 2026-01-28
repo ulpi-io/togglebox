@@ -9,13 +9,13 @@
  * **Key Exports:**
  * - `getDatabase()` - Get database repository singleton
  * - `getThreeTierRepositories()` - Get three-tier architecture repositories
- * - Services: `platformService`, `environmentService`, `configService`
+ * - Services: `platformService`, `environmentService`
  * - Interfaces: `IPlatformRepository`, `IEnvironmentRepository`, etc.
  * - Factory: `createDatabaseRepositories()`, `DatabaseRepositories`, `ThreeTierRepositories`
  *
  * **Three-Tier Architecture:**
- * - Tier 1: Remote Configs (uses existing config repository)
- * - Tier 2: Feature Flags (new 2-value model via @togglebox/flags)
+ * - Tier 1: Remote Configs (Firebase-style individual parameters via IConfigRepository)
+ * - Tier 2: Feature Flags (2-value model via @togglebox/flags)
  * - Tier 3: Experiments (multi-variant via @togglebox/experiments)
  * - Stats: Metrics for all tiers via @togglebox/stats
  */
@@ -23,7 +23,6 @@
 export * from './database';
 export * from './platformService';
 export * from './environmentService';
-export * from './configService';
 export * from './interfaces';
 export * from './config';
 export * from './factory';

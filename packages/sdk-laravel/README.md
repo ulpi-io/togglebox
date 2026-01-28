@@ -45,7 +45,6 @@ use ToggleBox\Laravel\Facades\ToggleBox;
 // Tier 1: Remote Configs
 $apiUrl = ToggleBox::config('api_url', 'https://default.api.com');
 $allConfigs = ToggleBox::allConfigs();
-$versions = ToggleBox::configVersions(); // List all config versions
 
 // Tier 2: Feature Flags
 if (ToggleBox::enabled('dark-mode')) {
@@ -232,7 +231,8 @@ Disable auto-flush in `config/togglebox.php`:
 $client = ToggleBox::client();
 
 // Use the PHP SDK directly
-$config = $client->getConfigVersion('1.2.3');
+$allConfigs = $client->getAllConfigs();
+$apiUrl = $client->getConfigValue('api_url', 'https://default.api.com');
 ```
 
 ## Testing

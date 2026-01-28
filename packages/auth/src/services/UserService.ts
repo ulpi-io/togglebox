@@ -18,6 +18,8 @@
  */
 
 import { IUserRepository } from '../interfaces/IUserRepository';
+import { IApiKeyRepository } from '../interfaces/IApiKeyRepository';
+import { IPasswordResetRepository } from '../interfaces/IPasswordResetRepository';
 import { User, PublicUser, UserRole } from '../models/User';
 import { hashPassword, verifyPassword } from '../utils/password';
 import { generateToken } from '../utils/jwt';
@@ -101,7 +103,17 @@ export interface UpdateProfileData {
  * - PublicUser responses exclude passwordHash
  */
 export class UserService {
-  constructor(private userRepository: IUserRepository) {}
+  private apiKeyRepository?: IApiKeyRepository;
+  private passwordResetRepository?: IPasswordResetRepository;
+
+  constructor(
+    private userRepository: IUserRepository,
+    apiKeyRepository?: IApiKeyRepository,
+    passwordResetRepository?: IPasswordResetRepository
+  ) {
+    this.apiKeyRepository = apiKeyRepository;
+    this.passwordResetRepository = passwordResetRepository;
+  }
 
   /**
    * Register a new user with email and password.
@@ -292,11 +304,21 @@ export class UserService {
    * @param userId - User unique identifier
    *
    * @remarks
-   * **Cascade Behavior:**
+   * **SECURITY: Cascade Delete:**
    * Also deletes associated API keys and password reset tokens
-   * (handled by repository implementation).
+   * to prevent orphaned data and ensure complete cleanup.
    */
   async deleteUser(userId: string): Promise<void> {
+    // SECURITY: Delete related data before deleting user (cascade delete)
+    // This prevents orphaned API keys and reset tokens
+    if (this.apiKeyRepository) {
+      await this.apiKeyRepository.deleteByUser(userId);
+    }
+    if (this.passwordResetRepository) {
+      await this.passwordResetRepository.deleteByUser(userId);
+    }
+
+    // Delete the user record
     await this.userRepository.delete(userId);
   }
 
@@ -322,6 +344,19 @@ export class UserService {
       users: result.users.map((user) => this.toPublicUser(user)),
       total: result.total,
     };
+  }
+
+  /**
+   * Count users by role.
+   *
+   * @param role - User role to count (admin, developer, viewer)
+   * @returns Number of users with the specified role
+   *
+   * @remarks
+   * **SECURITY:** Used to prevent demoting the last admin user.
+   */
+  async countByRole(role: string): Promise<number> {
+    return this.userRepository.countByRole(role);
   }
 
   /**

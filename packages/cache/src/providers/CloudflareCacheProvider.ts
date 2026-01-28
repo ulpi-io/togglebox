@@ -12,6 +12,7 @@ import { logger } from '@togglebox/shared';
 export class CloudflareCacheProvider implements CacheProvider {
   private zoneId: string;
   private apiToken: string;
+  private baseOrigin: string;
   private enabled: boolean;
   private baseUrl = 'https://api.cloudflare.com/client/v4';
 
@@ -20,11 +21,14 @@ export class CloudflareCacheProvider implements CacheProvider {
    *
    * @param zoneId - Cloudflare Zone ID
    * @param apiToken - Cloudflare API Token with cache purge permission
+   * @param baseOrigin - Base origin URL (e.g., 'https://api.example.com') - required for purge by URL
    */
-  constructor(zoneId?: string, apiToken?: string) {
+  constructor(zoneId?: string, apiToken?: string, baseOrigin?: string) {
     this.zoneId = zoneId || '';
     this.apiToken = apiToken || '';
-    this.enabled = !!(this.zoneId && this.apiToken);
+    this.baseOrigin = baseOrigin || '';
+    // baseOrigin is required for purge by URL to work correctly
+    this.enabled = !!(this.zoneId && this.apiToken && this.baseOrigin);
   }
 
   /**
@@ -49,7 +53,7 @@ export class CloudflareCacheProvider implements CacheProvider {
    */
   async invalidateCache(paths: string[]): Promise<string | null> {
     if (!this.enabled) {
-      logger.warn('Cache purge skipped: zone ID or API token not configured', { provider: 'cloudflare' });
+      logger.warn('Cache purge skipped: zone ID, API token, or base origin not configured', { provider: 'cloudflare' });
       return null;
     }
 
@@ -64,41 +68,57 @@ export class CloudflareCacheProvider implements CacheProvider {
     }
 
     // Convert paths to full URLs (Cloudflare requires full URLs, not just paths)
-    // Note: This requires the domain to be known - ideally passed via config
     const urls = paths.map((path) => {
-      // Remove wildcards (not supported by Cloudflare)
+      // Remove trailing wildcards (not supported by Cloudflare)
       const cleanPath = path.replace(/\/\*$/, '');
-      return cleanPath;
+      // Construct full URL using baseOrigin
+      return new URL(cleanPath, this.baseOrigin).toString();
     });
 
+    // Cloudflare limits purge-by-URL to 30 URLs per request
+    const MAX_URLS_PER_BATCH = 30;
+    const batches: string[][] = [];
+    for (let i = 0; i < urls.length; i += MAX_URLS_PER_BATCH) {
+      batches.push(urls.slice(i, i + MAX_URLS_PER_BATCH));
+    }
+
     try {
-      const response = await fetch(`${this.baseUrl}/zones/${this.zoneId}/purge_cache`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          files: urls,
-        }),
-      });
+      const purgeIds: string[] = [];
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Cloudflare cache purge failed: ${response.status} ${error}`);
+      for (const batch of batches) {
+        const response = await fetch(`${this.baseUrl}/zones/${this.zoneId}/purge_cache`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            files: batch,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Cloudflare cache purge failed: ${response.status} ${error}`);
+        }
+
+        const result = await response.json() as { success: boolean; result?: { id: string } };
+
+        if (!result.success) {
+          throw new Error('Cloudflare cache purge returned success: false');
+        }
+
+        if (result.result?.id) {
+          purgeIds.push(result.result.id);
+        }
       }
 
-      const result = await response.json() as { success: boolean; result?: { id: string } };
-
-      if (!result.success) {
-        throw new Error('Cloudflare cache purge returned success: false');
-      }
-
-      const purgeId = result.result?.id || `purge-${Date.now()}`;
+      const purgeId = purgeIds[0] || `purge-${Date.now()}`;
       logger.info('Cache purged successfully', {
         provider: 'cloudflare',
         purgeId,
-        pathCount: paths.length
+        pathCount: paths.length,
+        batchCount: batches.length
       });
       return purgeId;
     } catch (error) {
@@ -167,9 +187,12 @@ export class CloudflareCacheProvider implements CacheProvider {
    * Purge Cloudflare cache for stats endpoints in an environment.
    */
   async invalidateStatsCache(platform: string, environment: string): Promise<string | null> {
-    // Cloudflare doesn't support wildcards, so we purge the common pattern
+    // Cloudflare doesn't support wildcards in the middle of paths, so enumerate known stats endpoints
     return this.invalidateCache([
-      `/api/v1/platforms/${platform}/environments/${environment}/*/stats`,
+      `/api/v1/platforms/${platform}/environments/${environment}/flags/stats`,
+      `/api/v1/platforms/${platform}/environments/${environment}/experiments/stats`,
+      `/api/v1/platforms/${platform}/environments/${environment}/configs/stats`,
+      `/api/v1/platforms/${platform}/environments/${environment}/stats`,
     ]);
   }
 

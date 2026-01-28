@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getCurrentUserApi, updateProfileApi, changePasswordApi } from '@/lib/api/auth';
 import type { User } from '@/lib/api/types';
 import {
@@ -34,6 +34,18 @@ export default function ProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
+  // Refs for timeout cleanup
+  const profileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const passwordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (profileTimerRef.current) clearTimeout(profileTimerRef.current);
+      if (passwordTimerRef.current) clearTimeout(passwordTimerRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     async function loadUser() {
       try {
@@ -59,7 +71,8 @@ export default function ProfilePage() {
       const updatedUser = await updateProfileApi({ name: name.trim() });
       setUser(updatedUser);
       setProfileSuccess(true);
-      setTimeout(() => setProfileSuccess(false), 3000);
+      if (profileTimerRef.current) clearTimeout(profileTimerRef.current);
+      profileTimerRef.current = setTimeout(() => setProfileSuccess(false), 3000);
     } catch (err) {
       setProfileError(err instanceof Error ? err.message : 'Failed to update profile');
     } finally {
@@ -90,7 +103,8 @@ export default function ProfilePage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setTimeout(() => setPasswordSuccess(false), 3000);
+      if (passwordTimerRef.current) clearTimeout(passwordTimerRef.current);
+      passwordTimerRef.current = setTimeout(() => setPasswordSuccess(false), 3000);
     } catch (err) {
       setPasswordError(err instanceof Error ? err.message : 'Failed to change password');
     } finally {

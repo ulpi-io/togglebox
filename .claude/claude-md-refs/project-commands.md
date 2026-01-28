@@ -74,6 +74,7 @@ pnpm dev:api              # Start API development server with hot reload (tsx wa
 pnpm dev:admin            # Start admin dashboard (Next.js)
 pnpm dev:example-nextjs   # Start example Next.js app demonstrating SDK
 pnpm dev:example-expo     # Start example Expo app demonstrating SDK
+pnpm dev:example-nodejs   # Start example Node.js app demonstrating SDK
 
 # Build commands
 pnpm build                # Build all packages + apps
@@ -81,6 +82,7 @@ pnpm build:packages       # Build only workspace packages
 pnpm build:api            # Build only API
 pnpm build:admin          # Build only admin dashboard
 pnpm build:example-nextjs # Build example Next.js app
+pnpm build:example-nodejs # Build example Node.js app
 
 # Maintenance
 pnpm clean                # Clean all dist directories and node_modules
@@ -320,6 +322,36 @@ pnpm --filter @config/database add @prisma/client
 ```
 
 ## Project-Specific Custom Commands
+
+### Demo Data Seeding
+```bash
+# Seed demo data for example apps (requires API to be running)
+./scripts/seed-demo-data.sh
+
+# With custom API URL
+API_URL=http://localhost:3000/api/v1 ./scripts/seed-demo-data.sh
+
+# Creates:
+#   - Platforms: web, mobile
+#   - Environments: staging for each platform
+#   - Config versions: 1.0.0 and 1.1.0 (stable) for web, 1.0.0 for mobile
+#   - Feature flags: dark-mode, new-checkout, beta-features for web; offline-mode, biometric-auth for mobile
+#   - Experiments: checkout-test, pricing-page for web; onboarding-flow for mobile
+```
+
+### Docker DynamoDB Initialization
+```bash
+# Initialize DynamoDB tables (run from docker/ directory)
+./docker/scripts/init-dynamodb.sh
+
+# Wait for DynamoDB to be ready before starting
+./docker/scripts/wait-for-dynamodb.sh
+
+# Creates 10 tables:
+#   - togglebox-users, togglebox-api-keys, togglebox-password-resets
+#   - togglebox-platforms, togglebox-environments, togglebox-configs
+#   - togglebox-remote-configs, togglebox-flags, togglebox-experiments, togglebox-stats
+```
 
 ### Database Schema Generation
 ```bash

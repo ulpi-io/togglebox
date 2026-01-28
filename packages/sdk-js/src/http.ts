@@ -8,16 +8,18 @@ export class HttpClient {
   private baseUrl: string
   private fetchImpl: typeof fetch
   private apiKey?: string
+  private requestTimeoutMs: number
   private retryOptions: RetryOptions = {
     maxRetries: 3,
     initialDelay: 1000,
     maxDelay: 10000,
   }
 
-  constructor(baseUrl: string, fetchImpl?: typeof fetch, apiKey?: string) {
+  constructor(baseUrl: string, fetchImpl?: typeof fetch, apiKey?: string, requestTimeoutMs = 10000) {
     this.baseUrl = baseUrl.replace(/\/$/, '') // Remove trailing slash
     this.fetchImpl = fetchImpl || (typeof fetch !== 'undefined' ? fetch : this.throwFetchError)
     this.apiKey = apiKey
+    this.requestTimeoutMs = requestTimeoutMs
   }
 
   private throwFetchError(): never {
@@ -40,6 +42,25 @@ export class HttpClient {
   }
 
   /**
+   * Fetch with timeout to prevent hung requests
+   */
+  private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutMs)
+
+    try {
+      return await this.fetchImpl(url, { ...init, signal: controller.signal })
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new NetworkError(`Request timed out after ${this.requestTimeoutMs}ms`)
+      }
+      throw error
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  }
+
+  /**
    * Make HTTP GET request with retry logic
    */
   async get<T>(path: string): Promise<T> {
@@ -48,7 +69,7 @@ export class HttpClient {
 
     for (let attempt = 0; attempt <= this.retryOptions.maxRetries; attempt++) {
       try {
-        const response = await this.fetchImpl(url, {
+        const response = await this.fetchWithTimeout(url, {
           method: 'GET',
           headers: this.getHeaders(),
         })
@@ -95,7 +116,7 @@ export class HttpClient {
 
     for (let attempt = 0; attempt <= this.retryOptions.maxRetries; attempt++) {
       try {
-        const response = await this.fetchImpl(url, {
+        const response = await this.fetchWithTimeout(url, {
           method: 'POST',
           headers: this.getHeaders(),
           body: JSON.stringify(body),

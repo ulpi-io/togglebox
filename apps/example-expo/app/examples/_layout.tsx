@@ -2,6 +2,7 @@ import { Stack } from 'expo-router'
 
 export default function ExamplesLayout() {
   return (
+    // @ts-expect-error - expo-router Stack type compatibility with React 19
     <Stack
       screenOptions={{
         headerStyle: {

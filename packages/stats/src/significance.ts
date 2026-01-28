@@ -147,6 +147,19 @@ export function calculateSignificance(
   treatment: VariationData,
   confidenceLevel = 0.95
 ): SignificanceResult {
+  // SECURITY: Guard against division by zero when there are no participants
+  if (control.participants === 0 || treatment.participants === 0) {
+    return {
+      pValue: 1,
+      isSignificant: false,
+      zScore: 0,
+      confidenceInterval: [0, 0],
+      relativeLift: 0,
+      controlConversionRate: 0,
+      treatmentConversionRate: 0,
+    };
+  }
+
   // Calculate conversion rates
   const p1 = control.conversions / control.participants;
   const p2 = treatment.conversions / treatment.participants;

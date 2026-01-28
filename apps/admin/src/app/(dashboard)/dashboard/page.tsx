@@ -96,9 +96,9 @@ export default function DashboardPage() {
       description: 'Environments across all platforms',
     },
     {
-      title: 'Config Versions',
-      value: stats.totalConfigVersions,
-      description: 'Total remote config versions',
+      title: 'Config Parameters',
+      value: stats.totalConfigParameters,
+      description: 'Firebase-style config parameters',
     },
     {
       title: 'Flags',

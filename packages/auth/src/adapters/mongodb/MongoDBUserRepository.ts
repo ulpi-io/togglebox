@@ -81,6 +81,14 @@ export class MongoDBUserRepository implements IUserRepository {
   }
 
   /**
+   * Count users by role.
+   * SECURITY: Used to prevent demoting the last admin user.
+   */
+  async countByRole(role: string): Promise<number> {
+    return UserModel.countDocuments({ role });
+  }
+
+  /**
    * Map Mongoose document to User domain model.
    *
    * @param doc - Mongoose document from database

@@ -1,52 +1,57 @@
 import type { Metadata } from 'next'
 import { Toaster } from 'sonner'
-import { Nav } from '@/components/nav'
+import Link from 'next/link'
 import { Providers } from './providers'
-import { getServerSideConfig } from '@togglebox/sdk-nextjs'
+import { getConfig, getFlags, getExperiments } from '@togglebox/sdk-nextjs/server'
 import './globals.css'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
-const PLATFORM = process.env.NEXT_PUBLIC_PLATFORM || 'web'
-const ENVIRONMENT = process.env.NEXT_PUBLIC_ENVIRONMENT || 'staging'
+// Server-side env vars (not exposed to client bundle)
+const API_URL = process.env.NEXT_PUBLIC_TOGGLEBOX_API_URL || 'http://localhost:3000/api/v1'
+const API_KEY = process.env.TOGGLEBOX_API_KEY // Server-only: NOT exposed to client
+const PLATFORM = process.env.NEXT_PUBLIC_TOGGLEBOX_PLATFORM || 'web'
+const ENVIRONMENT = process.env.NEXT_PUBLIC_TOGGLEBOX_ENVIRONMENT || 'staging'
 
 export const metadata: Metadata = {
   title: 'ToggleBox Example - Next.js',
   description: 'Example application demonstrating ToggleBox SDK features',
 }
 
-/**
- * Root layout with SSR hydration.
- *
- * Server-side fetches config, flags, and experiments and passes them
- * to the ToggleBoxProvider for instant hydration. This eliminates the
- * loading spinner and provides immediate access to config data.
- */
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // Server-side fetch for SSR hydration
-  // This data is passed to the client provider to avoid a second fetch
-  const { config, flags, experiments } = await getServerSideConfig(
-    PLATFORM,
-    ENVIRONMENT,
-    API_URL
-  )
+  const serverOptions = {
+    platform: PLATFORM,
+    environment: ENVIRONMENT,
+    apiUrl: API_URL,
+    apiKey: API_KEY,
+  }
+
+  const [{ config }, { flags }, { experiments }] = await Promise.all([
+    getConfig(serverOptions),
+    getFlags(serverOptions),
+    getExperiments(serverOptions),
+  ])
 
   return (
     <html lang="en">
       <body className="antialiased">
         <Providers
-          initialConfig={config?.config}
+          initialConfig={config}
           initialFlags={flags}
           initialExperiments={experiments}
         >
-          <div className="flex min-h-screen">
-            <Nav />
-            <main className="flex-1 bg-gray-50 p-8">
-              {children}
-            </main>
+          <div className="min-h-screen bg-gray-50">
+            <header className="bg-white border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <Link href="/examples" className="text-xl font-bold text-gray-900">
+                  ToggleBox SDK
+                </Link>
+                <span className="text-sm text-gray-500">Next.js Examples</span>
+              </div>
+            </header>
+            <main className="p-6">{children}</main>
           </div>
           <Toaster position="bottom-right" richColors />
         </Providers>

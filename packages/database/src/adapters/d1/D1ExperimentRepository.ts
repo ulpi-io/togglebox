@@ -16,6 +16,18 @@ import type {
 import type { IExperimentRepository, ExperimentPage } from '@togglebox/experiments';
 
 /**
+ * Safely parse JSON with fallback for malformed data.
+ */
+function safeParse<T>(raw: string | null | undefined, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * D1 implementation of Experiment repository.
  *
  * @remarks
@@ -603,16 +615,16 @@ export class D1ExperimentRepository implements IExperimentRepository {
       completedAt: row['completedAt'] as string | undefined,
       scheduledStartAt: row['scheduledStartAt'] as string | undefined,
       scheduledEndAt: row['scheduledEndAt'] as string | undefined,
-      variations: JSON.parse(row['variations'] as string),
+      variations: safeParse(row['variations'] as string, []),
       controlVariation: row['controlVariation'] as string,
-      trafficAllocation: JSON.parse(row['trafficAllocation'] as string),
-      targeting: JSON.parse(row['targeting'] as string),
-      primaryMetric: JSON.parse(row['primaryMetric'] as string),
-      secondaryMetrics: JSON.parse(row['secondaryMetrics'] as string),
+      trafficAllocation: safeParse(row['trafficAllocation'] as string, []),
+      targeting: safeParse(row['targeting'] as string, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
+      primaryMetric: safeParse(row['primaryMetric'] as string, { id: '', name: '', eventName: '', metricType: 'conversion', successDirection: 'increase' }),
+      secondaryMetrics: safeParse(row['secondaryMetrics'] as string, undefined),
       confidenceLevel: row['confidenceLevel'] as number,
       minimumDetectableEffect: row['minimumDetectableEffect'] as number | undefined,
       minimumSampleSize: row['minimumSampleSize'] as number | undefined,
-      results: row['results'] ? JSON.parse(row['results'] as string) : undefined,
+      results: safeParse(row['results'] as string, undefined),
       winner: row['winner'] as string | undefined,
       version: row['version'] as string,
       isActive: Boolean(row['isActive']),

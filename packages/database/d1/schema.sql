@@ -35,27 +35,40 @@ CREATE TABLE IF NOT EXISTS environments (
 CREATE INDEX IF NOT EXISTS idx_environments_platformId ON environments(platformId);
 
 -- ============================================================================
--- CONFIG VERSIONS TABLE
+-- CONFIG PARAMETERS TABLE (Firebase-style individual versioned parameters)
 -- ============================================================================
 
-CREATE TABLE IF NOT EXISTS config_versions (
+-- Each config parameter has its own version history.
+-- Only one version is active per parameterKey (isActive = 1).
+-- "Editing" a parameter creates a new version with incremented version number.
+-- Up to 2000 parameters per platform/environment.
+
+CREATE TABLE IF NOT EXISTS config_parameters (
   platform TEXT NOT NULL,
   environment TEXT NOT NULL,
-  versionTimestamp TEXT NOT NULL,
-  platformId TEXT NOT NULL,
-  versionLabel TEXT,
-  isStable INTEGER NOT NULL DEFAULT 0, -- SQLite uses 0/1 for boolean
-  config TEXT NOT NULL, -- JSON stored as text
-  createdBy TEXT NOT NULL,
-  createdAt TEXT NOT NULL,
+  parameterKey TEXT NOT NULL,
+  version TEXT NOT NULL, -- "1", "2", "3" - auto-incremented on edit
 
-  PRIMARY KEY (platform, environment, versionTimestamp),
-  FOREIGN KEY (platformId) REFERENCES platforms(id) ON DELETE CASCADE,
-  FOREIGN KEY (platform, environment) REFERENCES environments(platform, environment) ON DELETE CASCADE
+  valueType TEXT NOT NULL, -- 'string' | 'number' | 'boolean' | 'json'
+  defaultValue TEXT NOT NULL, -- All values stored as strings, parsed by valueType
+
+  description TEXT,
+  parameterGroup TEXT,
+
+  isActive INTEGER NOT NULL DEFAULT 1, -- Only one version active per parameterKey
+
+  createdBy TEXT NOT NULL,
+  createdAt TEXT NOT NULL, -- ISO-8601 timestamp
+
+  PRIMARY KEY (platform, environment, parameterKey, version)
 );
 
-CREATE INDEX IF NOT EXISTS idx_config_versions_platformId ON config_versions(platformId);
-CREATE INDEX IF NOT EXISTS idx_config_versions_stable ON config_versions(platform, environment, isStable);
+-- Index for getConfigs/listActive queries (active parameters only)
+CREATE INDEX IF NOT EXISTS idx_config_parameters_active ON config_parameters(platform, environment, isActive);
+-- Index for listVersions queries
+CREATE INDEX IF NOT EXISTS idx_config_parameters_key ON config_parameters(platform, environment, parameterKey);
+-- Index for listByGroup queries
+CREATE INDEX IF NOT EXISTS idx_config_parameters_group ON config_parameters(platform, environment, parameterGroup);
 
 -- ============================================================================
 -- FEATURE FLAGS TABLE (Versioned)

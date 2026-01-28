@@ -6,7 +6,7 @@
  * This is the 2-value model with exactly 2 values (A/B).
  */
 
-import { PutCommand, GetCommand, QueryCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand, QueryCommand, UpdateCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
 import type {
   Flag,
   CreateFlag,
@@ -18,6 +18,19 @@ import { dynamoDBClient, getFlagsTableName } from '../../database';
 
 // Type for DynamoDB item
 type DynamoItem = Record<string, unknown>;
+
+/**
+ * Safely decode pagination cursor.
+ * @throws Error with user-friendly message if cursor is invalid
+ */
+function decodeCursor(cursor: string | undefined): Record<string, unknown> | undefined {
+  if (!cursor) return undefined;
+  try {
+    return JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8'));
+  } catch {
+    throw new Error('Invalid pagination token');
+  }
+}
 
 /**
  * DynamoDB implementation of the new Feature Flag repository.
@@ -140,29 +153,39 @@ export class DynamoDBNewFlagRepository implements IFlagRepository {
       updatedAt: now,
     };
 
-    // Deactivate old version
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: {
-        PK: pk,
-        SK: this.getSK(flagKey, current.version),
-      },
-      UpdateExpression: 'SET isActive = :inactive REMOVE GSI1PK, GSI1SK',
-      ExpressionAttributeValues: {
-        ':inactive': false,
-      },
-    }));
+    // Use TransactWrite for atomic update (deactivate old + create new)
+    const { TransactWriteCommand } = await import('@aws-sdk/lib-dynamodb');
 
-    // Create new version
-    await dynamoDBClient.send(new PutCommand({
-      TableName: this.getTableName(),
-      Item: {
-        PK: pk,
-        SK: this.getSK(flagKey, newVersion),
-        GSI1PK: pk,
-        GSI1SK: this.getActiveSK(flagKey),
-        ...newFlag,
-      },
+    await dynamoDBClient.send(new TransactWriteCommand({
+      TransactItems: [
+        // Deactivate old version
+        {
+          Update: {
+            TableName: this.getTableName(),
+            Key: {
+              PK: pk,
+              SK: this.getSK(flagKey, current.version),
+            },
+            UpdateExpression: 'SET isActive = :inactive REMOVE GSI1PK, GSI1SK',
+            ExpressionAttributeValues: {
+              ':inactive': false,
+            },
+          },
+        },
+        // Create new version
+        {
+          Put: {
+            TableName: this.getTableName(),
+            Item: {
+              PK: pk,
+              SK: this.getSK(flagKey, newVersion),
+              GSI1PK: pk,
+              GSI1SK: this.getActiveSK(flagKey),
+              ...newFlag,
+            },
+          },
+        },
+      ],
     }));
 
     return newFlag;
@@ -275,7 +298,7 @@ export class DynamoDBNewFlagRepository implements IFlagRepository {
         ':prefix': 'ACTIVE#FLAG#',
       },
       Limit: limit || 100,
-      ExclusiveStartKey: cursor ? JSON.parse(Buffer.from(cursor, 'base64').toString()) : undefined,
+      ExclusiveStartKey: decodeCursor(cursor),
     }));
 
     const items = (result.Items || []).map(item => this.itemToFlag(item as DynamoItem));
@@ -315,6 +338,7 @@ export class DynamoDBNewFlagRepository implements IFlagRepository {
 
   /**
    * Delete a Feature Flag and all its versions.
+   * Uses batch delete for better performance with many versions.
    */
   async delete(
     platform: string,
@@ -327,16 +351,49 @@ export class DynamoDBNewFlagRepository implements IFlagRepository {
     }
 
     const pk = this.getPK(platform, environment);
+    const tableName = this.getTableName();
 
-    // Delete all versions
-    for (const version of versions) {
-      await dynamoDBClient.send(new DeleteCommand({
-        TableName: this.getTableName(),
+    // Batch delete in chunks of 25 (DynamoDB limit)
+    const deleteRequests = versions.map(version => ({
+      DeleteRequest: {
         Key: {
           PK: pk,
           SK: this.getSK(flagKey, version.version),
         },
-      }));
+      },
+    }));
+
+    // Process in batches of 25
+    for (let i = 0; i < deleteRequests.length; i += 25) {
+      const batch = deleteRequests.slice(i, i + 25);
+
+      let itemsToProcess = batch;
+      let retryCount = 0;
+      const maxRetries = 5;
+
+      while (itemsToProcess.length > 0 && retryCount < maxRetries) {
+        const result = await dynamoDBClient.send(new BatchWriteCommand({
+          RequestItems: {
+            [tableName]: itemsToProcess,
+          },
+        }));
+
+        // Check for unprocessed items
+        const unprocessed = result.UnprocessedItems?.[tableName];
+        if (unprocessed && unprocessed.length > 0) {
+          // Exponential backoff before retry
+          const delay = Math.min(100 * Math.pow(2, retryCount), 3000);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          itemsToProcess = unprocessed as typeof batch;
+          retryCount++;
+        } else {
+          break; // All items processed
+        }
+      }
+
+      if (itemsToProcess.length > 0 && retryCount >= maxRetries) {
+        console.error(`[DynamoDB] Failed to delete ${itemsToProcess.length} flag versions after ${maxRetries} retries`);
+      }
     }
   }
 

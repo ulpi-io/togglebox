@@ -17,6 +17,18 @@ import type { IExperimentRepository, ExperimentPage } from '@togglebox/experimen
 import { ExperimentModel, type IExperimentDocument } from './schemas';
 
 /**
+ * Safely parse JSON with fallback for malformed data.
+ */
+function safeParse<T>(raw: string | null | undefined, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * Mongoose implementation of Experiment repository.
  */
 export class MongooseExperimentRepository implements IExperimentRepository {
@@ -466,16 +478,16 @@ export class MongooseExperimentRepository implements IExperimentRepository {
       completedAt: doc.completedAt,
       scheduledStartAt: doc.scheduledStartAt,
       scheduledEndAt: doc.scheduledEndAt,
-      variations: JSON.parse(doc.variations),
+      variations: safeParse(doc.variations, []),
       controlVariation: doc.controlVariation,
-      trafficAllocation: JSON.parse(doc.trafficAllocation),
-      targeting: JSON.parse(doc.targeting),
-      primaryMetric: JSON.parse(doc.primaryMetric),
-      secondaryMetrics: JSON.parse(doc.secondaryMetrics),
+      trafficAllocation: safeParse(doc.trafficAllocation, []),
+      targeting: safeParse(doc.targeting, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
+      primaryMetric: safeParse(doc.primaryMetric, { id: '', name: '', eventName: '', metricType: 'conversion', successDirection: 'increase' }),
+      secondaryMetrics: safeParse(doc.secondaryMetrics, undefined),
       confidenceLevel: doc.confidenceLevel,
       minimumDetectableEffect: doc.minimumDetectableEffect,
       minimumSampleSize: doc.minimumSampleSize,
-      results: doc.results ? JSON.parse(doc.results) : undefined,
+      results: safeParse(doc.results, undefined),
       winner: doc.winner,
       version: doc.version,
       isActive: doc.isActive,

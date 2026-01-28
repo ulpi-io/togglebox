@@ -1,87 +1,297 @@
 import { ToggleBoxClient } from '@togglebox/sdk'
-import type { Config } from '@togglebox/configs'
-import type { Flag } from '@togglebox/flags'
-import type { Experiment } from '@togglebox/experiments'
+import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
+import { evaluateFlag } from '@togglebox/flags'
+import type { Experiment, ExperimentContext, VariantAssignment } from '@togglebox/experiments'
+import { assignVariation } from '@togglebox/experiments'
+import type { ConversionData, EventData, Config } from './types'
 
-interface ConfigWithMetadata {
-  config: Config
-  version: string
-  isStable: boolean
-}
+// ============================================================================
+// Server Options
+// ============================================================================
 
-interface ServerConfig {
-  config: ConfigWithMetadata | null
-  flags: Flag[]
-  experiments: Experiment[]
-}
-
-/**
- * Create a server-side ToggleBoxClient instance.
- * Disables caching and polling for fresh server-side data.
- */
-function createServerClient(
-  platform: string,
-  environment: string,
+export interface ServerOptions {
+  platform: string
+  environment: string
   apiUrl: string
-): ToggleBoxClient {
+  apiKey?: string // Required if authentication is enabled
+}
+
+// ============================================================================
+// Server Result Types (mirror client hook results, minus loading/refresh)
+// ============================================================================
+
+export interface ServerConfigResult {
+  config: Config | null
+  getConfigValue: <T>(key: string, defaultValue: T) => T
+}
+
+export interface ServerFlagsResult {
+  flags: Flag[]
+  /** Synchronously evaluates a flag using the already-fetched flags array (no API call) */
+  isFlagEnabled: (flagKey: string, context?: FlagContext) => boolean
+}
+
+export interface ServerExperimentResult {
+  experiment: Experiment | null
+  variant: VariantAssignment | null
+}
+
+export interface ServerExperimentsResult {
+  experiments: Experiment[]
+  /** Synchronously assigns a variant using the already-fetched experiments array (no API call) */
+  getVariant: (experimentKey: string, context: ExperimentContext) => VariantAssignment | null
+}
+
+export interface ServerAnalyticsResult {
+  trackEvent: (eventName: string, context: ExperimentContext, data?: EventData) => void
+  trackConversion: (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
+  flushStats: () => Promise<void>
+  /** Cleanup client resources. Call this if you don't call flushStats() */
+  close: () => void
+}
+
+// ============================================================================
+// Internal: Client Management
+// ============================================================================
+
+function createServerClient(options: ServerOptions): ToggleBoxClient {
   return new ToggleBoxClient({
-    platform,
-    environment,
-    apiUrl,
+    platform: options.platform,
+    environment: options.environment,
+    apiUrl: options.apiUrl,
+    apiKey: options.apiKey,
     cache: { enabled: false, ttl: 0 },
     pollingInterval: 0,
   })
 }
 
+// ============================================================================
+// Server Functions (same names as client hooks)
+// ============================================================================
+
 /**
- * Fetch config for server-side rendering (getServerSideProps)
+ * Fetch configuration on the server (Tier 1)
  *
- * Uses the SDK client with caching disabled for fresh data on every request.
+ * @example
+ * ```tsx
+ * // Server Component
+ * import { getConfig } from '@togglebox/sdk-nextjs/server'
  *
- * Returns all three tiers:
- * - Tier 1: Remote Configs (with version and stability info)
- * - Tier 2: Feature Flags
- * - Tier 3: Experiments
+ * export default async function Page() {
+ *   const { config, getConfigValue } = await getConfig({
+ *     platform: 'web',
+ *     environment: 'production',
+ *     apiUrl: 'https://api.example.com/api/v1',
+ *     apiKey: 'tb_live_xxxxx', // Required if authentication is enabled
+ *   })
+ *
+ *   const theme = getConfigValue('theme', 'light')
+ *   return <div>Theme: {theme}</div>
+ * }
+ * ```
  */
-export async function getServerSideConfig(
-  platform: string,
-  environment: string,
-  apiUrl: string
-): Promise<ServerConfig> {
-  const client = createServerClient(platform, environment, apiUrl)
+export async function getConfig(options: ServerOptions): Promise<ServerConfigResult> {
+  const client = createServerClient(options)
 
   try {
-    const [configData, flags, experiments] = await Promise.all([
-      client.getConfig(),
-      client.getFlags(),
-      client.getExperiments(),
-    ])
+    const config = await client.getConfig()
 
-    // Wrap config with metadata (version info not available from client.getConfig())
-    const config: ConfigWithMetadata | null = configData
-      ? { config: configData, version: 'stable', isStable: true }
-      : null
-
-    return { config, flags, experiments }
+    return {
+      config,
+      getConfigValue: <T>(key: string, defaultValue: T): T => {
+        if (!config || !(key in config)) return defaultValue
+        return config[key] as T
+      },
+    }
   } catch (error) {
-    console.error('Failed to fetch server-side config:', error)
-    return { config: null, flags: [], experiments: [] }
+    console.error('Failed to fetch server config:', error)
+    return {
+      config: null,
+      getConfigValue: <T>(_key: string, defaultValue: T): T => defaultValue,
+    }
   } finally {
     client.destroy()
   }
 }
 
 /**
- * Fetch config for static generation (getStaticProps)
+ * Fetch feature flags on the server (Tier 2)
  *
- * Uses the SDK client. For ISR, set `revalidate` in your page's getStaticProps.
+ * @example
+ * ```tsx
+ * // Server Component
+ * import { getFlags } from '@togglebox/sdk-nextjs/server'
+ *
+ * export default async function Page() {
+ *   const { flags, isFlagEnabled } = await getFlags({
+ *     platform: 'web',
+ *     environment: 'production',
+ *     apiUrl: 'https://api.example.com/api/v1',
+ *     apiKey: 'tb_live_xxxxx', // Required if authentication is enabled
+ *   })
+ *
+ *   const showNewFeature = await isFlagEnabled('new-feature', { userId: 'user-123' })
+ *   return showNewFeature ? <NewFeature /> : <OldFeature />
+ * }
+ * ```
  */
-export async function getStaticConfig(
-  platform: string,
-  environment: string,
-  apiUrl: string
-): Promise<ServerConfig> {
-  // Same implementation as getServerSideConfig - Next.js handles caching
-  // at the page level via getStaticProps revalidate option
-  return getServerSideConfig(platform, environment, apiUrl)
+export async function getFlags(options: ServerOptions): Promise<ServerFlagsResult> {
+  const client = createServerClient(options)
+
+  try {
+    const flags = await client.getFlags()
+
+    return {
+      flags,
+      // Use local evaluation with already-fetched flags (no N+1 API calls)
+      isFlagEnabled: (flagKey: string, context?: FlagContext): boolean => {
+        const flag = flags.find((f) => f.flagKey === flagKey)
+        if (!flag) return false
+        const result = evaluateFlag(flag, context ?? { userId: '' })
+        return result.servedValue === 'A'
+      },
+    }
+  } catch (error) {
+    console.error('Failed to fetch server flags:', error)
+    return {
+      flags: [],
+      isFlagEnabled: () => false,
+    }
+  } finally {
+    client.destroy()
+  }
 }
+
+/**
+ * Fetch a single experiment and assign variant on the server (Tier 3)
+ *
+ * @example
+ * ```tsx
+ * // Server Component
+ * import { getExperiment } from '@togglebox/sdk-nextjs/server'
+ *
+ * export default async function Page() {
+ *   const { experiment, variant } = await getExperiment('cta-test', { userId: 'user-123' }, {
+ *     platform: 'web',
+ *     environment: 'production',
+ *     apiUrl: 'https://api.example.com/api/v1',
+ *     apiKey: 'tb_live_xxxxx', // Required if authentication is enabled
+ *   })
+ *
+ *   return variant === 'new-cta' ? <NewCTA /> : <OldCTA />
+ * }
+ * ```
+ */
+export async function getExperiment(
+  experimentKey: string,
+  context: ExperimentContext,
+  options: ServerOptions
+): Promise<ServerExperimentResult> {
+  const client = createServerClient(options)
+
+  try {
+    const experiments = await client.getExperiments()
+    const experiment = experiments.find((e) => e.experimentKey === experimentKey) || null
+    const variant = await client.getVariant(experimentKey, context)
+
+    return { experiment, variant }
+  } catch (error) {
+    console.error('Failed to fetch server experiment:', error)
+    return { experiment: null, variant: null }
+  } finally {
+    client.destroy()
+  }
+}
+
+/**
+ * Fetch all experiments on the server (Tier 3)
+ *
+ * @example
+ * ```tsx
+ * // Server Component
+ * import { getExperiments } from '@togglebox/sdk-nextjs/server'
+ *
+ * export default async function Page() {
+ *   const { experiments, getVariant } = await getExperiments({
+ *     platform: 'web',
+ *     environment: 'production',
+ *     apiUrl: 'https://api.example.com/api/v1',
+ *     apiKey: 'tb_live_xxxxx', // Required if authentication is enabled
+ *   })
+ *
+ *   const variant = await getVariant('cta-test', { userId: 'user-123' })
+ *   return <div>Variant: {variant}</div>
+ * }
+ * ```
+ */
+export async function getExperiments(options: ServerOptions): Promise<ServerExperimentsResult> {
+  const client = createServerClient(options)
+
+  try {
+    const experiments = await client.getExperiments()
+
+    return {
+      experiments,
+      // Use local assignment with already-fetched experiments (no N+1 API calls)
+      getVariant: (experimentKey: string, context: ExperimentContext): VariantAssignment | null => {
+        const experiment = experiments.find((e) => e.experimentKey === experimentKey)
+        if (!experiment) return null
+        return assignVariation(experiment, context)
+      },
+    }
+  } catch (error) {
+    console.error('Failed to fetch server experiments:', error)
+    return {
+      experiments: [],
+      getVariant: () => null,
+    }
+  } finally {
+    client.destroy()
+  }
+}
+
+/**
+ * Get analytics functions for server-side tracking
+ *
+ * @example
+ * ```tsx
+ * // Server Action
+ * import { getAnalytics } from '@togglebox/sdk-nextjs/server'
+ *
+ * export async function trackPurchase(userId: string, amount: number) {
+ *   const { trackConversion, flushStats } = await getAnalytics({
+ *     platform: 'web',
+ *     environment: 'production',
+ *     apiUrl: 'https://api.example.com/api/v1',
+ *     apiKey: 'tb_live_xxxxx', // Required if authentication is enabled
+ *   })
+ *
+ *   await trackConversion('checkout-test', { userId }, { metricName: 'purchase', value: amount })
+ *   await flushStats()
+ * }
+ * ```
+ */
+export async function getAnalytics(options: ServerOptions): Promise<ServerAnalyticsResult> {
+  const client = createServerClient(options)
+
+  return {
+    trackEvent: (eventName: string, context: ExperimentContext, data?: EventData) => {
+      client.trackEvent(eventName, context, data)
+    },
+    trackConversion: async (experimentKey: string, context: ExperimentContext, data: ConversionData) => {
+      await client.trackConversion(experimentKey, context, data)
+    },
+    flushStats: async () => {
+      try {
+        await client.flushStats()
+      } finally {
+        client.destroy()
+      }
+    },
+    // Cleanup client if flushStats() is never called (prevents memory leak)
+    close: () => {
+      client.destroy()
+    },
+  }
+}
+

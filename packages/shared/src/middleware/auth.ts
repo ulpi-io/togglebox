@@ -604,8 +604,33 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
 
   // Try JWT authentication first
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    authenticateJWT(req as AuthenticatedRequest, res, next);
-    return;
+    const token = authHeader.slice(7); // Remove 'Bearer ' prefix
+
+    try {
+      const decoded = authService.verifyJWT(token);
+      req.user = decoded;
+      logger.logAuthentication(decoded.id, true, 'JWT');
+      next();
+      return;
+    } catch (error) {
+      // JWT failed - if API key is also provided, fall through to try it
+      // This handles cases where a stale JWT is sent alongside a valid API key
+      if (apiKeyHeader && typeof apiKeyHeader === 'string') {
+        logger.debug('JWT verification failed, falling back to API key', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to API key auth below
+      } else {
+        // No API key available - return JWT error
+        logger.warn('JWT authentication failed', { error: error instanceof Error ? error.message : String(error) });
+        res.status(401).json({
+          success: false,
+          error: 'Invalid or expired JWT token',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+    }
   }
 
   // Try API key authentication

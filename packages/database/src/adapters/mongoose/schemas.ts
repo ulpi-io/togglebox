@@ -89,57 +89,67 @@ EnvironmentSchema.index({ platform: 1, environment: 1 }, { unique: true });
 export const EnvironmentModel = mongoose.model<IEnvironmentDocument>('Environment', EnvironmentSchema);
 
 /**
- * Config version document interface for Mongoose.
+ * Config parameter document interface for Mongoose.
+ *
+ * @remarks
+ * Firebase-style individual versioned config parameters.
+ * Each parameter has its own version history.
  */
-export interface IConfigVersionDocument extends Document {
+export interface IConfigParameterDocument extends Document {
   platform: string;
   environment: string;
-  versionLabel: string;  // Primary identifier for get/delete operations
-  versionTimestamp: string;
-  platformId: mongoose.Types.ObjectId;
-  isStable: boolean;
-  config: string; // JSON stored as string
+  parameterKey: string;
+  version: string; // "1", "2", "3" - auto-incremented on edit
+  valueType: 'string' | 'number' | 'boolean' | 'json';
+  defaultValue: string; // All values stored as strings, parsed by valueType
+  description?: string;
+  parameterGroup?: string;
+  isActive: boolean; // Only one version active per parameterKey
   createdBy: string;
   createdAt: string;
 }
 
 /**
- * Config version schema with multiple indexes for query optimization.
+ * Config parameter schema with version history support.
  *
  * @remarks
  * **Indexes:**
- * - (platform + environment + versionLabel): compound unique index - PRIMARY KEY
- * - (platform + environment + versionTimestamp): compound unique index - for ordering
- * - (platform + environment + isStable): for finding stable versions
- * - platformId: indexed for foreign key lookups
+ * - (platform + environment + parameterKey + version): compound unique index - PRIMARY KEY
+ * - (platform + environment + isActive): for getConfigs/listActive queries
+ * - (platform + environment + parameterKey): for listVersions queries
+ * - (platform + environment + parameterGroup): for listByGroup queries
  *
- * **Version Identification:**
- * versionLabel is the primary identifier for get/delete/update operations,
- * ensuring consistency across all database adapters (DynamoDB, Prisma, D1, Mongoose).
+ * **Versioning:**
+ * Each edit creates a new version. Only one version is active per parameterKey.
+ * Use isActive flag to track which version is current.
  */
-const ConfigVersionSchema = new Schema<IConfigVersionDocument>({
+const ConfigParameterSchema = new Schema<IConfigParameterDocument>({
   platform: { type: String, required: true },
   environment: { type: String, required: true },
-  versionLabel: { type: String, required: true },  // Primary identifier
-  versionTimestamp: { type: String, required: true },
-  platformId: { type: Schema.Types.ObjectId, ref: 'Platform', required: true, index: true },
-  isStable: { type: Boolean, required: true, default: false },
-  config: { type: String, required: true },
+  parameterKey: { type: String, required: true },
+  version: { type: String, required: true },
+  valueType: { type: String, required: true, enum: ['string', 'number', 'boolean', 'json'] },
+  defaultValue: { type: String, required: true },
+  description: { type: String, required: false },
+  parameterGroup: { type: String, required: false },
+  isActive: { type: Boolean, required: true, default: true },
   createdBy: { type: String, required: true },
   createdAt: { type: String, required: true },
 });
 
-// Compound unique index for platform + environment + versionLabel (PRIMARY KEY)
-ConfigVersionSchema.index({ platform: 1, environment: 1, versionLabel: 1 }, { unique: true });
-// Compound unique index for platform + environment + versionTimestamp (for ordering)
-ConfigVersionSchema.index({ platform: 1, environment: 1, versionTimestamp: 1 }, { unique: true });
-// Index for finding stable versions
-ConfigVersionSchema.index({ platform: 1, environment: 1, isStable: 1 });
+// Compound unique index for platform + environment + parameterKey + version (PRIMARY KEY)
+ConfigParameterSchema.index({ platform: 1, environment: 1, parameterKey: 1, version: 1 }, { unique: true });
+// Index for getConfigs/listActive queries (active parameters only)
+ConfigParameterSchema.index({ platform: 1, environment: 1, isActive: 1 });
+// Index for listVersions queries
+ConfigParameterSchema.index({ platform: 1, environment: 1, parameterKey: 1 });
+// Index for listByGroup queries
+ConfigParameterSchema.index({ platform: 1, environment: 1, parameterGroup: 1 });
 
 /**
- * Config version Mongoose model.
+ * Config parameter Mongoose model.
  */
-export const ConfigVersionModel = mongoose.model<IConfigVersionDocument>('ConfigVersion', ConfigVersionSchema);
+export const ConfigParameterModel = mongoose.model<IConfigParameterDocument>('ConfigParameter', ConfigParameterSchema);
 
 /**
  * Flag document interface for Mongoose.

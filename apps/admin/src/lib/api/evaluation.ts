@@ -1,5 +1,5 @@
 import { browserApiClient } from './browser-client';
-import type { FlagEvaluationResult, VariantAssignment, ConfigVersion, Flag, Experiment } from './types';
+import type { FlagEvaluationResult, VariantAssignment, ConfigParameter, Flag, Experiment } from './types';
 
 /**
  * Evaluation context for testing flags and experiments.
@@ -111,30 +111,33 @@ export async function evaluateExperimentWithTimingApi(
 // ============================================================================
 
 /**
- * Fetch the latest stable config for an environment with timing.
- * Three-Tier Architecture - Tier 1: Remote Configs (static JSON, no targeting)
+ * Fetch config key-value pairs for an environment with timing.
+ * Three-Tier Architecture - Tier 1: Remote Configs (Firebase-style individual parameters)
+ *
+ * Returns the SDK-style key-value object (same as what clients receive).
  */
 export async function fetchConfigWithTimingApi(
   platform: string,
   environment: string
-): Promise<TimedResult<ConfigVersion>> {
+): Promise<TimedResult<Record<string, unknown>>> {
   return withTiming(() =>
-    browserApiClient<ConfigVersion>(
-      `/api/v1/platforms/${platform}/environments/${environment}/versions/latest/stable`
+    browserApiClient<Record<string, unknown>>(
+      `/api/v1/platforms/${platform}/environments/${environment}/configs`
     )
   );
 }
 
 /**
- * Fetch all configs (all versions) for an environment with timing.
+ * Fetch all config parameters with full metadata for an environment with timing.
+ * Returns ConfigParameter[] with version history, types, and descriptions.
  */
-export async function fetchAllConfigsWithTimingApi(
+export async function fetchAllConfigParametersWithTimingApi(
   platform: string,
   environment: string
-): Promise<TimedResult<ConfigVersion[]>> {
+): Promise<TimedResult<ConfigParameter[]>> {
   return withTiming(() =>
-    browserApiClient<ConfigVersion[]>(
-      `/api/v1/platforms/${platform}/environments/${environment}/versions`
+    browserApiClient<ConfigParameter[]>(
+      `/api/v1/internal/platforms/${platform}/environments/${environment}/configs/list`
     )
   );
 }
@@ -171,7 +174,7 @@ export async function fetchAllExperimentsWithTimingApi(
  * Combined result for fetching everything at once.
  */
 export interface AllDataResult {
-  config: ConfigVersion | null;
+  config: Record<string, unknown> | null;
   flags: Flag[];
   experiments: Experiment[];
 }
@@ -186,8 +189,8 @@ export async function fetchAllDataWithTimingApi(
 ): Promise<TimedResult<AllDataResult>> {
   return withTiming(async () => {
     const [configResult, flagsResult, experimentsResult] = await Promise.all([
-      browserApiClient<ConfigVersion>(
-        `/api/v1/platforms/${platform}/environments/${environment}/versions/latest/stable`
+      browserApiClient<Record<string, unknown>>(
+        `/api/v1/platforms/${platform}/environments/${environment}/configs`
       ).catch(() => null),
       browserApiClient<Flag[]>(
         `/api/v1/platforms/${platform}/environments/${environment}/flags`
