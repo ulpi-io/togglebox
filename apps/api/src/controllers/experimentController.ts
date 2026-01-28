@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ThreeTierRepositories } from '@togglebox/database';
-import { logger, getTokenPaginationParams, withDatabaseContext, NotFoundError, ValidationError, BadRequestError } from '@togglebox/shared';
+import { logger, getTokenPaginationParams, withDatabaseContext, NotFoundError, ValidationError, BadRequestError, AuthenticatedRequest } from '@togglebox/shared';
 import {
   CreateExperimentSchema,
   UpdateExperimentSchema,
@@ -97,7 +97,7 @@ export class ExperimentController {
   createExperiment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { platform, environment } = req.params as { platform: string; environment: string };
-      const user = (req as unknown as { user?: { email?: string } }).user;
+      const user = (req as AuthenticatedRequest).user;
       const createdBy = user?.email || 'system@togglebox.dev';
 
       const bodyData = CreateExperimentSchema.parse({
@@ -148,7 +148,7 @@ export class ExperimentController {
         environment: string;
         experimentKey: string;
       };
-      const user = (req as unknown as { user?: { email?: string } }).user;
+      const user = (req as AuthenticatedRequest).user;
       const createdBy = user?.email || 'system@togglebox.dev';
 
       const bodyData = UpdateExperimentSchema.parse({

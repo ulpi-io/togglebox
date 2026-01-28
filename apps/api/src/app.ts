@@ -1,11 +1,20 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import dotenv from 'dotenv';
-import { publicRouter, internalRouter, authRouter } from './routes';
-import { logger, errorHandler, notFoundHandler, securityHeaders, requestId, sanitizeInput, defaultDatabaseContext, config } from '@togglebox/shared';
-import { cacheHeaders, noCacheHeaders } from '@togglebox/cache';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import dotenv from "dotenv";
+import { publicRouter, internalRouter, authRouter } from "./routes";
+import {
+  logger,
+  errorHandler,
+  notFoundHandler,
+  securityHeaders,
+  requestId,
+  sanitizeInput,
+  defaultDatabaseContext,
+  config,
+} from "@togglebox/shared";
+import { cacheHeaders, noCacheHeaders } from "@togglebox/cache";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -29,28 +38,32 @@ const app: express.Application = express();
  * - Application must handle compression and security headers
  */
 const isServerless = Boolean(
-  process.env['AWS_LAMBDA_FUNCTION_NAME'] ||      // AWS Lambda
-  process.env['NETLIFY'] ||                        // Netlify Functions
-  process.env['CF_PAGES'] ||                       // Cloudflare Pages/Workers
-  process.env['VERCEL']                            // Vercel Functions
+  process.env["AWS_LAMBDA_FUNCTION_NAME"] || // AWS Lambda
+    process.env["NETLIFY"] || // Netlify Functions
+    process.env["CF_PAGES"] || // Cloudflare Pages/Workers
+    process.env["VERCEL"], // Vercel Functions
 );
 
 // Security middleware (skip on serverless - handled by edge/gateway)
 if (!isServerless) {
-  app.use(helmet({
-    contentSecurityPolicy: config.appConfig.SECURITY.csp,
-    hsts: config.appConfig.SECURITY.hsts,
-  }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: config.appConfig.SECURITY.csp,
+      hsts: config.appConfig.SECURITY.hsts,
+    }),
+  );
 }
 
 app.use(securityHeaders);
-app.use(cors({
-  origin: config.env.CORS_ORIGIN,
-  methods: [...config.appConfig.SECURITY.cors.methods],
-  allowedHeaders: [...config.appConfig.SECURITY.cors.allowedHeaders],
-  maxAge: config.appConfig.SECURITY.cors.maxAge,
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: config.env.CORS_ORIGIN,
+    methods: [...config.appConfig.SECURITY.cors.methods],
+    allowedHeaders: [...config.appConfig.SECURITY.cors.allowedHeaders],
+    maxAge: config.appConfig.SECURITY.cors.maxAge,
+    credentials: true,
+  }),
+);
 
 // Request middleware
 app.use(requestId);
@@ -84,10 +97,12 @@ if (!isServerless) {
   app.use(compression());
 }
 app.use(express.json({ limit: config.appConfig.REQUEST.jsonLimit }));
-app.use(express.urlencoded({
-  extended: config.appConfig.REQUEST.urlencodedExtended,
-  limit: config.appConfig.REQUEST.urlencodedLimit
-}));
+app.use(
+  express.urlencoded({
+    extended: config.appConfig.REQUEST.urlencodedExtended,
+    limit: config.appConfig.REQUEST.urlencodedLimit,
+  }),
+);
 
 // Logging middleware
 app.use(logger.getHttpLogger() as express.RequestHandler);
@@ -98,7 +113,7 @@ app.use(defaultDatabaseContext());
 // Health check endpoint (before routes)
 // Simple liveness check - doesn't verify dependencies
 // Note: environment and version removed to prevent information disclosure
-app.get('/health', (_req, res) => {
+app.get("/health", (_req, res) => {
   res.json({
     success: true,
     message: `${config.appConfig.APP_NAME} is running`,
@@ -108,10 +123,10 @@ app.get('/health', (_req, res) => {
 });
 
 // Readiness check endpoint - verifies database connectivity
-app.get('/ready', async (_req, res) => {
+app.get("/ready", async (_req, res) => {
   try {
     // Import Container to access database
-    const { Container } = await import('./container');
+    const { Container } = await import("./container");
     const db = Container.getDatabase();
 
     // Perform simple database query to verify connectivity
@@ -120,45 +135,54 @@ app.get('/ready', async (_req, res) => {
 
     res.json({
       success: true,
-      message: 'Service is ready',
+      message: "Service is ready",
       timestamp: new Date().toISOString(),
       checks: {
-        database: 'connected',
+        database: "connected",
       },
     });
   } catch (error) {
-    logger.error('Readiness check failed', error);
+    logger.error("Readiness check failed", error);
     res.status(503).json({
       success: false,
-      message: 'Service not ready',
+      message: "Service not ready",
       timestamp: new Date().toISOString(),
       checks: {
-        database: 'disconnected',
+        database: "disconnected",
       },
-      error: error instanceof Error ? error.message : 'Database connection failed',
+      error:
+        error instanceof Error ? error.message : "Database connection failed",
     });
   }
 });
 
 // Cache headers middleware
-// Apply cache headers to public GET endpoints
-app.use('/api/v1/platforms', cacheHeaders({
-  ttl: config.appConfig.CACHE.ttl,
-  maxAge: config.appConfig.CACHE.maxAge,
-}));
+// Disable caching on user-specific endpoints (evaluate, assign) BEFORE general cache headers
+// These endpoints return personalized responses based on userId/context
+app.use("/api/v1/platforms", (req, res, next) => {
+  // User-specific endpoints should not be cached
+  if (req.path.includes("/evaluate") || req.path.includes("/assign")) {
+    return noCacheHeaders()(req, res, next);
+  }
+  // Apply cache headers to public read-only endpoints
+  return cacheHeaders({
+    ttl: config.appConfig.CACHE.ttl,
+    maxAge: config.appConfig.CACHE.maxAge,
+  })(req, res, next);
+});
 
 // Disable caching on internal endpoints (write operations)
-app.use('/api/v1/internal', noCacheHeaders());
+app.use("/api/v1/internal", noCacheHeaders());
 
 // API routes
 // NOTE: authRouter must come FIRST because publicRouter applies conditionalAuth()
 // middleware which would block unauthenticated requests to /auth/login, /auth/register
-app.use('/api/v1', authRouter);             // Auth endpoints (login, register - no auth required)
-app.use('/api/v1', publicRouter);           // Public read-only endpoints (conditionalAuth)
-app.use('/api/v1/internal', internalRouter); // Internal write endpoints (requireAuth)
+app.use("/api/v1", authRouter); // Auth endpoints (login, register - no auth required)
+app.use("/api/v1", publicRouter); // Public read-only endpoints (conditionalAuth)
+app.use("/api/v1/internal", internalRouter); // Internal write endpoints (requireAuth)
 
 // Root endpoint
-app.get('/', (_req, res) => {
+app.get("/", (_req, res) => {
   res.json({
     success: true,
     message: config.appConfig.APP_NAME,
@@ -167,8 +191,8 @@ app.get('/', (_req, res) => {
     timestamp: new Date().toISOString(),
     endpoints: {
       public: {
-        health: '/health',
-        ready: '/ready',
+        health: "/health",
+        ready: "/ready",
         platforms: `${config.appConfig.API.basePath}/platforms`,
         environments: `${config.appConfig.API.basePath}/platforms/:platform/environments`,
         configs: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/configs`,
@@ -194,25 +218,25 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
+process.on("SIGTERM", () => {
+  logger.info("SIGTERM received, shutting down gracefully");
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
+process.on("SIGINT", () => {
+  logger.info("SIGINT received, shutting down gracefully");
   process.exit(0);
 });
 
 // Uncaught exception handler
-process.on('uncaughtException', (error) => {
-  logger.fatal('Uncaught Exception', error);
+process.on("uncaughtException", (error) => {
+  logger.fatal("Uncaught Exception", error);
   process.exit(1);
 });
 
 // Unhandled rejection handler
-process.on('unhandledRejection', (reason, promise) => {
-  logger.fatal('Unhandled Rejection', { reason, promise });
+process.on("unhandledRejection", (reason, promise) => {
+  logger.fatal("Unhandled Rejection", { reason, promise });
   process.exit(1);
 });
 

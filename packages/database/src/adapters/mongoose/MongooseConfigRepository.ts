@@ -11,14 +11,14 @@ import {
   CreateConfigParameter,
   UpdateConfigParameter,
   parseConfigValue,
-} from '@togglebox/configs';
+} from "@togglebox/configs";
 import {
   IConfigRepository,
   OffsetPaginationParams,
   TokenPaginationParams,
   PaginatedResult,
-} from '../../interfaces';
-import { ConfigParameterModel, IConfigParameterDocument } from './schemas';
+} from "../../interfaces";
+import { ConfigParameterModel, IConfigParameterDocument } from "./schemas";
 
 /**
  * Mongoose implementation of config parameter repository.
@@ -37,7 +37,7 @@ export class MongooseConfigRepository implements IConfigRepository {
    */
   async getConfigs(
     platform: string,
-    environment: string
+    environment: string,
   ): Promise<Record<string, unknown>> {
     const params = await ConfigParameterModel.find({
       platform,
@@ -49,7 +49,7 @@ export class MongooseConfigRepository implements IConfigRepository {
     for (const param of params) {
       configs[param.parameterKey] = parseConfigValue(
         param.defaultValue,
-        param.valueType
+        param.valueType,
       );
     }
 
@@ -65,7 +65,7 @@ export class MongooseConfigRepository implements IConfigRepository {
    */
   async create(param: CreateConfigParameter): Promise<ConfigParameter> {
     const timestamp = new Date().toISOString();
-    const version = '1';
+    const version = "1";
 
     try {
       const doc = await ConfigParameterModel.create({
@@ -86,7 +86,7 @@ export class MongooseConfigRepository implements IConfigRepository {
     } catch (error: unknown) {
       if ((error as { code?: number }).code === 11000) {
         throw new Error(
-          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`
+          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`,
         );
       }
       throw error;
@@ -105,7 +105,7 @@ export class MongooseConfigRepository implements IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    updates: UpdateConfigParameter
+    updates: UpdateConfigParameter,
   ): Promise<ConfigParameter> {
     // 1. Get current active version
     const current = await ConfigParameterModel.findOne({
@@ -117,7 +117,7 @@ export class MongooseConfigRepository implements IConfigRepository {
 
     if (!current) {
       throw new Error(
-        `Parameter ${parameterKey} not found in ${platform}/${environment}`
+        `Parameter ${parameterKey} not found in ${platform}/${environment}`,
       );
     }
 
@@ -139,7 +139,7 @@ export class MongooseConfigRepository implements IConfigRepository {
             parameterKey,
             version: current.version,
           },
-          { isActive: false }
+          { isActive: false },
         ).session(session);
 
         // Create new version
@@ -165,13 +165,13 @@ export class MongooseConfigRepository implements IConfigRepository {
               createdAt: timestamp,
             },
           ],
-          { session }
+          { session },
         );
         created = docs[0];
       });
 
       if (!created) {
-        throw new Error('Failed to create new config parameter version');
+        throw new Error("Failed to create new config parameter version");
       }
       return this.mapToConfigParameter(created);
     } catch (error: unknown) {
@@ -179,7 +179,8 @@ export class MongooseConfigRepository implements IConfigRepository {
       const errorCode = (error as { code?: number }).code;
       if (errorCode === 263 || errorCode === 20) {
         // 263: CannotCreateSession (no replica set), 20: IllegalOperation
-        // Fall back to non-transactional update
+        // Fall back to non-transactional update with recovery
+        // First deactivate old version
         await ConfigParameterModel.updateOne(
           {
             platform,
@@ -187,30 +188,45 @@ export class MongooseConfigRepository implements IConfigRepository {
             parameterKey,
             version: current.version,
           },
-          { isActive: false }
+          { isActive: false },
         ).exec();
 
-        const created = await ConfigParameterModel.create({
-          platform,
-          environment,
-          parameterKey,
-          version: nextVersion,
-          valueType: updates.valueType ?? current.valueType,
-          defaultValue: updates.defaultValue ?? current.defaultValue,
-          description:
-            updates.description !== undefined
-              ? (updates.description ?? null)
-              : current.description,
-          parameterGroup:
-            updates.parameterGroup !== undefined
-              ? (updates.parameterGroup ?? null)
-              : current.parameterGroup,
-          isActive: true,
-          createdBy: updates.createdBy,
-          createdAt: timestamp,
-        });
+        try {
+          // Create new version
+          const created = await ConfigParameterModel.create({
+            platform,
+            environment,
+            parameterKey,
+            version: nextVersion,
+            valueType: updates.valueType ?? current.valueType,
+            defaultValue: updates.defaultValue ?? current.defaultValue,
+            description:
+              updates.description !== undefined
+                ? (updates.description ?? null)
+                : current.description,
+            parameterGroup:
+              updates.parameterGroup !== undefined
+                ? (updates.parameterGroup ?? null)
+                : current.parameterGroup,
+            isActive: true,
+            createdBy: updates.createdBy,
+            createdAt: timestamp,
+          });
 
-        return this.mapToConfigParameter(created);
+          return this.mapToConfigParameter(created);
+        } catch (createError) {
+          // Create failed - reactivate the old version to ensure we have an active one
+          await ConfigParameterModel.updateOne(
+            {
+              platform,
+              environment,
+              parameterKey,
+              version: current.version,
+            },
+            { isActive: true },
+          ).exec();
+          throw createError;
+        }
       }
       throw error;
     } finally {
@@ -224,7 +240,7 @@ export class MongooseConfigRepository implements IConfigRepository {
   async delete(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<boolean> {
     const result = await ConfigParameterModel.deleteMany({
       platform,
@@ -241,7 +257,7 @@ export class MongooseConfigRepository implements IConfigRepository {
   async getActive(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<ConfigParameter | null> {
     const param = await ConfigParameterModel.findOne({
       platform,
@@ -259,7 +275,7 @@ export class MongooseConfigRepository implements IConfigRepository {
   async listActive(
     platform: string,
     environment: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<PaginatedResult<ConfigParameter>> {
     // Get total count
     const total = await ConfigParameterModel.countDocuments({
@@ -279,7 +295,9 @@ export class MongooseConfigRepository implements IConfigRepository {
     }).sort({ parameterKey: 1 });
 
     if (offsetPagination) {
-      query = query.skip(offsetPagination.offset ?? 0).limit(offsetPagination.limit);
+      query = query
+        .skip(offsetPagination.offset ?? 0)
+        .limit(offsetPagination.limit);
     }
 
     const params = await query.exec();
@@ -296,7 +314,7 @@ export class MongooseConfigRepository implements IConfigRepository {
   async listVersions(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<ConfigParameter[]> {
     const params = await ConfigParameterModel.find({
       platform,
@@ -316,7 +334,7 @@ export class MongooseConfigRepository implements IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    version: string
+    version: string,
   ): Promise<ConfigParameter | null> {
     // 1. Check target version exists
     const targetVersion = await ConfigParameterModel.findOne({
@@ -352,7 +370,7 @@ export class MongooseConfigRepository implements IConfigRepository {
           parameterKey,
           version: currentActive.version,
         },
-        { isActive: false }
+        { isActive: false },
       ).exec();
     }
 
@@ -365,7 +383,7 @@ export class MongooseConfigRepository implements IConfigRepository {
         version,
       },
       { isActive: true },
-      { new: true }
+      { new: true },
     ).exec();
 
     return updated ? this.mapToConfigParameter(updated) : null;

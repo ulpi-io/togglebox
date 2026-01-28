@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { DatabaseRepositories } from '@togglebox/database';
-import { logger, withDatabaseContext, getSmartPaginationParams, createPaginationMeta } from '@togglebox/shared';
+import { logger, withDatabaseContext, getSmartPaginationParams, createPaginationMeta, AuthenticatedRequest } from '@togglebox/shared';
 import { CacheProvider } from '@togglebox/cache';
 import {
   CONFIG_LIMITS,
@@ -166,7 +166,7 @@ export class ConfigController {
       const { platform, environment } = req.params as { platform: string; environment: string };
 
       // Get createdBy from authenticated user
-      const user = (req as unknown as { user?: { email?: string } }).user;
+      const user = (req as AuthenticatedRequest).user;
       const createdBy = user?.email || 'system@togglebox.dev';
 
       // Use shared schema that validates defaultValue against valueType
@@ -282,7 +282,7 @@ export class ConfigController {
       };
 
       // Get createdBy from authenticated user
-      const user = (req as unknown as { user?: { email?: string } }).user;
+      const user = (req as AuthenticatedRequest).user;
       const createdBy = user?.email || 'system@togglebox.dev';
 
       // Use shared schema that validates defaultValue against valueType
@@ -657,7 +657,7 @@ export class ConfigController {
   createPlatform = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const validatedData = CreatePlatformSchema.parse(req.body);
-      const user = (req as unknown as { user?: { id?: string } }).user;
+      const user = (req as AuthenticatedRequest).user;
       const createdBy = user?.id;
 
       await withDatabaseContext(req, async () => {
@@ -727,7 +727,7 @@ export class ConfigController {
   deletePlatform = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { platform } = req.params as { platform: string };
-      const user = (req as unknown as { user?: { role?: string } }).user;
+      const user = (req as AuthenticatedRequest).user;
 
       if (user?.role !== 'admin') {
         res.status(403).json({
@@ -906,7 +906,7 @@ export class ConfigController {
       }
 
       const { environment, description } = parseResult.data;
-      const user = (req as unknown as { user?: { id?: string } }).user;
+      const user = (req as AuthenticatedRequest).user;
       const createdBy = user?.id;
 
       await withDatabaseContext(req, async () => {
@@ -976,7 +976,7 @@ export class ConfigController {
   deleteEnvironment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { platform, environment } = req.params as { platform: string; environment: string };
-      const user = (req as unknown as { user?: { role?: string } }).user;
+      const user = (req as AuthenticatedRequest).user;
 
       if (user?.role !== 'admin') {
         res.status(403).json({

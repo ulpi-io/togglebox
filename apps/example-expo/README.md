@@ -8,11 +8,11 @@ A comprehensive "kitchen sink" demo showing how to integrate the ToggleBox SDK i
 
 This example app demonstrates all three tiers of ToggleBox:
 
-| Tier | Feature | Use Case |
-|------|---------|----------|
-| **Tier 1** | Remote Configs | Dynamic settings, themes, API URLs |
-| **Tier 2** | Feature Flags | Ship code when ready, release when you want |
-| **Tier 3** | Experiments | A/B tests with variant assignment |
+| Tier       | Feature        | Use Case                                    |
+| ---------- | -------------- | ------------------------------------------- |
+| **Tier 1** | Remote Configs | Dynamic settings, themes, API URLs          |
+| **Tier 2** | Feature Flags  | Ship code when ready, release when you want |
+| **Tier 3** | Experiments    | A/B tests with variant assignment           |
 
 Plus advanced features like **offline persistence**, **polling**, and **error handling**.
 
@@ -55,14 +55,14 @@ Scan the QR code with Expo Go or press `i` for iOS simulator / `a` for Android e
 
 The seed script creates demo data for this app:
 
-| Type | Key | Description |
-|------|-----|-------------|
-| **Platform** | `mobile` | Platform identifier |
-| **Environment** | `staging` | Environment for this app |
-| **Flag** | `dark-mode` | Toggle dark mode UI |
-| **Flag** | `biometric-auth` | Enable biometric authentication |
-| **Experiment** | `cta-test` | A/B test with `control`, `variant_a`, `variant_b` |
-| **Config** | `theme`, `apiTimeout` | Remote configuration values |
+| Type            | Key                   | Description                                       |
+| --------------- | --------------------- | ------------------------------------------------- |
+| **Platform**    | `mobile`              | Platform identifier                               |
+| **Environment** | `staging`             | Environment for this app                          |
+| **Flag**        | `dark-mode`           | Toggle dark mode UI                               |
+| **Flag**        | `biometric-auth`      | Enable biometric authentication                   |
+| **Experiment**  | `cta-test`            | A/B test with `control`, `variant_a`, `variant_b` |
+| **Config**      | `theme`, `apiTimeout` | Remote configuration values                       |
 
 **Demo Admin:** `admin@togglebox.com` / `Parola123!`
 
@@ -73,7 +73,7 @@ Create a `.env` file in `apps/example-expo/`:
 ```bash
 EXPO_PUBLIC_API_URL=http://localhost:3000/api/v1
 EXPO_PUBLIC_PLATFORM=mobile
-EXPO_PUBLIC_ENVIRONMENT=development
+EXPO_PUBLIC_ENVIRONMENT=staging  # Matches seed demo data
 EXPO_PUBLIC_API_KEY=your-api-key  # Required if API has auth enabled
 ```
 
@@ -116,7 +116,7 @@ app/
 Wrap your app with `ToggleBoxProvider`:
 
 ```tsx
-import { ToggleBoxProvider } from '@togglebox/sdk-expo'
+import { ToggleBoxProvider } from "@togglebox/sdk-expo";
 
 export default function RootLayout() {
   return (
@@ -124,14 +124,14 @@ export default function RootLayout() {
       platform="mobile"
       environment="production"
       apiUrl="https://your-api.example.com/api/v1"
-      apiKey={process.env.EXPO_PUBLIC_API_KEY}  // Required if API has auth enabled
-      pollingInterval={30000}           // Auto-refresh every 30s
-      persistToStorage={true}           // Enable MMKV offline storage
-      storageTTL={24 * 60 * 60 * 1000}  // 24 hours cache
+      apiKey={process.env.EXPO_PUBLIC_API_KEY} // Required if API has auth enabled
+      pollingInterval={30000} // Auto-refresh every 30s
+      persistToStorage={true} // Enable MMKV offline storage
+      storageTTL={24 * 60 * 60 * 1000} // 24 hours cache
     >
       <Stack />
     </ToggleBoxProvider>
-  )
+  );
 }
 ```
 
@@ -142,20 +142,20 @@ export default function RootLayout() {
 Fetch and display remote configuration:
 
 ```tsx
-import { View, Text, ActivityIndicator } from 'react-native'
-import { useConfig } from '@togglebox/sdk-expo'
+import { View, Text, ActivityIndicator } from "react-native";
+import { useConfig } from "@togglebox/sdk-expo";
 
 export default function UseConfigScreen() {
-  const { config, isLoading } = useConfig()
+  const { config, isLoading } = useConfig();
 
-  if (isLoading) return <ActivityIndicator />
+  if (isLoading) return <ActivityIndicator />;
 
   return (
     <View>
       <Text>Version: {config?.version}</Text>
       <Text>Theme: {config?.config?.theme}</Text>
     </View>
-  )
+  );
 }
 ```
 
@@ -166,20 +166,21 @@ export default function UseConfigScreen() {
 List flags and evaluate with user context:
 
 ```tsx
-import { useState, useEffect } from 'react'
-import { View, Text, FlatList, ActivityIndicator } from 'react-native'
-import { useFlags } from '@togglebox/sdk-expo'
+import { useState, useEffect } from "react";
+import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import { useFlags } from "@togglebox/sdk-expo";
 
 export default function UseFlagScreen() {
-  const { flags, isFlagEnabled, isLoading } = useFlags()
-  const [newDashboardEnabled, setNewDashboardEnabled] = useState(false)
+  const { flags, isFlagEnabled, isLoading } = useFlags();
+  const [newDashboardEnabled, setNewDashboardEnabled] = useState(false);
 
   useEffect(() => {
-    isFlagEnabled('new-dashboard', { userId: 'user-123' })
-      .then(setNewDashboardEnabled)
-  }, [isFlagEnabled])
+    isFlagEnabled("new-dashboard", { userId: "user-123" }).then(
+      setNewDashboardEnabled,
+    );
+  }, [isFlagEnabled]);
 
-  if (isLoading) return <ActivityIndicator />
+  if (isLoading) return <ActivityIndicator />;
 
   return (
     <View>
@@ -195,11 +196,13 @@ export default function UseFlagScreen() {
         data={flags}
         keyExtractor={(item) => item.flagKey}
         renderItem={({ item }) => (
-          <Text>{item.flagKey}: {item.enabled ? 'ON' : 'OFF'}</Text>
+          <Text>
+            {item.flagKey}: {item.enabled ? "ON" : "OFF"}
+          </Text>
         )}
       />
     </View>
-  )
+  );
 }
 ```
 
@@ -210,34 +213,35 @@ export default function UseFlagScreen() {
 List experiments and get variant assignment:
 
 ```tsx
-import { useState, useEffect } from 'react'
-import { View, Text, FlatList, ActivityIndicator } from 'react-native'
-import { useExperiments } from '@togglebox/sdk-expo'
+import { useState, useEffect } from "react";
+import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import { useExperiments } from "@togglebox/sdk-expo";
 
 export default function UseExperimentScreen() {
-  const { experiments, getVariant, isLoading } = useExperiments()
-  const [variant, setVariant] = useState<string | null>(null)
+  const { experiments, getVariant, isLoading } = useExperiments();
+  const [variant, setVariant] = useState<string | null>(null);
 
   useEffect(() => {
-    getVariant('checkout-test', { userId: 'user-123' })
-      .then(setVariant)
-  }, [getVariant])
+    getVariant("checkout-test", { userId: "user-123" }).then(setVariant);
+  }, [getVariant]);
 
-  if (isLoading) return <ActivityIndicator />
+  if (isLoading) return <ActivityIndicator />;
 
   return (
     <View>
-      <Text>Your variant: {variant || 'Not assigned'}</Text>
+      <Text>Your variant: {variant || "Not assigned"}</Text>
 
       <FlatList
         data={experiments}
         keyExtractor={(item) => item.experimentKey}
         renderItem={({ item }) => (
-          <Text>{item.experimentKey}: {item.status}</Text>
+          <Text>
+            {item.experimentKey}: {item.status}
+          </Text>
         )}
       />
     </View>
-  )
+  );
 }
 ```
 
@@ -248,33 +252,41 @@ export default function UseExperimentScreen() {
 Track custom events and conversions:
 
 ```tsx
-import { useState } from 'react'
-import { View, TouchableOpacity, Text } from 'react-native'
-import { ToggleBoxClient } from '@togglebox/sdk-expo'
+import { useState } from "react";
+import { View, TouchableOpacity, Text } from "react-native";
+import { ToggleBoxClient } from "@togglebox/sdk-expo";
 
 const client = new ToggleBoxClient({
-  platform: 'mobile',
-  environment: 'production',
-  apiUrl: 'https://your-api.example.com/api/v1',
-})
+  platform: "mobile",
+  environment: "production",
+  apiUrl: "https://your-api.example.com/api/v1",
+});
 
 export default function TrackEventScreen() {
-  const [clicks, setClicks] = useState(0)
+  const [clicks, setClicks] = useState(0);
 
   const handleClick = () => {
-    client.trackEvent('button_click', { userId: 'user-123' }, {
-      properties: { buttonId: 'cta-main' },
-    })
-    setClicks(c => c + 1)
-  }
+    client.trackEvent(
+      "button_click",
+      { userId: "user-123" },
+      {
+        properties: { buttonId: "cta-main" },
+      },
+    );
+    setClicks((c) => c + 1);
+  };
 
   const handlePurchase = async () => {
-    await client.trackConversion('pricing-page', { userId: 'user-123' }, {
-      metricName: 'purchase',
-      value: 99.99,
-    })
-    await client.flushStats()  // Send immediately
-  }
+    await client.trackConversion(
+      "pricing-page",
+      { userId: "user-123" },
+      {
+        metricId: "purchase",
+        value: 99.99,
+      },
+    );
+    await client.flushStats(); // Send immediately
+  };
 
   return (
     <View>
@@ -285,7 +297,7 @@ export default function TrackEventScreen() {
         <Text>Complete Purchase</Text>
       </TouchableOpacity>
     </View>
-  )
+  );
 }
 ```
 
@@ -298,6 +310,7 @@ export default function TrackEventScreen() {
 **File:** `app/examples/full/feature-toggle.tsx`
 
 Full implementation showing:
+
 - Flag evaluation with user context
 - Loading states
 - Conditional UI rendering
@@ -307,6 +320,7 @@ Full implementation showing:
 **File:** `app/examples/full/ab-test-cta.tsx`
 
 Complete A/B test implementation:
+
 - Variant assignment
 - Different CTA buttons per variant
 - Conversion tracking
@@ -316,6 +330,7 @@ Complete A/B test implementation:
 **File:** `app/examples/full/config-theme.tsx`
 
 Theme switching with remote config:
+
 - Dynamic theme loading
 - Style application
 - Config-driven styling
@@ -325,6 +340,7 @@ Theme switching with remote config:
 **File:** `app/examples/full/polling-updates.tsx`
 
 Auto-refresh and pull-to-refresh:
+
 - Polling interval configuration
 - Manual refresh trigger
 - Pull-to-refresh support
@@ -336,11 +352,11 @@ Auto-refresh and pull-to-refresh:
 Handle errors gracefully with cached data fallback:
 
 ```tsx
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
-import { useFlags } from '@togglebox/sdk-expo'
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useFlags } from "@togglebox/sdk-expo";
 
 function ErrorHandlingExample() {
-  const { flags, error, isLoading, refresh } = useFlags()
+  const { flags, error, isLoading, refresh } = useFlags();
 
   if (error) {
     return (
@@ -351,18 +367,16 @@ function ErrorHandlingExample() {
         </TouchableOpacity>
 
         {/* Show cached data if available */}
-        {flags.length > 0 && (
-          <Text>Using {flags.length} cached flags</Text>
-        )}
+        {flags.length > 0 && <Text>Using {flags.length} cached flags</Text>}
       </View>
-    )
+    );
   }
 
   if (isLoading && flags.length === 0) {
-    return <ActivityIndicator />
+    return <ActivityIndicator />;
   }
 
-  return <FlagsList flags={flags} />
+  return <FlagsList flags={flags} />;
 }
 ```
 
@@ -411,8 +425,8 @@ Enable MMKV persistence for offline support:
   platform="mobile"
   environment="production"
   apiUrl="https://your-api.example.com/api/v1"
-  persistToStorage={true}           // Enable MMKV
-  storageTTL={24 * 60 * 60 * 1000}  // 24 hours
+  persistToStorage={true} // Enable MMKV
+  storageTTL={24 * 60 * 60 * 1000} // 24 hours
 >
   <App />
 </ToggleBoxProvider>
@@ -432,52 +446,52 @@ Enable MMKV persistence for offline support:
 
 ```tsx
 const {
-  config,           // Config | null
-  getConfigValue,   // <T>(key: string, defaultValue: T) => Promise<T>
-  isLoading,        // boolean
-  error,            // Error | null
-  refresh,          // () => Promise<void>
-} = useConfig()
+  config, // Config | null
+  getConfigValue, // <T>(key: string, defaultValue: T) => Promise<T>
+  isLoading, // boolean
+  error, // Error | null
+  refresh, // () => Promise<void>
+} = useConfig();
 ```
 
 ### useFlags()
 
 ```tsx
 const {
-  flags,            // Flag[]
-  isFlagEnabled,    // (flagKey: string, context?: FlagContext) => Promise<boolean>
-  isLoading,        // boolean
-  error,            // Error | null
-  refresh,          // () => Promise<void>
-} = useFlags()
+  flags, // Flag[]
+  isFlagEnabled, // (flagKey: string, context?: FlagContext) => Promise<boolean>
+  isLoading, // boolean
+  error, // Error | null
+  refresh, // () => Promise<void>
+} = useFlags();
 ```
 
 ### useExperiments()
 
 ```tsx
 const {
-  experiments,      // Experiment[]
-  getVariant,       // (experimentKey: string, context: ExperimentContext) => Promise<string | null>
-  isLoading,        // boolean
-  error,            // Error | null
-  refresh,          // () => Promise<void>
-} = useExperiments()
+  experiments, // Experiment[]
+  getVariant, // (experimentKey: string, context: ExperimentContext) => Promise<string | null>
+  isLoading, // boolean
+  error, // Error | null
+  refresh, // () => Promise<void>
+} = useExperiments();
 ```
 
 ### useAnalytics()
 
 ```tsx
 const {
-  trackEvent,       // (eventName: string, context: ExperimentContext, data?: EventData) => void
-  trackConversion,  // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
-  flushStats,       // () => Promise<void>
-} = useAnalytics()
+  trackEvent, // (eventName: string, context: ExperimentContext, data?: EventData) => void
+  trackConversion, // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
+  flushStats, // () => Promise<void>
+} = useAnalytics();
 ```
 
 ### useToggleBoxClient()
 
 ```tsx
-const client = useToggleBoxClient()  // ToggleBoxClient | null
+const client = useToggleBoxClient(); // ToggleBoxClient | null
 ```
 
 ---
@@ -485,6 +499,7 @@ const client = useToggleBoxClient()  // ToggleBoxClient | null
 ## SDK Documentation
 
 For complete SDK documentation, see:
+
 - [SDK-Expo README](../../packages/sdk-expo/README.md)
 - [SDK-JS README](../../packages/sdk-js/README.md)
 

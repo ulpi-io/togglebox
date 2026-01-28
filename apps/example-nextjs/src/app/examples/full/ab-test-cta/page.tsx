@@ -29,7 +29,7 @@ export default function Page() {
     if (!variant) return
 
     await trackConversion('cta-experiment', { userId: 'user-123' }, {
-      metricName: 'cta_click',
+      metricId: 'cta_click',
       value: 1,
     })
     await flushStats()

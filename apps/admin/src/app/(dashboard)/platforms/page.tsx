@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { getPlatformsApi, updatePlatformApi } from '@/lib/api/platforms';
 import { getCurrentUserApi } from '@/lib/api/auth';
@@ -37,7 +37,7 @@ export default function PlatformsPage() {
 
   const isAdmin = currentUser?.role === 'admin';
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [platformsData, userData] = await Promise.all([
@@ -52,25 +52,25 @@ export default function PlatformsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const startEditing = (platform: Platform, field: 'description') => {
+  const startEditing = useCallback((platform: Platform, field: 'description') => {
     setEditState({
       platformName: platform.name,
       field,
       value: platform.description || '',
     });
-  };
+  }, []);
 
-  const cancelEditing = () => {
+  const cancelEditing = useCallback(() => {
     setEditState(null);
-  };
+  }, []);
 
-  const saveEdit = async () => {
+  const saveEdit = useCallback(async () => {
     if (!editState) return;
 
     setIsSaving(true);
@@ -93,15 +93,15 @@ export default function PlatformsPage() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [editState]);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useMemo(() => (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
-  };
+  }, []);
 
   return (
     <div>

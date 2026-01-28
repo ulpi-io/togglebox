@@ -18,7 +18,7 @@ export default function Page() {
 
   const handleConversion = async () => {
     await trackConversion('checkout-test', { userId: 'user-123' }, {
-      metricName: 'purchase',
+      metricId: 'purchase',
       value: 99.99,
     })
     await flushStats()
