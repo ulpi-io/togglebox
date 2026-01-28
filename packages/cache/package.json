@@ -11,8 +11,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "test": "jest"
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "cache",

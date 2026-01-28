@@ -10,8 +10,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "test": "jest"
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.705.0",
