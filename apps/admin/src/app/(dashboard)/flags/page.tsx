@@ -64,29 +64,37 @@ function FlagsContent() {
   ];
 
   useEffect(() => {
-    let isMounted = true;
+    const abortController = new AbortController();
 
     const loadData = async () => {
       try {
         setIsLoading(true);
         const [flagsData, userData] = await Promise.all([
           !platform || !environment
-            ? getAllFlagsApi()
-            : getFlagsApi(platform, environment),
-          getCurrentUserApi().catch(() => null),
+            ? getAllFlagsApi({ signal: abortController.signal })
+            : getFlagsApi(platform, environment, {
+                signal: abortController.signal,
+              }),
+          getCurrentUserApi({ signal: abortController.signal }).catch(
+            () => null,
+          ),
         ]);
 
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           setFlags(flagsData);
           setUser(userData);
           setError(null);
         }
       } catch (err) {
-        if (isMounted) {
+        // Ignore abort errors
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        if (!abortController.signal.aborted) {
           setError(err instanceof Error ? err.message : "Failed to load flags");
         }
       } finally {
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           setIsLoading(false);
         }
       }
@@ -95,7 +103,7 @@ function FlagsContent() {
     loadData();
 
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
   }, [platform, environment]);
 

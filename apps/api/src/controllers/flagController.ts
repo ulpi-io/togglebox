@@ -68,7 +68,7 @@ export class FlagController {
           `Created flag ${flag.flagKey} for ${flag.platform}/${flag.environment}`,
         );
 
-        this.invalidateFlagCache(platform, environment, flag.flagKey);
+        await this.invalidateFlagCache(platform, environment, flag.flagKey);
 
         res.status(201).json({
           success: true,
@@ -132,7 +132,7 @@ export class FlagController {
           `Updated flag ${flagKey} to v${flag.version} for ${platform}/${environment}`,
         );
 
-        this.invalidateFlagCache(platform, environment, flagKey);
+        await this.invalidateFlagCache(platform, environment, flagKey);
 
         res.json({
           success: true,
@@ -202,7 +202,7 @@ export class FlagController {
           `Toggled flag ${flagKey} to ${enabled} for ${platform}/${environment}`,
         );
 
-        this.invalidateFlagCache(platform, environment, flagKey);
+        await this.invalidateFlagCache(platform, environment, flagKey);
 
         res.json({
           success: true,
@@ -282,7 +282,7 @@ export class FlagController {
           `Updated rollout for ${flagKey}: enabled=${flag.rolloutEnabled}, A=${flag.rolloutPercentageA}%, B=${flag.rolloutPercentageB}%`,
         );
 
-        this.invalidateFlagCache(platform, environment, flagKey);
+        await this.invalidateFlagCache(platform, environment, flagKey);
 
         res.json({
           success: true,
@@ -531,7 +531,7 @@ export class FlagController {
         logger.logDatabaseOperation("deleteFlag", "flags", duration, true);
         logger.info(`Deleted flag ${flagKey} for ${platform}/${environment}`);
 
-        this.invalidateFlagCache(platform, environment, flagKey);
+        await this.invalidateFlagCache(platform, environment, flagKey);
 
         res.status(204).send();
       });
@@ -707,23 +707,27 @@ export class FlagController {
 
   /**
    * Helper method to invalidate cache for a flag.
+   * Awaits cache invalidation to ensure client doesn't fetch stale data.
    */
-  private invalidateFlagCache(
+  private async invalidateFlagCache(
     platform: string,
     environment: string,
     flagKey: string,
-  ): void {
+  ): Promise<void> {
     const cachePaths = [
       `/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}`,
       `/api/v1/platforms/${platform}/environments/${environment}/flags`,
     ];
 
-    this.cacheProvider.invalidateCache(cachePaths).catch((err: unknown) => {
+    try {
+      await this.cacheProvider.invalidateCache(cachePaths);
+    } catch (err: unknown) {
       // WARN level since stale cache affects data consistency
+      // Don't fail the request - mutation succeeded
       logger.warn("Cache invalidation failed - stale data may be served", {
         paths: cachePaths,
         error: err instanceof Error ? err.message : String(err),
       });
-    });
+    }
   }
 }

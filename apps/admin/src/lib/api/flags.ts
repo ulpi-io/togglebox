@@ -5,11 +5,16 @@ import type { Flag, FlagTargeting, Platform, Environment } from "./types";
  * Get all flags across all platforms and environments.
  * Used when no filter is applied.
  *
+ * @param options - Optional fetch options including AbortSignal
  * @throws Error if fetching platforms fails or if any non-404 errors occur
  */
-export async function getAllFlagsApi(): Promise<Flag[]> {
+export async function getAllFlagsApi(options?: {
+  signal?: AbortSignal;
+}): Promise<Flag[]> {
   // First, get all platforms
-  const platforms = await browserApiClient<Platform[]>("/api/v1/platforms");
+  const platforms = await browserApiClient<Platform[]>("/api/v1/platforms", {
+    signal: options?.signal,
+  });
 
   // For each platform, get environments and then flags
   const allFlags: Flag[] = [];
@@ -20,6 +25,7 @@ export async function getAllFlagsApi(): Promise<Flag[]> {
       try {
         const environments = await browserApiClient<Environment[]>(
           `/api/v1/platforms/${platform.name}/environments`,
+          { signal: options?.signal },
         );
 
         await Promise.all(
@@ -27,6 +33,7 @@ export async function getAllFlagsApi(): Promise<Flag[]> {
             try {
               const flags = await browserApiClient<Flag[]>(
                 `/api/v1/platforms/${platform.name}/environments/${env.environment}/flags`,
+                { signal: options?.signal },
               );
               allFlags.push(...flags);
             } catch (error) {
@@ -69,13 +76,19 @@ export async function getAllFlagsApi(): Promise<Flag[]> {
 /**
  * Get all active flags for an environment.
  * Three-Tier Architecture - Tier 2: Feature Flags
+ *
+ * @param platform - Platform name
+ * @param environment - Environment name
+ * @param options - Optional fetch options including AbortSignal
  */
 export async function getFlagsApi(
   platform: string,
   environment: string,
+  options?: { signal?: AbortSignal },
 ): Promise<Flag[]> {
   return browserApiClient<Flag[]>(
     `/api/v1/platforms/${platform}/environments/${environment}/flags`,
+    { signal: options?.signal },
   );
 }
 

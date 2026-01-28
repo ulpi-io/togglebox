@@ -110,48 +110,7 @@ export class LoggerService {
       this.logger = pino(baseConfig);
     }
 
-    this.httpLogger = pinoHttp({
-      logger: this.logger,
-      // Generate request ID if not present
-      genReqId: (req: IncomingMessage) => {
-        const headers = (
-          req as IncomingMessage & {
-            headers: Record<string, string | string[] | undefined>;
-          }
-        ).headers;
-        return (
-          (headers["x-request-id"] as string) ||
-          `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        );
-      },
-      customSuccessMessage: (req: IncomingMessage, res: ServerResponse) => {
-        const httpReq = req as IncomingMessage & {
-          method?: string;
-          url?: string;
-        };
-        const httpRes = res as ServerResponse & { statusCode: number };
-        return `${httpReq.method} ${httpReq.url} ${httpRes.statusCode} - ${httpRes.getHeader("content-length") || 0}b`;
-      },
-      customErrorMessage: (
-        req: IncomingMessage,
-        res: ServerResponse,
-        error: Error,
-      ) => {
-        const httpReq = req as IncomingMessage & {
-          method?: string;
-          url?: string;
-        };
-        const httpRes = res as ServerResponse & { statusCode: number };
-        return `${httpReq.method} ${httpReq.url} ${httpRes.statusCode} - ${error.message}`;
-      },
-      customAttributeKeys: {
-        req: "request",
-        res: "response",
-        err: "error",
-        responseTime: "responseTimeMs",
-        reqId: "requestId",
-      },
-    });
+    this.httpLogger = this.createHttpLogger(this.logger);
   }
 
   /**
@@ -208,13 +167,65 @@ export class LoggerService {
    * - Add request ID to all logs within a request handler
    * - Add user ID to all logs for a user session
    * - Add tenant ID to all logs in multi-tenant scenarios
+   *
+   * **HTTP Logging:**
+   * The child logger's httpLogger uses the child's logger with context,
+   * so HTTP logs from `childLogger.getHttpLogger()` will include the context.
    */
   child(context: Record<string, unknown>): LoggerService {
     const childLogger = new LoggerService();
     childLogger.logger = this.logger.child(context);
-    // Copy httpLogger reference so child loggers can be used with getHttpLogger()
-    childLogger.httpLogger = this.httpLogger;
+    // Create new httpLogger using child's logger so HTTP logs include context
+    childLogger.httpLogger = this.createHttpLogger(childLogger.logger);
     return childLogger;
+  }
+
+  /**
+   * Creates pinoHttp middleware with consistent configuration.
+   * @internal
+   */
+  private createHttpLogger(logger: pino.Logger): unknown {
+    return pinoHttp({
+      logger,
+      genReqId: (req: IncomingMessage) => {
+        const headers = (
+          req as IncomingMessage & {
+            headers: Record<string, string | string[] | undefined>;
+          }
+        ).headers;
+        return (
+          (headers["x-request-id"] as string) ||
+          `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        );
+      },
+      customSuccessMessage: (req: IncomingMessage, res: ServerResponse) => {
+        const httpReq = req as IncomingMessage & {
+          method?: string;
+          url?: string;
+        };
+        const httpRes = res as ServerResponse & { statusCode: number };
+        return `${httpReq.method} ${httpReq.url} ${httpRes.statusCode} - ${httpRes.getHeader("content-length") || 0}b`;
+      },
+      customErrorMessage: (
+        req: IncomingMessage,
+        res: ServerResponse,
+        error: Error,
+      ) => {
+        const httpReq = req as IncomingMessage & {
+          method?: string;
+          url?: string;
+        };
+        const httpRes = res as ServerResponse & { statusCode: number };
+        return `${httpReq.method} ${httpReq.url} ${httpRes.statusCode} - ${error.message}`;
+      },
+      customAttributeKeys: {
+        req: "request",
+        res: "response",
+        err: "error",
+        responseTime: "responseTimeMs",
+        reqId: "requestId",
+      },
+    });
   }
 
   /**
