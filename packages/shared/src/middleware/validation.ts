@@ -7,7 +7,7 @@
  * **Validation Features:**
  * - Schema-based validation with Zod
  * - Type-safe validation (TypeScript type inference)
- * - Input sanitization (XSS protection, HTML entity escaping)
+ * - Input sanitization (whitespace trimming)
  * - Rate limiting by IP address
  * - CORS headers
  * - Security headers
@@ -17,7 +17,7 @@
  * - {@link validateRequest} - Validate request body
  * - {@link validateQuery} - Validate query parameters
  * - {@link validateParams} - Validate URL parameters
- * - {@link sanitizeInput} - Sanitize all inputs (XSS protection)
+ * - {@link sanitizeInput} - Trim whitespace from string inputs
  * - {@link rateLimitByIP} - Rate limit by IP address
  * - {@link corsHeaders} - Add CORS headers
  * - {@link securityHeaders} - Add security headers
@@ -40,11 +40,9 @@
  * ```
  *
  * **Security:**
- * - Escapes HTML entities to prevent stored XSS
- * - Blocks dangerous patterns (script tags, event handlers, javascript: URLs)
- * - Validates DynamoDB key delimiters don't break PK/SK patterns
  * - Rate limiting to prevent abuse
- * - CORS and security headers
+ * - CORS and security headers (CSP configured via Helmet)
+ * - XSS protection: React/Vue auto-escape on render; use DOMPurify if rendering raw HTML
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -198,78 +196,42 @@ export const validateParams = (schema: z.ZodSchema) => {
 /**
  * Input sanitization middleware
  *
- * SECURITY NOTE: This API primarily handles JSON data, not HTML rendering.
- * The sanitization here provides defense-in-depth by:
- * 1. Escaping HTML entities to prevent stored XSS
- * 2. Blocking dangerous patterns (script tags, event handlers, javascript: URLs)
- * 3. Validating DynamoDB key delimiters don't break PK/SK patterns
+ * This middleware trims whitespace from string inputs.
  *
- * Client applications should ALSO sanitize data before rendering HTML.
+ * SECURITY NOTE: This API returns JSON data, not HTML.
+ * - React/Vue/etc automatically escape when rendering (XSS protection built-in)
+ * - HTML escaping here would corrupt data (quotes become &quot; etc.)
+ * - If you render user content as raw HTML (dangerouslySetInnerHTML), sanitize at render time
+ *   using a library like DOMPurify
  */
 export const sanitizeInput = (req: Request, _: Response, next: NextFunction): void => {
-  /**
-   * Sanitize a string by escaping HTML entities and blocking dangerous patterns
-   */
-  const sanitizeString = (str: string): string => {
-    // Trim whitespace
-    let sanitized = str.trim();
-
-    // Escape HTML entities to prevent XSS
-    sanitized = sanitized
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
-
-    // Block common XSS vectors
-    const dangerousPatterns = [
-      /javascript:/gi,
-      /on\w+\s*=/gi,           // Event handlers: onclick=, onerror=, etc.
-      /<script[\s\S]*?>/gi,     // Script tags
-      /<iframe[\s\S]*?>/gi,     // Iframes
-      /eval\(/gi,               // eval() calls
-      /expression\(/gi,         // CSS expression()
-    ];
-
-    for (const pattern of dangerousPatterns) {
-      if (pattern.test(sanitized)) {
-        throw new ValidationError(
-          `Input contains potentially dangerous content: ${pattern.source}`
-        );
-      }
+  const sanitizeValue = (value: unknown): unknown => {
+    if (typeof value === 'string') {
+      return value.trim();
     }
-
-    return sanitized;
-  };
-
-  const sanitizeObject = (obj: unknown): unknown => {
-    if (typeof obj === 'string') {
-      return sanitizeString(obj);
-    } else if (Array.isArray(obj)) {
-      return obj.map(sanitizeObject);
-    } else if (typeof obj === 'object' && obj !== null) {
-      const sanitized: Record<string, unknown> = {};
-      for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          sanitized[key] = sanitizeObject((obj as Record<string, unknown>)[key]);
-        }
-      }
-      return sanitized;
+    if (Array.isArray(value)) {
+      return value.map(sanitizeValue);
     }
-    return obj;
+    if (typeof value === 'object' && value !== null) {
+      const result: Record<string, unknown> = {};
+      for (const key of Object.keys(value)) {
+        result[key] = sanitizeValue((value as Record<string, unknown>)[key]);
+      }
+      return result;
+    }
+    return value;
   };
 
   if (req.body && typeof req.body === 'object') {
-    req.body = sanitizeObject(req.body);
+    req.body = sanitizeValue(req.body);
   }
 
   if (req.query && typeof req.query === 'object') {
-    req.query = sanitizeObject(req.query) as typeof req.query;
+    req.query = sanitizeValue(req.query) as typeof req.query;
   }
 
   if (req.params && typeof req.params === 'object') {
-    req.params = sanitizeObject(req.params) as typeof req.params;
+    req.params = sanitizeValue(req.params) as typeof req.params;
   }
 
   next();
@@ -310,11 +272,24 @@ export const rateLimitByIP = (windowMs: number = 60000, maxRequests: number = 10
   };
 };
 
-// CORS headers - uses req and res
+/**
+ * Simple CORS headers middleware.
+ *
+ * @remarks
+ * Sets CORS headers based on the CORS_ORIGIN environment variable.
+ * For most applications, use the `cors` npm package middleware instead,
+ * which provides more configuration options.
+ *
+ * This middleware is useful for simple deployments where the full `cors`
+ * package is not needed.
+ */
 export const corsHeaders = (req: Request, res: Response, next: NextFunction): void => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  // Use configured CORS origin from environment, fall back to * only if explicitly set
+  const corsOrigin = process.env['CORS_ORIGIN'] || '*';
+
+  res.header('Access-Control-Allow-Origin', corsOrigin);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-API-Key');
   res.header('Access-Control-Max-Age', '86400');
 
   if (req.method === 'OPTIONS') {
@@ -326,13 +301,12 @@ export const corsHeaders = (req: Request, res: Response, next: NextFunction): vo
 };
 
 // Security headers - uses res
+// Note: CSP should be configured via Helmet in app.ts, not here
 export const securityHeaders = (_: Request, res: Response, next: NextFunction): void => {
   res.header('X-Content-Type-Options', 'nosniff');
   res.header('X-Frame-Options', 'DENY');
   res.header('X-XSS-Protection', '1; mode=block');
   res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  res.header('Content-Security-Policy', "default-src 'self'");
-  
   next();
 };
 

@@ -1,4 +1,3 @@
-import type { Config } from '@togglebox/configs'
 import type { Flag, EvaluationContext as FlagContext, EvaluationResult as FlagResult } from '@togglebox/flags'
 import { evaluateFlag } from '@togglebox/flags'
 import type { Experiment, ExperimentContext, VariantAssignment } from '@togglebox/experiments'
@@ -9,13 +8,12 @@ import { StatsReporter } from './stats'
 import { ConfigurationError } from './errors'
 import type {
   ClientOptions,
-  ConfigResponse,
+  Config,
   ClientEvent,
   EventListener,
   ConversionData,
   EventData,
   HealthCheckResponse,
-  ConfigVersionMeta,
 } from './types'
 
 /**
@@ -34,9 +32,9 @@ export class ToggleBoxClient {
   private environment: string
   private pollingInterval: number
   private pollingTimer: NodeJS.Timeout | null = null
+  private isRefreshing = false // Guard against overlapping refresh calls
   private globalContext: FlagContext = { userId: 'anonymous' }
   private listeners: Map<ClientEvent, Set<EventListener>> = new Map()
-  private configVersion: string
 
   constructor(options: ClientOptions) {
     // Validate required options
@@ -67,7 +65,6 @@ export class ToggleBoxClient {
     this.platform = options.platform
     this.environment = options.environment
     this.pollingInterval = options.pollingInterval || 0
-    this.configVersion = options.configVersion || 'stable'
     this.http = new HttpClient(apiUrl, options.fetchImpl, options.apiKey)
     this.cache = new Cache(options.cache)
     this.stats = new StatsReporter(
@@ -136,11 +133,16 @@ export class ToggleBoxClient {
   }
 
   /**
-   * Get all config values.
+   * Get all config values as key-value object.
+   *
+   * @remarks
+   * Returns all active config parameters for the current platform/environment.
+   * Each parameter's value is already parsed to its typed form (string, number, boolean, json).
    *
    * @example
    * ```typescript
    * const allConfigs = await client.getAllConfigs()
+   * // { api_url: 'https://api.example.com', max_retries: 3, feature_enabled: true }
    * ```
    */
   async getAllConfigs(): Promise<Config> {
@@ -148,17 +150,14 @@ export class ToggleBoxClient {
   }
 
   /**
-   * Get configuration using the configured version (default: 'stable')
+   * Get all active config parameters as key-value object.
+   *
+   * @remarks
+   * Firebase-style individual parameters. Each parameter has its own version history,
+   * but the API returns only active versions as a simple key-value object.
    */
   async getConfig(): Promise<Config> {
-    return this.getConfigVersion(this.configVersion)
-  }
-
-  /**
-   * Get a specific config version
-   */
-  async getConfigVersion(version: string): Promise<Config> {
-    const cacheKey = `config:${this.platform}:${this.environment}:${version}`
+    const cacheKey = `config:${this.platform}:${this.environment}`
 
     // Try cache first
     const cached = this.cache.get<Config>(cacheKey)
@@ -166,43 +165,15 @@ export class ToggleBoxClient {
       return cached
     }
 
-    // Build path based on version type
-    let path: string
-    if (version === 'stable') {
-      path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/versions/latest/stable`
-    } else if (version === 'latest') {
-      path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/versions/latest`
-    } else {
-      path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/versions/${version}`
-    }
-
-    const response = await this.http.get<{ data: ConfigResponse }>(path)
-    const config = response.data.config
+    // Fetch from Firebase-style endpoint
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/configs`
+    const response = await this.http.get<{ data: Config }>(path)
+    const config = response.data
 
     // Cache
     this.cache.set(cacheKey, config)
 
     return config
-  }
-
-  /**
-   * List all configuration versions for the current platform/environment.
-   *
-   * @returns Array of config version metadata (without full config data)
-   *
-   * @example
-   * ```typescript
-   * const versions = await client.getConfigVersions()
-   * console.log(`Found ${versions.length} versions`)
-   * versions.forEach(v => {
-   *   console.log(`${v.versionLabel} - stable: ${v.isStable}`)
-   * })
-   * ```
-   */
-  async getConfigVersions(): Promise<ConfigVersionMeta[]> {
-    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/versions`
-    const response = await this.http.get<{ data: ConfigVersionMeta[] }>(path)
-    return response.data
   }
 
   // ==================== TIER 2: FEATURE FLAGS (2-value) ====================
@@ -221,7 +192,7 @@ export class ToggleBoxClient {
    * ```
    */
   async getFlag(flagKey: string, context: FlagContext): Promise<FlagResult> {
-    const cacheKey = `newflags:${this.platform}:${this.environment}`
+    const cacheKey = `flags:${this.platform}:${this.environment}`
 
     // Try cache first
     let flags = this.cache.get<Flag[]>(cacheKey)
@@ -244,7 +215,8 @@ export class ToggleBoxClient {
       flagKey,
       result.servedValue,
       context.userId ?? 'anonymous',
-      context.country
+      context.country,
+      context.language
     )
 
     return result
@@ -411,8 +383,10 @@ export class ToggleBoxClient {
     context: ExperimentContext,
     data?: EventData
   ): void {
-    // Custom events can be tracked via stats reporter
-    // For now, we track as a conversion with the event name as metric
+    // Always track the custom event for general analytics
+    this.stats.trackCustomEvent(eventName, context.userId, data?.properties)
+
+    // Additionally, track as conversion if experiment context is provided
     if (data?.experimentKey && data?.variationKey) {
       this.stats.trackConversion(
         data.experimentKey,
@@ -526,8 +500,8 @@ export class ToggleBoxClient {
    * Manually refresh all cached data
    */
   async refresh(): Promise<void> {
-    // Clear cache for this platform/environment/version
-    this.cache.delete(`config:${this.platform}:${this.environment}:${this.configVersion}`)
+    // Clear cache for this platform/environment
+    this.cache.delete(`config:${this.platform}:${this.environment}`)
     this.cache.delete(`flags:${this.platform}:${this.environment}`)
     this.cache.delete(`experiments:${this.platform}:${this.environment}`)
 
@@ -558,10 +532,17 @@ export class ToggleBoxClient {
     }
 
     this.pollingTimer = setInterval(async () => {
+      // Guard against overlapping refreshes from slow API responses
+      if (this.isRefreshing) {
+        return
+      }
+      this.isRefreshing = true
       try {
         await this.refresh()
       } catch (error) {
         this.emit('error', error)
+      } finally {
+        this.isRefreshing = false
       }
     }, this.pollingInterval)
   }

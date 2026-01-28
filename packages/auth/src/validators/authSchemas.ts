@@ -30,14 +30,16 @@ import { z } from 'zod';
  * **Validation Rules:**
  * - **email**: Valid email format, 5-255 characters
  * - **password**: 8-128 chars, must contain uppercase, lowercase, and number
- * - **role**: Optional, defaults to 'viewer' if not provided
+ *
+ * **SECURITY:** Role is intentionally NOT allowed in public registration.
+ * All users register as 'viewer' by default. Only admins can promote users.
  *
  * @example
  * ```typescript
  * const data = registerSchema.parse({
  *   email: 'user@example.com',
  *   password: 'SecurePass123',
- *   role: 'developer'
+ *   name: 'John Doe'
  * });
  * ```
  */
@@ -59,7 +61,8 @@ export const registerSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       'Password must contain at least one uppercase letter, one lowercase letter, and one number'
     ),
-  role: z.enum(['admin', 'developer', 'viewer']).optional(),
+  // SECURITY: Role is NOT allowed in public registration - all users start as 'viewer'
+  // Only admins can change roles via the admin endpoints
 });
 
 /**
@@ -118,14 +121,33 @@ export const changePasswordSchema = z.object({
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 
 /**
- * Update profile validation schema.
+ * Update self profile validation schema.
  *
  * @remarks
- * Allows users to update their profile information.
+ * Allows users to update their OWN profile information (non-sensitive fields only).
  * - `name`: Display name (any authenticated user can update their own)
- * - `role`: User role (typically admin-only, should be protected by separate middleware)
+ *
+ * **SECURITY:** Role is intentionally NOT included to prevent privilege escalation.
+ * Role changes require admin endpoint with user:manage permission.
  */
 export const updateProfileSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name cannot be empty')
+    .max(100, 'Name must not exceed 100 characters')
+    .optional(),
+  // SECURITY: Role is NOT allowed in self-update - prevents privilege escalation
+  // Use admin endpoint PATCH /users/:id/role for role changes
+});
+
+/**
+ * Admin update user profile schema (used by admins to update any user).
+ *
+ * @remarks
+ * Allows admins to update user information including role.
+ * Only accessible via admin endpoints with user:manage permission.
+ */
+export const adminUpdateUserSchema = z.object({
   name: z
     .string()
     .min(1, 'Name cannot be empty')

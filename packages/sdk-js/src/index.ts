@@ -17,6 +17,7 @@ export type {
   ClientOptions,
   CacheOptions,
   StatsOptions,
+  Config,
   ConfigResponse,
   FlagsResponse,
   ExperimentsResponse,
@@ -26,13 +27,9 @@ export type {
   ConversionData,
   EventData,
   HealthCheckResponse,
-  ConfigVersionMeta,
 } from './types'
 
 // Re-export types from packages for SDK consumers
-
-// Tier 1: Remote Configs
-export type { Config } from '@togglebox/configs'
 
 // Tier 2: Feature Flags (2-value model)
 export type {

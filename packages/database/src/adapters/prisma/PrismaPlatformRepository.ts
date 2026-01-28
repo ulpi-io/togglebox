@@ -90,11 +90,12 @@ export class PrismaPlatformRepository implements IPlatformRepository {
     // Get total count for metadata
     const total = await this.prisma.platform.count();
 
-    // If no pagination requested, fetch ALL items
+    // SECURITY: If no pagination requested, apply hard limit to prevent unbounded queries
     if (!pagination) {
+      const HARD_LIMIT = 100;
       const platforms = await this.prisma.platform.findMany({
         orderBy: { createdAt: 'desc' },
-        // No skip/take - fetch all
+        take: HARD_LIMIT,
       });
 
       const items = platforms.map((p) => ({

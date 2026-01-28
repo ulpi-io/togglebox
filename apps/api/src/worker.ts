@@ -139,11 +139,17 @@ export default {
       // Initialize database with D1 binding
       initializeDatabase(env.DB);
 
-      // Log incoming request
+      // Log incoming request (SECURITY: redact sensitive headers)
+      const headers = Object.fromEntries(request.headers.entries());
+      // Remove sensitive headers to prevent secret exposure in logs
+      delete headers['authorization'];
+      delete headers['x-api-key'];
+      delete headers['cookie'];
+
       logger.info('Cloudflare Worker request received', {
         method: request.method,
         url: request.url,
-        headers: Object.fromEntries(request.headers.entries()),
+        headers,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cloudflare-specific metadata not in standard Request type
         cf: (request as any).cf,
       });

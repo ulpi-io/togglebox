@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { invalidateCacheApi, invalidateAllCacheApi, CacheInvalidationResult } from '@/lib/api/cache';
-import { getPlatformsApi, getEnvironmentsApi, getConfigVersionsApi } from '@/lib/api/platforms';
+import { getPlatformsApi, getEnvironmentsApi } from '@/lib/api/platforms';
 import {
   Alert,
   Card,
@@ -14,23 +14,20 @@ import {
   Button,
   Select,
 } from '@togglebox/ui';
-import type { Platform, Environment, ConfigVersion } from '@/lib/api/types';
+import type { Platform, Environment } from '@/lib/api/types';
 
 export default function CachePage() {
   // Selection states
   const [platform, setPlatform] = useState('');
   const [environment, setEnvironment] = useState('');
-  const [version, setVersion] = useState('');
 
   // Data states
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [versions, setVersions] = useState<ConfigVersion[]>([]);
 
   // Loading states
   const [isLoadingPlatforms, setIsLoadingPlatforms] = useState(true);
   const [isLoadingEnvironments, setIsLoadingEnvironments] = useState(false);
-  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
 
   const [result, setResult] = useState<CacheInvalidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +53,6 @@ export default function CachePage() {
     if (!platform) {
       setEnvironments([]);
       setEnvironment('');
-      setVersions([]);
-      setVersion('');
       return;
     }
 
@@ -67,8 +62,6 @@ export default function CachePage() {
         const data = await getEnvironmentsApi(platform);
         setEnvironments(data);
         setEnvironment('');
-        setVersions([]);
-        setVersion('');
       } catch (err) {
         console.error('Failed to load environments:', err);
         setEnvironments([]);
@@ -79,30 +72,6 @@ export default function CachePage() {
     loadEnvironments();
   }, [platform]);
 
-  // Load versions when environment changes
-  useEffect(() => {
-    if (!platform || !environment) {
-      setVersions([]);
-      setVersion('');
-      return;
-    }
-
-    async function loadVersions() {
-      setIsLoadingVersions(true);
-      try {
-        const data = await getConfigVersionsApi(platform, environment);
-        setVersions(data);
-        setVersion('');
-      } catch (err) {
-        console.error('Failed to load config versions:', err);
-        setVersions([]);
-      } finally {
-        setIsLoadingVersions(false);
-      }
-    }
-    loadVersions();
-  }, [platform, environment]);
-
   async function handleInvalidate() {
     setIsInvalidating(true);
     setError(null);
@@ -111,8 +80,7 @@ export default function CachePage() {
     try {
       const response = await invalidateCacheApi(
         platform || undefined,
-        environment || undefined,
-        version || undefined
+        environment || undefined
       );
       setResult(response);
     } catch (err) {
@@ -146,7 +114,7 @@ export default function CachePage() {
       <div className="mb-8">
         <h1 className="text-4xl font-black mb-2">Cache Management</h1>
         <p className="text-muted-foreground">
-          Invalidate CloudFront caches for updated remote config
+          Invalidate CDN caches for updated remote config parameters
         </p>
       </div>
 
@@ -156,7 +124,7 @@ export default function CachePage() {
           <CardHeader>
             <CardTitle>Granular Cache Invalidation</CardTitle>
             <CardDescription>
-              Invalidate cache for specific platform/environment/version
+              Invalidate cache for specific platform/environment
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -202,37 +170,12 @@ export default function CachePage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="version">Version (optional)</Label>
-              <Select
-                id="version"
-                value={version}
-                onChange={(e) => setVersion(e.target.value)}
-                disabled={isInvalidating || !environment || isLoadingVersions}
-              >
-                <option value="">
-                  {!environment
-                    ? 'Select an environment first'
-                    : isLoadingVersions
-                      ? 'Loading versions...'
-                      : versions.length === 0
-                        ? 'No versions available'
-                        : 'All versions'}
-                </option>
-                {versions.map((v) => (
-                  <option key={v.versionLabel} value={v.versionLabel}>
-                    {v.versionLabel} {v.isStable ? '(stable)' : ''}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
             <div className="text-xs text-muted-foreground p-3 bg-muted border border-black/10 rounded-lg">
-              <div className="font-bold mb-1">Examples:</div>
+              <div className="font-bold mb-1">Invalidation Scope:</div>
               <ul className="list-disc list-inside space-y-1">
+                <li>No selection: Invalidate all config caches</li>
                 <li>Platform only: Invalidate all caches for that platform</li>
-                <li>Platform + Environment: Invalidate that environment</li>
-                <li>All fields: Invalidate specific version</li>
+                <li>Platform + Environment: Invalidate that environment&apos;s config cache</li>
               </ul>
             </div>
 

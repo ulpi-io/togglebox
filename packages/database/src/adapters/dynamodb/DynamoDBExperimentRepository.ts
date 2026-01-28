@@ -20,6 +20,19 @@ import { dynamoDBClient, getExperimentsTableName } from '../../database';
 type DynamoItem = Record<string, unknown>;
 
 /**
+ * Safely decode pagination cursor.
+ * @throws Error with user-friendly message if cursor is invalid
+ */
+function decodeCursor(cursor: string | undefined): Record<string, unknown> | undefined {
+  if (!cursor) return undefined;
+  try {
+    return JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8'));
+  } catch {
+    throw new Error('Invalid pagination token');
+  }
+}
+
+/**
  * DynamoDB implementation of Experiment repository.
  */
 export class DynamoDBExperimentRepository implements IExperimentRepository {
@@ -286,7 +299,7 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
           ':pk': this.getStatusPK(platform, environment, status),
         },
         Limit: limit || 100,
-        ExclusiveStartKey: cursor ? JSON.parse(Buffer.from(cursor, 'base64').toString()) : undefined,
+        ExclusiveStartKey: decodeCursor(cursor),
       }));
     } else {
       const pk = this.getPK(platform, environment);
@@ -300,7 +313,7 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
           ':active': true,
         },
         Limit: limit || 100,
-        ExclusiveStartKey: cursor ? JSON.parse(Buffer.from(cursor, 'base64').toString()) : undefined,
+        ExclusiveStartKey: decodeCursor(cursor),
       }));
     }
 

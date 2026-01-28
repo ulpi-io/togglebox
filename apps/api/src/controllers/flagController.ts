@@ -479,12 +479,12 @@ export class FlagController {
 
         const evaluation = evaluateFlag(flag, context);
 
-        // Track the evaluation
+        // Track the evaluation - use servedValue which correctly indicates 'A' or 'B'
         await this.repos.stats.incrementFlagEvaluation(
           platform,
           environment,
           flagKey,
-          evaluation.value === flag.valueA ? 'A' : 'B',
+          evaluation.servedValue,
           context.userId,
           context.country
         );
@@ -543,12 +543,12 @@ export class FlagController {
 
         const evaluation = evaluateFlag(flag, context);
 
-        // Track the evaluation
+        // Track the evaluation - use servedValue which correctly indicates 'A' or 'B'
         await this.repos.stats.incrementFlagEvaluation(
           platform,
           environment,
           flagKey,
-          evaluation.value === flag.valueA ? 'A' : 'B',
+          evaluation.servedValue,
           context.userId,
           context.country
         );

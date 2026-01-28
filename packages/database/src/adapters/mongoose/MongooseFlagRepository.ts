@@ -336,6 +336,18 @@ export class MongooseFlagRepository implements IFlagRepository {
   }
 
   /**
+   * Safely parse JSON with fallback value.
+   * Prevents crashes from corrupted or malformed data.
+   */
+  private safeParse<T>(raw: string, fallback: T): T {
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return fallback;
+    }
+  }
+
+  /**
    * Convert Mongoose document to Flag type.
    * Includes defaults for rollout fields for backward compatibility.
    */
@@ -350,7 +362,7 @@ export class MongooseFlagRepository implements IFlagRepository {
       flagType: doc.flagType,
       valueA: doc.valueA,
       valueB: doc.valueB,
-      targeting: JSON.parse(doc.targeting),
+      targeting: this.safeParse(doc.targeting, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
       defaultValue: doc.defaultValue,
       // Percentage rollout (defaults for backward compatibility)
       rolloutEnabled: doc.rolloutEnabled ?? false,

@@ -110,8 +110,8 @@ function validateLanguages(input: string): { valid: string[]; invalid: string[];
   const invalid: string[] = [];
   const duplicates: string[] = [];
 
-  // Language codes should be lowercase letters only (2-3 chars)
-  const validPattern = /^[a-z]{2,3}$/;
+  // Backend requires exactly 2 letters (ISO 639-1)
+  const validPattern = /^[a-z]{2}$/;
 
   for (const entry of entries) {
     if (!validPattern.test(entry)) {
@@ -1012,7 +1012,7 @@ await client.trackConversion('${experimentKey || 'experiment-key'}', context, {
                                   )}
                                   {langValidation.invalid.length > 0 && (
                                     <p className="text-xs text-destructive">
-                                      Invalid: {langValidation.invalid.join(', ')} (must be 2-3 lowercase letters)
+                                      Invalid: {langValidation.invalid.join(', ')} (must be 2 lowercase letters)
                                     </p>
                                   )}
                                 </div>

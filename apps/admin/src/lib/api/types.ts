@@ -32,14 +32,19 @@ export interface Environment {
   createdAt: string;
 }
 
-// Config types
-export interface ConfigVersion {
+// Config Parameter types (Firebase-style individual parameters)
+export type ConfigValueType = 'string' | 'number' | 'boolean' | 'json';
+
+export interface ConfigParameter {
   platform: string;
   environment: string;
-  versionTimestamp: string; // Unique identifier (ISO-8601 timestamp)
-  versionLabel: string; // Semantic version for display (e.g., "1.0.0")
-  isStable: boolean;
-  config: Record<string, unknown>;
+  parameterKey: string;
+  version: string; // "1", "2", "3" - per-parameter versioning
+  valueType: ConfigValueType;
+  defaultValue: string; // Stored as string, parsed based on valueType
+  description?: string;
+  parameterGroup?: string; // For organizing parameters in UI
+  isActive: boolean;
   createdBy: string;
   createdAt: string;
 }

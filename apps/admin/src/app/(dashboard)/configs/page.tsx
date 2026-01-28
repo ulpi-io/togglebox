@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { getConfigVersionsApi, markConfigStableApi, getAllConfigsApi } from '@/lib/api/configs';
+import { listConfigParametersApi, getAllConfigsApi, deleteConfigParameterApi } from '@/lib/api/configs';
 import { getCurrentUserApi } from '@/lib/api/auth';
-import type { ConfigVersion, User } from '@/lib/api/types';
+import type { ConfigParameter, User } from '@/lib/api/types';
 import {
   Badge,
   Card,
@@ -20,21 +20,35 @@ import {
   TableHeader,
   TableRow,
 } from '@togglebox/ui';
-import { ConfigVersionHistory } from '@/components/configs/config-version-history';
-import { DeleteConfigButton } from '@/components/configs/delete-config-button';
+import { ConfigParameterHistory } from '@/components/configs/config-parameter-history';
+import { DeleteConfigParameterButton } from '@/components/configs/delete-config-parameter-button';
 import { CreateEntityButton } from '@/components/common/create-entity-button';
 import { PlatformEnvFilter, usePlatformEnvFilter } from '@/components/filters/platform-env-filter';
 
-type ConfigFilter = 'all' | 'stable' | 'draft';
+type ConfigFilter = 'all' | 'active' | 'inactive';
+
+/**
+ * Parse and display config value based on type.
+ */
+function formatConfigValue(valueType: string, defaultValue: string): string {
+  if (valueType === 'json') {
+    try {
+      const parsed = JSON.parse(defaultValue);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return defaultValue;
+    }
+  }
+  return defaultValue;
+}
 
 function ConfigsContent() {
   const { platform, environment } = usePlatformEnvFilter();
-  const [versions, setVersions] = useState<ConfigVersion[]>([]);
+  const [parameters, setParameters] = useState<ConfigParameter[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [markingStable, setMarkingStable] = useState<string | null>(null);
-  const [filter, setFilter] = useState<ConfigFilter>('all');
+  const [filter, setFilter] = useState<ConfigFilter>('active');
 
   const isAdmin = user?.role === 'admin';
 
@@ -47,70 +61,69 @@ function ConfigsContent() {
     }
   }, []);
 
-  const loadVersions = useCallback(async () => {
+  const loadParameters = useCallback(async () => {
     try {
       setIsLoading(true);
       if (!platform || !environment) {
-        // Load all configs across all platforms/environments
+        // Load all config parameters across all platforms/environments
         const data = await getAllConfigsApi();
-        setVersions(data);
+        setParameters(data);
       } else {
-        const data = await getConfigVersionsApi(platform, environment);
-        setVersions(data);
+        const data = await listConfigParametersApi(platform, environment);
+        setParameters(data);
       }
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load config versions');
+      setError(err instanceof Error ? err.message : 'Failed to load config parameters');
     } finally {
       setIsLoading(false);
     }
   }, [platform, environment]);
 
   useEffect(() => {
-    loadVersions();
+    loadParameters();
     loadUser();
-  }, [loadVersions, loadUser]);
+  }, [loadParameters, loadUser]);
 
-  const handleMarkStable = async (versionLabel: string) => {
-    if (!platform || !environment) return;
-    setMarkingStable(versionLabel);
-    try {
-      await markConfigStableApi(platform, environment, versionLabel);
-      await loadVersions();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to mark as stable');
-    } finally {
-      setMarkingStable(null);
+  // Get only active (latest) versions for display - one per parameterKey
+  const activeParameters = useMemo(() => {
+    const activeMap = new Map<string, ConfigParameter>();
+    for (const param of parameters) {
+      if (param.isActive) {
+        const key = `${param.platform}:${param.environment}:${param.parameterKey}`;
+        activeMap.set(key, param);
+      }
     }
-  };
+    return Array.from(activeMap.values());
+  }, [parameters]);
 
-  // Sort by versionTimestamp descending (latest first)
-  const sortedVersions = [...versions].sort((a, b) => {
-    return new Date(b.versionTimestamp).getTime() - new Date(a.versionTimestamp).getTime();
-  });
+  // Filter logic
+  const activeCount = useMemo(() => activeParameters.length, [activeParameters]);
 
-  // Filter logic for the All Versions table
-  const stableCount = useMemo(() => versions.filter((v) => v.isStable).length, [versions]);
-  const draftCount = useMemo(() => versions.filter((v) => !v.isStable).length, [versions]);
-
-  const filteredVersions = useMemo(() => {
-    if (filter === 'stable') return sortedVersions.filter((v) => v.isStable);
-    if (filter === 'draft') return sortedVersions.filter((v) => !v.isStable);
-    return sortedVersions;
-  }, [sortedVersions, filter]);
+  const filteredParameters = useMemo(() => {
+    if (filter === 'active') return activeParameters;
+    if (filter === 'all') return parameters;
+    if (filter === 'inactive') return parameters.filter((p) => !p.isActive);
+    return activeParameters; // Default to showing only active parameters
+  }, [activeParameters, parameters, filter]);
 
   const filterOptions = [
-    { value: 'all' as const, label: 'All', count: versions.length },
-    { value: 'stable' as const, label: 'Stable', count: stableCount },
-    { value: 'draft' as const, label: 'Draft', count: draftCount },
+    { value: 'active' as const, label: 'Active', count: activeCount },
+    { value: 'all' as const, label: 'All Versions', count: parameters.length },
   ];
 
-  // Get the display version: stable version if exists, otherwise latest
-  const stableVersion = sortedVersions.find((v) => v.isStable);
-  const latestVersion = sortedVersions[0];
-  const displayVersion = stableVersion || latestVersion;
-  const isShowingUnstable = !stableVersion && latestVersion;
-  const totalVersions = sortedVersions.length;
+  // Group parameters by parameterGroup
+  const groupedParameters = useMemo(() => {
+    const groups = new Map<string, ConfigParameter[]>();
+    for (const param of filteredParameters) {
+      const groupName = param.parameterGroup || 'Ungrouped';
+      if (!groups.has(groupName)) {
+        groups.set(groupName, []);
+      }
+      groups.get(groupName)!.push(param);
+    }
+    return groups;
+  }, [filteredParameters]);
 
   const hasSelection = platform && environment;
 
@@ -130,34 +143,34 @@ function ConfigsContent() {
           <Card>
             <CardContent className="py-12 text-center">
               <div className="text-destructive text-lg font-bold mb-2">
-                Error loading configs
+                Error loading config parameters
               </div>
               <p className="text-muted-foreground mb-4">{error}</p>
-              <Button variant="outline" onClick={loadVersions}>
+              <Button variant="outline" onClick={loadParameters}>
                 Retry
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {!isLoading && !error && versions.length === 0 && (
+        {!isLoading && !error && activeParameters.length === 0 && (
           <Card>
             <CardContent className="py-12 text-center">
               <div className="text-6xl mb-4">⚙️</div>
-              <h3 className="text-xl font-black mb-2">No Remote Configs Yet</h3>
+              <h3 className="text-xl font-black mb-2">No Config Parameters Yet</h3>
               <p className="text-muted-foreground mb-6">
-                Create your first remote config version
+                Create your first config parameter (Firebase-style individual parameters)
               </p>
               <CreateEntityButton entityType="configs" />
             </CardContent>
           </Card>
         )}
 
-        {!isLoading && !error && versions.length > 0 && (
+        {!isLoading && !error && activeParameters.length > 0 && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xl font-black">All Configs</CardTitle>
+                <CardTitle className="text-xl font-black">All Config Parameters</CardTitle>
                 <div className="flex items-center gap-4">
                   <FilterTabs
                     options={filterOptions}
@@ -174,64 +187,50 @@ function ConfigsContent() {
                   <TableRow>
                     <TableHead>Platform</TableHead>
                     <TableHead>Environment</TableHead>
+                    <TableHead>Parameter Key</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Value</TableHead>
                     <TableHead>Version</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created By</TableHead>
-                    <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredVersions.map((version) => (
-                    <TableRow key={`${version.platform}-${version.environment}-${version.versionTimestamp}`}>
-                      <TableCell className="font-semibold">{version.platform}</TableCell>
-                      <TableCell>{version.environment}</TableCell>
-                      <TableCell className="font-mono">v{version.versionLabel}</TableCell>
+                  {filteredParameters.map((param) => (
+                    <TableRow key={`${param.platform}-${param.environment}-${param.parameterKey}-${param.version}`}>
+                      <TableCell className="font-semibold">{param.platform}</TableCell>
+                      <TableCell>{param.environment}</TableCell>
+                      <TableCell className="font-mono text-sm">{param.parameterKey}</TableCell>
                       <TableCell>
-                        {version.isStable ? (
-                          <Badge variant="default" size="sm" className="font-black">
-                            STABLE
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" size="sm">
-                            Draft
-                          </Badge>
-                        )}
+                        <Badge variant="secondary" size="sm">
+                          {param.valueType}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {version.createdBy || '-'}
+                      <TableCell className="font-mono text-xs max-w-48 truncate" title={param.defaultValue}>
+                        {param.defaultValue.length > 50
+                          ? `${param.defaultValue.substring(0, 50)}...`
+                          : param.defaultValue}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {new Date(version.createdAt).toLocaleDateString()}
+                      <TableCell>
+                        <Badge variant={param.isActive ? 'default' : 'secondary'} size="sm">
+                          v{param.version}
+                          {param.isActive && ' (active)'}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          <ConfigVersionHistory
-                            platform={version.platform}
-                            environment={version.environment}
-                            currentVersion={version.versionLabel}
-                            onVersionMarkedStable={loadVersions}
+                          <ConfigParameterHistory
+                            platform={param.platform}
+                            environment={param.environment}
+                            parameterKey={param.parameterKey}
+                            currentVersion={param.version}
+                            onVersionChange={loadParameters}
                           />
-                          <Link
-                            href={`/platforms/${version.platform}/environments/${version.environment}/configs/${version.versionLabel}`}
-                          >
-                            <Button variant="outline" size="sm" className="text-xs">
-                              View
-                            </Button>
-                          </Link>
-                          <Link
-                            href={`/platforms/${version.platform}/environments/${version.environment}/configs/${version.versionLabel}/edit`}
-                          >
-                            <Button variant="outline" size="sm" className="text-xs">
-                              Edit
-                            </Button>
-                          </Link>
                           {isAdmin && (
-                            <DeleteConfigButton
-                              platform={version.platform}
-                              environment={version.environment}
-                              version={version.versionLabel}
-                              onSuccess={loadVersions}
+                            <DeleteConfigParameterButton
+                              platform={param.platform}
+                              environment={param.environment}
+                              parameterKey={param.parameterKey}
+                              onSuccess={loadParameters}
                             />
                           )}
                         </div>
@@ -247,6 +246,7 @@ function ConfigsContent() {
     );
   }
 
+  // Environment-specific view
   return (
     <div className="space-y-6">
       {isLoading && (
@@ -265,191 +265,134 @@ function ConfigsContent() {
         <Card>
           <CardContent className="py-12 text-center">
             <div className="text-destructive text-lg font-bold mb-2">
-              Error loading remote config
+              Error loading config parameters
             </div>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button variant="outline" onClick={loadVersions}>
+            <Button variant="outline" onClick={loadParameters}>
               Retry
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {!isLoading && !error && !displayVersion && (
+      {!isLoading && !error && activeParameters.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <div className="text-6xl mb-4">⚙️</div>
-            <h3 className="text-xl font-black mb-2">No Remote Config Yet</h3>
+            <h3 className="text-xl font-black mb-2">No Config Parameters Yet</h3>
             <p className="text-muted-foreground mb-6">
-              Create your first remote config version for {environment}
+              Create your first config parameter for {environment}
             </p>
             <Link href={`/configs/create?platform=${platform}&environment=${environment}`}>
-              <Button>Create Config</Button>
+              <Button>Create Parameter</Button>
             </Link>
           </CardContent>
         </Card>
       )}
 
-      {!isLoading && !error && displayVersion && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center space-x-3">
+      {!isLoading && !error && activeParameters.length > 0 && (
+        <>
+          {/* Summary Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
                   <CardTitle className="text-2xl font-black">
-                    v{displayVersion.versionLabel}
+                    {activeParameters.length} Parameter{activeParameters.length !== 1 ? 's' : ''}
                   </CardTitle>
-                  {displayVersion.isStable ? (
-                    <Badge variant="default" size="sm" className="font-black">
-                      STABLE
-                    </Badge>
-                  ) : (
-                    <Badge variant="warning" size="sm" className="font-black">
-                      LATEST (NOT STABLE)
-                    </Badge>
-                  )}
-                  {totalVersions > 1 && (
-                    <Badge variant="secondary" size="sm">
-                      {totalVersions} version{totalVersions !== 1 ? 's' : ''}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Deployed {new Date(displayVersion.createdAt).toLocaleString()}
-                </p>
-                {isShowingUnstable && (
-                  <p className="text-sm text-warning mt-1">
-                    No stable version set. Consider marking this version as stable for production use.
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Firebase-style individual config parameters for {platform} / {environment}
                   </p>
-                )}
+                </div>
+                <Link href={`/configs/create?platform=${platform}&environment=${environment}`}>
+                  <Button>Create Parameter</Button>
+                </Link>
               </div>
-              <Link href={`/configs/create?platform=${platform}&environment=${environment}`}>
-                <Button>Create Config</Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-sm font-bold mb-2">Configuration:</div>
-              <pre className="p-4 bg-muted border border-black/20 rounded-lg overflow-x-auto text-xs font-mono max-h-64 overflow-y-auto">
-                {JSON.stringify(displayVersion.config, null, 2)}
-              </pre>
-            </div>
+            </CardHeader>
+          </Card>
 
-            <div className="flex flex-wrap gap-2 pt-3 border-t border-black/10">
-              <ConfigVersionHistory
-                platform={platform}
-                environment={environment}
-                currentVersion={displayVersion.versionLabel}
-                onVersionMarkedStable={loadVersions}
-              />
-              <Link
-                href={`/platforms/${platform}/environments/${environment}/configs/${displayVersion.versionLabel}`}
-              >
-                <Button variant="outline" size="sm" className="text-xs">
-                  View Details
-                </Button>
-              </Link>
-              <Link href={`/platforms/${platform}/environments/${environment}/configs/${displayVersion.versionLabel}/edit`}>
-                <Button variant="outline" size="sm" className="text-xs">Edit</Button>
-              </Link>
-              {!displayVersion.isStable && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleMarkStable(displayVersion.versionLabel)}
-                  disabled={markingStable === displayVersion.versionLabel}
-                  className="text-xs"
-                >
-                  {markingStable === displayVersion.versionLabel ? 'Marking...' : 'Mark Stable'}
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* All Versions Table */}
-      {!isLoading && !error && sortedVersions.length > 1 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-black">All Versions</CardTitle>
-              <FilterTabs
-                options={filterOptions}
-                value={filter}
-                onChange={setFilter}
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created By</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredVersions.map((version) => (
-                  <TableRow key={version.versionTimestamp}>
-                    <TableCell className="font-mono">v{version.versionLabel}</TableCell>
-                    <TableCell>
-                      {version.isStable ? (
-                        <Badge variant="default" size="sm" className="font-black">
-                          STABLE
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" size="sm">
-                          Draft
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {version.createdBy || '-'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {new Date(version.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Link
-                          href={`/platforms/${platform}/environments/${environment}/configs/${version.versionLabel}`}
-                        >
-                          <Button variant="outline" size="sm" className="text-xs">
-                            View
-                          </Button>
-                        </Link>
-                        {!version.isStable && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleMarkStable(version.versionLabel)}
-                            disabled={markingStable === version.versionLabel}
-                            className="text-xs"
-                          >
-                            {markingStable === version.versionLabel ? '...' : 'Mark Stable'}
-                          </Button>
-                        )}
-                        {isAdmin && (
-                          <DeleteConfigButton
-                            platform={platform}
-                            environment={environment}
-                            version={version.versionLabel}
-                            onSuccess={loadVersions}
-                          />
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+          {/* Parameters by Group */}
+          {Array.from(groupedParameters.entries()).map(([groupName, groupParams]) => (
+            <Card key={groupName}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-black">{groupName}</CardTitle>
+                  <Badge variant="secondary" size="sm">
+                    {groupParams.length} parameter{groupParams.length !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Parameter Key</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead>Version</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {groupParams.map((param) => (
+                      <TableRow key={param.parameterKey}>
+                        <TableCell className="font-mono text-sm font-semibold">
+                          {param.parameterKey}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" size="sm">
+                            {param.valueType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs max-w-64">
+                          {param.valueType === 'json' ? (
+                            <pre className="whitespace-pre-wrap overflow-x-auto max-h-20 overflow-y-auto">
+                              {formatConfigValue(param.valueType, param.defaultValue)}
+                            </pre>
+                          ) : (
+                            <span title={param.defaultValue}>
+                              {param.defaultValue.length > 60
+                                ? `${param.defaultValue.substring(0, 60)}...`
+                                : param.defaultValue}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="default" size="sm">
+                            v{param.version}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs max-w-48 truncate">
+                          {param.description || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2">
+                            <ConfigParameterHistory
+                              platform={param.platform}
+                              environment={param.environment}
+                              parameterKey={param.parameterKey}
+                              currentVersion={param.version}
+                              onVersionChange={loadParameters}
+                            />
+                            {isAdmin && (
+                              <DeleteConfigParameterButton
+                                platform={param.platform}
+                                environment={param.environment}
+                                parameterKey={param.parameterKey}
+                                onSuccess={loadParameters}
+                              />
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ))}
+        </>
       )}
     </div>
   );
@@ -461,7 +404,7 @@ export default function ConfigsPage() {
       <div className="mb-8">
         <h1 className="text-4xl font-black mb-2">Remote Configs</h1>
         <p className="text-muted-foreground">
-          Manage remote configuration versions
+          Firebase-style individual config parameters with per-parameter versioning
         </p>
       </div>
 

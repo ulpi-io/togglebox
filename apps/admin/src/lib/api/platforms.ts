@@ -1,5 +1,5 @@
 import { browserApiClient } from './browser-client';
-import type { Platform, Environment, ConfigVersion } from './types';
+import type { Platform, Environment } from './types';
 
 // Platforms
 export async function getPlatformsApi(): Promise<Platform[]> {
@@ -62,17 +62,3 @@ export async function updateEnvironmentApi(
   });
 }
 
-// Config Versions
-export async function getConfigVersionsApi(
-  platform: string,
-  environment: string
-): Promise<ConfigVersion[]> {
-  return browserApiClient(`/api/v1/platforms/${platform}/environments/${environment}/versions`);
-}
-
-export async function getLatestStableConfigApi(
-  platform: string,
-  environment: string
-): Promise<ConfigVersion> {
-  return browserApiClient(`/api/v1/platforms/${platform}/environments/${environment}/versions/latest/stable`);
-}

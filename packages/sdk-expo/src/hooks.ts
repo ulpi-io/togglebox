@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import type { ToggleBoxClient } from '@togglebox/sdk'
 import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
 import type { Experiment, ExperimentContext } from '@togglebox/experiments'
 import { useToggleBoxContext } from './provider'
@@ -169,28 +168,3 @@ export function useAnalytics(): UseAnalyticsResult {
   return { trackEvent, trackConversion, flushStats }
 }
 
-// ============================================================================
-// Advanced
-// ============================================================================
-
-/**
- * Hook to access the underlying ToggleBoxClient instance
- *
- * Use with caution - prefer using specialized hooks when possible.
- *
- * @returns The client instance or null if not initialized
- *
- * @example
- * ```tsx
- * const client = useToggleBoxClient()
- *
- * if (client) {
- *   // Access low-level client methods
- *   await client.refresh()
- * }
- * ```
- */
-export function useToggleBoxClient(): ToggleBoxClient | null {
-  const { getClient } = useToggleBoxContext()
-  return getClient()
-}

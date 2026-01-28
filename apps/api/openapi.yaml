@@ -96,8 +96,8 @@ tags:
     description: Platform management
   - name: Environments
     description: Environment management
-  - name: Config Versions
-    description: Versioned configuration management (immutable)
+  - name: Config Parameters
+    description: Firebase-style individual config parameters with independent version history
   - name: Feature Flags
     description: Feature flag management with 2-value model (A/B) and geographic targeting
   - name: Experiments
@@ -1078,81 +1078,25 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   # ============================================================================
-  # CONFIG VERSIONS (Public Read)
+  # CONFIG PARAMETERS (Public Read) - Firebase-Style Individual Parameters
   # ============================================================================
 
-  /platforms/{platform}/environments/{environment}/versions:
+  /platforms/{platform}/environments/{environment}/configs:
     get:
       tags:
-        - Config Versions
-      summary: List all configuration versions
-      description: Retrieve all configuration versions for an environment
-      operationId: listVersions
+        - Config Parameters
+      summary: Get all active config parameters (SDK endpoint)
+      description: |
+        Retrieve all active config parameters as a key-value object.
+        This is the primary endpoint for client SDKs.
+        Returns only the active version of each parameter.
+      operationId: getConfigs
       parameters:
         - $ref: '#/components/parameters/Platform'
         - $ref: '#/components/parameters/Environment'
       responses:
         '200':
-          description: List of configuration versions
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Version'
-                  timestamp:
-                    type: string
-                    format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /platforms/{platform}/environments/{environment}/versions/{version}:
-    get:
-      tags:
-        - Config Versions
-      summary: Get specific configuration version
-      description: Retrieve a specific configuration version by timestamp
-      operationId: getVersion
-      parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/Version'
-      responses:
-        '200':
-          description: Configuration version details
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/Version'
-                  timestamp:
-                    type: string
-                    format: date-time
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /platforms/{platform}/environments/{environment}/versions/latest/stable:
-    get:
-      tags:
-        - Config Versions
-      summary: Get latest stable configuration
-      description: Retrieve the latest stable (production-ready) configuration version. Primary endpoint for client SDKs.
-      operationId: getLatestStableVersion
-      parameters:
-        - $ref: '#/components/parameters/Platform'
-        - $ref: '#/components/parameters/Environment'
-      responses:
-        '200':
-          description: Latest stable configuration
+          description: Key-value object of all active config parameters
           headers:
             Cache-Control:
               schema:
@@ -1166,7 +1110,43 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Version'
+                    type: object
+                    description: Key-value object where keys are parameter keys and values are parsed based on valueType
+                    additionalProperties: true
+                    example:
+                      app.name: "My App"
+                      feature.maxItems: 100
+                      ui.darkMode: true
+                      pricing.tiers: ["free", "pro", "enterprise"]
+                  timestamp:
+                    type: string
+                    format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /platforms/{platform}/environments/{environment}/configs/{parameterKey}:
+    get:
+      tags:
+        - Config Parameters
+      summary: Get specific config parameter
+      description: Retrieve the active version of a specific config parameter with full metadata.
+      operationId: getConfigParameter
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ParameterKey'
+      responses:
+        '200':
+          description: Config parameter details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ConfigParameter'
                   timestamp:
                     type: string
                     format: date-time
@@ -1174,16 +1154,18 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   # ============================================================================
-  # CONFIG VERSIONS (Internal Write)
+  # CONFIG PARAMETERS (Internal Write) - Firebase-Style Individual Parameters
   # ============================================================================
 
-  /internal/platforms/{platform}/environments/{environment}/versions:
+  /internal/platforms/{platform}/environments/{environment}/configs:
     post:
       tags:
-        - Config Versions
-      summary: Create new configuration version
-      description: Deploy a new immutable configuration version. Version timestamps are auto-generated.
-      operationId: createVersion
+        - Config Parameters
+      summary: Create new config parameter
+      description: |
+        Create a new config parameter (version 1).
+        Each parameter has independent version history.
+      operationId: createConfigParameter
       security:
         - bearerAuth: []
         - apiKeyAuth: []
@@ -1197,26 +1179,30 @@ paths:
             schema:
               type: object
               required:
-                - version
-                - config
+                - parameterKey
+                - valueType
+                - defaultValue
               properties:
-                version:
+                parameterKey:
                   type: string
-                  pattern: '^\d+\.\d+\.\d+$'
-                  description: Semantic version label (e.g., "1.0.0", "2.1.3"). Required. This becomes the versionLabel internally.
-                isStable:
-                  type: boolean
-                  default: false
-                  description: Mark as production-ready
-                config:
-                  $ref: '#/components/schemas/Config'
-                createdBy:
+                  pattern: '^[a-zA-Z][a-zA-Z0-9_.-]*$'
+                  description: Unique parameter key (e.g., "app.name", "feature.maxItems")
+                valueType:
                   type: string
-                  format: email
-                  description: Optional - extracted from auth context if not provided
+                  enum: [string, number, boolean, json]
+                  description: Type of the parameter value
+                defaultValue:
+                  type: string
+                  description: Value as string (parsed based on valueType)
+                description:
+                  type: string
+                  description: Human-readable description
+                parameterGroup:
+                  type: string
+                  description: Group for organizing parameters in the UI
       responses:
         '201':
-          description: Configuration version created successfully
+          description: Config parameter created successfully
           content:
             application/json:
               schema:
@@ -1225,7 +1211,110 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Version'
+                    $ref: '#/components/schemas/ConfigParameter'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Parameter already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /internal/platforms/{platform}/environments/{environment}/configs/list:
+    get:
+      tags:
+        - Config Parameters
+      summary: List all config parameters with metadata
+      description: |
+        Retrieve all active config parameters with full metadata.
+        Used by admin dashboard for parameter management.
+      operationId: listConfigParameters
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+      responses:
+        '200':
+          description: List of config parameters with metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConfigParameter'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/configs/{parameterKey}:
+    patch:
+      tags:
+        - Config Parameters
+      summary: Update config parameter
+      description: |
+        Update a config parameter (creates new version).
+        The new version becomes the active version.
+      operationId: updateConfigParameter
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ParameterKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                valueType:
+                  type: string
+                  enum: [string, number, boolean, json]
+                defaultValue:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                parameterGroup:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Config parameter updated successfully (new version created)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ConfigParameter'
                   timestamp:
                     type: string
                     format: date-time
@@ -1240,53 +1329,46 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
 
-  /internal/platforms/{platform}/environments/{environment}/versions/{version}:
     delete:
       tags:
-        - Config Versions
-      summary: Delete configuration version
-      description: Delete a specific configuration version. Cannot delete stable versions.
-      operationId: deleteVersion
+        - Config Parameters
+      summary: Delete config parameter
+      description: Delete a config parameter and all its versions.
+      operationId: deleteConfigParameter
       security:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
         - $ref: '#/components/parameters/Platform'
         - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/Version'
+        - $ref: '#/components/parameters/ParameterKey'
       responses:
         '204':
-          description: Version deleted successfully
+          description: Config parameter deleted successfully
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          description: Cannot delete stable version
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
-  /internal/platforms/{platform}/environments/{environment}/versions/{version}/mark-stable:
-    patch:
+  /internal/platforms/{platform}/environments/{environment}/configs/{parameterKey}/versions:
+    get:
       tags:
-        - Config Versions
-      summary: Mark version as stable
-      description: Mark a configuration version as stable (production-ready). Only one version can be stable at a time per environment.
-      operationId: markVersionStable
+        - Config Parameters
+      summary: List parameter version history
+      description: Retrieve all versions of a specific config parameter.
+      operationId: listConfigParameterVersions
       security:
         - bearerAuth: []
         - apiKeyAuth: []
       parameters:
         - $ref: '#/components/parameters/Platform'
         - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/Version'
+        - $ref: '#/components/parameters/ParameterKey'
       responses:
         '200':
-          description: Version marked as stable successfully
+          description: Version history for the parameter
           content:
             application/json:
               schema:
@@ -1295,10 +1377,62 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/Version'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConfigParameter'
                   timestamp:
                     type: string
                     format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /internal/platforms/{platform}/environments/{environment}/configs/{parameterKey}/rollback:
+    post:
+      tags:
+        - Config Parameters
+      summary: Rollback to previous version
+      description: |
+        Rollback a config parameter to a previous version.
+        This marks the specified version as active.
+      operationId: rollbackConfigParameter
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Platform'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/ParameterKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - version
+              properties:
+                version:
+                  type: string
+                  description: Version number to rollback to (e.g., "1", "2")
+      responses:
+        '200':
+          description: Rollback successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ConfigParameter'
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2785,13 +2919,13 @@ components:
         type: string
       description: Environment name
 
-    Version:
-      name: version
+    ParameterKey:
+      name: parameterKey
       in: path
       required: true
       schema:
         type: string
-      description: Version label (human-readable identifier, e.g., "v1.0.0", "1.2.3"). This is the versionLabel field, not the auto-generated versionTimestamp.
+      description: Config parameter key (e.g., "app.name", "feature.maxItems")
 
     FlagKey:
       name: flagKey
@@ -2929,15 +3063,19 @@ components:
       description: Arbitrary JSON configuration object. Maximum size 300KB.
       additionalProperties: true
 
-    Version:
+    ConfigParameter:
       type: object
+      description: |
+        Firebase-style config parameter with independent version history.
+        Each parameter can have multiple versions (1, 2, 3, ...) with one active at a time.
       required:
         - platform
         - environment
-        - versionTimestamp
-        - versionLabel
-        - isStable
-        - config
+        - parameterKey
+        - version
+        - valueType
+        - defaultValue
+        - isActive
         - createdBy
         - createdAt
       properties:
@@ -2945,20 +3083,29 @@ components:
           type: string
         environment:
           type: string
-        versionTimestamp:
+        parameterKey:
           type: string
-          format: date-time
-          description: Auto-generated ISO-8601 timestamp for ordering
-        versionLabel:
+          pattern: '^[a-zA-Z][a-zA-Z0-9_.-]*$'
+          description: Unique parameter key (e.g., "app.name", "feature.maxItems")
+        version:
           type: string
-          pattern: '^\d+\.\d+\.\d+$'
-          description: Semantic version label (e.g., "1.0.0"). This is the primary identifier used in URLs.
-        isStable:
+          description: Per-parameter version number (e.g., "1", "2", "3")
+        valueType:
+          type: string
+          enum: [string, number, boolean, json]
+          description: Type of the parameter value
+        defaultValue:
+          type: string
+          description: Value stored as string, parsed based on valueType
+        description:
+          type: string
+          description: Human-readable description
+        parameterGroup:
+          type: string
+          description: Group for organizing parameters in the UI
+        isActive:
           type: boolean
-          default: false
-          description: Production-ready flag
-        config:
-          $ref: '#/components/schemas/Config'
+          description: Whether this version is the active version for the parameter
         createdBy:
           type: string
           format: email

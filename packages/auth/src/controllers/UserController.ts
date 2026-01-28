@@ -629,6 +629,22 @@ export class UserController {
         return;
       }
 
+      // SECURITY: Prevent demoting the last admin user
+      if (role !== 'admin') {
+        const targetUser = await this.userService.getUserById(id);
+        if (targetUser?.role === 'admin') {
+          const adminCount = await this.userService.countByRole('admin');
+          if (adminCount <= 1) {
+            res.status(400).json({
+              success: false,
+              error: 'Cannot demote the last admin user. Promote another user to admin first.',
+              timestamp: new Date().toISOString(),
+            });
+            return;
+          }
+        }
+      }
+
       const user = await this.userService.updateProfile(id, { role });
 
       res.status(200).json({

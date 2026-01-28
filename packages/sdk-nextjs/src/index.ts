@@ -1,7 +1,7 @@
-// Provider and context
-export { ToggleBoxProvider, useToggleBoxContext } from './provider'
+// Provider
+export { ToggleBoxProvider } from './provider'
 
-// Hooks
+// Hooks (client-side)
 export {
   useConfig,
   useFlags,
@@ -9,13 +9,9 @@ export {
   useExperiments,
   useExperiment,
   useAnalytics,
-  useToggleBoxClient,
 } from './hooks'
 
-// Server-side helpers
-export { getServerSideConfig, getStaticConfig } from './server'
-
-// Types
+// Types (client)
 export type {
   ToggleBoxProviderProps,
   ToggleBoxContextValue,

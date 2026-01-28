@@ -36,6 +36,12 @@ pnpm install
 # Build SDK packages
 pnpm build:packages
 
+# Start the API (required for the examples)
+pnpm dev:api
+
+# Seed demo data (in another terminal) - creates demo user, flags, experiments
+./scripts/seed-demo-data.sh
+
 # Configure environment (optional - has defaults)
 cp apps/example-nextjs/.env.example apps/example-nextjs/.env.local
 
@@ -44,6 +50,21 @@ pnpm dev:example-nextjs
 ```
 
 The app runs at `http://localhost:3002`.
+
+### Demo Data
+
+The seed script creates demo data for this app:
+
+| Type | Key | Description |
+|------|-----|-------------|
+| **Platform** | `web` | Platform identifier |
+| **Environment** | `staging` | Environment for this app |
+| **Flag** | `dark-mode` | Toggle dark mode UI |
+| **Flag** | `beta-features` | Enable beta features |
+| **Experiment** | `checkout-test` | A/B test with `control` and `variant_a` |
+| **Config** | `theme`, `apiTimeout` | Remote configuration values |
+
+**Demo Admin:** `admin@togglebox.com` / `Parola123!`
 
 ### Environment Variables
 

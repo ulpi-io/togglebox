@@ -3,17 +3,15 @@
  *
  * @module cloudfront
  *
- * @deprecated Use @togglebox/cache package instead for unified cache management.
- * This module is kept for CloudFront-specific monitoring endpoints only.
- *
  * @remarks
- * **CloudFront Cache Invalidation:**
- * Provides granular cache invalidation at multiple levels:
- * - Global: All caches (`invalidateGlobalCache`)
- * - Platform: All environments (`invalidatePlatformCache`)
- * - Environment: All versions (`invalidateEnvironmentCache`)
- * - Version: Specific version (`invalidateVersionCache`)
- * - Feature Flags: All or specific flags
+ * This module provides CloudFront-specific monitoring and status endpoints.
+ * For cache invalidation operations, use the `@togglebox/cache` package which
+ * provides a unified interface across multiple CDN providers.
+ *
+ * **CloudFront-Specific Features:**
+ * - Get invalidation status
+ * - List recent invalidations
+ * - Generate cache paths for invalidation
  *
  * **Authentication:**
  * Uses AWS SDK credentials from environment or IAM roles:
@@ -236,20 +234,6 @@ export class CloudFrontService {
       `/platforms/${platform}/environments/${environment}/*/stats`,
       `/platforms/${platform}/environments/${environment}/*/stats/*`,
     ]);
-  }
-
-  /**
-   * @deprecated Use invalidateAllFlagsCache instead
-   */
-  async invalidateAllFeatureFlagsCache(platform: string, environment: string): Promise<string> {
-    return this.invalidateAllFlagsCache(platform, environment);
-  }
-
-  /**
-   * @deprecated Use invalidateFlagCache instead
-   */
-  async invalidateFeatureFlagCache(platform: string, environment: string, flagKey: string): Promise<string> {
-    return this.invalidateFlagCache(platform, environment, flagKey);
   }
 
   /**

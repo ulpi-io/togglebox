@@ -75,6 +75,32 @@ pnpm dev:admin
 
 The API runs at `http://localhost:3000` and the admin dashboard at `http://localhost:3001`.
 
+### Seed Demo Data
+
+To populate the database with demo data for all example apps:
+
+```bash
+# Make sure the API is running first
+pnpm dev:api
+
+# In another terminal, run the seed script
+./scripts/seed-demo-data.sh
+```
+
+The seed script creates:
+
+| Resource | Description |
+|----------|-------------|
+| **Demo Admin User** | `admin@togglebox.com` / `Parola123!` |
+| **API Key** | Full permissions for authenticated requests |
+| **Platforms** | `web`, `mobile`, `ecommerce` |
+| **Environments** | `staging` (web/mobile), `development` (ecommerce) |
+| **Config Parameters** | `theme`, `apiTimeout` per platform |
+| **Feature Flags** | `dark-mode`, `new-checkout-flow`, `beta-features`, `biometric-auth` |
+| **Experiments** | `checkout-test`, `cta-test`, `checkout-button-test`, `pricing-display-test` |
+
+All experiments are automatically started and in "running" status.
+
 ---
 
 ## SDKs

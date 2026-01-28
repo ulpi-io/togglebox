@@ -105,6 +105,16 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   /**
+   * Count users by role.
+   * SECURITY: Used to prevent demoting the last admin user.
+   */
+  async countByRole(role: string): Promise<number> {
+    return prisma.user.count({
+      where: { role },
+    });
+  }
+
+  /**
    * Map Prisma user to domain User model
    */
   private mapToUser(prismaUser: PrismaUserModel): User {

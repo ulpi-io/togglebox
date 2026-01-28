@@ -112,12 +112,13 @@ export class PrismaEnvironmentRepository implements IEnvironmentRepository {
       where: { platform },
     });
 
-    // If no pagination requested, fetch ALL items
+    // SECURITY: If no pagination requested, apply hard limit to prevent unbounded queries
     if (!pagination) {
+      const HARD_LIMIT = 100;
       const environments = await this.prisma.environment.findMany({
         where: { platform },
         orderBy: { createdAt: 'desc' },
-        // No skip/take - fetch all
+        take: HARD_LIMIT,
       });
 
       const items = environments.map((e) => ({

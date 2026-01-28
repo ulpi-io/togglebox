@@ -1,116 +1,8 @@
-/**
- * Polling & Refresh Example
- *
- * Shows auto-polling for real-time updates and manual refresh patterns.
- * Includes pull-to-refresh for mobile-friendly data refresh.
- */
 import { useState, useCallback } from 'react'
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  RefreshControl,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native'
+import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { useFlags } from '@togglebox/sdk-expo'
-import { ExamplePage } from '@/components/ExamplePage'
-import { Colors } from '@/lib/constants'
-
-const publicCode = `// In _layout.tsx - Enable auto-polling
-<ToggleBoxProvider
-  platform="mobile"
-  environment="production"
-  apiUrl="https://your-api.example.com/api/v1"
-  pollingInterval={30000}  // Auto-refresh every 30 seconds
->
-  <App />
-</ToggleBoxProvider>
-
-// In component - Manual refresh
-function PollingExample() {
-  const { flags, refresh, isLoading } = useFlags()
-
-  return (
-    <FlatList
-      data={flags}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={refresh}
-        />
-      }
-      renderItem={({ item }) => (
-        <FlagItem flag={item} />
-      )}
-    />
-  )
-}`
-
-const authCode = `// In _layout.tsx
-<ToggleBoxProvider
-  platform="mobile"
-  environment="production"
-  apiUrl="https://your-api.example.com/api/v1"
-  pollingInterval={30000}     // Auto-refresh every 30s
-  persistToStorage={true}      // Cache for offline
-  storageTTL={86400000}        // 24h cache TTL
->
-  <App />
-</ToggleBoxProvider>
-
-// In component - with manual refresh and last update time
-function PollingExample() {
-  const { flags, refresh, isLoading } = useFlags()
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
-
-  const handleRefresh = useCallback(async () => {
-    await refresh()
-    setLastRefresh(new Date())
-  }, [refresh])
-
-  return (
-    <View>
-      <Text>Last refresh: {lastRefresh?.toLocaleTimeString()}</Text>
-      <Button title="Refresh Now" onPress={handleRefresh} disabled={isLoading} />
-      <FlatList
-        data={flags}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
-        }
-        renderItem={({ item }) => <FlagItem flag={item} />}
-      />
-    </View>
-  )
-}
-
-// Changes made in dashboard appear after next poll or manual refresh`
-
-const keyPoints = [
-  'pollingInterval enables automatic background refresh',
-  'refresh() function allows manual data refresh',
-  'Pull-to-refresh pattern with RefreshControl',
-  'Combine with persistToStorage for offline + fresh data',
-  'isLoading state indicates when refresh is in progress',
-  'Typical polling intervals: 30s-60s for real-time, 5-15m for static data',
-]
 
 export default function PollingUpdatesScreen() {
-  return (
-    <ExamplePage
-      title="Polling Updates"
-      description="Keep data fresh with automatic polling and manual refresh. Includes pull-to-refresh for native mobile experience."
-      publicCode={publicCode}
-      authCode={authCode}
-      keyPoints={keyPoints}
-    >
-      <PollingDemo />
-    </ExamplePage>
-  )
-}
-
-function PollingDemo() {
   const { flags, refresh, isLoading } = useFlags()
   const [refreshCount, setRefreshCount] = useState(0)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
@@ -122,18 +14,15 @@ function PollingDemo() {
   }, [refresh])
 
   return (
-    <View style={styles.demo}>
-      {/* Polling Status */}
+    <View style={styles.container}>
+      <Text style={styles.title}>Polling Updates</Text>
+
       <View style={styles.statusCard}>
         <StatusRow label="Auto-Polling" value="Every 30s" />
         <StatusRow label="Manual Refreshes" value={String(refreshCount)} />
-        <StatusRow
-          label="Last Refresh"
-          value={lastRefresh ? lastRefresh.toLocaleTimeString() : 'Never'}
-        />
+        <StatusRow label="Last Refresh" value={lastRefresh ? lastRefresh.toLocaleTimeString() : 'Never'} />
       </View>
 
-      {/* Manual Refresh Button */}
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleRefresh}
@@ -146,15 +35,12 @@ function PollingDemo() {
         )}
       </TouchableOpacity>
 
-      {/* Pull-to-Refresh List */}
       <Text style={styles.sectionTitle}>Flags (pull to refresh)</Text>
       <View style={styles.listContainer}>
         <FlatList
           data={flags}
           keyExtractor={(item) => item.flagKey}
-          refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />}
           renderItem={({ item }) => (
             <View style={styles.flagRow}>
               <Text style={styles.flagKey}>{item.flagKey}</Text>
@@ -169,12 +55,10 @@ function PollingDemo() {
         />
       </View>
 
-      {/* Info */}
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>Real-Time Updates</Text>
         <Text style={styles.infoText}>
-          With pollingInterval enabled, changes you make in your dashboard will appear here automatically.
-          Pull down on the list to refresh manually.
+          With pollingInterval enabled, changes made in your dashboard appear here automatically.
         </Text>
       </View>
     </View>
@@ -191,114 +75,26 @@ function StatusRow({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  demo: {
-    gap: 12,
-  },
-  statusCard: {
-    backgroundColor: Colors.gray[50],
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.gray[200],
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[100],
-  },
-  statusLabel: {
-    fontSize: 14,
-    color: Colors.gray[500],
-  },
-  statusValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.gray[900],
-  },
-  button: {
-    backgroundColor: Colors.primary[500],
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.gray[700],
-    marginTop: 4,
-  },
-  listContainer: {
-    height: 180,
-    backgroundColor: Colors.gray[50],
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.gray[200],
-    overflow: 'hidden',
-  },
-  flagRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[100],
-  },
-  flagKey: {
-    fontSize: 14,
-    fontFamily: 'monospace',
-    color: Colors.gray[900],
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  onBadge: {
-    backgroundColor: '#dcfce7',
-  },
-  offBadge: {
-    backgroundColor: Colors.gray[100],
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.gray[500],
-  },
-  badgeTextOn: {
-    color: '#166534',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: Colors.gray[400],
-    padding: 24,
-    fontSize: 14,
-  },
-  infoCard: {
-    backgroundColor: Colors.primary[50],
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.primary[200],
-  },
-  infoTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 6,
-    color: Colors.primary[800],
-  },
-  infoText: {
-    fontSize: 13,
-    color: Colors.primary[700],
-    lineHeight: 20,
-  },
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
+  statusCard: { backgroundColor: '#f9fafb', padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 12 },
+  statusRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  statusLabel: { fontSize: 14, color: '#6b7280' },
+  statusValue: { fontSize: 14, fontWeight: '500', color: '#111827' },
+  button: { backgroundColor: '#3b82f6', padding: 14, borderRadius: 8, alignItems: 'center', marginBottom: 16 },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  sectionTitle: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  listContainer: { height: 180, backgroundColor: '#f9fafb', borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', overflow: 'hidden', marginBottom: 16 },
+  flagRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  flagKey: { fontSize: 14, fontFamily: 'monospace', color: '#111827' },
+  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+  onBadge: { backgroundColor: '#dcfce7' },
+  offBadge: { backgroundColor: '#f3f4f6' },
+  badgeText: { fontSize: 11, fontWeight: '600', color: '#6b7280' },
+  badgeTextOn: { color: '#166534' },
+  emptyText: { textAlign: 'center', color: '#9ca3af', padding: 24, fontSize: 14 },
+  infoCard: { backgroundColor: '#eff6ff', padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#bfdbfe' },
+  infoTitle: { fontSize: 13, fontWeight: '600', marginBottom: 6, color: '#1e40af' },
+  infoText: { fontSize: 13, color: '#1d4ed8', lineHeight: 20 },
 })

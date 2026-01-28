@@ -97,23 +97,23 @@ export async function createFlagApi(
     valueA?: boolean | string | number;
     valueB?: boolean | string | number;
     targeting?: {
-      countries?: { country: string; languages?: { language: string }[] }[];
+      countries?: { country: string; serveValue?: 'A' | 'B'; languages?: { language: string; serveValue?: 'A' | 'B' }[] }[];
       forceIncludeUsers?: string[];
       forceExcludeUsers?: string[];
     };
   }
 ): Promise<Flag> {
-  // Convert targeting to FlagTargeting format
+  // Convert targeting to FlagTargeting format, preserving serveValue
   let targeting: FlagTargeting | undefined;
 
   if (data.targeting) {
     targeting = {
       countries: data.targeting.countries?.map(c => ({
         country: c.country,
-        serveValue: 'A' as const,
+        serveValue: c.serveValue || 'A',
         languages: c.languages?.map(l => ({
           language: l.language,
-          serveValue: 'A' as const,
+          serveValue: l.serveValue || 'A',
         })),
       })) || [],
       forceIncludeUsers: data.targeting.forceIncludeUsers || [],
@@ -166,23 +166,23 @@ export async function updateFlagApi(
     valueA?: boolean | string | number;
     valueB?: boolean | string | number;
     targeting?: {
-      countries?: { country: string; languages?: { language: string }[] }[];
+      countries?: { country: string; serveValue?: 'A' | 'B'; languages?: { language: string; serveValue?: 'A' | 'B' }[] }[];
       forceIncludeUsers?: string[];
       forceExcludeUsers?: string[];
     };
   }
 ): Promise<Flag> {
-  // Convert targeting to FlagTargeting format
+  // Convert targeting to FlagTargeting format, preserving serveValue
   let targeting: FlagTargeting | undefined;
 
   if (data.targeting) {
     targeting = {
       countries: data.targeting.countries?.map(c => ({
         country: c.country,
-        serveValue: 'A' as const,
+        serveValue: c.serveValue || 'A',
         languages: c.languages?.map(l => ({
           language: l.language,
-          serveValue: 'A' as const,
+          serveValue: l.serveValue || 'A',
         })),
       })) || [],
       forceIncludeUsers: data.targeting.forceIncludeUsers || [],

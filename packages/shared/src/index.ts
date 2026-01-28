@@ -12,7 +12,7 @@
  * - **Config:** Environment variable validation (Zod) + application constants
  * - **Logger:** Structured logging with Pino + request correlation
  * - **Middleware:** Auth, validation, error handling, database context
- * - **CloudFront:** CDN cache management (deprecated - use @togglebox/cache)
+ * - **CloudFront:** CloudFront monitoring (status/list invalidations)
  * - **Utilities:** Pagination helpers
  *
  * **Quick Start:**
@@ -50,8 +50,8 @@ export * as config from './config';
 // Export logger
 export * from './logger';
 
-// Export CloudFront service (kept for CloudFront-specific monitoring endpoints)
-// For cache invalidation, use @togglebox/cache package instead
+// Export CloudFront service for monitoring endpoints (getInvalidation, listInvalidations)
+// For cache invalidation operations, use @togglebox/cache package instead
 export * from './cloudfront';
 
 // Export all middleware

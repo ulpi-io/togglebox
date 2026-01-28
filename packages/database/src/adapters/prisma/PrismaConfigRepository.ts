@@ -1,88 +1,98 @@
 /**
- * Prisma adapter for configuration version operations.
+ * Prisma adapter for config parameter operations (Firebase-style).
  *
  * @remarks
- * Implements `IConfigRepository` using Prisma ORM for SQL databases.
- * Handles JSON serialization for configuration payloads and versioning logic.
+ * Implements `IConfigRepository` for individual versioned config parameters.
+ * Each parameter has version history; only one version is active at a time.
  */
 
 import { PrismaClient } from '.prisma/client-database';
-import { Version } from '@togglebox/configs';
+import {
+  ConfigParameter,
+  CreateConfigParameter,
+  UpdateConfigParameter,
+  parseConfigValue,
+} from '@togglebox/configs';
 import {
   IConfigRepository,
   OffsetPaginationParams,
   TokenPaginationParams,
-  OffsetPaginatedResult,
+  PaginatedResult,
 } from '../../interfaces';
 
 /**
- * Prisma implementation of configuration repository.
+ * Prisma implementation of config parameter repository.
  *
  * @remarks
- * **JSON Handling:** Config stored as JSON string, parsed/stringified automatically.
- * **Versioning:** Auto-generated ISO-8601 timestamps ensure chronological ordering.
- * **Stable Versions:** Index on isStable column for fast latest-stable queries.
+ * Uses transactions for atomic version updates.
+ * Parameters are versioned - edits create new versions.
  */
 export class PrismaConfigRepository implements IConfigRepository {
   constructor(private prisma: PrismaClient) {}
 
+  // ============================================================================
+  // PUBLIC (SDK)
+  // ============================================================================
+
   /**
-   * Creates a new configuration version.
-   *
-   * @param version - Version data (versionTimestamp and createdAt are auto-generated)
-   * @returns Created version with generated timestamp
-   *
-   * @throws {Error} If platform not found
-   * @throws {Error} If version timestamp collision occurs (Prisma P2002, extremely rare)
-   *
-   * @remarks
-   * **Performance:** Uses SELECT query to fetch only platformId (not full platform).
-   * Controller validation ensures platform exists, so lookup should always succeed.
+   * Gets all active parameters as key-value object for SDK consumption.
    */
-  async createVersion(version: Omit<Version, 'versionTimestamp' | 'createdAt'>): Promise<Version> {
+  async getConfigs(
+    platform: string,
+    environment: string
+  ): Promise<Record<string, unknown>> {
+    const params = await this.prisma.configParameter.findMany({
+      where: {
+        platform,
+        environment,
+        isActive: true,
+      },
+    });
+
+    const configs: Record<string, unknown> = {};
+    for (const param of params) {
+      configs[param.parameterKey] = parseConfigValue(
+        param.defaultValue,
+        param.valueType as 'string' | 'number' | 'boolean' | 'json'
+      );
+    }
+
+    return configs;
+  }
+
+  // ============================================================================
+  // ADMIN CRUD
+  // ============================================================================
+
+  /**
+   * Creates a new parameter (version 1).
+   */
+  async create(param: CreateConfigParameter): Promise<ConfigParameter> {
     const timestamp = new Date().toISOString();
+    const version = '1';
 
     try {
-      // Get platformId using select query - only fetch the ID field we need
-      // Controller already validated platform exists, so this should always succeed
-      const platform = await this.prisma.platform.findUnique({
-        where: { name: version.platform },
-        select: { id: true }, // Only select the ID field we need
-      });
-
-      if (!platform) {
-        // This should never happen if controller validates correctly
-        throw new Error(`Platform ${version.platform} not found`);
-      }
-
-      const created = await this.prisma.configVersion.create({
+      const created = await this.prisma.configParameter.create({
         data: {
-          platform: version.platform,
-          environment: version.environment,
-          platformId: platform.id,
-          versionTimestamp: timestamp,
-          versionLabel: version.versionLabel,
-          isStable: version.isStable ?? false,
-          config: JSON.stringify(version.config),
-          createdBy: version.createdBy,
+          platform: param.platform,
+          environment: param.environment,
+          parameterKey: param.parameterKey,
+          version,
+          valueType: param.valueType,
+          defaultValue: param.defaultValue,
+          description: param.description ?? null,
+          parameterGroup: param.parameterGroup ?? null,
+          isActive: true,
+          createdBy: param.createdBy,
           createdAt: timestamp,
         },
       });
 
-      return {
-        platform: created.platform,
-        environment: created.environment,
-        versionLabel: created.versionLabel ?? '',
-        versionTimestamp: created.versionTimestamp,
-        isStable: created.isStable,
-        config: JSON.parse(created.config),
-        createdBy: created.createdBy,
-        createdAt: created.createdAt,
-      };
+      return this.mapToConfigParameter(created);
     } catch (error: unknown) {
       if ((error as { code?: string }).code === 'P2002') {
         throw new Error(
-          `Version with timestamp ${timestamp} already exists (extremely rare collision)`
+          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`
         );
       }
       throw error;
@@ -90,221 +100,288 @@ export class PrismaConfigRepository implements IConfigRepository {
   }
 
   /**
-   * Gets configuration version by versionLabel.
-   *
-   * @remarks
-   * Uses versionLabel as the human-readable identifier for consistency
-   * across all database adapters (DynamoDB, Prisma, D1).
+   * Updates a parameter (creates new version, marks it active).
    */
-  async getVersion(
+  async update(
     platform: string,
     environment: string,
-    versionLabel: string
-  ): Promise<Version | null> {
-    const version = await this.prisma.configVersion.findFirst({
-      where: { platform, environment, versionLabel },
+    parameterKey: string,
+    updates: UpdateConfigParameter
+  ): Promise<ConfigParameter> {
+    // Use transaction for atomicity
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Get current active version
+      const current = await tx.configParameter.findFirst({
+        where: {
+          platform,
+          environment,
+          parameterKey,
+          isActive: true,
+        },
+      });
+
+      if (!current) {
+        throw new Error(
+          `Parameter ${parameterKey} not found in ${platform}/${environment}`
+        );
+      }
+
+      // 2. Calculate next version
+      const nextVersion = String(parseInt(current.version, 10) + 1);
+      const timestamp = new Date().toISOString();
+
+      // 3. Deactivate old version
+      await tx.configParameter.update({
+        where: {
+          platform_environment_parameterKey_version: {
+            platform,
+            environment,
+            parameterKey,
+            version: current.version,
+          },
+        },
+        data: { isActive: false },
+      });
+
+      // 4. Create new version
+      const created = await tx.configParameter.create({
+        data: {
+          platform,
+          environment,
+          parameterKey,
+          version: nextVersion,
+          valueType: updates.valueType ?? current.valueType,
+          defaultValue: updates.defaultValue ?? current.defaultValue,
+          description: updates.description !== undefined
+            ? (updates.description ?? null)
+            : current.description,
+          parameterGroup: updates.parameterGroup !== undefined
+            ? (updates.parameterGroup ?? null)
+            : current.parameterGroup,
+          isActive: true,
+          createdBy: updates.createdBy,
+          createdAt: timestamp,
+        },
+      });
+
+      return this.mapToConfigParameter(created);
     });
-
-    if (!version) {
-      return null;
-    }
-
-    return {
-      platform: version.platform,
-      environment: version.environment,
-      versionLabel: version.versionLabel ?? '',
-      versionTimestamp: version.versionTimestamp,
-      isStable: version.isStable,
-      config: JSON.parse(version.config),
-      createdBy: version.createdBy,
-      createdAt: version.createdAt,
-    };
   }
 
   /**
-   * Gets latest stable version for platform and environment.
-   *
-   * @remarks
-   * **Query:** WHERE isStable=true, ORDER BY versionTimestamp DESC, LIMIT 1.
-   * **Index:** Requires index on (platform, environment, isStable, versionTimestamp).
+   * Deletes a parameter (all versions).
    */
-  async getLatestStableVersion(platform: string, environment: string): Promise<Version | null> {
-    const version = await this.prisma.configVersion.findFirst({
+  async delete(
+    platform: string,
+    environment: string,
+    parameterKey: string
+  ): Promise<boolean> {
+    const result = await this.prisma.configParameter.deleteMany({
       where: {
         platform,
         environment,
-        isStable: true,
+        parameterKey,
       },
-      orderBy: { versionTimestamp: 'desc' },
     });
 
-    if (!version) {
-      return null;
-    }
+    return result.count > 0;
+  }
+
+  /**
+   * Gets the active version of a parameter.
+   */
+  async getActive(
+    platform: string,
+    environment: string,
+    parameterKey: string
+  ): Promise<ConfigParameter | null> {
+    const param = await this.prisma.configParameter.findFirst({
+      where: {
+        platform,
+        environment,
+        parameterKey,
+        isActive: true,
+      },
+    });
+
+    return param ? this.mapToConfigParameter(param) : null;
+  }
+
+  /**
+   * Lists all active parameters with metadata.
+   */
+  async listActive(
+    platform: string,
+    environment: string,
+    pagination?: OffsetPaginationParams | TokenPaginationParams
+  ): Promise<PaginatedResult<ConfigParameter>> {
+    // Get total count
+    const total = await this.prisma.configParameter.count({
+      where: {
+        platform,
+        environment,
+        isActive: true,
+      },
+    });
+
+    // Use offset-based pagination for Prisma
+    const offsetPagination = pagination as OffsetPaginationParams | undefined;
+
+    const params = await this.prisma.configParameter.findMany({
+      where: {
+        platform,
+        environment,
+        isActive: true,
+      },
+      orderBy: { parameterKey: 'asc' },
+      skip: offsetPagination?.offset ?? 0,
+      take: offsetPagination?.limit ?? 100,
+    });
 
     return {
-      platform: version.platform,
-      environment: version.environment,
-      versionLabel: version.versionLabel ?? '',
-      versionTimestamp: version.versionTimestamp,
-      isStable: version.isStable,
-      config: JSON.parse(version.config),
-      createdBy: version.createdBy,
-      createdAt: version.createdAt,
+      items: params.map((p) => this.mapToConfigParameter(p)),
+      total,
     };
   }
 
   /**
-   * Lists all versions for environment with optional pagination.
-   *
-   * @remarks
-   * **Includes:** ALL versions (stable and unstable) for version history.
-   * **Sorting:** By versionTimestamp descending (newest first).
-   * **Pagination:** Optional - fetches ALL items if not provided, single page if provided.
+   * Lists all versions of a parameter.
    */
   async listVersions(
     platform: string,
     environment: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
-  ): Promise<OffsetPaginatedResult<Version>> {
-    // Get total count for metadata
-    const total = await this.prisma.configVersion.count({
-      where: { platform, environment },
+    parameterKey: string
+  ): Promise<ConfigParameter[]> {
+    const params = await this.prisma.configParameter.findMany({
+      where: {
+        platform,
+        environment,
+        parameterKey,
+      },
+      orderBy: { version: 'desc' },
     });
 
-    // If no pagination requested, fetch ALL items
-    if (!pagination) {
-      const versions = await this.prisma.configVersion.findMany({
-        where: { platform, environment },
-        orderBy: { versionTimestamp: 'desc' },
-        // No skip/take - fetch all
-      });
-
-      const items = versions.map((v) => ({
-        platform: v.platform,
-        environment: v.environment,
-        versionLabel: v.versionLabel ?? '',
-        versionTimestamp: v.versionTimestamp,
-        isStable: v.isStable,
-        config: JSON.parse(v.config),
-        createdBy: v.createdBy,
-        createdAt: v.createdAt,
-      }));
-
-      return { items, total };
-    }
-
-    // Explicit pagination: return single page
-    const params = pagination as OffsetPaginationParams;
-
-    const versions = await this.prisma.configVersion.findMany({
-      where: { platform, environment },
-      orderBy: { versionTimestamp: 'desc' },
-      skip: params.offset,
-      take: params.limit,
-    });
-
-    const items = versions.map((v) => ({
-      platform: v.platform,
-      environment: v.environment,
-      versionLabel: v.versionLabel ?? '',
-      versionTimestamp: v.versionTimestamp,
-      isStable: v.isStable,
-      config: JSON.parse(v.config),
-      createdBy: v.createdBy,
-      createdAt: v.createdAt,
-    }));
-
-    return { items, total };
+    return params.map((p) => this.mapToConfigParameter(p));
   }
 
   /**
-   * Deletes a configuration version by versionLabel.
-   *
-   * @remarks
-   * Uses versionLabel as the human-readable identifier for consistency
-   * across all database adapters (DynamoDB, Prisma, D1).
-   *
-   * @returns true if deleted, false if version doesn't exist
+   * Rolls back to a previous version (marks it active).
    */
-  async deleteVersion(
+  async rollback(
     platform: string,
     environment: string,
-    versionLabel: string
-  ): Promise<boolean> {
-    // First find the version by versionLabel to get the versionTimestamp
-    const version = await this.prisma.configVersion.findFirst({
-      where: { platform, environment, versionLabel },
-      select: { versionTimestamp: true },
-    });
-
-    if (!version) {
-      return false;
-    }
-
-    try {
-      await this.prisma.configVersion.delete({
+    parameterKey: string,
+    version: string
+  ): Promise<ConfigParameter | null> {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Check target version exists
+      const targetVersion = await tx.configParameter.findUnique({
         where: {
-          platform_environment_versionTimestamp: {
+          platform_environment_parameterKey_version: {
             platform,
             environment,
-            versionTimestamp: version.versionTimestamp,
+            parameterKey,
+            version,
           },
         },
       });
-      return true;
-    } catch (error: unknown) {
-      if ((error as { code?: string }).code === 'P2025') {
-        // Record not found (race condition)
-        return false;
+
+      if (!targetVersion) {
+        return null;
       }
-      throw error;
-    }
+
+      // 2. Get current active version
+      const currentActive = await tx.configParameter.findFirst({
+        where: {
+          platform,
+          environment,
+          parameterKey,
+          isActive: true,
+        },
+      });
+
+      // If target is already active, return it
+      if (currentActive?.version === version) {
+        return this.mapToConfigParameter(currentActive);
+      }
+
+      // 3. Deactivate current version (if exists)
+      if (currentActive) {
+        await tx.configParameter.update({
+          where: {
+            platform_environment_parameterKey_version: {
+              platform,
+              environment,
+              parameterKey,
+              version: currentActive.version,
+            },
+          },
+          data: { isActive: false },
+        });
+      }
+
+      // 4. Activate target version
+      const updated = await tx.configParameter.update({
+        where: {
+          platform_environment_parameterKey_version: {
+            platform,
+            environment,
+            parameterKey,
+            version,
+          },
+        },
+        data: { isActive: true },
+      });
+
+      return this.mapToConfigParameter(updated);
+    });
   }
 
   /**
-   * Marks a configuration version as stable.
-   *
-   * @param platform - Platform name
-   * @param environment - Environment name
-   * @param versionLabel - Version label to mark as stable
-   * @returns Updated version if found, null otherwise
+   * Counts active parameters in an environment.
    */
-  async markVersionStable(
-    platform: string,
-    environment: string,
-    versionLabel: string
-  ): Promise<Version | null> {
-    // First find the version by versionLabel
-    const version = await this.prisma.configVersion.findFirst({
-      where: { platform, environment, versionLabel },
-    });
-
-    if (!version) {
-      return null;
-    }
-
-    // Update the version to be stable
-    const updated = await this.prisma.configVersion.update({
+  async count(platform: string, environment: string): Promise<number> {
+    return this.prisma.configParameter.count({
       where: {
-        platform_environment_versionTimestamp: {
-          platform,
-          environment,
-          versionTimestamp: version.versionTimestamp,
-        },
+        platform,
+        environment,
+        isActive: true,
       },
-      data: { isStable: true },
     });
+  }
 
+  // ============================================================================
+  // PRIVATE HELPERS
+  // ============================================================================
+
+  /**
+   * Maps Prisma model to ConfigParameter type.
+   */
+  private mapToConfigParameter(param: {
+    platform: string;
+    environment: string;
+    parameterKey: string;
+    version: string;
+    valueType: string;
+    defaultValue: string;
+    description: string | null;
+    parameterGroup: string | null;
+    isActive: boolean;
+    createdBy: string;
+    createdAt: string;
+  }): ConfigParameter {
     return {
-      platform: updated.platform,
-      environment: updated.environment,
-      versionLabel: updated.versionLabel ?? '',
-      versionTimestamp: updated.versionTimestamp,
-      isStable: updated.isStable,
-      config: JSON.parse(updated.config),
-      createdBy: updated.createdBy,
-      createdAt: updated.createdAt,
+      platform: param.platform,
+      environment: param.environment,
+      parameterKey: param.parameterKey,
+      version: param.version,
+      valueType: param.valueType as 'string' | 'number' | 'boolean' | 'json',
+      defaultValue: param.defaultValue,
+      description: param.description ?? undefined,
+      parameterGroup: param.parameterGroup ?? undefined,
+      isActive: param.isActive,
+      createdBy: param.createdBy,
+      createdAt: param.createdAt,
     };
   }
 }

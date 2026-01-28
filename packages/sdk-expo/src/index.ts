@@ -1,5 +1,5 @@
-// Provider and context
-export { ToggleBoxProvider, useToggleBoxContext } from './provider'
+// Provider
+export { ToggleBoxProvider } from './provider'
 
 // Hooks
 export {
@@ -9,7 +9,6 @@ export {
   useExperiments,
   useExperiment,
   useAnalytics,
-  useToggleBoxClient,
 } from './hooks'
 
 // Storage

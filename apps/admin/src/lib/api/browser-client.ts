@@ -27,18 +27,11 @@ export class ApiError extends Error {
  */
 function getAuthToken(): string | null {
   if (typeof window === 'undefined') {
-    console.warn('[browserApiClient] Running on server - no document.cookie available');
     return null;
   }
 
   const match = document.cookie.match(/(?:^|; )auth-token=([^;]*)/);
-  const token = match ? decodeURIComponent(match[1]) : null;
-
-  if (!token) {
-    console.warn('[browserApiClient] No auth-token cookie found. Cookies:', document.cookie.slice(0, 100));
-  }
-
-  return token;
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 /**
@@ -71,7 +64,17 @@ export async function browserApiClient<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  // Fail fast in production if API URL is not configured
+  if (!baseUrl) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new ApiError(500, 'NEXT_PUBLIC_API_URL is required in production');
+    }
+    // Fall back to localhost only in development
+  }
+
+  const apiUrl = baseUrl || 'http://localhost:3000';
   const token = getAuthToken();
 
   const headers: Record<string, string> = {
@@ -89,14 +92,9 @@ export async function browserApiClient<T>(
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-    console.log('[browserApiClient] Adding auth token to request');
-  } else {
-    console.warn('[browserApiClient] No auth token - request will be unauthenticated');
   }
 
-  console.log(`[browserApiClient] ${options.method || 'GET'} ${baseUrl}${endpoint}`);
-
-  const response = await fetch(`${baseUrl}${endpoint}`, {
+  const response = await fetch(`${apiUrl}${endpoint}`, {
     ...options,
     headers,
     // Bypass browser cache to ensure fresh data

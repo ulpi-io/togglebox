@@ -54,24 +54,40 @@ export class CloudFrontCacheProvider implements CacheProvider {
       throw new Error('At least one path must be specified for invalidation');
     }
 
-    const params = {
-      DistributionId: this.distributionId,
-      InvalidationBatch: {
-        Paths: {
-          Quantity: paths.length,
-          Items: paths,
-        },
-        CallerReference: `invalidation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      },
-    };
+    // CloudFront limits invalidations to 1000 paths per request
+    const MAX_PATHS_PER_BATCH = 1000;
+    const batches: string[][] = [];
+    for (let i = 0; i < paths.length; i += MAX_PATHS_PER_BATCH) {
+      batches.push(paths.slice(i, i + MAX_PATHS_PER_BATCH));
+    }
 
     try {
-      const result = await this.cloudfront.send(new CreateInvalidationCommand(params));
-      const invalidationId = result.Invalidation?.Id || '';
+      const invalidationIds: string[] = [];
+
+      for (const batch of batches) {
+        const params = {
+          DistributionId: this.distributionId,
+          InvalidationBatch: {
+            Paths: {
+              Quantity: batch.length,
+              Items: batch,
+            },
+            CallerReference: `invalidation-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          },
+        };
+
+        const result = await this.cloudfront.send(new CreateInvalidationCommand(params));
+        if (result.Invalidation?.Id) {
+          invalidationIds.push(result.Invalidation.Id);
+        }
+      }
+
+      const invalidationId = invalidationIds[0] || '';
       logger.info('Cache invalidated successfully', {
         provider: 'cloudfront',
         invalidationId,
-        pathCount: paths.length
+        pathCount: paths.length,
+        batchCount: batches.length
       });
       return invalidationId;
     } catch (error) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Copy, Check } from 'lucide-react';
 import { createApiKeyApi } from '@/lib/api/api-keys';
@@ -34,6 +34,16 @@ export function CreateApiKeyDialog({ onSuccess }: CreateApiKeyDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiKeyResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -70,7 +80,10 @@ export function CreateApiKeyDialog({ onSuccess }: CreateApiKeyDialogProps) {
     if (result?.apiKey) {
       await navigator.clipboard.writeText(result.apiKey);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     }
   }
 

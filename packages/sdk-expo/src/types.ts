@@ -1,7 +1,12 @@
 import type { ToggleBoxClient } from '@togglebox/sdk'
-import type { Config } from '@togglebox/configs'
 import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
 import type { Experiment, ExperimentContext } from '@togglebox/experiments'
+
+/**
+ * Remote config object - key-value pairs with typed values.
+ * All values are parsed from their stored type (string, number, boolean, json).
+ */
+export type Config = Record<string, unknown>
 
 /**
  * Conversion data for experiment tracking
@@ -37,6 +42,12 @@ export interface ToggleBoxProviderProps {
   apiUrl?: string
 
   /**
+   * API key for authenticated requests.
+   * @remarks Required if authentication is enabled on the API.
+   */
+  apiKey?: string
+
+  /**
    * Tenant subdomain for cloud deployments
    * @remarks Automatically constructs apiUrl as https://{tenantSubdomain}.togglebox.io
    * @example 'acme' → https://acme.togglebox.io
@@ -51,15 +62,6 @@ export interface ToggleBoxProviderProps {
 
   /** Auto-refresh polling interval in milliseconds (0 to disable) */
   pollingInterval?: number
-
-  /**
-   * Config version to fetch (default: 'stable')
-   * @remarks
-   * - 'stable': Latest stable version (default)
-   * - 'latest': Latest version (may be unstable)
-   * - '1.2.3': Specific version label
-   */
-  configVersion?: string
 
   /**
    * Enable persistent storage with MMKV.

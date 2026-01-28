@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createConfigVersionApi } from '@/lib/api/configs';
+import { createConfigParameterApi } from '@/lib/api/configs';
 import { getPlatformsApi, getEnvironmentsApi } from '@/lib/api/platforms';
-import type { Platform, Environment } from '@/lib/api/types';
+import type { Platform, Environment, ConfigValueType } from '@/lib/api/types';
 import {
   Button,
-  Checkbox,
   Input,
   Label,
   Select,
@@ -17,10 +16,17 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Textarea,
 } from '@togglebox/ui';
-import { JsonEditor } from '@/components/configs/json-editor';
 
-export default function CreateConfigPage() {
+const VALUE_TYPES: { value: ConfigValueType; label: string; description: string }[] = [
+  { value: 'string', label: 'String', description: 'Text value' },
+  { value: 'number', label: 'Number', description: 'Numeric value (integer or decimal)' },
+  { value: 'boolean', label: 'Boolean', description: 'true or false' },
+  { value: 'json', label: 'JSON', description: 'Complex object or array' },
+];
+
+export default function CreateConfigParameterPage() {
   const router = useRouter();
 
   // Platform/Environment selection
@@ -56,35 +62,90 @@ export default function CreateConfigPage() {
   const environment = selectedEnvironment;
 
   // Form fields
-  const [version, setVersion] = useState('');
-  const [configJson, setConfigJson] = useState('{}');
-  const [isStable, setIsStable] = useState(false);
+  const [parameterKey, setParameterKey] = useState('');
+  const [valueType, setValueType] = useState<ConfigValueType>('string');
+  const [defaultValue, setDefaultValue] = useState('');
+  const [description, setDescription] = useState('');
+  const [parameterGroup, setParameterGroup] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
+  // Validate value based on type
+  const validateValue = (type: ConfigValueType, value: string): boolean => {
+    switch (type) {
+      case 'number':
+        return !isNaN(Number(value)) && value.trim() !== '';
+      case 'boolean':
+        return value === 'true' || value === 'false';
+      case 'json':
+        try {
+          JSON.parse(value);
+          return true;
+        } catch {
+          return false;
+        }
+      case 'string':
+      default:
+        return true;
+    }
+  };
+
+  // Live JSON validation
+  const handleJsonChange = (value: string) => {
+    setDefaultValue(value);
+    if (value.trim()) {
+      try {
+        JSON.parse(value);
+        setJsonError(null);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Invalid JSON';
+        setJsonError(message);
+      }
+    } else {
+      setJsonError(null);
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
 
-    if (!version?.trim()) {
-      setError('Version is required');
+    // Validate parameter key
+    if (!parameterKey?.trim()) {
+      setError('Parameter key is required');
       setIsLoading(false);
       return;
     }
 
-    let config: Record<string, unknown>;
-    try {
-      config = JSON.parse(configJson);
-    } catch {
-      setError('Invalid JSON configuration');
+    // Validate key format (alphanumeric, dashes, underscores, dots)
+    if (!/^[a-zA-Z][a-zA-Z0-9_.-]*$/.test(parameterKey.trim())) {
+      setError('Parameter key must start with a letter and contain only letters, numbers, underscores, dashes, and dots');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate value based on type
+    if (!validateValue(valueType, defaultValue)) {
+      setError(`Invalid value for type "${valueType}"`);
       setIsLoading(false);
       return;
     }
 
     try {
-      await createConfigVersionApi(platform, environment, version.trim(), config, isStable);
+      await createConfigParameterApi(
+        platform,
+        environment,
+        parameterKey.trim(),
+        valueType,
+        defaultValue,
+        {
+          description: description.trim() || undefined,
+          parameterGroup: parameterGroup.trim() || undefined,
+        }
+      );
       router.push(`/configs?platform=${platform}&environment=${environment}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -92,6 +153,20 @@ export default function CreateConfigPage() {
       setIsLoading(false);
     }
   }
+
+  // Helper to get placeholder based on type
+  const getPlaceholder = (type: ConfigValueType): string => {
+    switch (type) {
+      case 'string':
+        return 'e.g., Hello World';
+      case 'number':
+        return 'e.g., 42 or 3.14';
+      case 'boolean':
+        return 'true or false';
+      case 'json':
+        return '{"key": "value"}';
+    }
+  };
 
   return (
     <div>
@@ -102,27 +177,26 @@ export default function CreateConfigPage() {
               href="/configs"
               className="text-muted-foreground hover:text-foreground text-sm mb-4 inline-block"
             >
-              ← Back to configs
+              &larr; Back to configs
             </Link>
-            <h1 className="text-4xl font-black mb-2">Create Config Version</h1>
+            <h1 className="text-4xl font-black mb-2">Create Config Parameter</h1>
             <p className="text-muted-foreground">
               {platform && environment
-                ? `Deploy a new remote config for ${platform} / ${environment}`
-                : 'Deploy a new remote config version'}
+                ? `Add a new Firebase-style config parameter for ${platform} / ${environment}`
+                : 'Add a new Firebase-style config parameter'}
             </p>
           </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Location and Version - Side by side on wide screens */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Platform/Environment Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Location</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Location */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Location</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="platform">Platform *</Label>
                 <Select
@@ -161,57 +235,147 @@ export default function CreateConfigPage() {
                   ))}
                 </Select>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Version */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Version</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Parameter Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Parameter Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="version">Version *</Label>
+                <Label htmlFor="parameterKey">Parameter Key *</Label>
                 <Input
-                  id="version"
-                  value={version}
-                  onChange={(e) => setVersion(e.target.value)}
-                  placeholder="e.g., 1.0.0"
+                  id="parameterKey"
+                  value={parameterKey}
+                  onChange={(e) => setParameterKey(e.target.value)}
+                  placeholder="e.g., app.feature.enabled"
                   required
+                  disabled={isLoading}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Unique key for this parameter. Use dot notation for organization.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="parameterGroup">Parameter Group (optional)</Label>
+                <Input
+                  id="parameterGroup"
+                  value={parameterGroup}
+                  onChange={(e) => setParameterGroup(e.target.value)}
+                  placeholder="e.g., Feature Settings"
                   disabled={isLoading}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Use semantic versioning (e.g., 1.0.0, 1.2.3)
+                  Group related parameters together in the UI
                 </p>
               </div>
+            </div>
 
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  id="isStable"
-                  checked={isStable}
-                  onChange={(e) => setIsStable(e.target.checked)}
-                  disabled={isLoading}
-                />
-                <Label htmlFor="isStable" className="cursor-pointer">
-                  Mark as stable (recommended for production)
-                </Label>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe what this parameter controls..."
+                disabled={isLoading}
+                rows={2}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Config JSON */}
+        {/* Value Configuration */}
         <Card>
           <CardHeader>
-            <CardTitle>Configuration</CardTitle>
+            <CardTitle>Value Configuration</CardTitle>
           </CardHeader>
-          <CardContent>
-            <JsonEditor
-              name="config"
-              value={configJson}
-              onChange={setConfigJson}
-              disabled={isLoading}
-            />
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="valueType">Value Type *</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {VALUE_TYPES.map((type) => (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => {
+                      setValueType(type.value);
+                      setJsonError(null); // Clear JSON error when switching types
+                      // Clear value when type changes to avoid validation issues
+                      if (type.value === 'boolean') {
+                        setDefaultValue('false');
+                      } else if (type.value === 'json') {
+                        setDefaultValue('{}');
+                      } else {
+                        setDefaultValue('');
+                      }
+                    }}
+                    disabled={isLoading}
+                    className={`p-3 rounded-lg border text-left transition-colors ${
+                      valueType === type.value
+                        ? 'border-black bg-black text-white'
+                        : 'border-black/20 hover:border-black/40'
+                    }`}
+                  >
+                    <div className="font-bold text-sm">{type.label}</div>
+                    <div className={`text-xs ${valueType === type.value ? 'text-white/70' : 'text-muted-foreground'}`}>
+                      {type.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="defaultValue">Default Value *</Label>
+              {valueType === 'boolean' ? (
+                <Select
+                  id="defaultValue"
+                  value={defaultValue}
+                  onChange={(e) => setDefaultValue(e.target.value)}
+                  disabled={isLoading}
+                  required
+                >
+                  <option value="false">false</option>
+                  <option value="true">true</option>
+                </Select>
+              ) : valueType === 'json' ? (
+                <>
+                  <Textarea
+                    id="defaultValue"
+                    value={defaultValue}
+                    onChange={(e) => handleJsonChange(e.target.value)}
+                    placeholder={getPlaceholder(valueType)}
+                    disabled={isLoading}
+                    required
+                    rows={4}
+                    className={`font-mono text-sm ${jsonError ? 'border-destructive focus:ring-destructive' : ''}`}
+                  />
+                  {jsonError && (
+                    <p className="text-xs text-destructive mt-1">{jsonError}</p>
+                  )}
+                </>
+              ) : (
+                <Input
+                  id="defaultValue"
+                  value={defaultValue}
+                  onChange={(e) => setDefaultValue(e.target.value)}
+                  placeholder={getPlaceholder(valueType)}
+                  required
+                  disabled={isLoading}
+                  type={valueType === 'number' ? 'text' : 'text'}
+                  className={valueType === 'number' ? 'font-mono' : ''}
+                />
+              )}
+              <p className="text-xs text-muted-foreground">
+                The value that will be returned to clients via the SDK
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -229,8 +393,8 @@ export default function CreateConfigPage() {
               Cancel
             </Button>
           </Link>
-          <Button type="submit" disabled={isLoading || !platform || !environment}>
-            {isLoading ? 'Creating...' : 'Create Version'}
+          <Button type="submit" disabled={isLoading || !platform || !environment || (valueType === 'json' && !!jsonError)}>
+            {isLoading ? 'Creating...' : 'Create Parameter'}
           </Button>
         </div>
       </form>

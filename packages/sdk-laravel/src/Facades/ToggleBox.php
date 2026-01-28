@@ -15,7 +15,6 @@ use ToggleBox\Types\VariantAssignment;
 /**
  * @method static mixed config(string $key, mixed $default = null)
  * @method static array allConfigs()
- * @method static array configVersions()
  * @method static bool enabled(string $flagKey, ?string $userId = null, ?string $country = null, ?string $language = null, bool $default = false)
  * @method static FlagResult flag(string $flagKey, ?string $userId = null, ?string $country = null, ?string $language = null)
  * @method static Flag|null flagInfo(string $flagKey)

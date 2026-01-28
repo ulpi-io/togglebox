@@ -1,6 +1,12 @@
 import { Stack } from 'expo-router'
 import { ToggleBoxProvider } from '@togglebox/sdk-expo'
-import { API_URL, PLATFORM, ENVIRONMENT } from '@/lib/constants'
+
+// SECURITY WARNING: EXPO_PUBLIC_* variables are embedded in the client bundle.
+// Only use public/anonymous API keys here. For privileged keys, use a backend proxy.
+const API_URL = process.env.EXPO_PUBLIC_TOGGLEBOX_API_URL || 'http://localhost:3000/api/v1'
+const API_KEY = process.env.EXPO_PUBLIC_TOGGLEBOX_API_KEY // Public key only - see security warning above
+const PLATFORM = process.env.EXPO_PUBLIC_TOGGLEBOX_PLATFORM || 'mobile'
+const ENVIRONMENT = process.env.EXPO_PUBLIC_TOGGLEBOX_ENVIRONMENT || 'staging'
 
 export default function RootLayout() {
   return (
@@ -8,11 +14,12 @@ export default function RootLayout() {
       platform={PLATFORM}
       environment={ENVIRONMENT}
       apiUrl={API_URL}
+      apiKey={API_KEY}
       pollingInterval={30000}
-      configVersion="stable"
       persistToStorage={true}
       storageTTL={86400000}
     >
+      {/* @ts-expect-error - expo-router Stack type compatibility with React 19 */}
       <Stack
         screenOptions={{
           headerStyle: {
@@ -24,25 +31,14 @@ export default function RootLayout() {
           },
         }}
       >
-        {/* Home - Example Index */}
         <Stack.Screen
           name="index"
           options={{
             title: 'ToggleBox Examples',
           }}
         />
-
-        {/* All Examples (quick and full) */}
         <Stack.Screen
           name="examples"
-          options={{
-            headerShown: false,
-          }}
-        />
-
-        {/* Interactive Playground (tabs) */}
-        <Stack.Screen
-          name="playground"
           options={{
             headerShown: false,
           }}

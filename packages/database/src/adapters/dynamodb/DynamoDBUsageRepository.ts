@@ -1,4 +1,4 @@
-import { dynamoDBClient, getTableName } from '../../database';
+import { dynamoDBClient, getUsageTableName } from '../../database';
 import { IUsageRepository } from '../../interfaces';
 import { UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
@@ -87,7 +87,7 @@ export class DynamoDBUsageRepository implements IUsageRepository {
 
     await dynamoDBClient.send(
       new UpdateCommand({
-        TableName: getTableName(), // Respects TABLE_PREFIX from AsyncLocalStorage
+        TableName: getUsageTableName(), // Respects TABLE_PREFIX from AsyncLocalStorage
         Key: {
           PK: `TENANT#${tenantId}`,
           SK: `USAGE#apiRequests#SHARD#${shard}`,
@@ -113,7 +113,7 @@ export class DynamoDBUsageRepository implements IUsageRepository {
   async getApiRequestCount(tenantId: string): Promise<number> {
     const result = await dynamoDBClient.send(
       new QueryCommand({
-        TableName: getTableName(),
+        TableName: getUsageTableName(),
         KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
         ExpressionAttributeValues: {
           ':pk': `TENANT#${tenantId}`,

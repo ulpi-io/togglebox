@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { ToggleBoxClient } from '@togglebox/sdk'
 import { Storage } from './storage'
-import type { Config } from '@togglebox/configs'
 import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
 import type { Experiment, ExperimentContext } from '@togglebox/experiments'
-import type { ToggleBoxProviderProps, ToggleBoxContextValue, ConversionData, EventData } from './types'
+import type { ToggleBoxProviderProps, ToggleBoxContextValue, ConversionData, EventData, Config } from './types'
 
 const ToggleBoxContext = createContext<ToggleBoxContextValue | null>(null)
 
@@ -37,10 +36,10 @@ export function ToggleBoxProvider({
   platform,
   environment,
   apiUrl,
+  apiKey,
   tenantSubdomain,
   cache,
   pollingInterval = 0,
-  configVersion,
   persistToStorage = false,
   storageTTL = 86400000, // 24 hours default
   children,
@@ -71,28 +70,35 @@ export function ToggleBoxProvider({
       platform,
       environment,
       apiUrl,
+      apiKey,
       tenantSubdomain,
       cache,
       pollingInterval,
-      configVersion,
     })
 
     clientRef.current = client
 
     // Listen for updates from polling
-    client.on('update', async (data) => {
-      const updateData = data as {
-        config: Config
-        flags: Flag[]
-        experiments: Experiment[]
-      }
-      setConfig(updateData.config)
-      setFlags(updateData.flags)
-      setExperiments(updateData.experiments)
+    // SECURITY: Wrap in try-catch and use void to handle promises without blocking
+    client.on('update', (data) => {
+      try {
+        const updateData = data as {
+          config: Config
+          flags: Flag[]
+          experiments: Experiment[]
+        }
+        setConfig(updateData.config)
+        setFlags(updateData.flags)
+        setExperiments(updateData.experiments)
 
-      // Save to MMKV if enabled
-      if (persistToStorage && storageRef.current) {
-        await storageRef.current.save(updateData.config, updateData.flags, updateData.experiments)
+        // Save to MMKV if enabled - use void to indicate intentional fire-and-forget
+        if (persistToStorage && storageRef.current) {
+          void storageRef.current
+            .save(updateData.config, updateData.flags, updateData.experiments)
+            .catch((err) => setError(err as Error))
+        }
+      } catch (err) {
+        setError(err as Error)
       }
     })
 
@@ -146,7 +152,7 @@ export function ToggleBoxProvider({
     return () => {
       client.destroy()
     }
-  }, [platform, environment, apiUrl, tenantSubdomain, pollingInterval, configVersion, persistToStorage])
+  }, [platform, environment, apiUrl, apiKey, tenantSubdomain, cache, pollingInterval, persistToStorage, storageTTL])
 
   const refresh = useCallback(async () => {
     if (!clientRef.current) return

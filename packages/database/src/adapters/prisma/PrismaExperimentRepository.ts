@@ -17,6 +17,18 @@ import type {
 import type { IExperimentRepository, ExperimentPage } from '@togglebox/experiments';
 
 /**
+ * Safely parse JSON with fallback for malformed data.
+ */
+function safeParse<T>(raw: string | null | undefined, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * Prisma implementation of Experiment repository.
  *
  * @remarks
@@ -534,16 +546,16 @@ export class PrismaExperimentRepository implements IExperimentRepository {
       completedAt: row.completedAt || undefined,
       scheduledStartAt: row.scheduledStartAt || undefined,
       scheduledEndAt: row.scheduledEndAt || undefined,
-      variations: JSON.parse(row.variations),
+      variations: safeParse(row.variations, []),
       controlVariation: row.controlVariation,
-      trafficAllocation: JSON.parse(row.trafficAllocation),
-      targeting: JSON.parse(row.targeting),
-      primaryMetric: JSON.parse(row.primaryMetric),
-      secondaryMetrics: row.secondaryMetrics ? JSON.parse(row.secondaryMetrics) : undefined,
+      trafficAllocation: safeParse(row.trafficAllocation, []),
+      targeting: safeParse(row.targeting, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
+      primaryMetric: safeParse(row.primaryMetric, { id: '', name: '', eventName: '', metricType: 'conversion', successDirection: 'increase' }),
+      secondaryMetrics: safeParse(row.secondaryMetrics, undefined),
       confidenceLevel: row.confidenceLevel,
       minimumDetectableEffect: row.minimumDetectableEffect || undefined,
       minimumSampleSize: row.minimumSampleSize || undefined,
-      results: row.results ? JSON.parse(row.results) : undefined,
+      results: safeParse(row.results, undefined),
       winner: row.winner || undefined,
       version: row.version,
       isActive: row.isActive,

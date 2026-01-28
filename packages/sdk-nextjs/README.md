@@ -511,8 +511,8 @@ export default async function Page() {
     apiUrl: process.env.TOGGLEBOX_URL!,
   })
 
-  // Fetch a specific version on the server
-  const config = await client.getConfigVersion('2.0.0')
+  // Fetch all active config parameters on the server
+  const config = await client.getConfig()
   const flags = await client.getFlags()
   const experiments = await client.getExperiments()
 
@@ -523,7 +523,6 @@ export default async function Page() {
       platform="web"
       environment="production"
       apiUrl={process.env.NEXT_PUBLIC_TOGGLEBOX_URL!}
-      configVersion="2.0.0"
       initialConfig={config}
       initialFlags={flags}
       initialExperiments={experiments}

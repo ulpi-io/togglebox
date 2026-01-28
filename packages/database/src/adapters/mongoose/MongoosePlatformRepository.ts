@@ -84,10 +84,12 @@ export class MongoosePlatformRepository implements IPlatformRepository {
     // Get total count for metadata
     const total = await PlatformModel.countDocuments().exec();
 
-    // If no pagination requested, fetch ALL items
+    // SECURITY: If no pagination requested, apply hard limit to prevent unbounded queries
     if (!pagination) {
+      const HARD_LIMIT = 100;
       const docs = await PlatformModel.find()
         .sort({ createdAt: -1 })
+        .limit(HARD_LIMIT)
         .exec();
 
       const items = docs.map(doc => ({

@@ -59,4 +59,8 @@ export class DynamoDBUserRepository implements IUserRepository {
   }): Promise<{ users: User[]; total: number }> {
     return userService.listUsers(options);
   }
+
+  async countByRole(role: string): Promise<number> {
+    return userService.countUsersByRole(role);
+  }
 }

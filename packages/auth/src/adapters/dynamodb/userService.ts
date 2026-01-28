@@ -288,6 +288,36 @@ export async function listUsers(options?: {
 }
 
 /**
+ * Count users by role.
+ *
+ * @param role - User role to count (admin, developer, viewer)
+ * @returns Number of users with the specified role
+ *
+ * @remarks
+ * **SECURITY:** Used to prevent demoting the last admin user.
+ *
+ * **Performance:**
+ * Uses table SCAN with filter - consider GSI for better performance.
+ */
+export async function countUsersByRole(role: string): Promise<number> {
+  const params: any = {
+    TableName: getUsersTableName(),
+    FilterExpression: 'begins_with(PK, :pk) AND #role = :role',
+    ExpressionAttributeNames: {
+      '#role': 'role',
+    },
+    ExpressionAttributeValues: {
+      ':pk': 'USER#',
+      ':role': role,
+    },
+    Select: 'COUNT',
+  };
+
+  const result = await dynamoDBClient.send(new ScanCommand(params));
+  return result.Count || 0;
+}
+
+/**
  * Map DynamoDB item to User domain model.
  *
  * @param item - Raw DynamoDB item with PK/SK keys
