@@ -15,6 +15,7 @@ import type {
   TrafficAllocation,
 } from '@togglebox/experiments';
 import type { IExperimentRepository, ExperimentPage } from '@togglebox/experiments';
+import { parseCursor, encodeCursor } from '../../utils/cursor';
 
 /**
  * Safely parse JSON with fallback for malformed data.
@@ -303,8 +304,8 @@ export class PrismaExperimentRepository implements IExperimentRepository {
     limit: number = 100,
     cursor?: string
   ): Promise<ExperimentPage> {
-    // Parse cursor as offset
-    const offset = cursor ? parseInt(cursor, 10) : 0;
+    // Parse cursor as offset (validates and throws on malformed cursors)
+    const offset = parseCursor(cursor);
 
     const where: {
       platform: string;
@@ -329,7 +330,7 @@ export class PrismaExperimentRepository implements IExperimentRepository {
     });
 
     const items = experiments.map(e => this.dbToExperiment(e));
-    const nextCursor = experiments.length === limit ? String(offset + limit) : undefined;
+    const nextCursor = experiments.length === limit ? encodeCursor(offset + limit) : undefined;
 
     return {
       items,

@@ -14,6 +14,7 @@ import type {
   UpdateRollout,
 } from '@togglebox/flags';
 import type { IFlagRepository, FlagPage } from '@togglebox/flags';
+import { parseCursor, encodeCursor } from '../../utils/cursor';
 
 /**
  * Prisma implementation of the Feature Flag repository.
@@ -268,8 +269,8 @@ export class PrismaFlagRepository implements IFlagRepository {
     limit: number = 100,
     cursor?: string
   ): Promise<FlagPage> {
-    // Parse cursor as offset
-    const offset = cursor ? parseInt(cursor, 10) : 0;
+    // Parse cursor as offset (validates and throws on malformed cursors)
+    const offset = parseCursor(cursor);
 
     const flags = await this.prisma.flag.findMany({
       where: {
@@ -283,7 +284,7 @@ export class PrismaFlagRepository implements IFlagRepository {
     });
 
     const items = flags.map(f => this.dbToFlag(f));
-    const nextCursor = flags.length === limit ? String(offset + limit) : undefined;
+    const nextCursor = flags.length === limit ? encodeCursor(offset + limit) : undefined;
 
     return {
       items,

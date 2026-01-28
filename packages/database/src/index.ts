@@ -26,6 +26,7 @@ export * from './environmentService';
 export * from './interfaces';
 export * from './config';
 export * from './factory';
+export * from './utils/cursor';
 
 // Re-export three-tier repository types for convenience
 export type { IFlagRepository } from '@togglebox/flags';

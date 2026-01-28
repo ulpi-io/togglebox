@@ -1,8 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { DatabaseRepositories } from '@togglebox/database';
-import { logger, withDatabaseContext, getTokenPaginationParams, createPaginationMeta } from '@togglebox/shared';
+import { logger, withDatabaseContext, getSmartPaginationParams, createPaginationMeta } from '@togglebox/shared';
 import { CacheProvider } from '@togglebox/cache';
-import { CONFIG_LIMITS } from '@togglebox/configs';
+import {
+  CONFIG_LIMITS,
+  CreateConfigParameterSchema as SharedCreateConfigParameterSchema,
+  UpdateConfigParameterSchema as SharedUpdateConfigParameterSchema,
+} from '@togglebox/configs';
 import { z } from 'zod';
 
 /**
@@ -45,33 +49,8 @@ const UpdateEnvironmentSchema = z.object({
     .optional(),
 });
 
-/**
- * Zod schema for config parameter creation.
- * Platform, environment, and createdBy are extracted from URL params and JWT token.
- */
-const CreateConfigParameterSchema = z.object({
-  parameterKey: z.string()
-    .min(1, 'Parameter key is required')
-    .max(256, 'Parameter key must be 256 characters or less')
-    .regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/, 'Parameter key must start with a letter and contain only letters, numbers, hyphens, and underscores'),
-  valueType: z.enum(['string', 'number', 'boolean', 'json'], {
-    errorMap: () => ({ message: 'Value type must be one of: string, number, boolean, json' }),
-  }),
-  defaultValue: z.string().min(1, 'Default value is required'),
-  description: z.string().max(500, 'Description must be 500 characters or less').optional(),
-  parameterGroup: z.string().max(100, 'Parameter group must be 100 characters or less').optional(),
-});
-
-/**
- * Zod schema for config parameter update.
- * Only includes updatable fields - parameterKey cannot be changed.
- */
-const UpdateConfigParameterSchema = z.object({
-  valueType: z.enum(['string', 'number', 'boolean', 'json']).optional(),
-  defaultValue: z.string().optional(),
-  description: z.string().max(500).optional().nullable(),
-  parameterGroup: z.string().max(100).optional().nullable(),
-});
+// Note: Config parameter schemas are imported from @togglebox/configs for consistent validation
+// (validates defaultValue against valueType, enforces MAX_VALUE_LENGTH)
 
 /**
  * Zod schema for rollback request.
@@ -177,10 +156,19 @@ export class ConfigController {
       const user = (req as unknown as { user?: { email?: string } }).user;
       const createdBy = user?.email || 'system@togglebox.dev';
 
-      const bodyData = CreateConfigParameterSchema.parse(req.body);
+      // Use shared schema that validates defaultValue against valueType
+      const bodyData = SharedCreateConfigParameterSchema.parse({
+        ...req.body,
+        platform,
+        environment,
+        createdBy,
+      });
 
       await withDatabaseContext(req, async () => {
         // Check parameter count limit before creating
+        // Note: This is a best-effort check. Race conditions under high concurrency
+        // may allow slightly exceeding the limit. For strict enforcement,
+        // implement database-level constraints or use transactions.
         const currentCount = await this.db.config.count(platform, environment);
         if (currentCount >= CONFIG_LIMITS.MAX_PARAMETERS_PER_ENV) {
           res.status(422).json({
@@ -194,16 +182,33 @@ export class ConfigController {
         }
 
         const startTime = Date.now();
-        const param = await this.db.config.create({
-          platform,
-          environment,
-          parameterKey: bodyData.parameterKey,
-          valueType: bodyData.valueType,
-          defaultValue: bodyData.defaultValue,
-          description: bodyData.description,
-          parameterGroup: bodyData.parameterGroup,
-          createdBy,
-        });
+        let param;
+        try {
+          param = await this.db.config.create({
+            platform,
+            environment,
+            parameterKey: bodyData.parameterKey,
+            valueType: bodyData.valueType,
+            defaultValue: bodyData.defaultValue,
+            description: bodyData.description,
+            parameterGroup: bodyData.parameterGroup,
+            createdBy,
+          });
+        } catch (createError) {
+          // Re-check count in case of race condition
+          const recheckCount = await this.db.config.count(platform, environment);
+          if (recheckCount >= CONFIG_LIMITS.MAX_PARAMETERS_PER_ENV) {
+            res.status(422).json({
+              success: false,
+              error: `Maximum parameters limit reached (${CONFIG_LIMITS.MAX_PARAMETERS_PER_ENV})`,
+              code: 'LIMIT_EXCEEDED',
+              details: [`Environment ${platform}/${environment} has reached the parameter limit`],
+              timestamp: new Date().toISOString(),
+            });
+            return;
+          }
+          throw createError;
+        }
         const duration = Date.now() - startTime;
 
         logger.logDatabaseOperation('create', 'config_parameters', duration, true);
@@ -263,7 +268,11 @@ export class ConfigController {
       const user = (req as unknown as { user?: { email?: string } }).user;
       const createdBy = user?.email || 'system@togglebox.dev';
 
-      const bodyData = UpdateConfigParameterSchema.parse(req.body);
+      // Use shared schema that validates defaultValue against valueType
+      const bodyData = SharedUpdateConfigParameterSchema.parse({
+        ...req.body,
+        createdBy,
+      });
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
@@ -427,34 +436,27 @@ export class ConfigController {
   listConfigParameters = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { platform, environment } = req.params as { platform: string; environment: string };
-      const pagination = getTokenPaginationParams(req);
+      const { isToken, params, page, perPage } = getSmartPaginationParams(req);
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const result = await this.db.config.listActive(platform, environment, pagination);
+        const result = await this.db.config.listActive(platform, environment, params);
         const duration = Date.now() - startTime;
 
         logger.logDatabaseOperation('listActive', 'config_parameters', duration, true);
 
         // Handle both offset-based and token-based pagination
         if ('total' in result && result.total !== undefined) {
-          if (pagination) {
-            const paginationMeta = createPaginationMeta(1, pagination.limit, result.total);
-            res.json({
-              success: true,
-              data: result.items,
-              meta: paginationMeta,
-              timestamp: new Date().toISOString(),
-            });
-          } else {
-            res.json({
-              success: true,
-              data: result.items,
-              meta: { total: result.total },
-              timestamp: new Date().toISOString(),
-            });
-          }
-        } else {
+          // Offset-based pagination (SQL/MongoDB backends)
+          const paginationMeta = createPaginationMeta(page, perPage, result.total);
+          res.json({
+            success: true,
+            data: result.items,
+            meta: paginationMeta,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (isToken) {
+          // Token-based pagination (DynamoDB)
           const tokenResult = result as { items: typeof result.items; nextToken?: string };
           res.json({
             success: true,
@@ -463,6 +465,14 @@ export class ConfigController {
               nextToken: tokenResult.nextToken,
               hasMore: !!tokenResult.nextToken,
             },
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          // No pagination requested - return all items
+          res.json({
+            success: true,
+            data: result.items,
+            meta: { total: result.items.length },
             timestamp: new Date().toISOString(),
           });
         }
@@ -735,33 +745,26 @@ export class ConfigController {
    */
   listPlatforms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const pagination = getTokenPaginationParams(req);
+      const { isToken, params, page, perPage } = getSmartPaginationParams(req);
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const result = await this.db.platform.listPlatforms(pagination);
+        const result = await this.db.platform.listPlatforms(params);
         const duration = Date.now() - startTime;
 
         logger.logDatabaseOperation('listPlatforms', 'platforms', duration, true);
 
         if ('total' in result && result.total !== undefined) {
-          if (pagination) {
-            const paginationMeta = createPaginationMeta(1, pagination.limit, result.total);
-            res.json({
-              success: true,
-              data: result.items,
-              meta: paginationMeta,
-              timestamp: new Date().toISOString(),
-            });
-          } else {
-            res.json({
-              success: true,
-              data: result.items,
-              meta: { total: result.total },
-              timestamp: new Date().toISOString(),
-            });
-          }
-        } else {
+          // Offset-based pagination (SQL/MongoDB backends)
+          const paginationMeta = createPaginationMeta(page, perPage, result.total);
+          res.json({
+            success: true,
+            data: result.items,
+            meta: paginationMeta,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (isToken) {
+          // Token-based pagination (DynamoDB)
           const tokenResult = result as { items: typeof result.items; nextToken?: string };
           res.json({
             success: true,
@@ -770,6 +773,14 @@ export class ConfigController {
               nextToken: tokenResult.nextToken,
               hasMore: !!tokenResult.nextToken,
             },
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          // No pagination requested - return all items
+          res.json({
+            success: true,
+            data: result.items,
+            meta: { total: result.items.length },
             timestamp: new Date().toISOString(),
           });
         }
@@ -976,33 +987,26 @@ export class ConfigController {
   listEnvironments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { platform } = req.params as { platform: string };
-      const pagination = getTokenPaginationParams(req);
+      const { isToken, params, page, perPage } = getSmartPaginationParams(req);
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const result = await this.db.environment.listEnvironments(platform, pagination);
+        const result = await this.db.environment.listEnvironments(platform, params);
         const duration = Date.now() - startTime;
 
         logger.logDatabaseOperation('listEnvironments', 'environments', duration, true);
 
         if ('total' in result && result.total !== undefined) {
-          if (pagination) {
-            const paginationMeta = createPaginationMeta(1, pagination.limit, result.total);
-            res.json({
-              success: true,
-              data: result.items,
-              meta: paginationMeta,
-              timestamp: new Date().toISOString(),
-            });
-          } else {
-            res.json({
-              success: true,
-              data: result.items,
-              meta: { total: result.total },
-              timestamp: new Date().toISOString(),
-            });
-          }
-        } else {
+          // Offset-based pagination (SQL/MongoDB backends)
+          const paginationMeta = createPaginationMeta(page, perPage, result.total);
+          res.json({
+            success: true,
+            data: result.items,
+            meta: paginationMeta,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (isToken) {
+          // Token-based pagination (DynamoDB)
           const tokenResult = result as { items: typeof result.items; nextToken?: string };
           res.json({
             success: true,
@@ -1011,6 +1015,14 @@ export class ConfigController {
               nextToken: tokenResult.nextToken,
               hasMore: !!tokenResult.nextToken,
             },
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          // No pagination requested - return all items
+          res.json({
+            success: true,
+            data: result.items,
+            meta: { total: result.items.length },
             timestamp: new Date().toISOString(),
           });
         }

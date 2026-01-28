@@ -802,9 +802,19 @@ export class ExperimentController {
 
       const TrafficAllocationUpdateSchema = z.object({
         trafficAllocation: z.array(z.object({
-          variationKey: z.string(),
+          variationKey: z.string().min(1, 'Variation key is required'),
           percentage: z.number().min(0).max(100),
-        })).min(2),
+        })).min(2, 'At least 2 variations required'),
+      }).superRefine((data, ctx) => {
+        // Validate that percentages sum to 100%
+        const total = data.trafficAllocation.reduce((sum, t) => sum + t.percentage, 0);
+        if (Math.abs(total - 100) > 0.01) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Traffic allocation must sum to 100% (got ${total}%)`,
+            path: ['trafficAllocation'],
+          });
+        }
       });
 
       const { trafficAllocation } = TrafficAllocationUpdateSchema.parse(req.body);

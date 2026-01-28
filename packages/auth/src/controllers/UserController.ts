@@ -381,8 +381,14 @@ export class UserController {
    */
   listUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const limit = parseInt((req.query['limit'] as string) || '20', 10);
-      const offset = parseInt((req.query['offset'] as string) || '0', 10);
+      // Safely parse and clamp limit/offset to valid ranges
+      const toPositiveInt = (v: unknown, fallback: number): number => {
+        const n = Number(v);
+        return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+      };
+
+      const limit = Math.min(100, Math.max(1, toPositiveInt(req.query['limit'], 20)));
+      const offset = Math.max(0, toPositiveInt(req.query['offset'], 0));
       const role = req.query['role'] as string | undefined;
 
       const result = await this.userService.listUsers({

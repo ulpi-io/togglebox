@@ -14,6 +14,7 @@ import type {
   TrafficAllocation,
 } from '@togglebox/experiments';
 import type { IExperimentRepository, ExperimentPage } from '@togglebox/experiments';
+import { parseCursor, encodeCursor } from '../../utils/cursor';
 
 /**
  * Safely parse JSON with fallback for malformed data.
@@ -426,7 +427,8 @@ export class D1ExperimentRepository implements IExperimentRepository {
     limit: number = 100,
     cursor?: string
   ): Promise<ExperimentPage> {
-    const offset = cursor ? parseInt(cursor, 10) : 0;
+    // Parse cursor as offset (validates and throws on malformed cursors)
+    const offset = parseCursor(cursor);
 
     let query: string;
     let bindings: unknown[];
@@ -455,7 +457,7 @@ export class D1ExperimentRepository implements IExperimentRepository {
       : [];
 
     const hasMore = items.length === limit;
-    const nextCursor = hasMore ? String(offset + limit) : undefined;
+    const nextCursor = hasMore ? encodeCursor(offset + limit) : undefined;
 
     return {
       items,

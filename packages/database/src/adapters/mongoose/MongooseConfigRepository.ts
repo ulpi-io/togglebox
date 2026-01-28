@@ -269,17 +269,20 @@ export class MongooseConfigRepository implements IConfigRepository {
     }).exec();
 
     // Use offset-based pagination for Mongoose
+    // Only apply pagination if explicitly provided; otherwise fetch all items
     const offsetPagination = pagination as OffsetPaginationParams | undefined;
 
-    const params = await ConfigParameterModel.find({
+    let query = ConfigParameterModel.find({
       platform,
       environment,
       isActive: true,
-    })
-      .sort({ parameterKey: 1 })
-      .skip(offsetPagination?.offset ?? 0)
-      .limit(offsetPagination?.limit ?? 100)
-      .exec();
+    }).sort({ parameterKey: 1 });
+
+    if (offsetPagination) {
+      query = query.skip(offsetPagination.offset ?? 0).limit(offsetPagination.limit);
+    }
+
+    const params = await query.exec();
 
     return {
       items: params.map((p) => this.mapToConfigParameter(p)),

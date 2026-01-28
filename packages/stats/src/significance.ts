@@ -243,6 +243,22 @@ export function calculateRequiredSampleSize(
   confidenceLevel = 0.95,
   power = 0.8
 ): number {
+  // SECURITY: Validate inputs to prevent division by zero and invalid calculations
+  if (baselineConversion <= 0 || baselineConversion >= 1) {
+    throw new Error(
+      'baselineConversion must be between 0 and 1 (exclusive)'
+    );
+  }
+  if (minimumDetectableEffect <= 0) {
+    throw new Error('minimumDetectableEffect must be greater than 0');
+  }
+  if (confidenceLevel <= 0 || confidenceLevel >= 1) {
+    throw new Error('confidenceLevel must be between 0 and 1 (exclusive)');
+  }
+  if (power <= 0 || power >= 1) {
+    throw new Error('power must be between 0 and 1 (exclusive)');
+  }
+
   const zAlpha = getZCritical(confidenceLevel);
   const zBeta = getZCritical(power);
 

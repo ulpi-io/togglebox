@@ -280,19 +280,33 @@ export class D1ConfigRepository implements IConfigRepository {
     const total = countResult?.count || 0;
 
     // Use offset-based pagination
+    // Only apply pagination if explicitly provided; otherwise fetch all items
     const offsetPagination = pagination as OffsetPaginationParams | undefined;
-    const limit = offsetPagination?.limit ?? 100;
-    const offset = offsetPagination?.offset ?? 0;
 
-    const result = await this.db
-      .prepare(
-        `SELECT * FROM config_parameters
-        WHERE platform = ?1 AND environment = ?2 AND isActive = 1
-        ORDER BY parameterKey ASC
-        LIMIT ?3 OFFSET ?4`
-      )
-      .bind(platform, environment, limit, offset)
-      .all<ConfigParameterRow>();
+    let result;
+    if (offsetPagination) {
+      const limit = offsetPagination.limit;
+      const offset = offsetPagination.offset ?? 0;
+
+      result = await this.db
+        .prepare(
+          `SELECT * FROM config_parameters
+          WHERE platform = ?1 AND environment = ?2 AND isActive = 1
+          ORDER BY parameterKey ASC
+          LIMIT ?3 OFFSET ?4`
+        )
+        .bind(platform, environment, limit, offset)
+        .all<ConfigParameterRow>();
+    } else {
+      result = await this.db
+        .prepare(
+          `SELECT * FROM config_parameters
+          WHERE platform = ?1 AND environment = ?2 AND isActive = 1
+          ORDER BY parameterKey ASC`
+        )
+        .bind(platform, environment)
+        .all<ConfigParameterRow>();
+    }
 
     const items = result.results
       ? result.results.map((row) => this.mapToConfigParameter(row))

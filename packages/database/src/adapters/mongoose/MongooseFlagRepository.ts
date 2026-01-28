@@ -14,6 +14,7 @@ import type {
 } from '@togglebox/flags';
 import type { IFlagRepository, FlagPage } from '@togglebox/flags';
 import { FlagModel, type IFlagDocument } from './schemas';
+import { parseCursor, encodeCursor } from '../../utils/cursor';
 
 /**
  * Mongoose implementation of the Feature Flag repository.
@@ -220,7 +221,7 @@ export class MongooseFlagRepository implements IFlagRepository {
     cursor?: string
   ): Promise<FlagPage> {
     const pageSize = limit || 100;
-    const skip = cursor ? parseInt(Buffer.from(cursor, 'base64').toString(), 10) : 0;
+    const skip = parseCursor(cursor);
 
     const docs = await FlagModel.find({
       platform,
@@ -233,7 +234,7 @@ export class MongooseFlagRepository implements IFlagRepository {
     const hasMore = docs.length > pageSize;
     const items = docs.slice(0, pageSize).map(doc => this.docToFlag(doc));
     const nextCursor = hasMore
-      ? Buffer.from(String(skip + pageSize)).toString('base64')
+      ? encodeCursor(skip + pageSize)
       : undefined;
 
     return {

@@ -225,6 +225,7 @@ export class PrismaConfigRepository implements IConfigRepository {
     });
 
     // Use offset-based pagination for Prisma
+    // Only apply pagination if explicitly provided; otherwise fetch all items
     const offsetPagination = pagination as OffsetPaginationParams | undefined;
 
     const params = await this.prisma.configParameter.findMany({
@@ -234,8 +235,10 @@ export class PrismaConfigRepository implements IConfigRepository {
         isActive: true,
       },
       orderBy: { parameterKey: 'asc' },
-      skip: offsetPagination?.offset ?? 0,
-      take: offsetPagination?.limit ?? 100,
+      ...(offsetPagination ? {
+        skip: offsetPagination.offset ?? 0,
+        take: offsetPagination.limit,
+      } : {}),
     });
 
     return {

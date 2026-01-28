@@ -35,9 +35,22 @@ class LaravelCacheAdapter implements CacheInterface
 
     public function clear(): void
     {
-        // Note: This only works with cache stores that support tags
-        // For stores without tags, this will clear the entire cache
-        $this->cache->flush();
+        // Use tags if the cache store supports them (Redis, Memcached)
+        // This avoids wiping the entire cache store
+        if ($this->cache instanceof \Illuminate\Cache\TaggableStore || method_exists($this->cache->getStore(), 'tags')) {
+            try {
+                $this->cache->getStore()->tags([$this->prefix])->flush();
+                return;
+            } catch (\Throwable) {
+                // Fall through to warning
+            }
+        }
+
+        // For stores without tag support (file, database), we cannot safely clear only ToggleBox keys
+        // Log a warning instead of wiping the entire cache
+        if (function_exists('logger')) {
+            logger()->warning('ToggleBox cache clear() called but cache store does not support tags. Cache not cleared to avoid wiping unrelated data.');
+        }
     }
 
     private function prefixKey(string $key): string

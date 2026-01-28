@@ -13,6 +13,7 @@ import type {
   UpdateRollout,
 } from '@togglebox/flags';
 import type { IFlagRepository, FlagPage } from '@togglebox/flags';
+import { parseCursor, encodeCursor } from '../../utils/cursor';
 
 /**
  * D1 row type for Flag queries.
@@ -311,7 +312,8 @@ export class D1FlagRepository implements IFlagRepository {
     limit: number = 100,
     cursor?: string
   ): Promise<FlagPage> {
-    const offset = cursor ? parseInt(cursor, 10) : 0;
+    // Parse cursor as offset (validates and throws on malformed cursors)
+    const offset = parseCursor(cursor);
 
     const result = await this.db
       .prepare(
@@ -326,7 +328,7 @@ export class D1FlagRepository implements IFlagRepository {
 
     const items = result.results ? result.results.map(row => this.rowToFlag(row)) : [];
     const hasMore = items.length === limit;
-    const nextCursor = hasMore ? String(offset + limit) : undefined;
+    const nextCursor = hasMore ? encodeCursor(offset + limit) : undefined;
 
     return {
       items,

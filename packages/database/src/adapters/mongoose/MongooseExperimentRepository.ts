@@ -15,6 +15,7 @@ import type {
 } from '@togglebox/experiments';
 import type { IExperimentRepository, ExperimentPage } from '@togglebox/experiments';
 import { ExperimentModel, type IExperimentDocument } from './schemas';
+import { parseCursor, encodeCursor } from '../../utils/cursor';
 
 /**
  * Safely parse JSON with fallback for malformed data.
@@ -273,7 +274,7 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     cursor?: string
   ): Promise<ExperimentPage> {
     const pageSize = limit || 100;
-    const skip = cursor ? parseInt(Buffer.from(cursor, 'base64').toString(), 10) : 0;
+    const skip = parseCursor(cursor);
 
     const filter: Record<string, unknown> = {
       platform,
@@ -292,7 +293,7 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     const hasMore = docs.length > pageSize;
     const items = docs.slice(0, pageSize).map(doc => this.docToExperiment(doc));
     const nextCursor = hasMore
-      ? Buffer.from(String(skip + pageSize)).toString('base64')
+      ? encodeCursor(skip + pageSize)
       : undefined;
 
     return {
