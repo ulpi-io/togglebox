@@ -14,6 +14,7 @@ import type {
 } from "@togglebox/flags";
 import type { IFlagRepository, FlagPage } from "@togglebox/flags";
 import { parseCursor, encodeCursor } from "../../utils/cursor";
+import { NotFoundError } from "@togglebox/shared";
 
 /**
  * D1 row type for Flag queries.
@@ -148,7 +149,7 @@ export class D1FlagRepository implements IFlagRepository {
     // Get current active version
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
 
     // Parse current version and increment patch
@@ -233,7 +234,7 @@ export class D1FlagRepository implements IFlagRepository {
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
 
     const now = new Date().toISOString();
@@ -385,7 +386,7 @@ export class D1FlagRepository implements IFlagRepository {
       .run();
 
     if (result.meta.rows_written === 0) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
   }
 
@@ -413,7 +414,7 @@ export class D1FlagRepository implements IFlagRepository {
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
 
     const now = new Date().toISOString();

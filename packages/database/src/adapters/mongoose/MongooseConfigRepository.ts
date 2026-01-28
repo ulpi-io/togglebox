@@ -19,6 +19,11 @@ import {
   PaginatedResult,
 } from "../../interfaces";
 import { ConfigParameterModel, IConfigParameterDocument } from "./schemas";
+import {
+  NotFoundError,
+  ConflictError,
+  InternalServerError,
+} from "@togglebox/shared";
 
 /**
  * Mongoose implementation of config parameter repository.
@@ -85,7 +90,7 @@ export class MongooseConfigRepository implements IConfigRepository {
       return this.mapToConfigParameter(doc);
     } catch (error: unknown) {
       if ((error as { code?: number }).code === 11000) {
-        throw new Error(
+        throw new ConflictError(
           `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`,
         );
       }
@@ -116,7 +121,7 @@ export class MongooseConfigRepository implements IConfigRepository {
     }).exec();
 
     if (!current) {
-      throw new Error(
+      throw new NotFoundError(
         `Parameter ${parameterKey} not found in ${platform}/${environment}`,
       );
     }
@@ -171,7 +176,7 @@ export class MongooseConfigRepository implements IConfigRepository {
       });
 
       if (!created) {
-        throw new Error("Failed to create new config parameter version");
+        throw new InternalServerError("Failed to create new config parameter version");
       }
       return this.mapToConfigParameter(created);
     } catch (error: unknown) {

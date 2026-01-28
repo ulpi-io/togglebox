@@ -15,6 +15,7 @@ import type {
 } from "@togglebox/flags";
 import type { IFlagRepository, FlagPage } from "@togglebox/flags";
 import { parseCursor, encodeCursor } from "../../utils/cursor";
+import { NotFoundError } from "@togglebox/shared";
 
 /**
  * Prisma implementation of the Feature Flag repository.
@@ -101,7 +102,7 @@ export class PrismaFlagRepository implements IFlagRepository {
     // Get current active version
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
 
     // Parse current version and increment
@@ -181,7 +182,7 @@ export class PrismaFlagRepository implements IFlagRepository {
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
 
     const now = new Date().toISOString();
@@ -331,7 +332,7 @@ export class PrismaFlagRepository implements IFlagRepository {
     });
 
     if (count.count === 0) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
   }
 
@@ -359,7 +360,7 @@ export class PrismaFlagRepository implements IFlagRepository {
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
-      throw new Error(`Feature flag not found: ${flagKey}`);
+      throw new NotFoundError(`Feature flag not found: ${flagKey}`);
     }
 
     const now = new Date().toISOString();

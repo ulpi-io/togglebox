@@ -13,6 +13,7 @@ import {
   TokenPaginationParams,
   OffsetPaginatedResult,
 } from "../../interfaces";
+import { ConflictError } from "@togglebox/shared";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -56,7 +57,7 @@ export class D1PlatformRepository implements IPlatformRepository {
     } catch (error: unknown) {
       // SQLite error code 19 is CONSTRAINT violation (unique constraint)
       if ((error as Error).message?.includes("UNIQUE constraint failed")) {
-        throw new Error(`Platform ${platform.name} already exists`);
+        throw new ConflictError(`Platform ${platform.name} already exists`);
       }
       throw error;
     }

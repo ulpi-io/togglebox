@@ -542,7 +542,7 @@ export default function CreateFlagPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="valueA">Value A (default)</Label>
+                    <Label htmlFor="valueA">Value A</Label>
                     {flagType === "boolean" ? (
                       <Select
                         id="valueA"
@@ -562,12 +562,12 @@ export default function CreateFlagPage() {
                       />
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Default value, served when flag is disabled or no rules
-                      match
+                      Served to force-included users, matching targeting rules,
+                      or by rollout percentage
                     </p>
                   </div>
                   <div>
-                    <Label htmlFor="valueB">Value B (rollout)</Label>
+                    <Label htmlFor="valueB">Value B</Label>
                     {flagType === "boolean" ? (
                       <Select
                         id="valueB"
@@ -587,7 +587,8 @@ export default function CreateFlagPage() {
                       />
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Served when rollout or targeting applies
+                      Served to force-excluded users, matching targeting rules,
+                      or by rollout percentage
                     </p>
                   </div>
                 </div>
@@ -607,7 +608,7 @@ export default function CreateFlagPage() {
                     </Label>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 ml-6">
-                    When disabled, all users receive Value A (the default)
+                    When disabled, the flag serves Value B (the default)
                   </p>
                 </div>
               </div>

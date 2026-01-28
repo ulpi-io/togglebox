@@ -35,6 +35,7 @@ import {
   QueryCommandInput,
   BatchWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { NotFoundError, ConflictError, BadRequestError } from "@togglebox/shared";
 
 /**
  * Type guard for DynamoDB errors with a name property.
@@ -133,7 +134,7 @@ export class DynamoDBConfigRepository implements IConfigRepository {
         isDynamoDBError(error) &&
         error.name === "ConditionalCheckFailedException"
       ) {
-        throw new Error(
+        throw new ConflictError(
           `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`,
         );
       }
@@ -153,7 +154,7 @@ export class DynamoDBConfigRepository implements IConfigRepository {
     // 1. Get current active version
     const current = await this.getActive(platform, environment, parameterKey);
     if (!current) {
-      throw new Error(
+      throw new NotFoundError(
         `Parameter ${parameterKey} not found in ${platform}/${environment}`,
       );
     }
@@ -364,7 +365,7 @@ export class DynamoDBConfigRepository implements IConfigRepository {
           Buffer.from(tokenPagination.nextToken, "base64").toString("utf-8"),
         );
       } catch {
-        throw new Error("Invalid pagination token");
+        throw new BadRequestError("Invalid pagination token");
       }
     }
 

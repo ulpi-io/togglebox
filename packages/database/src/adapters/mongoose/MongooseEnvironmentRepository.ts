@@ -13,6 +13,7 @@ import {
   TokenPaginationParams,
   OffsetPaginatedResult,
 } from "../../interfaces";
+import { NotFoundError, ConflictError } from "@togglebox/shared";
 import { EnvironmentModel, PlatformModel } from "./schemas";
 
 /**
@@ -41,7 +42,7 @@ export class MongooseEnvironmentRepository implements IEnvironmentRepository {
     }).exec();
 
     if (!platformDoc) {
-      throw new Error(`Platform ${environment.platform} not found`);
+      throw new NotFoundError(`Platform ${environment.platform} not found`);
     }
 
     try {
@@ -62,7 +63,7 @@ export class MongooseEnvironmentRepository implements IEnvironmentRepository {
     } catch (error: unknown) {
       if ((error as { code?: number }).code === 11000) {
         // Duplicate key error
-        throw new Error(
+        throw new ConflictError(
           `Environment ${environment.environment} already exists for platform ${environment.platform}`,
         );
       }

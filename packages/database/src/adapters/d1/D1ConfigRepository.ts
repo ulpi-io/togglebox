@@ -18,6 +18,7 @@ import {
   TokenPaginationParams,
   PaginatedResult,
 } from "../../interfaces";
+import { NotFoundError, ConflictError } from "@togglebox/shared";
 
 /**
  * D1 result row type for config parameters.
@@ -131,7 +132,7 @@ export class D1ConfigRepository implements IConfigRepository {
         errMessage.includes("UNIQUE constraint failed") ||
         errMessage.includes("PRIMARY KEY")
       ) {
-        throw new Error(
+        throw new ConflictError(
           `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`,
         );
       }
@@ -162,7 +163,7 @@ export class D1ConfigRepository implements IConfigRepository {
       .first<ConfigParameterRow>();
 
     if (!current) {
-      throw new Error(
+      throw new NotFoundError(
         `Parameter ${parameterKey} not found in ${platform}/${environment}`,
       );
     }
