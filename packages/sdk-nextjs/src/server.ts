@@ -266,7 +266,7 @@ export async function getExperiments(options: ServerOptions): Promise<ServerExpe
  *     apiKey: 'tb_live_xxxxx', // Required if authentication is enabled
  *   })
  *
- *   await trackConversion('checkout-test', { userId }, { metricName: 'purchase', value: amount })
+ *   await trackConversion('checkout-test', { userId }, { metricId: 'purchase', value: amount })
  *   await flushStats()
  * }
  * ```

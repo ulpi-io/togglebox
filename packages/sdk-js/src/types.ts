@@ -160,8 +160,8 @@ export interface RetryOptions {
  * Conversion data for tracking
  */
 export interface ConversionData {
-  /** Metric name (e.g., 'purchase', 'signup') */
-  metricName: string
+  /** Metric identifier (e.g., 'purchase', 'signup') - must match metric ID in experiment config */
+  metricId: string
 
   /** Optional value for sum/average metrics (e.g., revenue amount) */
   value?: number

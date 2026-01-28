@@ -12,7 +12,9 @@ export type Config = Record<string, unknown>
  * Conversion data for experiment tracking
  */
 export interface ConversionData {
-  metricName: string
+  /** Metric identifier (must match metric ID in experiment config) */
+  metricId: string
+  /** Optional value for sum/average metrics (e.g., revenue amount) */
   value?: number
 }
 
@@ -109,12 +111,12 @@ export interface ToggleBoxContextValue {
    *
    * @param experimentKey - The experiment key
    * @param context - Experiment context (userId required)
-   * @param data - Conversion data (metricName, optional value)
+   * @param data - Conversion data (metricId, optional value)
    *
    * @example
    * ```typescript
    * await trackConversion('checkout-test', { userId: 'user-123' }, {
-   *   metricName: 'purchase',
+   *   metricId: 'purchase',
    *   value: 99.99,
    * })
    * ```
@@ -167,7 +169,7 @@ export interface ToggleBoxContextValue {
    *
    * @example
    * ```typescript
-   * await trackConversion('checkout-test', { userId: 'user-123' }, { metricName: 'purchase' })
+   * await trackConversion('checkout-test', { userId: 'user-123' }, { metricId: 'purchase' })
    * await flushStats() // Ensure conversion is sent immediately
    * ```
    */
@@ -268,7 +270,7 @@ export interface UseAnalyticsResult {
    *
    * @param experimentKey - The experiment key
    * @param context - Experiment context (userId required)
-   * @param data - Conversion data (metricName, optional value)
+   * @param data - Conversion data (metricId, optional value)
    */
   trackConversion: (
     experimentKey: string,

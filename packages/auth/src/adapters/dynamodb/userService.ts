@@ -68,6 +68,12 @@ export async function createUser(data: CreateUserData): Promise<User> {
       SK: `USER#${user.id}`,
       GSI1PK: `USER_EMAIL#${user.email}`,
       GSI1SK: `USER#${user.id}`,
+      // GSI2 for all users listing (enables efficient Query instead of Scan)
+      GSI2PK: 'USER#ALL',
+      GSI2SK: `USER#${user.id}`,
+      // GSI3 for role-based queries (enables efficient countByRole)
+      GSI3PK: `USER_ROLE#${user.role}`,
+      GSI3SK: `USER#${user.id}`,
       ...user,
       // Store dates as ISO strings for DynamoDB
       createdAt: user.createdAt.toISOString(),
@@ -147,17 +153,18 @@ export async function findUserByEmail(email: string): Promise<User | null> {
 }
 
 /**
- * Update user data.
+ * Update user data with optimistic locking.
  *
  * @param id - User UUID
  * @param data - Partial user data to update (role, passwordHash)
  * @returns Updated user
  * @throws {Error} If user not found
+ * @throws {Error} If concurrent modification detected (optimistic lock failure)
  *
  * @remarks
- * **Read-Modify-Write:**
- * Fetches existing user, merges updates, writes back entire item.
- * Not atomic - use optimistic locking for concurrent updates if needed.
+ * **Optimistic Locking:**
+ * Uses `updatedAt` as version field. Update only succeeds if `updatedAt`
+ * matches expected value, preventing concurrent overwrites.
  *
  * **Timestamps:**
  * Automatically updates `updatedAt` to current time.
@@ -173,6 +180,7 @@ export async function updateUser(id: string, data: UpdateUserData): Promise<User
     throw new Error(`User with ID ${id} not found`);
   }
 
+  const expectedUpdatedAt = existingUser.updatedAt.toISOString();
   const updatedUser: User = {
     ...existingUser,
     ...data,
@@ -186,14 +194,33 @@ export async function updateUser(id: string, data: UpdateUserData): Promise<User
       SK: `USER#${id}`,
       GSI1PK: `USER_EMAIL#${updatedUser.email}`,
       GSI1SK: `USER#${id}`,
+      // GSI2 for all users listing (enables efficient Query instead of Scan)
+      GSI2PK: 'USER#ALL',
+      GSI2SK: `USER#${id}`,
+      // GSI3 for role-based queries (enables efficient countByRole)
+      GSI3PK: `USER_ROLE#${updatedUser.role}`,
+      GSI3SK: `USER#${id}`,
       ...updatedUser,
       createdAt: updatedUser.createdAt.toISOString(),
       updatedAt: updatedUser.updatedAt.toISOString(),
     },
+    // Optimistic locking: only update if updatedAt matches expected value
+    ConditionExpression: 'updatedAt = :expectedUpdatedAt',
+    ExpressionAttributeValues: {
+      ':expectedUpdatedAt': expectedUpdatedAt,
+    },
   };
 
-  await dynamoDBClient.send(new PutCommand(params));
-  return updatedUser;
+  try {
+    await dynamoDBClient.send(new PutCommand(params));
+    return updatedUser;
+  } catch (error: unknown) {
+    const err = error as { name?: string; message?: string };
+    if (err.name === 'ConditionalCheckFailedException') {
+      throw new Error(`Concurrent modification detected for user ${id}. Please retry.`);
+    }
+    throw error;
+  }
 }
 
 /**
@@ -233,20 +260,17 @@ export async function deleteUser(id: string): Promise<void> {
  * @returns Paginated user list with total count
  *
  * @remarks
- * **Performance Warning:**
- * Uses table SCAN operation - inefficient for large datasets.
- * For production with >10K users, consider:
- * 1. GSI with fixed partition key for all users
- * 2. Cursor-based pagination instead of offset
- * 3. Caching user list
+ * **GSI-Based Query:**
+ * Uses GSI2 with `GSI2PK: USER#ALL` for efficient user listing.
+ * Falls back to table scan if GSI2 is not available.
  *
- * **Filter Expression:**
- * Filters applied AFTER scan (not before) - always scans entire table.
- * RCUs consumed based on scanned items, not filtered results.
+ * **Role Filtering:**
+ * When role is specified, uses GSI3 with `GSI3PK: USER_ROLE#<role>` for
+ * efficient role-based queries without scanning the entire table.
  *
  * **Manual Pagination:**
- * Uses in-memory pagination (slice) after fetching all users.
- * Not suitable for large datasets - consider DynamoDB pagination (LastEvaluatedKey).
+ * Uses in-memory pagination (slice) for offset-based pagination.
+ * For very large datasets, consider cursor-based pagination with LastEvaluatedKey.
  */
 export async function listUsers(options?: {
   limit?: number;
@@ -256,29 +280,89 @@ export async function listUsers(options?: {
   const limit = options?.limit || 20;
   const offset = options?.offset || 0;
 
-  // Query for all users using a scan on PK pattern
-  // In production, consider using GSI with a fixed partition key for all users
-  const params: any = {
-    TableName: getUsersTableName(),
-    FilterExpression: 'begins_with(PK, :pk)',
-    ExpressionAttributeValues: {
-      ':pk': 'USER#',
-    },
-  };
+  try {
+    // If role is specified, use GSI3 for efficient role-based query
+    if (options?.role) {
+      const params = {
+        TableName: getUsersTableName(),
+        IndexName: 'GSI3',
+        KeyConditionExpression: 'GSI3PK = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `USER_ROLE#${options.role}`,
+        },
+      };
 
-  // Add role filter if provided
-  if (options?.role) {
-    params.FilterExpression += ' AND #role = :role';
-    params.ExpressionAttributeNames = {
-      '#role': 'role',
+      const result = await dynamoDBClient.send(new QueryCommand(params));
+      const allUsers = result.Items ? result.Items.map(mapToUser) : [];
+      const paginatedUsers = allUsers.slice(offset, offset + limit);
+
+      return {
+        users: paginatedUsers,
+        total: allUsers.length,
+      };
+    }
+
+    // Use GSI2 for listing all users (more efficient than scan)
+    const params = {
+      TableName: getUsersTableName(),
+      IndexName: 'GSI2',
+      KeyConditionExpression: 'GSI2PK = :pk',
+      ExpressionAttributeValues: {
+        ':pk': 'USER#ALL',
+      },
     };
-    params.ExpressionAttributeValues![':role'] = options.role;
+
+    const result = await dynamoDBClient.send(new QueryCommand(params));
+    const allUsers = result.Items ? result.Items.map(mapToUser) : [];
+    const paginatedUsers = allUsers.slice(offset, offset + limit);
+
+    return {
+      users: paginatedUsers,
+      total: allUsers.length,
+    };
+  } catch (error: unknown) {
+    // Fallback to scan if GSI doesn't exist (for backward compatibility)
+    const err = error as { name?: string; message?: string };
+    if (err.message?.includes('GSI') || err.name === 'ResourceNotFoundException') {
+      console.warn('GSI2/GSI3 not found, falling back to table scan. Consider adding GSIs for better performance.');
+      return listUsersWithScan(options);
+    }
+    throw error;
   }
+}
+
+/**
+ * Fallback: List users using table scan (for backward compatibility).
+ * @internal
+ */
+async function listUsersWithScan(options?: {
+  limit?: number;
+  offset?: number;
+  role?: string;
+}): Promise<{ users: User[]; total: number }> {
+  const limit = options?.limit || 20;
+  const offset = options?.offset || 0;
+
+  // Build scan parameters with proper typing
+  const expressionValues: Record<string, string> = { ':pk': 'USER#' };
+  let filterExpression = 'begins_with(PK, :pk)';
+  let expressionNames: Record<string, string> | undefined;
+
+  if (options?.role) {
+    filterExpression += ' AND #role = :role';
+    expressionNames = { '#role': 'role' };
+    expressionValues[':role'] = options.role;
+  }
+
+  const params = {
+    TableName: getUsersTableName(),
+    FilterExpression: filterExpression,
+    ExpressionAttributeValues: expressionValues,
+    ...(expressionNames && { ExpressionAttributeNames: expressionNames }),
+  };
 
   const result = await dynamoDBClient.send(new ScanCommand(params));
   const allUsers = result.Items ? result.Items.map(mapToUser) : [];
-
-  // Manual pagination (DynamoDB pagination is different, but this works for MVP)
   const paginatedUsers = allUsers.slice(offset, offset + limit);
 
   return {
@@ -296,11 +380,42 @@ export async function listUsers(options?: {
  * @remarks
  * **SECURITY:** Used to prevent demoting the last admin user.
  *
- * **Performance:**
- * Uses table SCAN with filter - consider GSI for better performance.
+ * **GSI-Based Query:**
+ * Uses GSI3 with `GSI3PK: USER_ROLE#<role>` for efficient counting.
+ * Falls back to table scan if GSI3 is not available.
  */
 export async function countUsersByRole(role: string): Promise<number> {
-  const params: any = {
+  try {
+    // Use GSI3 for efficient role-based count
+    const params = {
+      TableName: getUsersTableName(),
+      IndexName: 'GSI3',
+      KeyConditionExpression: 'GSI3PK = :pk',
+      ExpressionAttributeValues: {
+        ':pk': `USER_ROLE#${role}`,
+      },
+      Select: 'COUNT' as const,
+    };
+
+    const result = await dynamoDBClient.send(new QueryCommand(params));
+    return result.Count || 0;
+  } catch (error: unknown) {
+    // Fallback to scan if GSI doesn't exist (for backward compatibility)
+    const err = error as { name?: string; message?: string };
+    if (err.message?.includes('GSI') || err.name === 'ResourceNotFoundException') {
+      console.warn('GSI3 not found, falling back to table scan. Consider adding GSI for better performance.');
+      return countUsersByRoleWithScan(role);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Fallback: Count users by role using table scan (for backward compatibility).
+ * @internal
+ */
+async function countUsersByRoleWithScan(role: string): Promise<number> {
+  const params = {
     TableName: getUsersTableName(),
     FilterExpression: 'begins_with(PK, :pk) AND #role = :role',
     ExpressionAttributeNames: {
@@ -310,7 +425,7 @@ export async function countUsersByRole(role: string): Promise<number> {
       ':pk': 'USER#',
       ':role': role,
     },
-    Select: 'COUNT',
+    Select: 'COUNT' as const,
   };
 
   const result = await dynamoDBClient.send(new ScanCommand(params));

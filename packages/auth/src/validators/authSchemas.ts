@@ -157,6 +157,22 @@ export const adminUpdateUserSchema = z.object({
 });
 
 /**
+ * Admin create user schema (used by admins to create new users with specific roles).
+ *
+ * @remarks
+ * Extends registerSchema with optional role field.
+ * Only accessible via admin endpoints with user:manage permission.
+ */
+export const adminCreateUserSchema = registerSchema.extend({
+  role: z.enum(['admin', 'developer', 'viewer']).optional(),
+});
+
+/**
+ * Type-safe admin create user data inferred from schema.
+ */
+export type AdminCreateUserData = z.infer<typeof adminCreateUserSchema>;
+
+/**
  * Type-safe update profile data inferred from schema.
  */
 export type UpdateProfileData = z.infer<typeof updateProfileSchema>;

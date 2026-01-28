@@ -235,11 +235,16 @@ export type ExperimentExposureEvent = z.infer<typeof ExperimentExposureEventSche
 
 /**
  * Conversion event.
+ *
+ * @remarks
+ * **BREAKING CHANGE (v2.0):** Field renamed from `metricName` to `metricId`.
+ * SDKs must send the metric identifier (e.g., "purchase-completed"),
+ * not a display name (e.g., "Purchase Completed").
  */
 export const ConversionEventSchema = BaseEventSchema.extend({
   type: z.literal('conversion'),
   experimentKey: z.string(),
-  metricName: z.string(),
+  metricId: z.string(), // Metric identifier (not display name)
   variationKey: z.string(), // Required: which variation the user was assigned to
   userId: z.string(),
   value: z.number().optional(), // For revenue/sum metrics

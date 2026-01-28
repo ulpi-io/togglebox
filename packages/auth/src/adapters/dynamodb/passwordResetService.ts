@@ -79,6 +79,12 @@ export async function createPasswordResetToken(
       GSI1SK: `RESET#${token.expiresAt.toISOString()}`,
       GSI2PK: `RESET_HASH#${token.tokenHash}`,
       GSI2SK: `RESET#${token.id}`,
+      // GSI3 for efficient expired token cleanup (query instead of scan)
+      GSI3PK: 'RESET#ALL',
+      GSI3SK: token.expiresAt.toISOString(),
+      // TTL attribute for DynamoDB automatic cleanup (if TTL enabled on table)
+      // TTL is the recommended approach - set to Unix timestamp (seconds)
+      ttl: Math.floor(token.expiresAt.getTime() / 1000),
       ...token,
       createdAt: token.createdAt.toISOString(),
       expiresAt: token.expiresAt.toISOString(),
@@ -266,13 +272,13 @@ export async function deletePasswordResetTokensByUser(userId: string): Promise<v
  * **Cleanup Job:**
  * Run periodically via cron (e.g., daily at 3 AM) to remove expired tokens.
  *
- * **Performance Warning:**
- * Uses full table SCAN with filter - expensive for large datasets.
- * RCUs consumed based on all items scanned, not just expired tokens.
+ * **GSI-Based Query:**
+ * Uses GSI3 with `GSI3PK: RESET#ALL` and range condition on expiration date.
+ * Much more efficient than full table scan - only reads expired tokens.
  *
- * **Optimization:**
- * Consider DynamoDB TTL feature for automatic expiration instead of manual cleanup.
- * Configure TTL on `expiresAt` attribute for zero-cost automatic deletion.
+ * **Recommended: DynamoDB TTL:**
+ * For zero-cost automatic cleanup, enable DynamoDB TTL on the `ttl` attribute.
+ * TTL provides automatic deletion without consuming RCUs.
  *
  * **Batch Delete:**
  * Deletes tokens in parallel using Promise.all.
@@ -281,8 +287,45 @@ export async function deletePasswordResetTokensByUser(userId: string): Promise<v
 export async function deleteExpiredPasswordResetTokens(): Promise<number> {
   const now = new Date().toISOString();
 
-  // Scan for expired tokens
-  const params: any = {
+  try {
+    // Use GSI3 for efficient query of expired tokens (instead of full table scan)
+    const params = {
+      TableName: getPasswordResetsTableName(),
+      IndexName: 'GSI3',
+      KeyConditionExpression: 'GSI3PK = :pk AND GSI3SK < :now',
+      ExpressionAttributeValues: {
+        ':pk': 'RESET#ALL',
+        ':now': now,
+      },
+    };
+
+    const result = await dynamoDBClient.send(new QueryCommand(params));
+    const expiredTokens = result.Items ? result.Items.map(mapToPasswordResetToken) : [];
+
+    // Batch delete expired tokens
+    const deletePromises = expiredTokens.map((token) => deletePasswordResetToken(token.id));
+    await Promise.all(deletePromises);
+
+    return expiredTokens.length;
+  } catch (error: unknown) {
+    // Fallback to scan if GSI3 doesn't exist (for backward compatibility)
+    const err = error as { name?: string; message?: string };
+    if (err.message?.includes('GSI') || err.name === 'ResourceNotFoundException') {
+      console.warn('GSI3 not found, falling back to table scan. Consider adding GSI for better performance.');
+      return deleteExpiredPasswordResetTokensWithScan();
+    }
+    throw error;
+  }
+}
+
+/**
+ * Fallback: Delete expired tokens using table scan (for backward compatibility).
+ * @internal
+ */
+async function deleteExpiredPasswordResetTokensWithScan(): Promise<number> {
+  const now = new Date().toISOString();
+
+  const params = {
     TableName: getPasswordResetsTableName(),
     FilterExpression: 'begins_with(PK, :pk) AND expiresAt < :now',
     ExpressionAttributeValues: {
@@ -294,7 +337,6 @@ export async function deleteExpiredPasswordResetTokens(): Promise<number> {
   const result = await dynamoDBClient.send(new ScanCommand(params));
   const expiredTokens = result.Items ? result.Items.map(mapToPasswordResetToken) : [];
 
-  // Batch delete expired tokens
   const deletePromises = expiredTokens.map((token) => deletePasswordResetToken(token.id));
   await Promise.all(deletePromises);
 

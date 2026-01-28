@@ -150,7 +150,7 @@ export class StatsCollector {
    */
   trackConversion(
     experimentKey: string,
-    metricName: string,
+    metricId: string,
     variationKey: string,
     userId: string,
     value?: number
@@ -158,7 +158,7 @@ export class StatsCollector {
     this.queueEvent({
       type: 'conversion',
       experimentKey,
-      metricName,
+      metricId,
       variationKey,
       userId,
       value,

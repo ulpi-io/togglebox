@@ -23,7 +23,13 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
 import { PasswordResetService } from '../services/PasswordResetService';
+import {
+  passwordResetRequestSchema,
+  passwordResetVerifySchema,
+  passwordResetCompleteSchema,
+} from '../validators/authSchemas';
 
 /**
  * Password reset controller class.
@@ -85,7 +91,8 @@ export class PasswordResetController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { email } = req.body;
+      // SECURITY: Validate input to ensure valid email format
+      const { email } = passwordResetRequestSchema.parse(req.body);
 
       await this.passwordResetService.requestPasswordReset({ email });
 
@@ -96,6 +103,18 @@ export class PasswordResetController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          details: error.errors.map((err) => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       next(error);
     }
   };
@@ -146,7 +165,8 @@ export class PasswordResetController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { token } = req.body;
+      // SECURITY: Validate token format
+      const { token } = passwordResetVerifySchema.parse(req.body);
 
       const isValid = await this.passwordResetService.verifyPasswordResetToken({
         token,
@@ -167,6 +187,18 @@ export class PasswordResetController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          details: error.errors.map((err) => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       next(error);
     }
   };
@@ -222,7 +254,8 @@ export class PasswordResetController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const { token, newPassword } = req.body;
+      // SECURITY: Validate token format and password strength
+      const { token, newPassword } = passwordResetCompleteSchema.parse(req.body);
 
       await this.passwordResetService.completePasswordReset({
         token,
@@ -235,6 +268,18 @@ export class PasswordResetController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          details: error.errors.map((err) => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       const err = error as { message?: string };
       if (
         err.message?.includes('Invalid') ||

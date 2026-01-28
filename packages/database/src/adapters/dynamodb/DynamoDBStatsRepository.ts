@@ -741,7 +741,7 @@ export class DynamoDBStatsRepository implements IStatsRepository {
               platform,
               environment,
               event.experimentKey,
-              event.metricName, // metricName in the event maps to metricId in the repository
+              event.metricId,
               event.variationKey,
               event.userId,
               event.value

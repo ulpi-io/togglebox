@@ -155,7 +155,7 @@ export function useExperiment(experimentKey: string, context: ExperimentContext)
  *
  * // Track a conversion
  * await trackConversion('checkout-test', { userId: 'user-123' }, {
- *   metricName: 'purchase',
+ *   metricId: 'purchase',
  *   value: 99.99
  * })
  *

@@ -333,13 +333,13 @@ export class ToggleBoxClient {
    *
    * @param experimentKey - The experiment key
    * @param context - Experiment context
-   * @param data - Conversion data (metricName, optional value)
+   * @param data - Conversion data (metricId, optional value)
    *
    * @example
    * ```typescript
    * // Track a purchase conversion
    * await client.trackConversion('checkout-test', { userId: 'user-123' }, {
-   *   metricName: 'purchase',
+   *   metricId: 'purchase',
    *   value: 99.99, // Revenue amount
    * })
    * ```
@@ -355,7 +355,7 @@ export class ToggleBoxClient {
     if (assignment) {
       this.stats.trackConversion(
         experimentKey,
-        data.metricName,
+        data.metricId,
         assignment.variationKey,
         context.userId,
         data.value

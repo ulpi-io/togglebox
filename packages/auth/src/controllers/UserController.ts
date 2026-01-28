@@ -19,8 +19,14 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
 import { UserService } from '../services/UserService';
 import { AuthRequest } from '../middleware/auth';
+import {
+  updateProfileSchema,
+  changePasswordSchema,
+  adminCreateUserSchema,
+} from '../validators/authSchemas';
 
 /**
  * User management controller class.
@@ -143,7 +149,11 @@ export class UserController {
         return;
       }
 
-      const user = await this.userService.updateProfile(req.user.userId, req.body);
+      // SECURITY: Validate input to prevent privilege escalation
+      // updateProfileSchema only allows { name? }, blocking role/passwordHash
+      const data = updateProfileSchema.parse(req.body);
+
+      const user = await this.userService.updateProfile(req.user.userId, data);
 
       res.status(200).json({
         success: true,
@@ -151,6 +161,18 @@ export class UserController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          details: error.errors.map((err) => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       next(error);
     }
   };
@@ -205,7 +227,8 @@ export class UserController {
         return;
       }
 
-      const { currentPassword, newPassword } = req.body;
+      // SECURITY: Validate input to enforce password strength requirements
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
 
       await this.userService.changePassword(
         req.user.userId,
@@ -219,6 +242,18 @@ export class UserController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          details: error.errors.map((err) => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       const err = error as { message?: string };
       if (err.message?.includes('incorrect')) {
         res.status(401).json({
@@ -278,27 +313,8 @@ export class UserController {
    */
   createUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { name, email, password, role } = req.body;
-
-      // Validate required fields
-      if (!name || !email || !password) {
-        res.status(400).json({
-          success: false,
-          error: 'Name, email, and password are required',
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-
-      // Validate role if provided
-      if (role && !['admin', 'developer', 'viewer'].includes(role)) {
-        res.status(422).json({
-          success: false,
-          error: 'Invalid role. Must be admin, developer, or viewer',
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
+      // SECURITY: Validate input to enforce email format and password strength
+      const { name, email, password, role } = adminCreateUserSchema.parse(req.body);
 
       // Register user via service
       const user = await this.userService.register({
@@ -314,6 +330,18 @@ export class UserController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: 'Validation failed',
+          details: error.errors.map((err) => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       const err = error as { message?: string };
       if (err.message?.includes('already exists')) {
         res.status(409).json({

@@ -381,15 +381,56 @@ export class StatsController {
       };
 
       const ConversionSchema = z.object({
-        metricId: z.string(),
-        variationKey: z.string(),
-        userId: z.string(),
+        metricId: z.string().min(1, 'metricId is required'),
+        variationKey: z.string().min(1, 'variationKey is required'),
+        userId: z.string().min(1, 'userId is required'),
         value: z.number().optional(),
       });
 
       const { metricId, variationKey, userId, value } = ConversionSchema.parse(req.body);
 
       await withDatabaseContext(req, async () => {
+        // Validate that metricId and variationKey belong to the experiment
+        const experiment = await this.repos.experiment.get(platform, environment, experimentKey);
+
+        if (!experiment) {
+          res.status(404).json({
+            success: false,
+            error: `Experiment not found: ${experimentKey}`,
+            code: 'EXPERIMENT_NOT_FOUND',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        // Validate variationKey belongs to experiment
+        const validVariationKeys = experiment.variations?.map((v) => v.key) ?? [];
+        if (!validVariationKeys.includes(variationKey)) {
+          res.status(422).json({
+            success: false,
+            error: `Invalid variationKey: ${variationKey}. Valid keys: ${validVariationKeys.join(', ')}`,
+            code: 'INVALID_VARIATION_KEY',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        // Validate metricId belongs to experiment (primary or secondary)
+        const validMetricIds = [
+          experiment.primaryMetric?.id,
+          ...(experiment.secondaryMetrics?.map((m) => m.id) ?? []),
+        ].filter(Boolean) as string[];
+
+        if (!validMetricIds.includes(metricId)) {
+          res.status(422).json({
+            success: false,
+            error: `Invalid metricId: ${metricId}. Valid IDs: ${validMetricIds.join(', ')}`,
+            code: 'INVALID_METRIC_ID',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
         const startTime = Date.now();
         await this.repos.stats.recordConversion(
           platform,

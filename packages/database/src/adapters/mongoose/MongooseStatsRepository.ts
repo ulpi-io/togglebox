@@ -606,7 +606,7 @@ export class MongooseStatsRepository implements IStatsRepository {
               platform,
               environment,
               event.experimentKey,
-              event.metricName, // metricName maps to metricId
+              event.metricId,
               event.variationKey,
               event.userId,
               event.value

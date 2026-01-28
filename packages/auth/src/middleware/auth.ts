@@ -301,6 +301,72 @@ export function createAuthMiddleware(config: AuthConfig) {
   }
 
   /**
+   * Try JWT authentication without sending response on failure.
+   * Returns true if authenticated, false otherwise.
+   */
+  async function tryJWTAuth(req: AuthenticatedRequest): Promise<boolean> {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return false;
+    }
+
+    const token = authHeader.slice(7);
+
+    try {
+      const decoded = verifyJWT(token);
+      if (!decoded) {
+        return false;
+      }
+
+      const user = await userService.getUserById(decoded.id);
+      if (!user) {
+        return false;
+      }
+
+      req.user = {
+        userId: decoded.id,
+        email: decoded.email,
+        role: decoded.role,
+      };
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Try API key authentication without sending response on failure.
+   * Returns true if authenticated, false otherwise.
+   */
+  async function tryAPIKeyAuth(req: ApiKeyRequest): Promise<boolean> {
+    const apiKeyHeader = req.headers['x-api-key'];
+
+    if (!apiKeyHeader || typeof apiKeyHeader !== 'string') {
+      return false;
+    }
+
+    try {
+      const apiKey = await apiKeyService.verifyApiKey(apiKeyHeader);
+      if (!apiKey) {
+        return false;
+      }
+
+      req.apiKey = {
+        id: apiKey.id,
+        name: apiKey.name,
+        permissions: apiKey.permissions,
+        userId: apiKey.userId,
+      };
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Authenticate using either JWT or API key.
    *
    * @param req - Express request (will be extended with user or apiKey)
@@ -310,8 +376,12 @@ export function createAuthMiddleware(config: AuthConfig) {
    * @remarks
    * **Priority:**
    * 1. Try JWT authentication (Authorization: Bearer header)
-   * 2. Try API key authentication (X-API-Key header)
-   * 3. Reject if neither provided
+   * 2. If JWT fails, try API key authentication (X-API-Key header)
+   * 3. Reject if neither succeeds
+   *
+   * **Fallback Behavior:**
+   * If both headers are provided and JWT fails, API key is attempted as fallback.
+   * This allows clients to provide both for graceful degradation.
    *
    * **Accepted Headers:**
    * - `Authorization: Bearer <jwt>` - JWT authentication
@@ -340,22 +410,27 @@ export function createAuthMiddleware(config: AuthConfig) {
     const authHeader = req.headers.authorization;
     const apiKeyHeader = req.headers['x-api-key'];
 
-    // Try JWT authentication first
+    // Try JWT authentication first (if header present)
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      await authenticateJWT(req as AuthenticatedRequest, res, next);
-      return;
+      if (await tryJWTAuth(req as AuthenticatedRequest)) {
+        next();
+        return;
+      }
+      // JWT failed - fall through to try API key
     }
 
-    // Try API key authentication
+    // Try API key authentication (if header present)
     if (apiKeyHeader && typeof apiKeyHeader === 'string') {
-      await authenticateAPIKey(req as ApiKeyRequest, res, next);
-      return;
+      if (await tryAPIKeyAuth(req as ApiKeyRequest)) {
+        next();
+        return;
+      }
     }
 
-    // No valid authentication provided
+    // No valid authentication provided or all attempts failed
     res.status(401).json({
       success: false,
-      error: 'Authentication required. Provide either Bearer token or X-API-Key header',
+      error: 'Authentication required. Provide valid Bearer token or X-API-Key header',
       code: 'UNAUTHORIZED',
       timestamp: new Date().toISOString(),
     });
