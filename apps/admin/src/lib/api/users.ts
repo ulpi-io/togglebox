@@ -1,8 +1,31 @@
 import { browserApiClient } from "./browser-client";
 import type { User } from "./types";
 
-export async function getUsersApi(): Promise<User[]> {
-  return browserApiClient("/api/v1/internal/users");
+export interface PaginatedUsers {
+  users: User[];
+  total: number;
+}
+
+export interface GetUsersOptions {
+  limit?: number;
+  offset?: number;
+  role?: string;
+}
+
+export async function getUsersApi(
+  options?: GetUsersOptions,
+): Promise<PaginatedUsers> {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.offset) params.set("offset", String(options.offset));
+  if (options?.role) params.set("role", options.role);
+
+  const queryString = params.toString();
+  const url = queryString
+    ? `/api/v1/internal/users?${queryString}`
+    : "/api/v1/internal/users";
+
+  return browserApiClient<PaginatedUsers>(url);
 }
 
 export async function createUserApi(

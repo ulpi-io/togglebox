@@ -292,10 +292,30 @@ export async function listUsers(options?: {
 }): Promise<{ users: User[]; total: number }> {
   const limit = options?.limit || 20;
   const offset = options?.offset || 0;
+  // Cap limit to prevent unbounded queries
+  const cappedLimit = Math.min(limit, 100);
+  // Fetch only what we need for the page (offset + limit)
+  const fetchLimit = offset + cappedLimit;
 
   try {
     // If role is specified, use GSI3 for efficient role-based query
     if (options?.role) {
+      // Get count separately for accurate total
+      const countParams = {
+        TableName: getUsersTableName(),
+        IndexName: "GSI3",
+        KeyConditionExpression: "GSI3PK = :pk",
+        ExpressionAttributeValues: {
+          ":pk": `USER_ROLE#${options.role}`,
+        },
+        Select: "COUNT" as const,
+      };
+      const countResult = await dynamoDBClient.send(
+        new QueryCommand(countParams),
+      );
+      const total = countResult.Count || 0;
+
+      // Fetch only the items we need
       const params = {
         TableName: getUsersTableName(),
         IndexName: "GSI3",
@@ -303,19 +323,34 @@ export async function listUsers(options?: {
         ExpressionAttributeValues: {
           ":pk": `USER_ROLE#${options.role}`,
         },
+        Limit: fetchLimit,
       };
 
       const result = await dynamoDBClient.send(new QueryCommand(params));
-      const allUsers = result.Items ? result.Items.map(mapToUser) : [];
-      const paginatedUsers = allUsers.slice(offset, offset + limit);
+      const fetchedUsers = result.Items ? result.Items.map(mapToUser) : [];
+      const paginatedUsers = fetchedUsers.slice(offset, offset + cappedLimit);
 
       return {
         users: paginatedUsers,
-        total: allUsers.length,
+        total,
       };
     }
 
+    // Get count separately for accurate total
+    const countParams = {
+      TableName: getUsersTableName(),
+      IndexName: "GSI2",
+      KeyConditionExpression: "GSI2PK = :pk",
+      ExpressionAttributeValues: {
+        ":pk": "USER#ALL",
+      },
+      Select: "COUNT" as const,
+    };
+    const countResult = await dynamoDBClient.send(new QueryCommand(countParams));
+    const total = countResult.Count || 0;
+
     // Use GSI2 for listing all users (more efficient than scan)
+    // Limit fetch to only what's needed for the current page
     const params = {
       TableName: getUsersTableName(),
       IndexName: "GSI2",
@@ -323,15 +358,16 @@ export async function listUsers(options?: {
       ExpressionAttributeValues: {
         ":pk": "USER#ALL",
       },
+      Limit: fetchLimit,
     };
 
     const result = await dynamoDBClient.send(new QueryCommand(params));
-    const allUsers = result.Items ? result.Items.map(mapToUser) : [];
-    const paginatedUsers = allUsers.slice(offset, offset + limit);
+    const fetchedUsers = result.Items ? result.Items.map(mapToUser) : [];
+    const paginatedUsers = fetchedUsers.slice(offset, offset + cappedLimit);
 
     return {
       users: paginatedUsers,
-      total: allUsers.length,
+      total,
     };
   } catch (error: unknown) {
     // Fallback to scan if GSI doesn't exist (for backward compatibility)
@@ -360,6 +396,8 @@ async function listUsersWithScan(options?: {
 }): Promise<{ users: User[]; total: number }> {
   const limit = options?.limit || 20;
   const offset = options?.offset || 0;
+  // Cap limit to prevent unbounded queries
+  const cappedLimit = Math.min(limit, 100);
 
   // Build scan parameters with proper typing
   const expressionValues: Record<string, string> = { ":pk": "USER#" };
@@ -372,20 +410,35 @@ async function listUsersWithScan(options?: {
     expressionValues[":role"] = options.role;
   }
 
+  // First get total count
+  const countParams = {
+    TableName: getUsersTableName(),
+    FilterExpression: filterExpression,
+    ExpressionAttributeValues: expressionValues,
+    ...(expressionNames && { ExpressionAttributeNames: expressionNames }),
+    Select: "COUNT" as const,
+  };
+  const countResult = await dynamoDBClient.send(new ScanCommand(countParams));
+  const total = countResult.Count || 0;
+
+  // For scan, we need to fetch offset + limit items since Limit in Scan
+  // is applied before FilterExpression. We cap at a reasonable max.
+  const maxScanLimit = 1000;
   const params = {
     TableName: getUsersTableName(),
     FilterExpression: filterExpression,
     ExpressionAttributeValues: expressionValues,
     ...(expressionNames && { ExpressionAttributeNames: expressionNames }),
+    Limit: Math.min(offset + cappedLimit, maxScanLimit),
   };
 
   const result = await dynamoDBClient.send(new ScanCommand(params));
-  const allUsers = result.Items ? result.Items.map(mapToUser) : [];
-  const paginatedUsers = allUsers.slice(offset, offset + limit);
+  const fetchedUsers = result.Items ? result.Items.map(mapToUser) : [];
+  const paginatedUsers = fetchedUsers.slice(offset, offset + cappedLimit);
 
   return {
     users: paginatedUsers,
-    total: allUsers.length,
+    total,
   };
 }
 
