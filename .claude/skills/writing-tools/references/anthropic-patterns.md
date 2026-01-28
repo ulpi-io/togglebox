@@ -23,6 +23,7 @@ This document provides comprehensive Anthropic-official best practices for skill
 ### Principle 1: Conciseness is Key
 
 **The context window is a public good.** Your skill shares context with:
+
 - System prompt
 - Conversation history
 - Other skills' metadata
@@ -31,11 +32,13 @@ This document provides comprehensive Anthropic-official best practices for skill
 **Default assumption: Claude is already very smart**
 
 Only add context Claude doesn't already have. Challenge each piece:
+
 - "Does Claude really need this explanation?"
 - "Can I assume Claude knows this?"
 - "Does this paragraph justify its token cost?"
 
 **Good example: Concise** (≈50 tokens):
+
 ```markdown
 ## Extract PDF text
 
@@ -45,11 +48,12 @@ Use pdfplumber for text extraction:
 import pdfplumber
 
 with pdfplumber.open("file.pdf") as pdf:
-    text = pdf.pages[0].extract_text()
+text = pdf.pages[0].extract_text()
 \`\`\`
 ```
 
 **Bad example: Too verbose** (≈150 tokens):
+
 ```markdown
 ## Extract PDF text
 
@@ -69,11 +73,13 @@ Match the level of specificity to the task's fragility and variability.
 **High freedom** (text-based instructions):
 
 Use when:
+
 - Multiple approaches are valid
 - Decisions depend on context
 - Heuristics guide the approach
 
 Example:
+
 ```markdown
 ## Code review process
 
@@ -86,32 +92,33 @@ Example:
 **Medium freedom** (pseudocode or scripts with parameters):
 
 Use when:
+
 - A preferred pattern exists
 - Some variation is acceptable
 - Configuration affects behavior
 
 Example:
+
 ```markdown
 ## Generate report
 
 Use this template and customize as needed:
 
 \`\`\`python
-def generate_report(data, format="markdown", include_charts=True):
-    # Process data
-    # Generate output in specified format
-    # Optionally include visualizations
+def generate_report(data, format="markdown", include_charts=True): # Process data # Generate output in specified format # Optionally include visualizations
 \`\`\`
 ```
 
 **Low freedom** (specific scripts, few or no parameters):
 
 Use when:
+
 - Operations are fragile and error-prone
 - Consistency is critical
 - A specific sequence must be followed
 
 Example:
+
 ```markdown
 ## Database migration
 
@@ -125,6 +132,7 @@ Do not modify the command or add additional flags.
 ```
 
 **Analogy:** Think of Claude as a robot exploring a path:
+
 - **Narrow bridge with cliffs**: Only one safe way forward. Provide specific guardrails and exact instructions (low freedom). Example: database migrations.
 - **Open field with no hazards**: Many paths lead to success. Give general direction and trust Claude to find the best route (high freedom). Example: code reviews.
 
@@ -133,6 +141,7 @@ Do not modify the command or add additional flags.
 Skills act as additions to models, so effectiveness depends on the underlying model.
 
 **Testing considerations by model:**
+
 - **Claude Haiku** (fast, economical): Does the skill provide enough guidance?
 - **Claude Sonnet** (balanced): Is the skill clear and efficient?
 - **Claude Opus** (powerful reasoning): Does the skill avoid over-explaining?
@@ -146,6 +155,7 @@ What works perfectly for Opus might need more detail for Haiku. If you plan to u
 **Core concept:** SKILL.md is an overview that points to detailed materials as needed, like a table of contents in an onboarding guide.
 
 **Practical guidance:**
+
 - Keep SKILL.md body under 500 lines for optimal performance
 - Split content into separate files when approaching this limit
 - Use the patterns below to organize instructions, code, and resources effectively
@@ -189,7 +199,7 @@ Extract text with pdfplumber:
 \`\`\`python
 import pdfplumber
 with pdfplumber.open("file.pdf") as pdf:
-    text = pdf.pages[0].extract_text()
+text = pdf.pages[0].extract_text()
 \`\`\`
 
 ## Advanced features
@@ -262,18 +272,23 @@ Claude reads REDLINING.md or OOXML.md only when the user needs those features.
 **Keep references one level deep from SKILL.md.** All reference files should link directly from SKILL.md to ensure Claude reads complete files when needed.
 
 **Bad example: Too deep**:
+
 ```markdown
 # SKILL.md
+
 See [advanced.md](advanced.md)...
 
 # advanced.md
+
 See [details.md](details.md)...
 
 # details.md
+
 Here's the actual information...
 ```
 
 **Good example: One level deep**:
+
 ```markdown
 # SKILL.md
 
@@ -288,10 +303,12 @@ Here's the actual information...
 For reference files longer than 100 lines, include a table of contents at the top. This ensures Claude can see the full scope of available information even when previewing with partial reads.
 
 **Example:**
+
 ```markdown
 # API Reference
 
 ## Contents
+
 - Authentication and setup
 - Core methods (create, read, update, delete)
 - Advanced features (batch operations, webhooks)
@@ -299,9 +316,11 @@ For reference files longer than 100 lines, include a table of contents at the to
 - Code examples
 
 ## Authentication and setup
+
 ...
 
 ## Core methods
+
 ...
 ```
 
@@ -312,6 +331,7 @@ For reference files longer than 100 lines, include a table of contents at the to
 **Problem:** Skills load into EVERY conversation where they're relevant. Every token counts.
 
 **Target word counts:**
+
 - Frequently-loaded skills: <200 words total
 - Other skills: <500 words (still be concise)
 - SKILL.md body: <500 lines
@@ -332,10 +352,12 @@ search-conversations supports multiple modes and filters. Run --help for details
 
 ```markdown
 # ❌ BAD: Repeat workflow details
+
 When searching, dispatch subagent with template...
 [20 lines of repeated instructions]
 
 # ✅ GOOD: Reference other skill
+
 Always use subagents (50-100x context savings). REQUIRED: Use [other-skill-name] for workflow.
 ```
 
@@ -343,11 +365,13 @@ Always use subagents (50-100x context savings). REQUIRED: Use [other-skill-name]
 
 ```markdown
 # ❌ BAD: Verbose example (42 words)
+
 your human partner: "How did we handle authentication errors in React Router before?"
 You: I'll search past conversations for React Router authentication patterns.
 [Dispatch subagent with search query: "React Router authentication error handling 401"]
 
 # ✅ GOOD: Minimal example (20 words)
+
 Partner: "How did we handle auth errors in React Router?"
 You: Searching...
 [Dispatch subagent → synthesis]
@@ -384,12 +408,13 @@ Copy this checklist and track your progress:
 
 \`\`\`
 Research Progress:
+
 - [ ] Step 1: Read all source documents
 - [ ] Step 2: Identify key themes
 - [ ] Step 3: Cross-reference claims
 - [ ] Step 4: Create structured summary
 - [ ] Step 5: Verify citations
-\`\`\`
+      \`\`\`
 
 **Step 1: Read all source documents**
 
@@ -406,6 +431,7 @@ For each major claim, verify it appears in the source material. Note which sourc
 **Step 4: Create structured summary**
 
 Organize findings by theme. Include:
+
 - Main claim
 - Supporting evidence from sources
 - Conflicting viewpoints (if any)
@@ -424,12 +450,13 @@ Copy this checklist and check off items as you complete them:
 
 \`\`\`
 Task Progress:
+
 - [ ] Step 1: Analyze the form (run analyze_form.py)
 - [ ] Step 2: Create field mapping (edit fields.json)
 - [ ] Step 3: Validate mapping (run validate_fields.py)
 - [ ] Step 4: Fill the form (run fill_form.py)
 - [ ] Step 5: Verify output (run verify_output.py)
-\`\`\`
+      \`\`\`
 
 **Step 1: Analyze the form**
 
@@ -511,12 +538,14 @@ The validation loop catches errors early.
 Don't include information that will become outdated:
 
 **Bad example: Time-sensitive** (will become wrong):
+
 ```markdown
 If you're doing this before August 2025, use the old API.
 After August 2025, use the new API.
 ```
 
 **Good example** (use "old patterns" section):
+
 ```markdown
 ## Current method
 
@@ -530,6 +559,7 @@ Use the v2 API endpoint: `api.example.com/v2/messages`
 The v1 API used: `api.example.com/v1/messages`
 
 This endpoint is no longer supported.
+
 </details>
 ```
 
@@ -538,11 +568,13 @@ This endpoint is no longer supported.
 Choose one term and use it throughout the skill:
 
 **Good - Consistent:**
+
 - Always "API endpoint"
 - Always "field"
 - Always "extract"
 
 **Bad - Inconsistent:**
+
 - Mix "API endpoint", "URL", "API route", "path"
 - Mix "field", "box", "element", "control"
 - Mix "extract", "pull", "get", "retrieve"
@@ -565,20 +597,24 @@ Provide templates for output format. Match the level of strictness to your needs
 ALWAYS use this exact template structure:
 
 \`\`\`markdown
+
 # [Analysis Title]
 
 ## Executive summary
+
 [One-paragraph overview of key findings]
 
 ## Key findings
+
 - Finding 1 with supporting data
 - Finding 2 with supporting data
 - Finding 3 with supporting data
 
 ## Recommendations
+
 1. Specific actionable recommendation
 2. Specific actionable recommendation
-\`\`\`
+   \`\`\`
 ```
 
 **For flexible guidance** (when adaptation is useful):
@@ -589,15 +625,19 @@ ALWAYS use this exact template structure:
 Here is a sensible default format, but use your best judgment based on the analysis:
 
 \`\`\`markdown
+
 # [Analysis Title]
 
 ## Executive summary
+
 [Overview]
 
 ## Key findings
+
 [Adapt sections based on what you discover]
 
 ## Recommendations
+
 [Tailor to the specific context]
 \`\`\`
 
@@ -639,7 +679,7 @@ chore: update dependencies and refactor error handling
 
 - Upgrade lodash to 4.17.21
 - Standardize error response format across endpoints
-\`\`\`
+  \`\`\`
 
 Follow this style: type(scope): brief description, then detailed explanation.
 ```
@@ -734,12 +774,14 @@ RETRIES = 5   # Why 5?
 Even if Claude could write a script, pre-made scripts offer advantages:
 
 **Benefits of utility scripts:**
+
 - More reliable than generated code
 - Save tokens (no need to include code in context)
 - Save time (no code generation required)
 - Ensure consistency across uses
 
 **Important distinction**: Make clear in your instructions whether Claude should:
+
 - **Execute the script** (most common): "Run `analyze_form.py` to extract fields"
 - **Read it as reference** (for complex logic): "See `analyze_form.py` for the field extraction algorithm"
 
@@ -759,8 +801,8 @@ python scripts/analyze_form.py input.pdf > fields.json
 Output format:
 \`\`\`json
 {
-  "field_name": {"type": "text", "x": 100, "y": 200},
-  "signature": {"type": "sig", "x": 150, "y": 500}
+"field_name": {"type": "text", "x": 100, "y": 200},
+"signature": {"type": "sig", "x": 150, "y": 500}
 }
 \`\`\`
 
@@ -768,7 +810,9 @@ Output format:
 
 \`\`\`bash
 python scripts/validate_boxes.py fields.json
+
 # Returns: "OK" or lists conflicts
+
 \`\`\`
 
 **fill_form.py**: Apply field values to PDF
@@ -805,6 +849,7 @@ When Claude performs complex, open-ended tasks, it can make mistakes. The "plan-
 **Solution:** Use the workflow pattern with an intermediate `changes.json` file that gets validated before applying changes. The workflow becomes: analyze → **create plan file** → **validate plan** → execute → verify.
 
 **Why this pattern works:**
+
 - **Catches errors early**: Validation finds problems before changes are applied
 - **Machine-verifiable**: Scripts provide objective verification
 - **Reversible planning**: Claude can iterate on the plan without touching originals
@@ -832,6 +877,7 @@ List required packages in your SKILL.md and verify they're available in the code
 The SKILL.md frontmatter includes only `name` (64 characters max) and `description` (1024 characters max) fields.
 
 **Format:**
+
 ```yaml
 ---
 name: skill-name-with-hyphens
@@ -840,11 +886,13 @@ description: Use when [triggering conditions] - [what it does and how it helps, 
 ```
 
 **Name conventions:**
+
 - Use only letters, numbers, and hyphens
 - No parentheses or special characters
 - Max 64 characters
 
 **Description best practices:**
+
 - Start with "Use when..." to focus on triggering conditions
 - Include specific symptoms, situations, and contexts
 - Write in third person (injected into system prompt)
@@ -862,12 +910,14 @@ Skills run in a code execution environment with filesystem access, bash commands
 **How this affects authoring:**
 
 **How Claude accesses skills:**
+
 1. **Metadata pre-loaded**: At startup, name and description from all skills' YAML frontmatter are loaded into system prompt
 2. **Files read on-demand**: Claude uses bash Read tools to access SKILL.md and other files from filesystem when needed
 3. **Scripts executed efficiently**: Utility scripts can be executed via bash without loading their full contents into context. Only the script's output consumes tokens
 4. **No context penalty for large files**: Reference files, data, or documentation don't consume context tokens until actually read
 
 **Authoring implications:**
+
 - **File paths matter**: Claude navigates your skill directory like a filesystem. Use forward slashes (`reference/guide.md`), not backslashes
 - **Name files descriptively**: Use names that indicate content: `form_validation_rules.md`, not `doc2.md`
 - **Organize for discovery**: Structure directories by domain or feature
@@ -900,12 +950,14 @@ If your skill uses MCP (Model Context Protocol) tools, always use fully qualifie
 **Format**: `ServerName:tool_name`
 
 **Example:**
+
 ```markdown
 Use the BigQuery:bigquery_schema tool to retrieve table schemas.
 Use the GitHub:create_issue tool to create issues.
 ```
 
 Where:
+
 - `BigQuery` and `GitHub` are MCP server names
 - `bigquery_schema` and `create_issue` are the tool names within those servers
 
@@ -933,6 +985,7 @@ Don't present multiple approaches unless necessary:
 
 **Good example: Provide a default** (with escape hatch):
 "Use pdfplumber for text extraction:
+
 ```python
 import pdfplumber
 ```
@@ -962,7 +1015,8 @@ Claude may partially read files when they're referenced from other referenced fi
 **Good:** "Install required package: `pip install pypdf`
 
 Then use it:
-```python
+
+````python
 from pypdf import PdfReader
 reader = PdfReader("file.pdf")
 ```"
@@ -996,7 +1050,7 @@ This approach ensures you're solving actual problems rather than anticipating re
     "Saves the extracted text to a file named output.txt in a clear, readable format"
   ]
 }
-```
+````
 
 Evaluations are your source of truth for measuring skill effectiveness.
 

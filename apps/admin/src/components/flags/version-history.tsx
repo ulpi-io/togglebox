@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { getFlagVersionsApi } from '@/lib/api/flags';
-import type { Flag } from '@/lib/api/types';
-import { Badge, Button, Spinner } from '@togglebox/ui';
-import { History } from 'lucide-react';
+import { useState, useEffect, useCallback } from "react";
+import { getFlagVersionsApi } from "@/lib/api/flags";
+import type { Flag } from "@/lib/api/types";
+import { Badge, Button, Spinner } from "@togglebox/ui";
+import { History } from "lucide-react";
 
 interface VersionHistoryProps {
   platform: string;
@@ -35,7 +35,7 @@ export function VersionHistory({
       const data = await getFlagVersionsApi(platform, environment, flagKey);
       setVersions(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load versions');
+      setError(err instanceof Error ? err.message : "Failed to load versions");
     } finally {
       setIsLoading(false);
     }
@@ -48,12 +48,12 @@ export function VersionHistory({
   }, [isOpen, loadVersions]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -90,7 +90,9 @@ export function VersionHistory({
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Spinner className="h-8 w-8" />
-              <span className="ml-2 text-muted-foreground">Loading versions...</span>
+              <span className="ml-2 text-muted-foreground">
+                Loading versions...
+              </span>
             </div>
           ) : error ? (
             <div className="text-center py-8">
@@ -110,25 +112,31 @@ export function VersionHistory({
                   key={version.version}
                   className={`p-4 rounded-lg border ${
                     version.isActive
-                      ? 'border-success/50 bg-success/10'
-                      : 'border-black/10 hover:border-black/20'
+                      ? "border-success/50 bg-success/10"
+                      : "border-black/10 hover:border-black/20"
                   } transition-colors`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-black text-lg">v{version.version}</span>
+                        <span className="font-black text-lg">
+                          v{version.version}
+                        </span>
                         {version.isActive && (
-                          <Badge status="active" size="sm" className="font-bold">
+                          <Badge
+                            status="active"
+                            size="sm"
+                            className="font-bold"
+                          >
                             ACTIVE
                           </Badge>
                         )}
                         <Badge
-                          variant={version.enabled ? 'default' : 'secondary'}
+                          variant={version.enabled ? "default" : "secondary"}
                           size="sm"
                           className="font-bold"
                         >
-                          {version.enabled ? 'ON' : 'OFF'}
+                          {version.enabled ? "ON" : "OFF"}
                         </Badge>
                       </div>
 
@@ -140,19 +148,24 @@ export function VersionHistory({
 
                       <div className="mt-2 text-xs text-muted-foreground space-y-1">
                         <div>
-                          <span className="font-medium">Type:</span> {version.flagType}
+                          <span className="font-medium">Type:</span>{" "}
+                          {version.flagType}
                         </div>
                         <div>
-                          <span className="font-medium">Value A:</span> {JSON.stringify(version.valueA)}
+                          <span className="font-medium">Value A:</span>{" "}
+                          {JSON.stringify(version.valueA)}
                         </div>
                         <div>
-                          <span className="font-medium">Value B:</span> {JSON.stringify(version.valueB)}
+                          <span className="font-medium">Value B:</span>{" "}
+                          {JSON.stringify(version.valueB)}
                         </div>
                         <div>
-                          <span className="font-medium">Created:</span> {formatDate(version.createdAt)}
+                          <span className="font-medium">Created:</span>{" "}
+                          {formatDate(version.createdAt)}
                         </div>
                         <div>
-                          <span className="font-medium">By:</span> {version.createdBy}
+                          <span className="font-medium">By:</span>{" "}
+                          {version.createdBy}
                         </div>
                       </div>
                     </div>

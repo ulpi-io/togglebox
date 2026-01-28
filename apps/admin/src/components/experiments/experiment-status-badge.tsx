@@ -1,5 +1,5 @@
-import { Badge } from '@togglebox/ui';
-import type { ExperimentStatus } from '@/lib/api/types';
+import { Badge } from "@togglebox/ui";
+import type { ExperimentStatus } from "@/lib/api/types";
 
 interface ExperimentStatusBadgeProps {
   status: ExperimentStatus;

@@ -11,7 +11,13 @@
  * - d1 (uses Cloudflare D1 - requires database binding)
  */
 
-export type DatabaseType = 'mysql' | 'postgresql' | 'mongodb' | 'sqlite' | 'dynamodb' | 'd1';
+export type DatabaseType =
+  | "mysql"
+  | "postgresql"
+  | "mongodb"
+  | "sqlite"
+  | "dynamodb"
+  | "d1";
 
 export interface DynamoDBConfig {
   tableName: string;
@@ -67,74 +73,87 @@ export interface DatabaseConfig {
  *   with the D1 binding from your Worker's env.
  */
 export function loadDatabaseConfig(): DatabaseConfig {
-  const dbType = process.env['DB_TYPE'] as DatabaseType;
+  const dbType = process.env["DB_TYPE"] as DatabaseType;
 
   if (!dbType) {
     throw new Error(
-      'DB_TYPE environment variable is required. Valid values: mysql, postgresql, mongodb, sqlite, dynamodb, d1'
+      "DB_TYPE environment variable is required. Valid values: mysql, postgresql, mongodb, sqlite, dynamodb, d1",
     );
   }
 
-  const validTypes: DatabaseType[] = ['mysql', 'postgresql', 'mongodb', 'sqlite', 'dynamodb', 'd1'];
+  const validTypes: DatabaseType[] = [
+    "mysql",
+    "postgresql",
+    "mongodb",
+    "sqlite",
+    "dynamodb",
+    "d1",
+  ];
   if (!validTypes.includes(dbType)) {
     throw new Error(
-      `Invalid DB_TYPE: ${dbType}. Valid values: ${validTypes.join(', ')}`
+      `Invalid DB_TYPE: ${dbType}. Valid values: ${validTypes.join(", ")}`,
     );
   }
 
   const config: DatabaseConfig = { type: dbType };
 
   switch (dbType) {
-    case 'mysql':
-      config.mysqlUrl = process.env['MYSQL_URL'];
+    case "mysql":
+      config.mysqlUrl = process.env["MYSQL_URL"];
       if (!config.mysqlUrl) {
-        throw new Error('MYSQL_URL environment variable is required when DB_TYPE=mysql');
+        throw new Error(
+          "MYSQL_URL environment variable is required when DB_TYPE=mysql",
+        );
       }
       break;
 
-    case 'postgresql':
-      config.postgresUrl = process.env['POSTGRES_URL'];
+    case "postgresql":
+      config.postgresUrl = process.env["POSTGRES_URL"];
       if (!config.postgresUrl) {
-        throw new Error('POSTGRES_URL environment variable is required when DB_TYPE=postgresql');
+        throw new Error(
+          "POSTGRES_URL environment variable is required when DB_TYPE=postgresql",
+        );
       }
       break;
 
-    case 'mongodb':
-      config.mongoUrl = process.env['MONGO_URL'];
+    case "mongodb":
+      config.mongoUrl = process.env["MONGO_URL"];
       if (!config.mongoUrl) {
-        throw new Error('MONGO_URL environment variable is required when DB_TYPE=mongodb');
+        throw new Error(
+          "MONGO_URL environment variable is required when DB_TYPE=mongodb",
+        );
       }
       break;
 
-    case 'sqlite':
-      config.sqliteFile = process.env['SQLITE_FILE'] || './data/config.db';
+    case "sqlite":
+      config.sqliteFile = process.env["SQLITE_FILE"] || "./data/config.db";
       break;
 
-    case 'dynamodb':
-      const tableName = process.env['DYNAMODB_TABLE'];
-      const region = process.env['AWS_REGION'];
+    case "dynamodb":
+      const tableName = process.env["DYNAMODB_TABLE"];
+      const region = process.env["AWS_REGION"];
 
       if (!tableName) {
         throw new Error(
-          'DYNAMODB_TABLE environment variable is required when DB_TYPE=dynamodb.\n' +
-          'Note: Use DYNAMODB_TABLE (not DYNAMODB_TABLE_NAME) for consistency with AWS SDK.'
+          "DYNAMODB_TABLE environment variable is required when DB_TYPE=dynamodb.\n" +
+            "Note: Use DYNAMODB_TABLE (not DYNAMODB_TABLE_NAME) for consistency with AWS SDK.",
         );
       }
       if (!region) {
         throw new Error(
-          'AWS_REGION environment variable is required when DB_TYPE=dynamodb.\n' +
-          'Note: Use AWS_REGION (not DYNAMODB_REGION) for consistency with AWS SDK.'
+          "AWS_REGION environment variable is required when DB_TYPE=dynamodb.\n" +
+            "Note: Use AWS_REGION (not DYNAMODB_REGION) for consistency with AWS SDK.",
         );
       }
 
       config.dynamodb = {
         tableName,
         region,
-        endpoint: process.env['DYNAMODB_ENDPOINT'],
+        endpoint: process.env["DYNAMODB_ENDPOINT"],
       };
       break;
 
-    case 'd1':
+    case "d1":
       // D1 database binding comes from Cloudflare Workers environment
       // It cannot be loaded from environment variables
       // Use createDatabaseRepositories() directly with the binding
@@ -160,5 +179,5 @@ export function loadDatabaseConfig(): DatabaseConfig {
  * ```
  */
 export function getDatabaseType(): DatabaseType | null {
-  return (process.env['DB_TYPE'] as DatabaseType) || null;
+  return (process.env["DB_TYPE"] as DatabaseType) || null;
 }

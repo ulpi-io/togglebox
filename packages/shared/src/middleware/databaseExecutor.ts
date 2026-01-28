@@ -1,5 +1,5 @@
-import { Request } from 'express';
-import { RequestWithDatabaseContext } from './databaseContext';
+import { Request } from "express";
+import { RequestWithDatabaseContext } from "./databaseContext";
 
 /**
  * Executes a database operation with the correct table prefix from request context.
@@ -45,12 +45,12 @@ import { RequestWithDatabaseContext } from './databaseContext';
  */
 export async function withDatabaseContext<T>(
   req: Request,
-  operation: () => Promise<T>
+  operation: () => Promise<T>,
 ): Promise<T> {
   const dbReq = req as RequestWithDatabaseContext;
 
   // Import getTablePrefixStorage dynamically to avoid circular dependencies
-  const { getTablePrefixStorage } = require('@togglebox/database');
+  const { getTablePrefixStorage } = require("@togglebox/database");
 
   // Get the AsyncLocalStorage instance
   const tablePrefixStorage = getTablePrefixStorage();

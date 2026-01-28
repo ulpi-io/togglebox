@@ -28,7 +28,7 @@
  * }
  * ```
  */
-export * from './AuthController';
-export * from './UserController';
-export * from './PasswordResetController';
-export * from './ApiKeyController';
+export * from "./AuthController";
+export * from "./UserController";
+export * from "./PasswordResetController";
+export * from "./ApiKeyController";

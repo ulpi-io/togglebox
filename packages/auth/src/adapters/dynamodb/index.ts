@@ -38,18 +38,18 @@
  * ```
  */
 
-import { DynamoDBUserRepository } from './DynamoDBUserRepository';
-import { DynamoDBApiKeyRepository } from './DynamoDBApiKeyRepository';
-import { DynamoDBPasswordResetRepository } from './DynamoDBPasswordResetRepository';
+import { DynamoDBUserRepository } from "./DynamoDBUserRepository";
+import { DynamoDBApiKeyRepository } from "./DynamoDBApiKeyRepository";
+import { DynamoDBPasswordResetRepository } from "./DynamoDBPasswordResetRepository";
 import {
   IUserRepository,
   IApiKeyRepository,
   IPasswordResetRepository,
-} from '../../interfaces';
+} from "../../interfaces";
 
-export * from './DynamoDBUserRepository';
-export * from './DynamoDBApiKeyRepository';
-export * from './DynamoDBPasswordResetRepository';
+export * from "./DynamoDBUserRepository";
+export * from "./DynamoDBApiKeyRepository";
+export * from "./DynamoDBPasswordResetRepository";
 
 /**
  * Collection of authentication repositories.

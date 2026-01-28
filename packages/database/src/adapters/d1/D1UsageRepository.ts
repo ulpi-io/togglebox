@@ -1,4 +1,4 @@
-import { IUsageRepository } from '../../interfaces';
+import { IUsageRepository } from "../../interfaces";
 
 /**
  * D1/SQLite implementation of usage tracking repository (Cloudflare Workers)
@@ -55,7 +55,7 @@ export class D1UsageRepository implements IUsageRepository {
         ON CONFLICT(tenant_id) DO UPDATE SET
           api_requests = api_requests + 1,
           last_updated = CURRENT_TIMESTAMP
-      `
+      `,
       )
       .bind(tenantId)
       .run();

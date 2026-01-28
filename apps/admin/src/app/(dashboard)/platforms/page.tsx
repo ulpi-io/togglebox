@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { getPlatformsApi, updatePlatformApi } from '@/lib/api/platforms';
-import { getCurrentUserApi } from '@/lib/api/auth';
-import type { Platform, User } from '@/lib/api/types';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
+import { getPlatformsApi, updatePlatformApi } from "@/lib/api/platforms";
+import { getCurrentUserApi } from "@/lib/api/auth";
+import type { Platform, User } from "@/lib/api/types";
 import {
   Button,
   Card,
@@ -17,13 +17,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@togglebox/ui';
-import { DeletePlatformButton } from '@/components/platforms/delete-platform-button';
-import { ChevronRight, Pencil, Check, X } from 'lucide-react';
+} from "@togglebox/ui";
+import { DeletePlatformButton } from "@/components/platforms/delete-platform-button";
+import { ChevronRight, Pencil, Check, X } from "lucide-react";
 
 interface EditState {
   platformName: string;
-  field: 'description';
+  field: "description";
   value: string;
 }
 
@@ -35,9 +35,9 @@ export default function PlatformsPage() {
   const [editState, setEditState] = useState<EditState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === "admin";
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [platformsData, userData] = await Promise.all([
@@ -48,29 +48,32 @@ export default function PlatformsPage() {
       setCurrentUser(userData);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load platforms');
+      setError(err instanceof Error ? err.message : "Failed to load platforms");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const startEditing = (platform: Platform, field: 'description') => {
-    setEditState({
-      platformName: platform.name,
-      field,
-      value: platform.description || '',
-    });
-  };
+  const startEditing = useCallback(
+    (platform: Platform, field: "description") => {
+      setEditState({
+        platformName: platform.name,
+        field,
+        value: platform.description || "",
+      });
+    },
+    [],
+  );
 
-  const cancelEditing = () => {
+  const cancelEditing = useCallback(() => {
     setEditState(null);
-  };
+  }, []);
 
-  const saveEdit = async () => {
+  const saveEdit = useCallback(async () => {
     if (!editState) return;
 
     setIsSaving(true);
@@ -83,24 +86,30 @@ export default function PlatformsPage() {
         prev.map((p) =>
           p.name === editState.platformName
             ? { ...p, description: editState.value }
-            : p
-        )
+            : p,
+        ),
       );
       setEditState(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update platform');
+      // Show error via error state - toast would be better but requires additional setup
+      setError(
+        err instanceof Error ? err.message : "Failed to update platform",
+      );
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [editState]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  const formatDate = useMemo(
+    () => (dateString: string) => {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    },
+    [],
+  );
 
   return (
     <div>
@@ -222,19 +231,22 @@ export default function PlatformsPage() {
                   </TableCell>
                   <TableCell>
                     {editState?.platformName === platform.name &&
-                    editState.field === 'description' ? (
+                    editState.field === "description" ? (
                       <div className="flex items-center gap-2">
                         <Input
                           value={editState.value}
                           onChange={(e) =>
-                            setEditState({ ...editState, value: e.target.value })
+                            setEditState({
+                              ...editState,
+                              value: e.target.value,
+                            })
                           }
                           className="h-8"
                           placeholder="Enter description..."
                           disabled={isSaving}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveEdit();
-                            if (e.key === 'Escape') cancelEditing();
+                            if (e.key === "Enter") saveEdit();
+                            if (e.key === "Escape") cancelEditing();
                           }}
                         />
                         <Button
@@ -257,13 +269,13 @@ export default function PlatformsPage() {
                     ) : (
                       <div className="flex items-center gap-2 group">
                         <span className="text-muted-foreground">
-                          {platform.description || '-'}
+                          {platform.description || "-"}
                         </span>
                         <Button
                           size="sm"
                           variant="ghost"
                           className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-                          onClick={() => startEditing(platform, 'description')}
+                          onClick={() => startEditing(platform, "description")}
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
@@ -271,7 +283,7 @@ export default function PlatformsPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {platform.createdBy || '-'}
+                    {platform.createdBy || "-"}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {formatDate(platform.createdAt)}

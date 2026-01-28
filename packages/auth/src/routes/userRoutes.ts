@@ -30,14 +30,14 @@
  * ```
  */
 
-import { Router } from 'express';
-import { UserController } from '../controllers/UserController';
-import { validate } from '../validators/authSchemas';
+import { Router } from "express";
+import { UserController } from "../controllers/UserController";
+import { validate } from "../validators/authSchemas";
 import {
   updateProfileSchema,
   changePasswordSchema,
-} from '../validators/authSchemas';
-import { AuthMiddleware } from '../middleware/auth';
+} from "../validators/authSchemas";
+import { AuthMiddleware } from "../middleware/auth";
 
 /**
  * Create user management routes.
@@ -57,7 +57,7 @@ import { AuthMiddleware } from '../middleware/auth';
  */
 export function createUserRoutes(
   userController: UserController,
-  authMiddleware: AuthMiddleware
+  authMiddleware: AuthMiddleware,
 ): Router {
   const router = Router();
 
@@ -70,7 +70,7 @@ export function createUserRoutes(
    * **Handler:** {@link UserController.getMe}
    * **Authorization:** Authenticated user
    */
-  router.get('/me', authMiddleware.authenticate, userController.getMe);
+  router.get("/me", authMiddleware.authenticate, userController.getMe);
 
   /**
    * PATCH /api/v1/users/me
@@ -82,10 +82,10 @@ export function createUserRoutes(
    * **Authorization:** Authenticated user
    */
   router.patch(
-    '/me',
+    "/me",
     authMiddleware.authenticate,
     validate(updateProfileSchema),
-    userController.updateMe
+    userController.updateMe,
   );
 
   /**
@@ -99,10 +99,10 @@ export function createUserRoutes(
    * **Security:** Requires current password verification
    */
   router.post(
-    '/me/password',
+    "/me/password",
     authMiddleware.authenticate,
     validate(changePasswordSchema),
-    userController.changePassword
+    userController.changePassword,
   );
 
   /**
@@ -115,10 +115,10 @@ export function createUserRoutes(
    * **Authorization:** Admin only (user:manage permission)
    */
   router.get(
-    '/',
+    "/",
     authMiddleware.authenticate,
-    authMiddleware.requirePermission('user:manage'),
-    userController.listUsers
+    authMiddleware.requirePermission("user:manage"),
+    userController.listUsers,
   );
 
   /**
@@ -131,10 +131,10 @@ export function createUserRoutes(
    * **Authorization:** Admin only (user:manage permission)
    */
   router.get(
-    '/:id',
+    "/:id",
     authMiddleware.authenticate,
-    authMiddleware.requirePermission('user:manage'),
-    userController.getUserById
+    authMiddleware.requirePermission("user:manage"),
+    userController.getUserById,
   );
 
   /**
@@ -148,10 +148,10 @@ export function createUserRoutes(
    * **Warning:** Irreversible operation
    */
   router.delete(
-    '/:id',
+    "/:id",
     authMiddleware.authenticate,
-    authMiddleware.requirePermission('user:manage'),
-    userController.deleteUser
+    authMiddleware.requirePermission("user:manage"),
+    userController.deleteUser,
   );
 
   /**
@@ -165,10 +165,10 @@ export function createUserRoutes(
    * **Security:** Cannot demote yourself
    */
   router.patch(
-    '/:id/role',
+    "/:id/role",
     authMiddleware.authenticate,
-    authMiddleware.requirePermission('user:manage'),
-    userController.updateUserRole
+    authMiddleware.requirePermission("user:manage"),
+    userController.updateUserRole,
   );
 
   return router;

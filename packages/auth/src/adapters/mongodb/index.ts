@@ -41,16 +41,16 @@
  * ```
  */
 
-import { MongoDBUserRepository } from './MongoDBUserRepository';
-import { MongoDBApiKeyRepository } from './MongoDBApiKeyRepository';
-import { MongoDBPasswordResetRepository } from './MongoDBPasswordResetRepository';
-import { AuthRepositories } from '../dynamodb';
+import { MongoDBUserRepository } from "./MongoDBUserRepository";
+import { MongoDBApiKeyRepository } from "./MongoDBApiKeyRepository";
+import { MongoDBPasswordResetRepository } from "./MongoDBPasswordResetRepository";
+import { AuthRepositories } from "../dynamodb";
 
-export * from './MongoDBUserRepository';
-export * from './MongoDBApiKeyRepository';
-export * from './MongoDBPasswordResetRepository';
-export * from './database';
-export * from './schemas';
+export * from "./MongoDBUserRepository";
+export * from "./MongoDBApiKeyRepository";
+export * from "./MongoDBPasswordResetRepository";
+export * from "./database";
+export * from "./schemas";
 
 /**
  * Create MongoDB authentication repositories.

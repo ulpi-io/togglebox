@@ -6,9 +6,14 @@
  * D1 is Cloudflare's edge-optimized SQLite database for Workers.
  */
 
-import { Platform } from '@togglebox/core';
-import { IPlatformRepository, OffsetPaginationParams, TokenPaginationParams, OffsetPaginatedResult } from '../../interfaces';
-import { v4 as uuidv4 } from 'uuid';
+import { Platform } from "@togglebox/core";
+import {
+  IPlatformRepository,
+  OffsetPaginationParams,
+  TokenPaginationParams,
+  OffsetPaginatedResult,
+} from "../../interfaces";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * D1 implementation of platform repository.
@@ -30,14 +35,14 @@ export class D1PlatformRepository implements IPlatformRepository {
    * @remarks
    * **Constraint Handling:** D1/SQLite returns "UNIQUE constraint failed" message on duplicates.
    */
-  async createPlatform(platform: Omit<Platform, 'id'>): Promise<Platform> {
+  async createPlatform(platform: Omit<Platform, "id">): Promise<Platform> {
     const id = uuidv4();
     const createdAt = new Date().toISOString();
 
     try {
       await this.db
         .prepare(
-          'INSERT INTO platforms (id, name, description, createdAt) VALUES (?1, ?2, ?3, ?4)'
+          "INSERT INTO platforms (id, name, description, createdAt) VALUES (?1, ?2, ?3, ?4)",
         )
         .bind(id, platform.name, platform.description || null, createdAt)
         .run();
@@ -50,7 +55,7 @@ export class D1PlatformRepository implements IPlatformRepository {
       };
     } catch (error: unknown) {
       // SQLite error code 19 is CONSTRAINT violation (unique constraint)
-      if ((error as Error).message?.includes('UNIQUE constraint failed')) {
+      if ((error as Error).message?.includes("UNIQUE constraint failed")) {
         throw new Error(`Platform ${platform.name} already exists`);
       }
       throw error;
@@ -65,7 +70,9 @@ export class D1PlatformRepository implements IPlatformRepository {
    */
   async getPlatform(name: string): Promise<Platform | null> {
     const result = await this.db
-      .prepare('SELECT id, name, description, createdAt FROM platforms WHERE name = ?1')
+      .prepare(
+        "SELECT id, name, description, createdAt FROM platforms WHERE name = ?1",
+      )
       .bind(name)
       .first<Platform>();
 
@@ -90,20 +97,16 @@ export class D1PlatformRepository implements IPlatformRepository {
    * **Count Query:** Separate COUNT(*) query for total (standard SQL pattern).
    */
   async listPlatforms(
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<OffsetPaginatedResult<Platform>> {
-    // Get total count for metadata
-    const countResult = await this.db
-      .prepare('SELECT COUNT(*) as count FROM platforms')
-      .first<{ count: number }>();
-
-    const total = countResult?.count || 0;
-
     // SECURITY: If no pagination requested, apply hard limit to prevent unbounded queries
+    // Skip COUNT query since we're fetching all items anyway
     if (!pagination) {
       const HARD_LIMIT = 100;
       const result = await this.db
-        .prepare('SELECT id, name, description, createdAt FROM platforms ORDER BY createdAt DESC LIMIT ?1')
+        .prepare(
+          "SELECT id, name, description, createdAt FROM platforms ORDER BY createdAt DESC LIMIT ?1",
+        )
         .bind(HARD_LIMIT)
         .all<Platform>();
 
@@ -116,14 +119,22 @@ export class D1PlatformRepository implements IPlatformRepository {
           }))
         : [];
 
-      return { items, total };
+      // Total is derived from items.length - no extra COUNT query needed
+      return { items, total: items.length };
     }
 
-    // Explicit pagination: return single page
+    // Explicit pagination: get total count for UI
     const params = pagination as OffsetPaginationParams;
 
+    const countResult = await this.db
+      .prepare("SELECT COUNT(*) as count FROM platforms")
+      .first<{ count: number }>();
+    const total = countResult?.count || 0;
+
     const result = await this.db
-      .prepare('SELECT id, name, description, createdAt FROM platforms ORDER BY createdAt DESC LIMIT ?1 OFFSET ?2')
+      .prepare(
+        "SELECT id, name, description, createdAt FROM platforms ORDER BY createdAt DESC LIMIT ?1 OFFSET ?2",
+      )
       .bind(params.limit, params.offset)
       .all<Platform>();
 
@@ -141,7 +152,7 @@ export class D1PlatformRepository implements IPlatformRepository {
 
   async deletePlatform(name: string): Promise<boolean> {
     const result = await this.db
-      .prepare('DELETE FROM platforms WHERE name = ?1')
+      .prepare("DELETE FROM platforms WHERE name = ?1")
       .bind(name)
       .run();
 

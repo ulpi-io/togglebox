@@ -11,9 +11,10 @@ import type {
   CreateFlag,
   UpdateFlag,
   UpdateRollout,
-} from '@togglebox/flags';
-import type { IFlagRepository, FlagPage } from '@togglebox/flags';
-import { FlagModel, type IFlagDocument } from './schemas';
+} from "@togglebox/flags";
+import type { IFlagRepository, FlagPage } from "@togglebox/flags";
+import { FlagModel, type IFlagDocument } from "./schemas";
+import { parseCursor, encodeCursor } from "../../utils/cursor";
 
 /**
  * Mongoose implementation of the Feature Flag repository.
@@ -30,7 +31,7 @@ export class MongooseFlagRepository implements IFlagRepository {
    */
   async create(data: CreateFlag): Promise<Flag> {
     const now = new Date().toISOString();
-    const version = '1.0.0';
+    const version = "1.0.0";
 
     const flag: Flag = {
       platform: data.platform,
@@ -39,7 +40,7 @@ export class MongooseFlagRepository implements IFlagRepository {
       name: data.name,
       description: data.description,
       enabled: data.enabled ?? false,
-      flagType: data.flagType ?? 'boolean',
+      flagType: data.flagType ?? "boolean",
       valueA: data.valueA ?? true,
       valueB: data.valueB ?? false,
       targeting: data.targeting ?? {
@@ -47,7 +48,7 @@ export class MongooseFlagRepository implements IFlagRepository {
         forceIncludeUsers: [],
         forceExcludeUsers: [],
       },
-      defaultValue: data.defaultValue ?? 'B',
+      defaultValue: data.defaultValue ?? "B",
       // Percentage rollout (disabled by default)
       rolloutEnabled: data.rolloutEnabled ?? false,
       rolloutPercentageA: data.rolloutPercentageA ?? 100,
@@ -76,7 +77,7 @@ export class MongooseFlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    data: UpdateFlag
+    data: UpdateFlag,
   ): Promise<Flag> {
     // Get current active version
     const current = await this.getActive(platform, environment, flagKey);
@@ -85,7 +86,7 @@ export class MongooseFlagRepository implements IFlagRepository {
     }
 
     // Parse current version and increment
-    const [major, minor, patch] = current.version.split('.').map(Number);
+    const [major, minor, patch] = current.version.split(".").map(Number);
     const newVersion = `${major}.${minor}.${(patch ?? 0) + 1}`;
     const now = new Date().toISOString();
 
@@ -117,7 +118,7 @@ export class MongooseFlagRepository implements IFlagRepository {
         flagKey,
         version: current.version,
       },
-      { $set: { isActive: false } }
+      { $set: { isActive: false } },
     );
 
     // Create new version
@@ -138,7 +139,7 @@ export class MongooseFlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
@@ -155,7 +156,7 @@ export class MongooseFlagRepository implements IFlagRepository {
         version: current.version,
         isActive: true,
       },
-      { $set: { enabled, updatedAt: now } }
+      { $set: { enabled, updatedAt: now } },
     );
 
     return {
@@ -171,7 +172,7 @@ export class MongooseFlagRepository implements IFlagRepository {
   async getActive(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<Flag | null> {
     const doc = await FlagModel.findOne({
       platform,
@@ -194,7 +195,7 @@ export class MongooseFlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    version: string
+    version: string,
   ): Promise<Flag | null> {
     const doc = await FlagModel.findOne({
       platform,
@@ -217,10 +218,10 @@ export class MongooseFlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     limit?: number,
-    cursor?: string
+    cursor?: string,
   ): Promise<FlagPage> {
     const pageSize = limit || 100;
-    const skip = cursor ? parseInt(Buffer.from(cursor, 'base64').toString(), 10) : 0;
+    const skip = parseCursor(cursor);
 
     const docs = await FlagModel.find({
       platform,
@@ -231,10 +232,8 @@ export class MongooseFlagRepository implements IFlagRepository {
       .limit(pageSize + 1); // Fetch one extra to check if there's more
 
     const hasMore = docs.length > pageSize;
-    const items = docs.slice(0, pageSize).map(doc => this.docToFlag(doc));
-    const nextCursor = hasMore
-      ? Buffer.from(String(skip + pageSize)).toString('base64')
-      : undefined;
+    const items = docs.slice(0, pageSize).map((doc) => this.docToFlag(doc));
+    const nextCursor = hasMore ? encodeCursor(skip + pageSize) : undefined;
 
     return {
       items,
@@ -249,7 +248,7 @@ export class MongooseFlagRepository implements IFlagRepository {
   async listVersions(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<Flag[]> {
     const docs = await FlagModel.find({
       platform,
@@ -257,7 +256,7 @@ export class MongooseFlagRepository implements IFlagRepository {
       flagKey,
     }).sort({ version: -1 }); // Newest first
 
-    return docs.map(doc => this.docToFlag(doc));
+    return docs.map((doc) => this.docToFlag(doc));
   }
 
   /**
@@ -266,7 +265,7 @@ export class MongooseFlagRepository implements IFlagRepository {
   async delete(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<void> {
     const result = await FlagModel.deleteMany({
       platform,
@@ -285,7 +284,7 @@ export class MongooseFlagRepository implements IFlagRepository {
   async exists(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<boolean> {
     const flag = await this.getActive(platform, environment, flagKey);
     return flag !== null;
@@ -299,7 +298,7 @@ export class MongooseFlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    settings: UpdateRollout
+    settings: UpdateRollout,
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
@@ -319,18 +318,22 @@ export class MongooseFlagRepository implements IFlagRepository {
       {
         $set: {
           rolloutEnabled: settings.rolloutEnabled ?? current.rolloutEnabled,
-          rolloutPercentageA: settings.rolloutPercentageA ?? current.rolloutPercentageA,
-          rolloutPercentageB: settings.rolloutPercentageB ?? current.rolloutPercentageB,
+          rolloutPercentageA:
+            settings.rolloutPercentageA ?? current.rolloutPercentageA,
+          rolloutPercentageB:
+            settings.rolloutPercentageB ?? current.rolloutPercentageB,
           updatedAt: now,
         },
-      }
+      },
     );
 
     return {
       ...current,
       rolloutEnabled: settings.rolloutEnabled ?? current.rolloutEnabled,
-      rolloutPercentageA: settings.rolloutPercentageA ?? current.rolloutPercentageA,
-      rolloutPercentageB: settings.rolloutPercentageB ?? current.rolloutPercentageB,
+      rolloutPercentageA:
+        settings.rolloutPercentageA ?? current.rolloutPercentageA,
+      rolloutPercentageB:
+        settings.rolloutPercentageB ?? current.rolloutPercentageB,
       updatedAt: now,
     };
   }
@@ -362,7 +365,11 @@ export class MongooseFlagRepository implements IFlagRepository {
       flagType: doc.flagType,
       valueA: doc.valueA,
       valueB: doc.valueB,
-      targeting: this.safeParse(doc.targeting, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
+      targeting: this.safeParse(doc.targeting, {
+        countries: [],
+        forceIncludeUsers: [],
+        forceExcludeUsers: [],
+      }),
       defaultValue: doc.defaultValue,
       // Percentage rollout (defaults for backward compatibility)
       rolloutEnabled: doc.rolloutEnabled ?? false,

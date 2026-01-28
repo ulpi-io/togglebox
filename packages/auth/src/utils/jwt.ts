@@ -17,8 +17,8 @@
  * - Always use HTTPS in production to protect tokens in transit
  */
 
-import jwt from 'jsonwebtoken';
-import { User } from '../models/User';
+import jwt from "jsonwebtoken";
+import { User } from "../models/User";
 
 /**
  * JWT payload interface.
@@ -60,17 +60,17 @@ export interface JwtPayload {
  * @throws {Error} If JWT_SECRET environment variable is not set
  */
 const JWT_SECRET = (() => {
-  const secret = process.env['JWT_SECRET'];
+  const secret = process.env["JWT_SECRET"];
   if (!secret) {
     throw new Error(
-      'JWT_SECRET environment variable is required for authentication. ' +
-      'Generate a strong secret with: openssl rand -base64 32'
+      "JWT_SECRET environment variable is required for authentication. " +
+        "Generate a strong secret with: openssl rand -base64 32",
     );
   }
   if (secret.length < 32) {
     throw new Error(
-      'JWT_SECRET must be at least 32 characters long for security. ' +
-      'Generate a strong secret with: openssl rand -base64 32'
+      "JWT_SECRET must be at least 32 characters long for security. " +
+        "Generate a strong secret with: openssl rand -base64 32",
     );
   }
   return secret;
@@ -84,7 +84,7 @@ const JWT_SECRET = (() => {
  * Default: 24 hours.
  * Shorter expiration = more secure but worse UX (more frequent logins).
  */
-const JWT_EXPIRES_IN = process.env['JWT_EXPIRES_IN'] || '24h';
+const JWT_EXPIRES_IN = process.env["JWT_EXPIRES_IN"] || "24h";
 
 /**
  * JWT issuer claim.
@@ -93,7 +93,7 @@ const JWT_EXPIRES_IN = process.env['JWT_EXPIRES_IN'] || '24h';
  * Identifies the principal that issued the JWT.
  * Must match the issuer expected by the API middleware for verification.
  */
-const JWT_ISSUER = process.env['JWT_ISSUER'] || 'config-service';
+const JWT_ISSUER = process.env["JWT_ISSUER"] || "config-service";
 
 /**
  * JWT audience claim.
@@ -102,7 +102,7 @@ const JWT_ISSUER = process.env['JWT_ISSUER'] || 'config-service';
  * Identifies the recipients that the JWT is intended for.
  * Must match the audience expected by the API middleware for verification.
  */
-const JWT_AUDIENCE = process.env['JWT_AUDIENCE'] || 'config-service-api';
+const JWT_AUDIENCE = process.env["JWT_AUDIENCE"] || "config-service-api";
 
 /**
  * Generate a JWT token for a user.
@@ -137,7 +137,7 @@ export function generateToken(user: User): string {
   };
 
   return jwt.sign(payload, JWT_SECRET, {
-    algorithm: 'HS256',
+    algorithm: "HS256",
     expiresIn: JWT_EXPIRES_IN,
     issuer: JWT_ISSUER,
     audience: JWT_AUDIENCE,
@@ -180,21 +180,22 @@ export function generateToken(user: User): string {
 export function verifyToken(token: string): JwtPayload | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET, {
-      algorithms: ['HS256'], // SECURITY: Restrict to HS256 only (prevents algorithm confusion attacks)
+      algorithms: ["HS256"], // SECURITY: Restrict to HS256 only (prevents algorithm confusion attacks)
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE,
     }) as JwtPayload;
     return decoded;
   } catch (error) {
     // SECURITY: Only log detailed debug info in development to prevent sensitive data leakage
-    if (process.env['NODE_ENV'] === 'development') {
+    if (process.env["NODE_ENV"] === "development") {
       // Log detailed error for debugging
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('[JWT] Verification failed:', errorMessage);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("[JWT] Verification failed:", errorMessage);
 
       // Log additional debug info (don't log the full token for security)
-      const tokenPreview = token.substring(0, 20) + '...';
-      console.error('[JWT] Debug info:', {
+      const tokenPreview = token.substring(0, 20) + "...";
+      console.error("[JWT] Debug info:", {
         tokenPreview,
         tokenLength: token.length,
         expectedIssuer: JWT_ISSUER,
@@ -205,17 +206,17 @@ export function verifyToken(token: string): JwtPayload | null {
       // Try to decode token without verification to see the claims
       try {
         const unverifiedPayload = jwt.decode(token);
-        if (unverifiedPayload && typeof unverifiedPayload === 'object') {
+        if (unverifiedPayload && typeof unverifiedPayload === "object") {
           const payload = unverifiedPayload as Record<string, unknown>;
-          console.error('[JWT] Token claims (unverified):', {
-            iss: payload['iss'],
-            aud: payload['aud'],
-            exp: payload['exp'],
-            id: payload['id'],
+          console.error("[JWT] Token claims (unverified):", {
+            iss: payload["iss"],
+            aud: payload["aud"],
+            exp: payload["exp"],
+            id: payload["id"],
           });
         }
       } catch (decodeError) {
-        console.error('[JWT] Could not decode token for debugging');
+        console.error("[JWT] Could not decode token for debugging");
       }
     }
 

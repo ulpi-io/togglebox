@@ -1,29 +1,37 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useAnalytics } from '@togglebox/sdk-nextjs'
+import { useState } from "react";
+import { useAnalytics } from "@togglebox/sdk-nextjs";
 
 export default function Page() {
-  const { trackEvent, trackConversion, flushStats } = useAnalytics()
-  const [clicks, setClicks] = useState(0)
-  const [lastAction, setLastAction] = useState<string | null>(null)
+  const { trackEvent, trackConversion, flushStats } = useAnalytics();
+  const [clicks, setClicks] = useState(0);
+  const [lastAction, setLastAction] = useState<string | null>(null);
 
   const handleClick = () => {
-    trackEvent('button_click', { userId: 'user-123' }, {
-      properties: { buttonId: 'demo-cta', clickNumber: clicks + 1 },
-    })
-    setClicks((c) => c + 1)
-    setLastAction('Tracked: button_click')
-  }
+    trackEvent(
+      "button_click",
+      { userId: "user-123" },
+      {
+        properties: { buttonId: "demo-cta", clickNumber: clicks + 1 },
+      },
+    );
+    setClicks((c) => c + 1);
+    setLastAction("Tracked: button_click");
+  };
 
   const handleConversion = async () => {
-    await trackConversion('checkout-test', { userId: 'user-123' }, {
-      metricName: 'purchase',
-      value: 99.99,
-    })
-    await flushStats()
-    setLastAction('Tracked: purchase conversion ($99.99)')
-  }
+    await trackConversion(
+      "checkout-test",
+      { userId: "user-123" },
+      {
+        metricId: "purchase",
+        value: 99.99,
+      },
+    );
+    await flushStats();
+    setLastAction("Tracked: purchase conversion ($99.99)");
+  };
 
   return (
     <div className="min-h-screen p-8">
@@ -52,5 +60,5 @@ export default function Page() {
         )}
       </div>
     </div>
-  )
+  );
 }

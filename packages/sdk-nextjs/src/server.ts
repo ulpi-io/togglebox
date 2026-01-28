@@ -1,19 +1,23 @@
-import { ToggleBoxClient } from '@togglebox/sdk'
-import type { Flag, EvaluationContext as FlagContext } from '@togglebox/flags'
-import { evaluateFlag } from '@togglebox/flags'
-import type { Experiment, ExperimentContext, VariantAssignment } from '@togglebox/experiments'
-import { assignVariation } from '@togglebox/experiments'
-import type { ConversionData, EventData, Config } from './types'
+import { ToggleBoxClient } from "@togglebox/sdk";
+import type { Flag, EvaluationContext as FlagContext } from "@togglebox/flags";
+import { evaluateFlag } from "@togglebox/flags";
+import type {
+  Experiment,
+  ExperimentContext,
+  VariantAssignment,
+} from "@togglebox/experiments";
+import { assignVariation } from "@togglebox/experiments";
+import type { ConversionData, EventData, Config } from "./types";
 
 // ============================================================================
 // Server Options
 // ============================================================================
 
 export interface ServerOptions {
-  platform: string
-  environment: string
-  apiUrl: string
-  apiKey?: string // Required if authentication is enabled
+  platform: string;
+  environment: string;
+  apiUrl: string;
+  apiKey?: string; // Required if authentication is enabled
 }
 
 // ============================================================================
@@ -21,33 +25,44 @@ export interface ServerOptions {
 // ============================================================================
 
 export interface ServerConfigResult {
-  config: Config | null
-  getConfigValue: <T>(key: string, defaultValue: T) => T
+  config: Config | null;
+  getConfigValue: <T>(key: string, defaultValue: T) => T;
 }
 
 export interface ServerFlagsResult {
-  flags: Flag[]
+  flags: Flag[];
   /** Synchronously evaluates a flag using the already-fetched flags array (no API call) */
-  isFlagEnabled: (flagKey: string, context?: FlagContext) => boolean
+  isFlagEnabled: (flagKey: string, context?: FlagContext) => boolean;
 }
 
 export interface ServerExperimentResult {
-  experiment: Experiment | null
-  variant: VariantAssignment | null
+  experiment: Experiment | null;
+  variant: VariantAssignment | null;
 }
 
 export interface ServerExperimentsResult {
-  experiments: Experiment[]
+  experiments: Experiment[];
   /** Synchronously assigns a variant using the already-fetched experiments array (no API call) */
-  getVariant: (experimentKey: string, context: ExperimentContext) => VariantAssignment | null
+  getVariant: (
+    experimentKey: string,
+    context: ExperimentContext,
+  ) => VariantAssignment | null;
 }
 
 export interface ServerAnalyticsResult {
-  trackEvent: (eventName: string, context: ExperimentContext, data?: EventData) => void
-  trackConversion: (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
-  flushStats: () => Promise<void>
+  trackEvent: (
+    eventName: string,
+    context: ExperimentContext,
+    data?: EventData,
+  ) => void;
+  trackConversion: (
+    experimentKey: string,
+    context: ExperimentContext,
+    data: ConversionData,
+  ) => Promise<void>;
+  flushStats: () => Promise<void>;
   /** Cleanup client resources. Call this if you don't call flushStats() */
-  close: () => void
+  close: () => void;
 }
 
 // ============================================================================
@@ -62,7 +77,7 @@ function createServerClient(options: ServerOptions): ToggleBoxClient {
     apiKey: options.apiKey,
     cache: { enabled: false, ttl: 0 },
     pollingInterval: 0,
-  })
+  });
 }
 
 // ============================================================================
@@ -90,27 +105,29 @@ function createServerClient(options: ServerOptions): ToggleBoxClient {
  * }
  * ```
  */
-export async function getConfig(options: ServerOptions): Promise<ServerConfigResult> {
-  const client = createServerClient(options)
+export async function getConfig(
+  options: ServerOptions,
+): Promise<ServerConfigResult> {
+  const client = createServerClient(options);
 
   try {
-    const config = await client.getConfig()
+    const config = await client.getConfig();
 
     return {
       config,
       getConfigValue: <T>(key: string, defaultValue: T): T => {
-        if (!config || !(key in config)) return defaultValue
-        return config[key] as T
+        if (!config || !(key in config)) return defaultValue;
+        return config[key] as T;
       },
-    }
+    };
   } catch (error) {
-    console.error('Failed to fetch server config:', error)
+    console.error("Failed to fetch server config:", error);
     return {
       config: null,
       getConfigValue: <T>(_key: string, defaultValue: T): T => defaultValue,
-    }
+    };
   } finally {
-    client.destroy()
+    client.destroy();
   }
 }
 
@@ -135,30 +152,33 @@ export async function getConfig(options: ServerOptions): Promise<ServerConfigRes
  * }
  * ```
  */
-export async function getFlags(options: ServerOptions): Promise<ServerFlagsResult> {
-  const client = createServerClient(options)
+export async function getFlags(
+  options: ServerOptions,
+): Promise<ServerFlagsResult> {
+  const client = createServerClient(options);
 
   try {
-    const flags = await client.getFlags()
+    const flags = await client.getFlags();
 
     return {
       flags,
       // Use local evaluation with already-fetched flags (no N+1 API calls)
       isFlagEnabled: (flagKey: string, context?: FlagContext): boolean => {
-        const flag = flags.find((f) => f.flagKey === flagKey)
-        if (!flag) return false
-        const result = evaluateFlag(flag, context ?? { userId: '' })
-        return result.servedValue === 'A'
+        const flag = flags.find((f) => f.flagKey === flagKey);
+        if (!flag) return false;
+        // Use 'anonymous' as default userId to maintain consistent hashing behavior
+        const result = evaluateFlag(flag, context ?? { userId: "anonymous" });
+        return result.servedValue === "A";
       },
-    }
+    };
   } catch (error) {
-    console.error('Failed to fetch server flags:', error)
+    console.error("Failed to fetch server flags:", error);
     return {
       flags: [],
       isFlagEnabled: () => false,
-    }
+    };
   } finally {
-    client.destroy()
+    client.destroy();
   }
 }
 
@@ -185,21 +205,26 @@ export async function getFlags(options: ServerOptions): Promise<ServerFlagsResul
 export async function getExperiment(
   experimentKey: string,
   context: ExperimentContext,
-  options: ServerOptions
+  options: ServerOptions,
 ): Promise<ServerExperimentResult> {
-  const client = createServerClient(options)
+  const client = createServerClient(options);
 
   try {
-    const experiments = await client.getExperiments()
-    const experiment = experiments.find((e) => e.experimentKey === experimentKey) || null
-    const variant = await client.getVariant(experimentKey, context)
+    const experiments = await client.getExperiments();
+    const experiment =
+      experiments.find((e) => e.experimentKey === experimentKey) || null;
 
-    return { experiment, variant }
+    // BUGFIX: Use local assignment to avoid double-counting exposures
+    // client.getVariant() tracks an exposure, but the client will also track
+    // on hydration, causing inflated exposure counts and distorted conversion rates
+    const variant = experiment ? assignVariation(experiment, context) : null;
+
+    return { experiment, variant };
   } catch (error) {
-    console.error('Failed to fetch server experiment:', error)
-    return { experiment: null, variant: null }
+    console.error("Failed to fetch server experiment:", error);
+    return { experiment: null, variant: null };
   } finally {
-    client.destroy()
+    client.destroy();
   }
 }
 
@@ -224,29 +249,36 @@ export async function getExperiment(
  * }
  * ```
  */
-export async function getExperiments(options: ServerOptions): Promise<ServerExperimentsResult> {
-  const client = createServerClient(options)
+export async function getExperiments(
+  options: ServerOptions,
+): Promise<ServerExperimentsResult> {
+  const client = createServerClient(options);
 
   try {
-    const experiments = await client.getExperiments()
+    const experiments = await client.getExperiments();
 
     return {
       experiments,
       // Use local assignment with already-fetched experiments (no N+1 API calls)
-      getVariant: (experimentKey: string, context: ExperimentContext): VariantAssignment | null => {
-        const experiment = experiments.find((e) => e.experimentKey === experimentKey)
-        if (!experiment) return null
-        return assignVariation(experiment, context)
+      getVariant: (
+        experimentKey: string,
+        context: ExperimentContext,
+      ): VariantAssignment | null => {
+        const experiment = experiments.find(
+          (e) => e.experimentKey === experimentKey,
+        );
+        if (!experiment) return null;
+        return assignVariation(experiment, context);
       },
-    }
+    };
   } catch (error) {
-    console.error('Failed to fetch server experiments:', error)
+    console.error("Failed to fetch server experiments:", error);
     return {
       experiments: [],
       getVariant: () => null,
-    }
+    };
   } finally {
-    client.destroy()
+    client.destroy();
   }
 }
 
@@ -266,32 +298,41 @@ export async function getExperiments(options: ServerOptions): Promise<ServerExpe
  *     apiKey: 'tb_live_xxxxx', // Required if authentication is enabled
  *   })
  *
- *   await trackConversion('checkout-test', { userId }, { metricName: 'purchase', value: amount })
+ *   await trackConversion('checkout-test', { userId }, { metricId: 'purchase', value: amount })
  *   await flushStats()
  * }
  * ```
  */
-export async function getAnalytics(options: ServerOptions): Promise<ServerAnalyticsResult> {
-  const client = createServerClient(options)
+export async function getAnalytics(
+  options: ServerOptions,
+): Promise<ServerAnalyticsResult> {
+  const client = createServerClient(options);
 
   return {
-    trackEvent: (eventName: string, context: ExperimentContext, data?: EventData) => {
-      client.trackEvent(eventName, context, data)
+    trackEvent: (
+      eventName: string,
+      context: ExperimentContext,
+      data?: EventData,
+    ) => {
+      client.trackEvent(eventName, context, data);
     },
-    trackConversion: async (experimentKey: string, context: ExperimentContext, data: ConversionData) => {
-      await client.trackConversion(experimentKey, context, data)
+    trackConversion: async (
+      experimentKey: string,
+      context: ExperimentContext,
+      data: ConversionData,
+    ) => {
+      await client.trackConversion(experimentKey, context, data);
     },
     flushStats: async () => {
       try {
-        await client.flushStats()
+        await client.flushStats();
       } finally {
-        client.destroy()
+        client.destroy();
       }
     },
     // Cleanup client if flushStats() is never called (prevents memory leak)
     close: () => {
-      client.destroy()
+      client.destroy();
     },
-  }
+  };
 }
-

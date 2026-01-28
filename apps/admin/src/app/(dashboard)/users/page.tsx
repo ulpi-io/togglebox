@@ -1,35 +1,88 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { getUsersApi } from '@/lib/api/users';
-import type { User } from '@/lib/api/types';
-import { Badge, Button, Card, CardContent } from '@togglebox/ui';
-import { DeleteUserButton } from '@/components/users/delete-user-button';
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { getUsersApi } from "@/lib/api/users";
+import type { User } from "@/lib/api/types";
+import { Badge, Button, Card, CardContent } from "@togglebox/ui";
+import { DeleteUserButton } from "@/components/users/delete-user-button";
+
+const PAGE_SIZE = 20;
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async (pageNum: number) => {
     try {
       setIsLoading(true);
-      const data = await getUsersApi();
-      setUsers(data);
+      const result = await getUsersApi({
+        limit: PAGE_SIZE,
+        offset: pageNum * PAGE_SIZE,
+      });
+      setUsers(result.users);
+      setTotal(result.total);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load users');
+      setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadUsers();
   }, []);
 
-  if (isLoading) {
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const result = await getUsersApi({
+          limit: PAGE_SIZE,
+          offset: page * PAGE_SIZE,
+        });
+        if (isMounted) {
+          setUsers(result.users);
+          setTotal(result.total);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "Failed to load users");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [page]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const canGoBack = page > 0;
+  const canGoForward = page < totalPages - 1;
+
+  const handlePrevPage = () => {
+    if (canGoBack) setPage((p) => p - 1);
+  };
+
+  const handleNextPage = () => {
+    if (canGoForward) setPage((p) => p + 1);
+  };
+
+  const handleRefresh = () => {
+    loadUsers(page);
+  };
+
+  if (isLoading && users.length === 0) {
     return (
       <div>
         <div className="mb-8 flex items-center justify-between">
@@ -40,8 +93,8 @@ export default function UsersPage() {
             </p>
           </div>
           <Link href="/users/create">
-          <Button>Create User</Button>
-        </Link>
+            <Button>Create User</Button>
+          </Link>
         </div>
         <Card>
           <CardContent className="p-0">
@@ -70,8 +123,8 @@ export default function UsersPage() {
             </p>
           </div>
           <Link href="/users/create">
-          <Button>Create User</Button>
-        </Link>
+            <Button>Create User</Button>
+          </Link>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
@@ -79,7 +132,7 @@ export default function UsersPage() {
               Error loading users
             </div>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button variant="outline" onClick={loadUsers}>
+            <Button variant="outline" onClick={handleRefresh}>
               Retry
             </Button>
           </CardContent>
@@ -95,6 +148,7 @@ export default function UsersPage() {
           <h1 className="text-4xl font-black mb-2">Users</h1>
           <p className="text-muted-foreground">
             Manage user access and permissions
+            {total > 0 && ` (${total} total)`}
           </p>
         </div>
         <Link href="/users/create">
@@ -111,8 +165,8 @@ export default function UsersPage() {
               Create your first user to get started
             </p>
             <Link href="/users/create">
-          <Button>Create User</Button>
-        </Link>
+              <Button>Create User</Button>
+            </Link>
           </CardContent>
         </Card>
       ) : (
@@ -130,13 +184,28 @@ export default function UsersPage() {
                 </thead>
                 <tbody>
                   {users.map((user) => (
-                    <tr key={user.id} className="border-b border-black/5 last:border-0 hover:bg-muted/50 transition-colors">
+                    <tr
+                      key={user.id}
+                      className="border-b border-black/5 last:border-0 hover:bg-muted/50 transition-colors"
+                    >
                       <td className="py-3 px-4">
                         <div className="font-medium">{user.email}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{user.id}</div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {user.id}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
-                        <Badge userRole={user.role as 'admin' | 'developer' | 'editor' | 'viewer'} size="sm" className="font-black">
+                        <Badge
+                          userRole={
+                            user.role as
+                              | "admin"
+                              | "developer"
+                              | "editor"
+                              | "viewer"
+                          }
+                          size="sm"
+                          className="font-black"
+                        >
                           {user.role.toUpperCase()}
                         </Badge>
                       </td>
@@ -144,13 +213,44 @@ export default function UsersPage() {
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <DeleteUserButton userId={user.id} userEmail={user.email} onSuccess={loadUsers} />
+                        <DeleteUserButton
+                          userId={user.id}
+                          userEmail={user.email}
+                          onSuccess={handleRefresh}
+                        />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-black/10">
+                <div className="text-sm text-muted-foreground">
+                  Page {page + 1} of {totalPages}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={!canGoBack || isLoading}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={!canGoForward || isLoading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

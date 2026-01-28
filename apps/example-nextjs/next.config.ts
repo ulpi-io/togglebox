@@ -1,7 +1,7 @@
-import type { NextConfig } from 'next'
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@togglebox/sdk-nextjs', '@togglebox/sdk'],
-}
+  transpilePackages: ["@togglebox/sdk-nextjs", "@togglebox/sdk"],
+};
 
-export default nextConfig
+export default nextConfig;

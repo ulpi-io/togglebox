@@ -14,6 +14,7 @@ Automatically detect opportunities for parallel debugging and orchestrate multip
 Use this skill automatically when:
 
 **Problem Indicators:**
+
 - Encountering 3+ unrelated bugs or failures
 - Multiple test failures in isolated subsystems (backend, frontend, different services)
 - Independent issues that don't share a root cause
@@ -21,6 +22,7 @@ Use this skill automatically when:
 - Each issue can be understood and fixed without context from others
 
 **User Triggers:**
+
 - "Debug these issues in parallel"
 - "Fix these bugs concurrently"
 - "Split debugging across agents"
@@ -28,6 +30,7 @@ Use this skill automatically when:
 - "Speed up troubleshooting with multiple agents"
 
 **Common Scenarios:**
+
 - Fixing multiple failing tests in different subsystems (Laravel tests, Next.js tests, API tests)
 - Debugging independent bugs across microservices
 - Resolving linting/type errors in separate modules
@@ -40,23 +43,27 @@ Use this skill automatically when:
 Do NOT use parallel debugging when:
 
 **Related Failures:**
+
 - Failures are interconnected (fixing one might fix others)
 - Issues share a common root cause
 - Cascading failures where the first error causes subsequent ones
 - Need to understand full system state to diagnose properly
 
 **Sequential Dependencies:**
+
 - Must fix issues in a specific order
 - Later fixes depend on earlier fixes being completed
 - Shared state or data corruption affecting multiple areas
 
 **Single Root Cause:**
+
 - All symptoms point to one underlying issue
 - Database connection problem affecting entire app
 - Configuration error propagating through the system
 - Single dependency version causing multiple breakages
 
 **Coordination Required:**
+
 - Need careful debugging across layers
 - Issues require stepping through interconnected code
 - Must maintain consistent state during debugging
@@ -76,12 +83,14 @@ Examine the failures, bugs, or issues to identify:
 **Clustering Strategy:**
 
 Group problems by:
+
 - **Technology stack** (Laravel backend, Next.js frontend, NestJS API)
 - **Subsystem** (authentication, payment, user profile)
 - **Failure type** (test failures, runtime errors, type errors, build errors)
 - **Module** (independent services, separate features)
 
 **Decision Point:**
+
 - If problems cluster into 3+ independent groups → Proceed to parallel debugging
 - If problems are related or have shared root cause → Use sequential debugging instead
 
@@ -90,6 +99,7 @@ Group problems by:
 For each independent problem cluster, determine the best agent type:
 
 **Technology Stack Detection:**
+
 - **Laravel backend issues** → `laravel-senior-engineer`
 - **Next.js frontend issues** → `nextjs-senior-engineer`
 - **React components/UI bugs** → `nextjs-senior-engineer`
@@ -102,6 +112,7 @@ For each independent problem cluster, determine the best agent type:
 - **General/cross-cutting issues** → `general-purpose`
 
 **Error Pattern Analysis:**
+
 ```
 PHPUnit test failures → Laravel
 Jest/Vitest frontend tests → Next.js/Remix
@@ -116,6 +127,7 @@ Performance issues → Match to affected component
 For each agent, create a comprehensive debugging brief:
 
 **Required Elements:**
+
 1. **Problem description** - What's failing or broken
 2. **Error messages/stack traces** - Complete diagnostic info
 3. **Reproduction steps** - How to trigger the issue
@@ -124,6 +136,7 @@ For each agent, create a comprehensive debugging brief:
 6. **Success criteria** - How to verify the fix
 
 **Brief Template:**
+
 ```
 Debug and fix [issue description]:
 
@@ -156,6 +169,7 @@ Use the Task tool to launch multiple debugging agents in parallel:
 ```
 
 **Critical Requirements:**
+
 - Send ALL Task tool calls in ONE message
 - Do NOT wait for agents to complete before launching others
 - Each agent gets complete diagnostic information upfront
@@ -173,6 +187,7 @@ After agents complete their debugging:
 6. **Report consolidated results** to user
 
 **Validation Checklist:**
+
 - [ ] Original error no longer occurs
 - [ ] Tests pass (if test failures were the issue)
 - [ ] No new errors introduced
@@ -180,6 +195,7 @@ After agents complete their debugging:
 - [ ] Changes are coherent and don't contradict each other
 
 **Consolidation Template:**
+
 ```
 Parallel debugging complete. Results:
 
@@ -210,11 +226,13 @@ Parallel debugging complete. Results:
 "Run parallel agents to debug these failing tests."
 
 **Error Context:**
+
 - 5 Laravel PHPUnit tests failing (authentication module)
 - 3 Next.js Jest tests failing (product listing page)
 - 2 NestJS e2e tests failing (payment service)
 
 **Execution:**
+
 1. **Cluster failures** by subsystem:
    - Laravel backend tests (authentication)
    - Next.js frontend tests (product listing)
@@ -237,6 +255,7 @@ Parallel debugging complete. Results:
    - Re-runs tests to verify
 
 5. **Consolidate results:**
+
    ```
    Parallel debugging complete:
    - Laravel auth tests: ✅ Fixed (5/5 passing) - Missing user factory trait
@@ -252,6 +271,7 @@ Parallel debugging complete. Results:
 "Fix these three bugs in parallel: cart total calculation error, user profile image upload failure, and webhook timeout issue."
 
 **Execution:**
+
 1. **Analyze bugs:**
    - Cart total calculation (Laravel backend logic)
    - Image upload (Next.js frontend + storage)
@@ -269,6 +289,7 @@ Parallel debugging complete. Results:
    - `nestjs-senior-engineer`: Resolve webhook timeout
 
 4. **Aggregate fixes:**
+
    ```
    3 bugs resolved in parallel:
    - Cart calculation: Fixed rounding error in Tax service
@@ -284,11 +305,13 @@ Parallel debugging complete. Results:
 "I have TypeScript errors in multiple unrelated modules. Fix them in parallel."
 
 **Error Context:**
+
 - 15 type errors in Next.js dashboard components
 - 8 type errors in NestJS user service
 - 12 type errors in Express API middleware
 
 **Execution:**
+
 1. **Group by module/framework:**
    - Next.js errors (dashboard module)
    - NestJS errors (user service)
@@ -305,6 +328,7 @@ Parallel debugging complete. Results:
    - Verifies TypeScript compilation succeeds
 
 4. **Result:**
+
    ```
    TypeScript compilation now clean:
    - Next.js dashboard: 15 type errors fixed (component props, hooks)
@@ -320,6 +344,7 @@ Parallel debugging complete. Results:
 "Investigate these performance problems: slow product search (backend), laggy dashboard UI (frontend), and delayed webhook processing (microservice)."
 
 **Execution:**
+
 1. **Cluster by component:**
    - Product search performance (Laravel)
    - Dashboard UI lag (Next.js)
@@ -337,6 +362,7 @@ Parallel debugging complete. Results:
    - Before/after metrics
 
 4. **Consolidated report:**
+
    ```
    Performance optimizations complete:
    - Product search: 3.2s → 180ms (eager loading, index added)
@@ -350,17 +376,17 @@ Parallel debugging complete. Results:
 
 Quick reference for matching debugging tasks to agents:
 
-| Agent Type | Best For Debugging | Key Error Patterns |
-|------------|-------------------|-------------------|
-| `laravel-senior-engineer` | PHPUnit failures, Eloquent errors, API bugs | Laravel exceptions, DB query errors, validation failures |
-| `nextjs-senior-engineer` | Jest/Vitest failures, React errors, hydration issues | Component errors, RSC issues, build failures |
-| `nestjs-senior-engineer` | e2e test failures, DI issues, microservice bugs | Nest exceptions, module errors, guard failures |
-| `remix-senior-engineer` | Loader/action failures, form bugs, route errors | Remix errors, hydration mismatches, data loading issues |
-| `express-senior-engineer` | Middleware failures, routing bugs, API errors | Express errors, middleware stack issues, request handling |
+| Agent Type                          | Best For Debugging                                    | Key Error Patterns                                              |
+| ----------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------- |
+| `laravel-senior-engineer`           | PHPUnit failures, Eloquent errors, API bugs           | Laravel exceptions, DB query errors, validation failures        |
+| `nextjs-senior-engineer`            | Jest/Vitest failures, React errors, hydration issues  | Component errors, RSC issues, build failures                    |
+| `nestjs-senior-engineer`            | e2e test failures, DI issues, microservice bugs       | Nest exceptions, module errors, guard failures                  |
+| `remix-senior-engineer`             | Loader/action failures, form bugs, route errors       | Remix errors, hydration mismatches, data loading issues         |
+| `express-senior-engineer`           | Middleware failures, routing bugs, API errors         | Express errors, middleware stack issues, request handling       |
 | `expo-react-native-senior-engineer` | Mobile crashes, navigation bugs, native module errors | React Native errors, Expo module issues, platform-specific bugs |
-| `flutter-senior-engineer` | Widget errors, state issues, platform crashes | Flutter exceptions, widget tree errors, async errors |
-| `magento-senior-engineer` | Module bugs, plugin errors, checkout issues | Magento exceptions, DI errors, observer failures |
-| `general-purpose` | Cross-cutting issues, config errors, tooling problems | Build tool errors, linting issues, general debugging |
+| `flutter-senior-engineer`           | Widget errors, state issues, platform crashes         | Flutter exceptions, widget tree errors, async errors            |
+| `magento-senior-engineer`           | Module bugs, plugin errors, checkout issues           | Magento exceptions, DI errors, observer failures                |
+| `general-purpose`                   | Cross-cutting issues, config errors, tooling problems | Build tool errors, linting issues, general debugging            |
 
 See `references/debug_patterns.md` for detailed error pattern matching and debugging strategies.
 See `references/agent_matching_logic.md` for detailed matching rules and edge cases.
@@ -370,10 +396,12 @@ See `references/agent_matching_logic.md` for detailed matching rules and edge ca
 ### Effective Problem Decomposition
 
 **Good Independent Problems:**
+
 - "Laravel auth tests failing (session handling)" + "Next.js checkout tests failing (form validation)" + "NestJS payment tests failing (timeout)"
 - Each in different subsystem, different root causes, can be fixed separately
 
 **Poor Decomposition:**
+
 - "All tests failing after dependency update" (likely single root cause - the dependency)
 - "Database connection errors throughout the app" (single root cause - DB config/connection)
 - "Everything broken after deploy" (need to understand what changed first)
@@ -381,6 +409,7 @@ See `references/agent_matching_logic.md` for detailed matching rules and edge ca
 ### Root Cause Analysis Before Parallelization
 
 Always do initial triage:
+
 1. **Look for common patterns** - Do all errors mention the same dependency?
 2. **Check timing** - Did all failures start at the same time?
 3. **Examine stack traces** - Do they share common code paths?
@@ -391,6 +420,7 @@ If yes to any of these → Single root cause, don't parallelize yet.
 ### Communication Pattern
 
 Before launching parallel debugging:
+
 ```
 I've identified 3 independent issues that can be debugged in parallel:
 
@@ -418,6 +448,7 @@ After parallel fixes are complete:
 ### Handling Partial Success
 
 If some agents succeed and others get blocked:
+
 ```
 Parallel debugging results (2/3 completed):
 
@@ -434,6 +465,7 @@ Next steps:
 ### Conflict Resolution
 
 If fixes overlap or conflict:
+
 1. **Identify the conflict** - Same file, same function, contradictory changes
 2. **Review both solutions** - Which approach is better?
 3. **Merge intelligently** - Combine best aspects or choose one

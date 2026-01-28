@@ -20,7 +20,7 @@
  * - Production: Logs errors only
  */
 
-import { PrismaClient } from '.prisma/client-auth';
+import { PrismaClient } from ".prisma/client-auth";
 
 /**
  * Shared Prisma client instance.
@@ -38,7 +38,10 @@ import { PrismaClient } from '.prisma/client-auth';
  * Prisma automatically manages connection pooling based on database type.
  */
 export const prisma = new PrismaClient({
-  log: process.env['NODE_ENV'] === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  log:
+    process.env["NODE_ENV"] === "development"
+      ? ["query", "error", "warn"]
+      : ["error"],
 });
 
 /**

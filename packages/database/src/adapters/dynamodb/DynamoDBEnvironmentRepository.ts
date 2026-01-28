@@ -6,14 +6,14 @@
  * Uses DynamoDB hierarchical storage pattern (environments under platforms).
  */
 
-import { Environment } from '@togglebox/core';
+import { Environment } from "@togglebox/core";
 import {
   IEnvironmentRepository,
   OffsetPaginationParams,
   TokenPaginationParams,
   TokenPaginatedResult,
-} from '../../interfaces';
-import * as environmentService from '../../environmentService';
+} from "../../interfaces";
+import * as environmentService from "../../environmentService";
 
 /**
  * DynamoDB implementation of environment repository.
@@ -23,17 +23,22 @@ import * as environmentService from '../../environmentService';
  * Implements token-based pagination (DynamoDB native).
  */
 export class DynamoDBEnvironmentRepository implements IEnvironmentRepository {
-  async createEnvironment(environment: Omit<Environment, 'createdAt'>): Promise<Environment> {
+  async createEnvironment(
+    environment: Omit<Environment, "createdAt">,
+  ): Promise<Environment> {
     return environmentService.createEnvironment(environment);
   }
 
-  async getEnvironment(platform: string, environment: string): Promise<Environment | null> {
+  async getEnvironment(
+    platform: string,
+    environment: string,
+  ): Promise<Environment | null> {
     return environmentService.getEnvironment(platform, environment);
   }
 
   async listEnvironments(
     platform: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<TokenPaginatedResult<Environment>> {
     // DynamoDB uses token-based pagination
     // If pagination is undefined, environmentService will fetch ALL items
@@ -41,14 +46,17 @@ export class DynamoDBEnvironmentRepository implements IEnvironmentRepository {
     return environmentService.listEnvironments(platform, params);
   }
 
-  async deleteEnvironment(platform: string, environment: string): Promise<boolean> {
+  async deleteEnvironment(
+    platform: string,
+    environment: string,
+  ): Promise<boolean> {
     return environmentService.deleteEnvironment(platform, environment);
   }
 
   async updateEnvironment(
     platform: string,
     environment: string,
-    updates: { description?: string }
+    updates: { description?: string },
   ): Promise<Environment | null> {
     return environmentService.updateEnvironment(platform, environment, updates);
   }

@@ -41,6 +41,12 @@ class ToggleBoxClient
     /** Maximum pending events to prevent unbounded memory growth */
     private int $maxQueueSize = 1000;
 
+    /** Batch size before auto-flushing events */
+    private int $statsBatchSize = 20;
+
+    /** Maximum retry attempts for failed stats flushes */
+    private int $statsMaxRetries = 3;
+
     public function __construct(
         ClientOptions $options,
         ?CacheInterface $cache = null,
@@ -70,6 +76,11 @@ class ToggleBoxClient
         $this->cacheEnabled = $options->cache?->enabled ?? true;
         $this->http = new HttpClient($options->getApiUrl(), $options->apiKey);
         $this->cache = $cache ?? new ArrayCache();
+
+        // Read stats options
+        $this->statsBatchSize = $options->stats?->batchSize ?? 20;
+        $this->statsMaxRetries = $options->stats?->maxRetries ?? 3;
+        $this->maxQueueSize = $options->stats?->maxQueueSize ?? 1000;
     }
 
     // ==================== TIER 1: REMOTE CONFIGS ====================
@@ -383,6 +394,9 @@ class ToggleBoxClient
     /**
      * Track a custom event.
      *
+     * If experimentKey and variationKey are provided in $data, this also tracks
+     * a conversion event for experiment analytics (parity with JS SDK behavior).
+     *
      * @param string $eventName Name of the event
      * @param ExperimentContext $context User context
      * @param array|null $data Optional event data with 'experimentKey', 'variationKey', 'properties'
@@ -394,15 +408,24 @@ class ToggleBoxClient
         $variationKey = is_array($data) ? ($data['variationKey'] ?? null) : null;
         $properties = is_array($data) ? ($data['properties'] ?? []) : [];
 
+        // Always send custom_event for general tracking
         $this->queueEvent('custom_event', [
             'eventName' => $eventName,
             'userId' => $context->userId,
-            'experimentKey' => $experimentKey,
-            'variationKey' => $variationKey,
             'properties' => $properties,
             'country' => $context->country,
             'language' => $context->language,
         ]);
+
+        // Also track conversion if experiment context provided (parity with JS SDK)
+        if ($experimentKey !== null && $variationKey !== null) {
+            $this->queueEvent('conversion', [
+                'experimentKey' => $experimentKey,
+                'metricName' => $eventName,
+                'variationKey' => $variationKey,
+                'userId' => $context->userId,
+            ]);
+        }
     }
 
     // ==================== CACHE & LIFECYCLE ====================
@@ -424,7 +447,7 @@ class ToggleBoxClient
     }
 
     /**
-     * Flush pending stats events to the server.
+     * Flush pending stats events to the server with retry logic.
      */
     public function flushStats(): void
     {
@@ -432,12 +455,21 @@ class ToggleBoxClient
             return;
         }
 
-        try {
-            $path = "/api/v1/platforms/{$this->platform}/environments/{$this->environment}/stats/events";
-            $this->http->post($path, ['events' => $this->pendingEvents]);
-            $this->pendingEvents = [];
-        } catch (ToggleBoxException) {
-            // Silently fail - stats are not critical
+        $path = "/api/v1/platforms/{$this->platform}/environments/{$this->environment}/stats/events";
+
+        for ($attempt = 0; $attempt < $this->statsMaxRetries; $attempt++) {
+            try {
+                $this->http->post($path, ['events' => $this->pendingEvents]);
+                $this->pendingEvents = [];
+                return;
+            } catch (ToggleBoxException $e) {
+                // Last attempt - give up silently (stats are not critical)
+                if ($attempt === $this->statsMaxRetries - 1) {
+                    return;
+                }
+                // Exponential backoff: 1s, 2s, 4s...
+                usleep((int)(1000 * pow(2, $attempt) * 1000));
+            }
         }
     }
 
@@ -509,6 +541,17 @@ class ToggleBoxClient
         if ($flag->targeting !== null) {
             $countries = $flag->targeting['countries'] ?? [];
 
+            // If country targeting exists but user has no country, serve default
+            if (!empty($countries) && $context->country === null) {
+                $served = $getDefaultServed();
+                return new FlagResult(
+                    flagKey: $flag->flagKey,
+                    value: $getValue($served),
+                    servedValue: $served,
+                    reason: 'country_not_targeted',
+                );
+            }
+
             if (!empty($countries) && $context->country !== null) {
                 $matchedCountry = false;
 
@@ -518,16 +561,27 @@ class ToggleBoxClient
 
                         // Check language targeting within country
                         $languages = $countryTarget['languages'] ?? [];
-                        if (!empty($languages) && $context->language !== null) {
-                            $matchedLanguage = false;
+                        if (!empty($languages)) {
+                            // Languages configured but context.language is null → exclude
+                            if ($context->language === null) {
+                                $served = $getDefaultServed();
+                                return new FlagResult(
+                                    flagKey: $flag->flagKey,
+                                    value: $getValue($served),
+                                    servedValue: $served,
+                                    reason: 'language_not_targeted',
+                                );
+                            }
+
+                            $matchedLangTarget = null;
                             foreach ($languages as $langTarget) {
                                 if (strtolower($langTarget['language']) === strtolower($context->language)) {
-                                    $matchedLanguage = true;
+                                    $matchedLangTarget = $langTarget;
                                     break;
                                 }
                             }
 
-                            if (!$matchedLanguage) {
+                            if ($matchedLangTarget === null) {
                                 // Language doesn't match → return defaultValue (not A)
                                 $served = $getDefaultServed();
                                 return new FlagResult(
@@ -537,13 +591,23 @@ class ToggleBoxClient
                                     reason: 'language_not_targeted',
                                 );
                             }
+
+                            // Language matches → use language target's serveValue
+                            $served = $matchedLangTarget['serveValue'] ?? 'A';
+                            return new FlagResult(
+                                flagKey: $flag->flagKey,
+                                value: $getValue($served),
+                                servedValue: $served,
+                                reason: 'targeting_match',
+                            );
                         }
 
-                        // Country (and optionally language) matches → return B (treatment)
+                        // Country matches (no language targeting) → use country target's serveValue
+                        $served = $countryTarget['serveValue'] ?? 'A';
                         return new FlagResult(
                             flagKey: $flag->flagKey,
-                            value: $getValue('B'),
-                            servedValue: 'B',
+                            value: $getValue($served),
+                            servedValue: $served,
                             reason: 'targeting_match',
                         );
                     }
@@ -607,23 +671,18 @@ class ToggleBoxClient
                 return null;
             }
 
-            // Check force include - assign to control
-            $includeUsers = $experiment->targeting['forceIncludeUsers'] ?? [];
-            if (in_array($context->userId, $includeUsers, true)) {
-                foreach ($experiment->variations as $variation) {
-                    if ($variation['key'] === $experiment->controlVariation) {
-                        return VariantAssignment::fromArray($experiment->experimentKey, [
-                            'variationKey' => $variation['key'],
-                            'variationName' => $variation['name'],
-                            'value' => $variation['value'],
-                            'isControl' => true,
-                        ]);
-                    }
-                }
-            }
+            // Note: forceIncludeUsers only ensures the user is included in the experiment.
+            // They still go through normal hash-based allocation (no special treatment).
+            // The check is implicitly handled by not returning null for them.
 
             // Check country targeting
             $countries = $experiment->targeting['countries'] ?? [];
+
+            // If countries are defined and no country in context → exclude
+            if (!empty($countries) && $context->country === null) {
+                return null;
+            }
+
             if (!empty($countries) && $context->country !== null) {
                 $matchedCountry = false;
 
@@ -633,6 +692,12 @@ class ToggleBoxClient
 
                         // Check language targeting
                         $languages = $countryTarget['languages'] ?? [];
+
+                        // If languages are defined and no language in context → exclude
+                        if (!empty($languages) && $context->language === null) {
+                            return null;
+                        }
+
                         if (!empty($languages) && $context->language !== null) {
                             $matchedLanguage = false;
                             foreach ($languages as $langTarget) {
@@ -695,5 +760,10 @@ class ToggleBoxClient
             ['type' => $eventType, 'timestamp' => date('c')],
             $data
         );
+
+        // Auto-flush when batch size is reached
+        if (count($this->pendingEvents) >= $this->statsBatchSize) {
+            $this->flushStats();
+        }
     }
 }

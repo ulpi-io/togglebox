@@ -1,6 +1,9 @@
-import { IApiKeyRepository, CreateApiKeyRepositoryData } from '../../interfaces/IApiKeyRepository';
-import { ApiKey, PublicApiKey } from '../../models/ApiKey';
-import { ApiKeyModel, IApiKeyDocument } from './schemas';
+import {
+  IApiKeyRepository,
+  CreateApiKeyRepositoryData,
+} from "../../interfaces/IApiKeyRepository";
+import { ApiKey, PublicApiKey } from "../../models/ApiKey";
+import { ApiKeyModel, IApiKeyDocument } from "./schemas";
 
 /**
  * MongoDB implementation of API key repository using Mongoose.

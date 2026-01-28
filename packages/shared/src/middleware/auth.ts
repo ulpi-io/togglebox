@@ -55,10 +55,10 @@
  * Never use `conditionalAuth()` for write operations - it can be bypassed!
  */
 
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { logger } from '../logger';
-import crypto from 'crypto';
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { logger } from "../logger";
+import crypto from "crypto";
 
 /**
  * Express Request with authenticated user information (JWT).
@@ -99,12 +99,12 @@ export type AuthRequest = AuthenticatedRequest & ApiKeyRequest;
  * RSA algorithms (RS256/384/512) are not supported because we use
  * symmetric key authentication (shared secret), not public/private keypairs.
  */
-const ALLOWED_JWT_ALGORITHMS: jwt.Algorithm[] = ['HS256', 'HS384', 'HS512'];
+const ALLOWED_JWT_ALGORITHMS: jwt.Algorithm[] = ["HS256", "HS384", "HS512"];
 
 /**
  * Default JWT algorithm (HS256 - SHA-256 HMAC).
  */
-const DEFAULT_JWT_ALGORITHM: jwt.Algorithm = 'HS256';
+const DEFAULT_JWT_ALGORITHM: jwt.Algorithm = "HS256";
 
 /**
  * Authentication service for JWT and API key management.
@@ -144,28 +144,28 @@ export class AuthService {
    */
   constructor() {
     // SECURITY: No default secrets - fail fast if not configured
-    const jwtSecret = process.env['JWT_SECRET'];
-    const apiKeySecret = process.env['API_KEY_SECRET'];
+    const jwtSecret = process.env["JWT_SECRET"];
+    const apiKeySecret = process.env["API_KEY_SECRET"];
 
     // Check if authentication is enabled
-    this.authEnabled = process.env['ENABLE_AUTHENTICATION'] === 'true';
+    this.authEnabled = process.env["ENABLE_AUTHENTICATION"] === "true";
 
     // If auth is enabled, secrets are required
     if (this.authEnabled) {
       if (!jwtSecret || jwtSecret.length < 32) {
         throw new Error(
-          'JWT_SECRET is required and must be at least 32 characters when ENABLE_AUTHENTICATION=true'
+          "JWT_SECRET is required and must be at least 32 characters when ENABLE_AUTHENTICATION=true",
         );
       }
       if (!apiKeySecret || apiKeySecret.length < 32) {
         throw new Error(
-          'API_KEY_SECRET is required and must be at least 32 characters when ENABLE_AUTHENTICATION=true'
+          "API_KEY_SECRET is required and must be at least 32 characters when ENABLE_AUTHENTICATION=true",
         );
       }
     }
 
-    this.jwtSecret = jwtSecret || '';
-    this.apiKeySecret = apiKeySecret || '';
+    this.jwtSecret = jwtSecret || "";
+    this.apiKeySecret = apiKeySecret || "";
   }
 
   /**
@@ -210,18 +210,21 @@ export class AuthService {
    * - Issuer/audience claims for token scope validation
    */
   generateJWT(payload: { id: string; email: string; role: string }): string {
-    const algorithm = (process.env['JWT_ALGORITHM'] as jwt.Algorithm) || DEFAULT_JWT_ALGORITHM;
+    const algorithm =
+      (process.env["JWT_ALGORITHM"] as jwt.Algorithm) || DEFAULT_JWT_ALGORITHM;
 
     // Validate algorithm is in whitelist
     if (!ALLOWED_JWT_ALGORITHMS.includes(algorithm)) {
-      throw new Error(`JWT algorithm ${algorithm} is not allowed. Use one of: ${ALLOWED_JWT_ALGORITHMS.join(', ')}`);
+      throw new Error(
+        `JWT algorithm ${algorithm} is not allowed. Use one of: ${ALLOWED_JWT_ALGORITHMS.join(", ")}`,
+      );
     }
 
     return jwt.sign(payload, this.jwtSecret, {
       algorithm: algorithm as jwt.Algorithm,
-      expiresIn: process.env['JWT_EXPIRES_IN'] || '24h',
-      issuer: process.env['JWT_ISSUER'] || 'config-service',
-      audience: process.env['JWT_AUDIENCE'] || 'config-service-api',
+      expiresIn: process.env["JWT_EXPIRES_IN"] || "24h",
+      issuer: process.env["JWT_ISSUER"] || "config-service",
+      audience: process.env["JWT_AUDIENCE"] || "config-service-api",
     } as jwt.SignOptions);
   }
 
@@ -259,18 +262,18 @@ export class AuthService {
       // SECURITY: Specify allowed algorithms to prevent algorithm confusion attacks
       const decoded = jwt.verify(token, this.jwtSecret, {
         algorithms: ALLOWED_JWT_ALGORITHMS,
-        issuer: process.env['JWT_ISSUER'] || 'config-service',
-        audience: process.env['JWT_AUDIENCE'] || 'config-service-api',
+        issuer: process.env["JWT_ISSUER"] || "config-service",
+        audience: process.env["JWT_AUDIENCE"] || "config-service-api",
       }) as { id: string; email: string; role: string };
 
       return decoded;
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new Error('JWT token has expired');
+        throw new Error("JWT token has expired");
       } else if (error instanceof jwt.JsonWebTokenError) {
-        throw new Error('Invalid JWT token');
+        throw new Error("Invalid JWT token");
       }
-      throw new Error('JWT verification failed');
+      throw new Error("JWT verification failed");
     }
   }
 
@@ -307,7 +310,7 @@ export class AuthService {
    */
   generateAPIKey(name: string, permissions: string[]): string {
     // SECURITY: Use cryptographically secure random ID
-    const randomId = crypto.randomBytes(16).toString('hex');
+    const randomId = crypto.randomBytes(16).toString("hex");
     const payload = {
       id: `api-key-${randomId}`,
       name,
@@ -317,9 +320,9 @@ export class AuthService {
 
     return jwt.sign(payload, this.apiKeySecret, {
       algorithm: DEFAULT_JWT_ALGORITHM as jwt.Algorithm,
-      expiresIn: process.env['API_KEY_EXPIRES_IN'] || '365d', // API keys are long-lived
-      issuer: process.env['JWT_ISSUER'] || 'config-service',
-      audience: process.env['JWT_AUDIENCE'] || 'config-service-api',
+      expiresIn: process.env["API_KEY_EXPIRES_IN"] || "365d", // API keys are long-lived
+      issuer: process.env["JWT_ISSUER"] || "config-service",
+      audience: process.env["JWT_AUDIENCE"] || "config-service-api",
     } as jwt.SignOptions);
   }
 
@@ -352,23 +355,27 @@ export class AuthService {
    * - `JsonWebTokenError`: Invalid API key signature or format
    * - Generic error: Other verification failures
    */
-  verifyAPIKey(token: string): { id: string; name: string; permissions: string[] } {
+  verifyAPIKey(token: string): {
+    id: string;
+    name: string;
+    permissions: string[];
+  } {
     try {
       // SECURITY: Specify allowed algorithms
       const decoded = jwt.verify(token, this.apiKeySecret, {
         algorithms: ALLOWED_JWT_ALGORITHMS,
-        issuer: process.env['JWT_ISSUER'] || 'config-service',
-        audience: process.env['JWT_AUDIENCE'] || 'config-service-api',
+        issuer: process.env["JWT_ISSUER"] || "config-service",
+        audience: process.env["JWT_AUDIENCE"] || "config-service-api",
       }) as { id: string; name: string; permissions: string[] };
 
       return decoded;
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new Error('API key has expired');
+        throw new Error("API key has expired");
       } else if (error instanceof jwt.JsonWebTokenError) {
-        throw new Error('Invalid API key');
+        throw new Error("Invalid API key");
       }
-      throw new Error('API key verification failed');
+      throw new Error("API key verification failed");
     }
   }
 
@@ -404,7 +411,7 @@ export class AuthService {
     // JWT authentication check
     if (request.user) {
       // Admin users have all permissions
-      if (request.user.role === 'admin') {
+      if (request.user.role === "admin") {
         return true;
       }
       // Check if user has the required permission
@@ -419,28 +426,29 @@ export class AuthService {
     return false;
   }
 
-  private checkUserPermission(userRole: string, requiredPermission: string): boolean {
+  private checkUserPermission(
+    userRole: string,
+    requiredPermission: string,
+  ): boolean {
     const rolePermissions: Record<string, string[]> = {
-      'admin': ['*'], // All permissions (includes user:manage, apikey:manage)
-      'developer': [
-        'config:read',
-        'config:write',
-        'config:update',
-        'config:delete',
-        'platform:read',
-        'environment:read',
-        'cache:invalidate',
-        'apikey:manage', // Developers can manage their own API keys
+      admin: ["*"], // All permissions (includes user:manage, apikey:manage)
+      developer: [
+        "config:read",
+        "config:write",
+        "config:update",
+        "config:delete",
+        "platform:read",
+        "environment:read",
+        "cache:invalidate",
+        "apikey:manage", // Developers can manage their own API keys
       ],
-      'viewer': [
-        'config:read',
-        'platform:read',
-        'environment:read',
-      ],
+      viewer: ["config:read", "platform:read", "environment:read"],
     };
 
     const permissions = rolePermissions[userRole] || [];
-    return permissions.includes('*') || permissions.includes(requiredPermission);
+    return (
+      permissions.includes("*") || permissions.includes(requiredPermission)
+    );
   }
 }
 
@@ -483,14 +491,18 @@ export const authService = new AuthService();
  * });
  * ```
  */
-export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+export function authenticateJWT(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): void {
   const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    logger.warn('Missing or invalid Authorization header');
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    logger.warn("Missing or invalid Authorization header");
     res.status(401).json({
       success: false,
-      error: 'Missing or invalid Authorization header',
+      error: "Missing or invalid Authorization header",
       timestamp: new Date().toISOString(),
     });
     return;
@@ -501,13 +513,15 @@ export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: 
   try {
     const decoded = authService.verifyJWT(token);
     req.user = decoded;
-    logger.logAuthentication(decoded.id, true, 'JWT');
+    logger.logAuthentication(decoded.id, true, "JWT");
     next();
   } catch (error) {
-    logger.warn('JWT authentication failed', { error: error instanceof Error ? error.message : String(error) });
+    logger.warn("JWT authentication failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     res.status(401).json({
       success: false,
-      error: 'Invalid or expired JWT token',
+      error: "Invalid or expired JWT token",
       timestamp: new Date().toISOString(),
     });
   }
@@ -539,14 +553,18 @@ export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: 
  * });
  * ```
  */
-export function authenticateAPIKey(req: ApiKeyRequest, res: Response, next: NextFunction): void {
-  const apiKeyHeader = req.headers['x-api-key'];
-  
-  if (!apiKeyHeader || typeof apiKeyHeader !== 'string') {
-    logger.warn('Missing or invalid X-API-Key header');
+export function authenticateAPIKey(
+  req: ApiKeyRequest,
+  res: Response,
+  next: NextFunction,
+): void {
+  const apiKeyHeader = req.headers["x-api-key"];
+
+  if (!apiKeyHeader || typeof apiKeyHeader !== "string") {
+    logger.warn("Missing or invalid X-API-Key header");
     res.status(401).json({
       success: false,
-      error: 'Missing or invalid X-API-Key header',
+      error: "Missing or invalid X-API-Key header",
       timestamp: new Date().toISOString(),
     });
     return;
@@ -555,13 +573,15 @@ export function authenticateAPIKey(req: ApiKeyRequest, res: Response, next: Next
   try {
     const decoded = authService.verifyAPIKey(apiKeyHeader);
     req.apiKey = decoded;
-    logger.logAuthentication(decoded.id, true, 'API_KEY');
+    logger.logAuthentication(decoded.id, true, "API_KEY");
     next();
   } catch (error) {
-    logger.warn('API key authentication failed', { error: error instanceof Error ? error.message : String(error) });
+    logger.warn("API key authentication failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     res.status(401).json({
       success: false,
-      error: 'Invalid API key',
+      error: "Invalid API key",
       timestamp: new Date().toISOString(),
     });
   }
@@ -598,34 +618,40 @@ export function authenticateAPIKey(req: ApiKeyRequest, res: Response, next: Next
  * });
  * ```
  */
-export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
+export function authenticate(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): void {
   const authHeader = req.headers.authorization;
-  const apiKeyHeader = req.headers['x-api-key'];
+  const apiKeyHeader = req.headers["x-api-key"];
 
   // Try JWT authentication first
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.slice(7); // Remove 'Bearer ' prefix
 
     try {
       const decoded = authService.verifyJWT(token);
       req.user = decoded;
-      logger.logAuthentication(decoded.id, true, 'JWT');
+      logger.logAuthentication(decoded.id, true, "JWT");
       next();
       return;
     } catch (error) {
       // JWT failed - if API key is also provided, fall through to try it
       // This handles cases where a stale JWT is sent alongside a valid API key
-      if (apiKeyHeader && typeof apiKeyHeader === 'string') {
-        logger.debug('JWT verification failed, falling back to API key', {
+      if (apiKeyHeader && typeof apiKeyHeader === "string") {
+        logger.debug("JWT verification failed, falling back to API key", {
           error: error instanceof Error ? error.message : String(error),
         });
         // Fall through to API key auth below
       } else {
         // No API key available - return JWT error
-        logger.warn('JWT authentication failed', { error: error instanceof Error ? error.message : String(error) });
+        logger.warn("JWT authentication failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         res.status(401).json({
           success: false,
-          error: 'Invalid or expired JWT token',
+          error: "Invalid or expired JWT token",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -634,16 +660,17 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
   }
 
   // Try API key authentication
-  if (apiKeyHeader && typeof apiKeyHeader === 'string') {
+  if (apiKeyHeader && typeof apiKeyHeader === "string") {
     authenticateAPIKey(req as ApiKeyRequest, res, next);
     return;
   }
 
   // No valid authentication provided
-  logger.warn('No valid authentication provided');
+  logger.warn("No valid authentication provided");
   res.status(401).json({
     success: false,
-    error: 'Authentication required. Provide either Bearer token or X-API-Key header',
+    error:
+      "Authentication required. Provide either Bearer token or X-API-Key header",
     timestamp: new Date().toISOString(),
   });
 }
@@ -682,10 +709,12 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
 export function requirePermission(permission: string) {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!authService.hasPermission(req, permission)) {
-      logger.warn(`Permission denied for ${req.user?.email || req.apiKey?.name}: ${permission}`);
+      logger.warn(
+        `Permission denied for ${req.user?.email || req.apiKey?.name}: ${permission}`,
+      );
       res.status(403).json({
         success: false,
-        error: 'Insufficient permissions',
+        error: "Insufficient permissions",
         timestamp: new Date().toISOString(),
       });
       return;
@@ -763,7 +792,7 @@ export function conditionalAuth() {
       authenticate(req, res, next);
     } else {
       // Authentication is disabled - pass through
-      logger.debug('Authentication disabled - allowing request without auth');
+      logger.debug("Authentication disabled - allowing request without auth");
       next();
     }
   };

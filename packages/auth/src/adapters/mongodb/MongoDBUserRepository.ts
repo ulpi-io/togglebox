@@ -1,6 +1,11 @@
-import { IUserRepository } from '../../interfaces/IUserRepository';
-import { User, CreateUserData, UpdateUserData, UserRole } from '../../models/User';
-import { UserModel, IUserDocument } from './schemas';
+import { IUserRepository } from "../../interfaces/IUserRepository";
+import {
+  User,
+  CreateUserData,
+  UpdateUserData,
+  UserRole,
+} from "../../models/User";
+import { UserModel, IUserDocument } from "./schemas";
 
 /**
  * MongoDB implementation of user repository using Mongoose.
@@ -67,10 +72,7 @@ export class MongoDBUserRepository implements IUserRepository {
     const offset = options?.offset || 0;
 
     const [users, total] = await Promise.all([
-      UserModel.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(offset)
-        .limit(limit),
+      UserModel.find(filter).sort({ createdAt: -1 }).skip(offset).limit(limit),
       UserModel.countDocuments(filter),
     ]);
 

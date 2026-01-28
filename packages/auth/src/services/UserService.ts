@@ -17,12 +17,12 @@
  * - Generic error messages prevent user enumeration
  */
 
-import { IUserRepository } from '../interfaces/IUserRepository';
-import { IApiKeyRepository } from '../interfaces/IApiKeyRepository';
-import { IPasswordResetRepository } from '../interfaces/IPasswordResetRepository';
-import { User, PublicUser, UserRole } from '../models/User';
-import { hashPassword, verifyPassword } from '../utils/password';
-import { generateToken } from '../utils/jwt';
+import { IUserRepository } from "../interfaces/IUserRepository";
+import { IApiKeyRepository } from "../interfaces/IApiKeyRepository";
+import { IPasswordResetRepository } from "../interfaces/IPasswordResetRepository";
+import { User, PublicUser, UserRole } from "../models/User";
+import { hashPassword, verifyPassword } from "../utils/password";
+import { generateToken } from "../utils/jwt";
 
 /**
  * User registration input data.
@@ -109,7 +109,7 @@ export class UserService {
   constructor(
     private userRepository: IUserRepository,
     apiKeyRepository?: IApiKeyRepository,
-    passwordResetRepository?: IPasswordResetRepository
+    passwordResetRepository?: IPasswordResetRepository,
   ) {
     this.apiKeyRepository = apiKeyRepository;
     this.passwordResetRepository = passwordResetRepository;
@@ -142,7 +142,7 @@ export class UserService {
     // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(data.email);
     if (existingUser) {
-      throw new Error('User with this email already exists');
+      throw new Error("User with this email already exists");
     }
 
     // Hash password
@@ -153,7 +153,7 @@ export class UserService {
       name: data.name,
       email: data.email,
       passwordHash,
-      role: data.role || 'viewer', // Default role is viewer
+      role: data.role || "viewer", // Default role is viewer
     });
 
     // Return public user data (without password hash)
@@ -192,13 +192,16 @@ export class UserService {
     // Find user by email
     const user = await this.userRepository.findByEmail(data.email);
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new Error("Invalid email or password");
     }
 
     // Verify password
-    const isValidPassword = await verifyPassword(data.password, user.passwordHash);
+    const isValidPassword = await verifyPassword(
+      data.password,
+      user.passwordHash,
+    );
     if (!isValidPassword) {
-      throw new Error('Invalid email or password');
+      throw new Error("Invalid email or password");
     }
 
     // Generate JWT token
@@ -243,7 +246,10 @@ export class UserService {
    * **Security:** For password changes, prefer {@link changePassword}
    * which validates the current password first.
    */
-  async updateProfile(userId: string, data: UpdateProfileData): Promise<PublicUser> {
+  async updateProfile(
+    userId: string,
+    data: UpdateProfileData,
+  ): Promise<PublicUser> {
     const user = await this.userRepository.update(userId, data);
     return this.toPublicUser(user);
   }
@@ -275,18 +281,21 @@ export class UserService {
   async changePassword(
     userId: string,
     currentPassword: string,
-    newPassword: string
+    newPassword: string,
   ): Promise<void> {
     // Get user
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     // Verify current password
-    const isValidPassword = await verifyPassword(currentPassword, user.passwordHash);
+    const isValidPassword = await verifyPassword(
+      currentPassword,
+      user.passwordHash,
+    );
     if (!isValidPassword) {
-      throw new Error('Current password is incorrect');
+      throw new Error("Current password is incorrect");
     }
 
     // Hash new password

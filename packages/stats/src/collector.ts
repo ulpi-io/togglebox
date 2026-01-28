@@ -5,7 +5,7 @@
  * Used by SDKs to send stats to the API.
  */
 
-import type { StatsEvent, StatsEventBatch } from './types';
+import type { StatsEvent, StatsEventBatch } from "./types";
 
 /**
  * Collector configuration options.
@@ -79,7 +79,7 @@ export class StatsCollector {
       batchSize: 20,
       flushIntervalMs: 10000,
       maxRetries: 3,
-      apiKey: '',
+      apiKey: "",
       enabled: true,
       maxQueueSize: 1000,
       requestTimeoutMs: 10000,
@@ -90,7 +90,7 @@ export class StatsCollector {
     if (this.options.enabled && this.options.flushIntervalMs > 0) {
       this.flushTimer = setInterval(
         () => this.flush(),
-        this.options.flushIntervalMs
+        this.options.flushIntervalMs,
       );
     }
   }
@@ -100,7 +100,7 @@ export class StatsCollector {
    */
   trackConfigFetch(key: string, clientId?: string): void {
     this.queueEvent({
-      type: 'config_fetch',
+      type: "config_fetch",
       key,
       clientId,
       timestamp: new Date().toISOString(),
@@ -112,13 +112,13 @@ export class StatsCollector {
    */
   trackFlagEvaluation(
     flagKey: string,
-    value: 'A' | 'B',
+    value: "A" | "B",
     userId: string,
     country?: string,
-    language?: string
+    language?: string,
   ): void {
     this.queueEvent({
-      type: 'flag_evaluation',
+      type: "flag_evaluation",
       flagKey,
       value,
       userId,
@@ -134,10 +134,10 @@ export class StatsCollector {
   trackExperimentExposure(
     experimentKey: string,
     variationKey: string,
-    userId: string
+    userId: string,
   ): void {
     this.queueEvent({
-      type: 'experiment_exposure',
+      type: "experiment_exposure",
       experimentKey,
       variationKey,
       userId,
@@ -150,15 +150,15 @@ export class StatsCollector {
    */
   trackConversion(
     experimentKey: string,
-    metricName: string,
+    metricId: string,
     variationKey: string,
     userId: string,
-    value?: number
+    value?: number,
   ): void {
     this.queueEvent({
-      type: 'conversion',
+      type: "conversion",
       experimentKey,
-      metricName,
+      metricId,
       variationKey,
       userId,
       value,
@@ -172,10 +172,10 @@ export class StatsCollector {
   trackCustomEvent(
     eventName: string,
     userId?: string,
-    properties?: Record<string, unknown>
+    properties?: Record<string, unknown>,
   ): void {
     this.queueEvent({
-      type: 'custom_event',
+      type: "custom_event",
       eventName,
       userId,
       properties,
@@ -193,7 +193,7 @@ export class StatsCollector {
     if (this.queue.length >= this.options.maxQueueSize) {
       // Drop oldest event to make room
       this.queue.shift();
-      console.warn('[ToggleBox Stats] Queue full, dropping oldest event');
+      console.warn("[ToggleBox Stats] Queue full, dropping oldest event");
     }
 
     this.queue.push(event);
@@ -223,13 +223,30 @@ export class StatsCollector {
     } catch (error) {
       // Only re-queue for transient errors (network failures, server errors)
       // Don't re-queue for client errors (4xx) as they will never succeed (poison batch)
-      const isClientError = error instanceof Error && error.message.startsWith('Client error:');
+      const isClientError =
+        error instanceof Error && error.message.startsWith("Client error:");
       if (isClientError) {
-        console.error('[ToggleBox Stats] Dropping invalid batch (client error):', error);
+        console.error(
+          "[ToggleBox Stats] Dropping invalid batch (client error):",
+          error,
+        );
       } else {
         // Re-queue events for transient errors (may succeed on retry)
         this.queue.unshift(...events);
-        console.error('[ToggleBox Stats] Failed to send events (will retry):', error);
+
+        // Clamp queue size to prevent unbounded memory growth from repeated failures
+        if (this.queue.length > this.options.maxQueueSize) {
+          const overflow = this.queue.length - this.options.maxQueueSize;
+          this.queue.length = this.options.maxQueueSize; // Truncates from end (drops oldest re-queued events)
+          console.warn(
+            `[ToggleBox Stats] Queue overflow, dropped ${overflow} oldest events`,
+          );
+        }
+
+        console.error(
+          "[ToggleBox Stats] Failed to send events (will retry):",
+          error,
+        );
       }
     } finally {
       this.isFlushing = false;
@@ -240,7 +257,14 @@ export class StatsCollector {
    * Send batch with retry logic.
    */
   private async sendWithRetry(batch: StatsEventBatch): Promise<void> {
-    const { apiUrl, platform, environment, apiKey, maxRetries, requestTimeoutMs = 10000 } = this.options;
+    const {
+      apiUrl,
+      platform,
+      environment,
+      apiKey,
+      maxRetries,
+      requestTimeoutMs = 10000,
+    } = this.options;
     const url = `${apiUrl}/api/v1/platforms/${platform}/environments/${environment}/stats/events`;
 
     let lastError: Error | null = null;
@@ -251,15 +275,15 @@ export class StatsCollector {
 
       try {
         const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         };
 
         if (apiKey) {
-          headers['X-API-Key'] = apiKey;
+          headers["X-API-Key"] = apiKey;
         }
 
         const response = await fetch(url, {
-          method: 'POST',
+          method: "POST",
           headers,
           body: JSON.stringify(batch),
           signal: controller.signal,
@@ -279,8 +303,10 @@ export class StatsCollector {
         lastError = new Error(`Server error: ${response.status}`);
       } catch (error) {
         clearTimeout(timeoutId);
-        if (error instanceof Error && error.name === 'AbortError') {
-          lastError = new Error(`Request timed out after ${requestTimeoutMs}ms`);
+        if (error instanceof Error && error.name === "AbortError") {
+          lastError = new Error(
+            `Request timed out after ${requestTimeoutMs}ms`,
+          );
         } else {
           lastError = error instanceof Error ? error : new Error(String(error));
         }
@@ -293,7 +319,7 @@ export class StatsCollector {
       }
     }
 
-    throw lastError || new Error('Unknown error');
+    throw lastError || new Error("Unknown error");
   }
 
   /**

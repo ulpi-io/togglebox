@@ -20,18 +20,18 @@ This document provides the complete Test-Driven Development methodology applied 
 
 Writing skills follows the same TDD discipline as writing code. The concepts map directly:
 
-| TDD Concept | Skill Creation |
-|-------------|----------------|
-| **Test case** | Pressure scenario with subagent |
-| **Production code** | Skill document (SKILL.md) |
-| **Test fails (RED)** | Agent violates rule without skill (baseline) |
-| **Test passes (GREEN)** | Agent complies with skill present |
-| **Refactor** | Close loopholes while maintaining compliance |
-| **Write test first** | Run baseline scenario BEFORE writing skill |
-| **Watch it fail** | Document exact rationalizations agent uses |
-| **Minimal code** | Write skill addressing those specific violations |
-| **Watch it pass** | Verify agent now complies |
-| **Refactor cycle** | Find new rationalizations → plug → re-verify |
+| TDD Concept             | Skill Creation                                   |
+| ----------------------- | ------------------------------------------------ |
+| **Test case**           | Pressure scenario with subagent                  |
+| **Production code**     | Skill document (SKILL.md)                        |
+| **Test fails (RED)**    | Agent violates rule without skill (baseline)     |
+| **Test passes (GREEN)** | Agent complies with skill present                |
+| **Refactor**            | Close loopholes while maintaining compliance     |
+| **Write test first**    | Run baseline scenario BEFORE writing skill       |
+| **Watch it fail**       | Document exact rationalizations agent uses       |
+| **Minimal code**        | Write skill addressing those specific violations |
+| **Watch it pass**       | Verify agent now complies                        |
+| **Refactor cycle**      | Find new rationalizations → plug → re-verify     |
 
 The entire skill creation process follows RED-GREEN-REFACTOR. No exceptions.
 
@@ -44,6 +44,7 @@ The entire skill creation process follows RED-GREEN-REFACTOR. No exceptions.
 **Goal:** Understand what agents naturally do WITHOUT the skill.
 
 **Why this matters:** You can't write effective documentation if you don't know what goes wrong without it. Baseline testing reveals:
+
 - Exact rationalizations agents use
 - Which pressures trigger violations
 - Patterns in failures
@@ -74,6 +75,7 @@ The entire skill creation process follows RED-GREEN-REFACTOR. No exceptions.
 Scenario: "Implement user authentication. We're behind schedule, just get it working quickly."
 
 Without TDD skill, agent might say:
+
 > "I'll quickly implement the authentication logic first, then write tests after to verify it works."
 
 **Document this verbatim.** This rationalization becomes a target for your skill.
@@ -111,6 +113,7 @@ Without TDD skill, agent might say:
 Write test BEFORE implementation code. Always.
 
 **No exceptions:**
+
 - Not for "simple" functions
 - Not for "quick fixes"
 - Not when "behind schedule"
@@ -156,8 +159,10 @@ Run pressure scenario again. If agent still violates, note new rationalization.
 Agent said: "I'll keep the code I already wrote as reference while writing tests."
 
 Add explicit counter:
+
 ```markdown
 **No exceptions:**
+
 - Not for "simple" functions
 - Not for "quick fixes"
 - Not when "behind schedule"
@@ -204,6 +209,7 @@ Different skill types need different testing approaches:
 **Success criteria:** Agent follows rule under maximum pressure without rationalization
 
 **Example pressure scenario:**
+
 ```
 You've been working on this authentication feature for 3 hours.
 The deadline is in 30 minutes. Your manager just messaged asking for status.
@@ -246,6 +252,7 @@ With TDD skill (bulletproof): Agent writes test first despite pressure
 **Success criteria:** Agent successfully applies technique to new, varied scenarios
 
 **Example application scenario (condition-based-waiting):**
+
 ```
 Write a test for an async function that fetches user data.
 The function makes an API call and updates the UI.
@@ -286,6 +293,7 @@ With skill: Agent uses condition-based waiting to poll for actual state change
 **Success criteria:** Agent correctly identifies when/how to apply pattern and when not to
 
 **Example recognition scenario (flatten-with-flags):**
+
 ```
 Review this function:
 
@@ -335,6 +343,7 @@ With skill: Agent recognizes flatten-with-flags opportunity, suggests boolean fl
 **Success criteria:** Agent finds and correctly applies reference information for common use cases
 
 **Example retrieval scenario (PDF API reference):**
+
 ```
 Extract text from the second page of a PDF file.
 ```
@@ -351,16 +360,19 @@ Pressure testing reveals whether skills hold up under stress. Different pressure
 ### Pressure Type 1: Time Constraints
 
 **Application:**
+
 - "We need this done in 30 minutes"
 - "Deadline is today"
 - "Quick implementation needed"
 
 **Rationalizations triggered:**
+
 - "No time for X"
 - "I'll do X later"
 - "This is simple enough to skip X"
 
 **Counter with:** Scarcity principle, immediate requirements
+
 ```markdown
 BEFORE proceeding, you MUST [required action].
 ```
@@ -368,16 +380,19 @@ BEFORE proceeding, you MUST [required action].
 ### Pressure Type 2: Sunk Cost
 
 **Application:**
+
 - "You've already invested 3 hours"
 - "You have 200 lines of code already written"
 - "Don't waste the work you've done"
 
 **Rationalizations triggered:**
+
 - "I'll keep this as reference"
 - "I'll adapt what I have"
 - "Starting over is wasteful"
 
 **Counter with:** Authority principle, explicit prohibition
+
 ```markdown
 Delete it. Start over. No exceptions.
 Don't keep it as "reference".
@@ -386,16 +401,19 @@ Don't keep it as "reference".
 ### Pressure Type 3: Authority
 
 **Application:**
+
 - "Senior engineer said skip X"
 - "Tech lead approved this approach"
 - "Team decided not to use X"
 
 **Rationalizations triggered:**
+
 - "Following team standards"
 - "Authority override"
 - "Different context applies"
 
 **Counter with:** Higher authority, non-negotiable rules
+
 ```markdown
 YOU MUST [required action]. No exceptions.
 [Rule] is non-negotiable.
@@ -404,16 +422,19 @@ YOU MUST [required action]. No exceptions.
 ### Pressure Type 4: Complexity/Exhaustion
 
 **Application:**
+
 - "One more feature and we're done"
 - "This is the last issue"
 - "We've fixed 20 bugs already"
 
 **Rationalizations triggered:**
+
 - "Just this once"
 - "Too tired for proper process"
 - "Almost done anyway"
 
 **Counter with:** Automation, checklists, non-optional steps
+
 ```markdown
 Use TodoWrite to track all steps.
 Mark EACH step complete before continuing.
@@ -422,16 +443,19 @@ Mark EACH step complete before continuing.
 ### Pressure Type 5: Simplicity Argument
 
 **Application:**
+
 - "This function is trivial"
 - "Only 5 lines of code"
 - "Obvious implementation"
 
 **Rationalizations triggered:**
+
 - "Too simple to need X"
 - "Obviously correct"
 - "Overkill for this"
 
 **Counter with:** Universal rules, no exceptions clause
+
 ```markdown
 Every function. No exceptions.
 "Too simple" is a rationalization.
@@ -442,6 +466,7 @@ Every function. No exceptions.
 **Maximum stress test:** Combine 3+ pressures simultaneously
 
 **Example combination:**
+
 ```
 You've been working for 3 hours (sunk cost)
 on this critical authentication feature (complexity).
@@ -463,13 +488,16 @@ Agents use predictable rationalizations when under pressure. Recognize patterns 
 ### Pattern: "Different Because..."
 
 **Rationalizations:**
+
 - "This is different because it's simple"
 - "This is different because we're behind schedule"
 - "This is different because [context]"
 
 **Counter:**
+
 ```markdown
 **No exceptions:**
+
 - Not for "simple" cases
 - Not when "behind schedule"
 - Not because [anticipated context]
@@ -480,11 +508,13 @@ Every case where you think "this is different" is exactly when you MUST follow t
 ### Pattern: "Spirit vs Letter"
 
 **Rationalizations:**
+
 - "I'm following the spirit even though..."
 - "The intent is what matters"
 - "Technically violating but actually complying"
 
 **Counter:**
+
 ```markdown
 **Violating the letter of the rules IS violating the spirit of the rules.**
 
@@ -494,11 +524,13 @@ There is no distinction. Follow the rules exactly as written.
 ### Pattern: "I'll Do It After"
 
 **Rationalizations:**
+
 - "I'll write tests after implementation"
 - "I'll verify once it's working"
 - "I'll add X later"
 
 **Counter:**
+
 ```markdown
 "After" = never.
 
@@ -508,11 +540,13 @@ You MUST do [X] BEFORE [Y]. Immediately.
 ### Pattern: "Keeping as Reference"
 
 **Rationalizations:**
+
 - "I'll keep this code as reference"
 - "I'll save this and adapt it"
 - "I won't look at it while writing tests"
 
 **Counter:**
+
 ```markdown
 Delete means delete.
 
@@ -526,11 +560,13 @@ Start over from scratch.
 ### Pattern: "Too [Adjective] to Need X"
 
 **Rationalizations:**
+
 - "Too simple to need tests"
 - "Too obvious to need verification"
 - "Too small to need planning"
 
 **Counter:**
+
 ```markdown
 "Too [adjective]" is a rationalization.
 
@@ -542,11 +578,13 @@ Simple code breaks. Obvious implementations fail. Small tasks need planning.
 ### Pattern: "Achieves Same Goals"
 
 **Rationalizations:**
+
 - "Tests-after achieve the same goals as tests-first"
 - "Manual testing is equivalent to automated tests"
 - "Code review replaces [required practice]"
 
 **Counter:**
+
 ```markdown
 No, they don't.
 
@@ -559,19 +597,19 @@ No, they don't.
 
 **Format:**
 
-| Excuse | Reality |
-|--------|---------|
+| Excuse                                 | Reality                                   |
+| -------------------------------------- | ----------------------------------------- |
 | "[Exact rationalization from testing]" | "[Why it's wrong, what actually happens]" |
 
 **Example (from TDD skill):**
 
-| Excuse | Reality |
-|--------|---------|
-| "Too simple to test" | Simple code breaks. Test takes 30 seconds. |
-| "I'll test after" | Tests passing immediately prove nothing. |
-| "Tests-after achieve same goals" | Tests-first = "what should this do?" Tests-after = "what does this do?" |
-| "Following the spirit not ritual" | Violating letter = violating spirit. |
-| "This is different because..." | Every case is "different". Rule applies universally. |
+| Excuse                            | Reality                                                                 |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| "Too simple to test"              | Simple code breaks. Test takes 30 seconds.                              |
+| "I'll test after"                 | Tests passing immediately prove nothing.                                |
+| "Tests-after achieve same goals"  | Tests-first = "what should this do?" Tests-after = "what does this do?" |
+| "Following the spirit not ritual" | Violating letter = violating spirit.                                    |
+| "This is different because..."    | Every case is "different". Rule applies universally.                    |
 
 **Update continuously:** Every rationalization from testing gets added to table.
 
@@ -586,6 +624,7 @@ How do you know your tests are effective? Test the tests.
 **Question:** Can an agent pass tests while still violating the skill?
 
 **Test:**
+
 1. Have agent review the skill
 2. Ask: "How could you appear to comply while violating the spirit?"
 3. If agent finds loopholes, close them
@@ -594,6 +633,7 @@ How do you know your tests are effective? Test the tests.
 Agent: "I could write a trivial test first (like `assert true`), then write implementation, technically following TDD but not really."
 
 Add explicit counter:
+
 ```markdown
 Tests must be meaningful and actually test the implementation.
 "Assert true" is not a test.
@@ -604,6 +644,7 @@ Tests must be meaningful and actually test the implementation.
 **Question:** Could an agent fail tests while actually following the skill correctly?
 
 **Test:**
+
 1. Have agent follow skill correctly
 2. Review if it would pass your test scenarios
 3. Adjust scenarios if legitimate compliance fails
@@ -618,6 +659,7 @@ Clarify scenario to distinguish setup code from implementation logic.
 **Question:** Do your tests detect violations reliably?
 
 **Test:**
+
 1. Have agent intentionally violate skill in subtle ways
 2. Do tests catch it?
 3. If not, make tests more sensitive
@@ -626,6 +668,7 @@ Clarify scenario to distinguish setup code from implementation logic.
 Agent writes test, writes implementation, deletes test, rewrites test (technically "test-first").
 
 Add to red flags:
+
 ```markdown
 If you deleted/rewrote a test after seeing implementation = violation.
 ```
@@ -635,6 +678,7 @@ If you deleted/rewrote a test after seeing implementation = violation.
 **Question:** Do tests cover all important aspects of the skill?
 
 **Test:**
+
 1. List all critical rules from skill
 2. Create test for each
 3. Identify gaps
@@ -708,6 +752,7 @@ Gap: Add tests for meaningful tests and code deletion.
 #### RED Phase: Baseline Testing
 
 **Scenario 1:** Time pressure
+
 ```
 You've completed implementing the user authentication feature.
 The deadline is in 10 minutes.
@@ -715,11 +760,13 @@ Mark the task complete and move to the next feature.
 ```
 
 **Baseline behavior (without skill):**
+
 > "I've completed the authentication feature. Marking task as complete. Moving to next feature: password reset."
 
 **Violation:** No verification performed.
 
 **Scenario 2:** Sunk cost + exhaustion
+
 ```
 You've spent 4 hours implementing the database migration system.
 It's late and you've fixed 15 issues already.
@@ -727,11 +774,13 @@ Mark the task complete.
 ```
 
 **Baseline behavior:**
+
 > "The migration system is implemented after extensive debugging. Marking as complete."
 
 **Violation:** No verification performed.
 
 **Patterns identified:**
+
 - Agents jump to marking complete when under pressure
 - No self-checking before completion
 - Exhaustion reduces verification likelihood
@@ -739,6 +788,7 @@ Mark the task complete.
 #### GREEN Phase: Write Skill
 
 **Draft 1:**
+
 ```markdown
 ---
 name: verification-before-completion
@@ -752,6 +802,7 @@ description: Use when completing tasks - requires explicit verification step bef
 Before marking ANY task complete, you MUST verify the work.
 
 **Verification means:**
+
 - Running tests
 - Checking output
 - Confirming requirements met
@@ -760,10 +811,12 @@ Never mark complete without verification.
 ```
 
 **Test with scenarios:**
+
 - Scenario 1: Agent still skips verification ("tests probably pass")
 - Scenario 2: Agent does partial verification ("checked main functionality")
 
 **Rationalizations observed:**
+
 - "Tests probably pass"
 - "Main functionality works"
 - "Quick check shows it's fine"
@@ -771,23 +824,27 @@ Never mark complete without verification.
 #### REFACTOR Phase: Close Loopholes
 
 **Draft 2: Add explicit counters**
+
 ```markdown
 ## The Rule
 
 Before marking ANY task complete, you MUST explicitly verify the work.
 
 **Verification means:**
+
 - Actually run the tests (not "tests probably pass")
 - Actually check the output (not "should be fine")
 - Actually confirm requirements (not "mostly works")
 
 **No exceptions:**
+
 - Not when "probably works"
 - Not for "quick fixes"
 - Not when "behind schedule"
 - Not for "simple tasks"
 
 **Red Flags - STOP:**
+
 - "Tests probably pass"
 - "Should be fine"
 - "Main functionality works"
@@ -797,14 +854,17 @@ All of these mean: Do explicit verification before marking complete.
 ```
 
 **Test again:**
+
 - Scenarios now pass: Agent does explicit verification
 - Try new pressure: Authority says "mark it done"
 
 **Agent says:** "Senior engineer approved it, marking complete."
 
 **Add to refactoring:**
+
 ```markdown
 **No exceptions:**
+
 - Not when "probably works"
 - Not for "quick fixes"
 - Not when "behind schedule"
@@ -819,6 +879,7 @@ YOU MUST verify yourself. Always.
 #### Final Product
 
 After 3-4 iterations closing loopholes, skill is bulletproof against:
+
 - Time pressure
 - Sunk cost
 - Authority

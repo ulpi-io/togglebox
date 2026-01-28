@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import { useFlags } from '@togglebox/sdk-nextjs'
+import { useFlags } from "@togglebox/sdk-nextjs";
 
 export default function Page() {
-  const { flags, error, isLoading, refresh } = useFlags()
+  const { flags, error, isLoading, refresh } = useFlags();
 
   if (error) {
     return (
@@ -13,7 +13,9 @@ export default function Page() {
         <div className="max-w-md space-y-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <div className="text-4xl mb-2">⚠️</div>
-            <h2 className="text-lg font-semibold text-red-800">Connection Error</h2>
+            <h2 className="text-lg font-semibold text-red-800">
+              Connection Error
+            </h2>
             <p className="text-red-600 text-sm mt-1 mb-4">{error.message}</p>
             <button
               onClick={refresh}
@@ -25,7 +27,9 @@ export default function Page() {
 
           {flags.length > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h3 className="font-semibold text-yellow-800">Using Cached Data</h3>
+              <h3 className="font-semibold text-yellow-800">
+                Using Cached Data
+              </h3>
               <p className="text-yellow-700 text-sm mt-1">
                 {flags.length} flags available from cache
               </p>
@@ -33,7 +37,7 @@ export default function Page() {
           )}
         </div>
       </div>
-    )
+    );
   }
 
   if (isLoading && flags.length === 0) {
@@ -41,7 +45,7 @@ export default function Page() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
       </div>
-    )
+    );
   }
 
   return (
@@ -56,7 +60,9 @@ export default function Page() {
         </div>
 
         <div className="p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-semibold mb-3 text-gray-900">Common Error Types</h3>
+          <h3 className="font-semibold mb-3 text-gray-900">
+            Common Error Types
+          </h3>
           <div className="space-y-3 text-sm">
             <div className="py-2 border-b border-gray-200">
               <p className="font-medium text-gray-900">Network Error</p>
@@ -78,5 +84,5 @@ export default function Page() {
         </div>
       </div>
     </div>
-  )
+  );
 }

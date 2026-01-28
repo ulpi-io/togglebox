@@ -21,19 +21,20 @@ All databases are optimized for these common query patterns:
 
 ### Platforms Table
 
-| Index Name | Columns | Type | Purpose |
-|------------|---------|------|---------|
-| PRIMARY | `id` | PRIMARY KEY | Unique identifier |
-| UNIQUE | `name` | UNIQUE | Platform name must be unique |
+| Index Name | Columns | Type        | Purpose                      |
+| ---------- | ------- | ----------- | ---------------------------- |
+| PRIMARY    | `id`    | PRIMARY KEY | Unique identifier            |
+| UNIQUE     | `name`  | UNIQUE      | Platform name must be unique |
 
 ### Environments Table
 
-| Index Name | Columns | Type | Purpose |
-|------------|---------|------|---------|
-| PRIMARY | `[platform, environment]` | COMPOSITE PRIMARY KEY | Unique environment per platform |
-| INDEX | `platformId` | FOREIGN KEY INDEX | Fast lookups by platform |
+| Index Name | Columns                   | Type                  | Purpose                         |
+| ---------- | ------------------------- | --------------------- | ------------------------------- |
+| PRIMARY    | `[platform, environment]` | COMPOSITE PRIMARY KEY | Unique environment per platform |
+| INDEX      | `platformId`              | FOREIGN KEY INDEX     | Fast lookups by platform        |
 
 **Query Patterns:**
+
 ```sql
 -- Get environment (uses PRIMARY KEY)
 SELECT * FROM environments WHERE platform = 'web' AND environment = 'production';
@@ -44,13 +45,14 @@ SELECT * FROM environments WHERE platformId = 'uuid-123';
 
 ### ConfigVersions Table
 
-| Index Name | Columns | Type | Purpose |
-|------------|---------|------|---------|
-| PRIMARY | `[platform, environment, versionTimestamp]` | COMPOSITE PRIMARY KEY | Unique version identifier |
-| INDEX | `platformId` | FOREIGN KEY INDEX | Fast lookups by platform |
-| INDEX | `[platform, environment, isStable]` | COMPOSITE INDEX | **Critical for getLatestStableVersion** |
+| Index Name | Columns                                     | Type                  | Purpose                                 |
+| ---------- | ------------------------------------------- | --------------------- | --------------------------------------- |
+| PRIMARY    | `[platform, environment, versionTimestamp]` | COMPOSITE PRIMARY KEY | Unique version identifier               |
+| INDEX      | `platformId`                                | FOREIGN KEY INDEX     | Fast lookups by platform                |
+| INDEX      | `[platform, environment, isStable]`         | COMPOSITE INDEX       | **Critical for getLatestStableVersion** |
 
 **Query Patterns:**
+
 ```sql
 -- Get specific version (uses PRIMARY KEY)
 SELECT * FROM config_versions
@@ -70,13 +72,14 @@ ORDER BY versionTimestamp DESC;
 
 ### FeatureFlags Table
 
-| Index Name | Columns | Type | Purpose |
-|------------|---------|------|---------|
-| PRIMARY | `[platform, environment, flagName]` | COMPOSITE PRIMARY KEY | Unique flag identifier |
-| INDEX | `platformId` | FOREIGN KEY INDEX | Fast lookups by platform |
-| INDEX | `[platform, environment]` | COMPOSITE INDEX | **Critical for listFeatureFlags** |
+| Index Name | Columns                             | Type                  | Purpose                           |
+| ---------- | ----------------------------------- | --------------------- | --------------------------------- |
+| PRIMARY    | `[platform, environment, flagName]` | COMPOSITE PRIMARY KEY | Unique flag identifier            |
+| INDEX      | `platformId`                        | FOREIGN KEY INDEX     | Fast lookups by platform          |
+| INDEX      | `[platform, environment]`           | COMPOSITE INDEX       | **Critical for listFeatureFlags** |
 
 **Query Patterns:**
+
 ```sql
 -- Get specific flag (uses PRIMARY KEY)
 SELECT * FROM feature_flags
@@ -112,6 +115,7 @@ CREATE INDEX idx_feature_flags_env ON feature_flags(platform, environment);
 ```
 
 **Performance Notes:**
+
 - D1 is SQLite-based and optimized for edge locations
 - Indexes are smaller due to edge database size limits
 - Query performance is excellent for small-to-medium datasets (<10K rows per table)
@@ -126,8 +130,8 @@ CREATE INDEX idx_feature_flags_env ON feature_flags(platform, environment);
 PlatformSchema.index({ name: 1 }, { unique: true });
 ```
 
-| Index | Type | Purpose |
-|-------|------|---------|
+| Index     | Type   | Purpose              |
+| --------- | ------ | -------------------- |
 | `name: 1` | UNIQUE | Platform name lookup |
 
 ### Environment Collection
@@ -137,38 +141,44 @@ EnvironmentSchema.index({ platformId: 1 });
 EnvironmentSchema.index({ platform: 1, environment: 1 }, { unique: true });
 ```
 
-| Index | Type | Purpose |
-|-------|------|---------|
-| `platformId: 1` | INDEX | Foreign key lookup |
+| Index                             | Type            | Purpose                         |
+| --------------------------------- | --------------- | ------------------------------- |
+| `platformId: 1`                   | INDEX           | Foreign key lookup              |
 | `{ platform: 1, environment: 1 }` | UNIQUE COMPOUND | Unique environment per platform |
 
 ### ConfigVersion Collection
 
 ```javascript
 ConfigVersionSchema.index({ platformId: 1 });
-ConfigVersionSchema.index({ platform: 1, environment: 1, versionTimestamp: 1 }, { unique: true });
+ConfigVersionSchema.index(
+  { platform: 1, environment: 1, versionTimestamp: 1 },
+  { unique: true },
+);
 ConfigVersionSchema.index({ platform: 1, environment: 1, isStable: 1 });
 ```
 
-| Index | Type | Purpose |
-|-------|------|---------|
-| `platformId: 1` | INDEX | Foreign key lookup |
-| `{ platform: 1, environment: 1, versionTimestamp: 1 }` | UNIQUE COMPOUND | Unique version identifier |
-| `{ platform: 1, environment: 1, isStable: 1 }` | COMPOUND INDEX | **Critical for stable version queries** |
+| Index                                                  | Type            | Purpose                                 |
+| ------------------------------------------------------ | --------------- | --------------------------------------- |
+| `platformId: 1`                                        | INDEX           | Foreign key lookup                      |
+| `{ platform: 1, environment: 1, versionTimestamp: 1 }` | UNIQUE COMPOUND | Unique version identifier               |
+| `{ platform: 1, environment: 1, isStable: 1 }`         | COMPOUND INDEX  | **Critical for stable version queries** |
 
 ### FeatureFlag Collection
 
 ```javascript
 FeatureFlagSchema.index({ platformId: 1 });
-FeatureFlagSchema.index({ platform: 1, environment: 1, flagName: 1 }, { unique: true });
+FeatureFlagSchema.index(
+  { platform: 1, environment: 1, flagName: 1 },
+  { unique: true },
+);
 FeatureFlagSchema.index({ platform: 1, environment: 1 });
 ```
 
-| Index | Type | Purpose |
-|-------|------|---------|
-| `platformId: 1` | INDEX | Foreign key lookup |
-| `{ platform: 1, environment: 1, flagName: 1 }` | UNIQUE COMPOUND | Unique flag identifier |
-| `{ platform: 1, environment: 1 }` | COMPOUND INDEX | **Critical for listing flags** |
+| Index                                          | Type            | Purpose                        |
+| ---------------------------------------------- | --------------- | ------------------------------ |
+| `platformId: 1`                                | INDEX           | Foreign key lookup             |
+| `{ platform: 1, environment: 1, flagName: 1 }` | UNIQUE COMPOUND | Unique flag identifier         |
+| `{ platform: 1, environment: 1 }`              | COMPOUND INDEX  | **Critical for listing flags** |
 
 ---
 
@@ -181,12 +191,12 @@ FeatureFlagSchema.index({ platform: 1, environment: 1 });
 ```typescript
 // ❌ BAD: Scans ALL versions, then filters in memory
 const params = {
-  KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-  FilterExpression: 'isStable = :isStable',  // ← INEFFICIENT!
+  KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+  FilterExpression: "isStable = :isStable", // ← INEFFICIENT!
   ExpressionAttributeValues: {
-    ':pk': `PLATFORM#web`,
-    ':sk': `ENV#production#CONFIG#`,
-    ':isStable': true,
+    ":pk": `PLATFORM#web`,
+    ":sk": `ENV#production#CONFIG#`,
+    ":isStable": true,
   },
 };
 ```
@@ -197,18 +207,20 @@ This reads ALL config versions for the environment, then filters by `isStable` i
 
 **GSI Name:** `StableVersionIndex`
 
-| Attribute | Type | Key Type |
-|-----------|------|----------|
-| `GSI_PK` | STRING | PARTITION KEY |
-| `GSI_SK` | STRING | SORT KEY |
+| Attribute | Type   | Key Type      |
+| --------- | ------ | ------------- |
+| `GSI_PK`  | STRING | PARTITION KEY |
+| `GSI_SK`  | STRING | SORT KEY      |
 
 **GSI Attribute Values:**
+
 ```
 GSI_PK = "PLATFORM#{platform}#ENV#{environment}#STABLE"
 GSI_SK = "TIMESTAMP#{versionTimestamp}"
 ```
 
 **Only write GSI attributes when `isStable = true`:**
+
 - Sparse index - only stable versions are indexed
 - Reduces storage and read costs
 - Query returns only stable versions without filtering
@@ -216,6 +228,7 @@ GSI_SK = "TIMESTAMP#{versionTimestamp}"
 ### Table Schema
 
 **Main Table:**
+
 ```
 TableName: configurations
 PartitionKey: PK (STRING)
@@ -225,17 +238,18 @@ BillingMode: PAY_PER_REQUEST (or PROVISIONED)
 
 **Access Patterns:**
 
-| Pattern | PK | SK | Index |
-|---------|----|----|-------|
-| Get version | `PLATFORM#{platform}` | `ENV#{env}#CONFIG#{timestamp}` | Main Table |
-| List versions | `PLATFORM#{platform}` | `begins_with(ENV#{env}#CONFIG#)` | Main Table |
+| Pattern           | PK                                     | SK                                   | Index            |
+| ----------------- | -------------------------------------- | ------------------------------------ | ---------------- |
+| Get version       | `PLATFORM#{platform}`                  | `ENV#{env}#CONFIG#{timestamp}`       | Main Table       |
+| List versions     | `PLATFORM#{platform}`                  | `begins_with(ENV#{env}#CONFIG#)`     | Main Table       |
 | Get latest stable | `PLATFORM#{platform}#ENV#{env}#STABLE` | `TIMESTAMP#{timestamp}` DESC LIMIT 1 | **GSI Required** |
-| Get flag | `PLATFORM#{platform}` | `ENV#{env}#FLAG#{flagName}` | Main Table |
-| List flags | `PLATFORM#{platform}` | `begins_with(ENV#{env}#FLAG#)` | Main Table |
+| Get flag          | `PLATFORM#{platform}`                  | `ENV#{env}#FLAG#{flagName}`          | Main Table       |
+| List flags        | `PLATFORM#{platform}`                  | `begins_with(ENV#{env}#FLAG#)`       | Main Table       |
 
 ### Item Structure Examples
 
 **Config Version (Stable):**
+
 ```json
 {
   "PK": "PLATFORM#web",
@@ -253,6 +267,7 @@ BillingMode: PAY_PER_REQUEST (or PROVISIONED)
 ```
 
 **Config Version (Unstable):**
+
 ```json
 {
   "PK": "PLATFORM#web",
@@ -270,6 +285,7 @@ BillingMode: PAY_PER_REQUEST (or PROVISIONED)
 Note: Unstable versions do NOT have `GSI_PK` or `GSI_SK` attributes (sparse index).
 
 **Feature Flag:**
+
 ```json
 {
   "PK": "PLATFORM#web",
@@ -306,17 +322,20 @@ Connection pooling reuses database connections to improve performance and reduce
 ### Prisma (MySQL/PostgreSQL)
 
 **Configuration via Environment Variables:**
+
 ```bash
 DATABASE_CONNECTION_LIMIT=10      # Max connections in pool (default: 10)
 DATABASE_POOL_TIMEOUT=10          # Connection timeout in seconds (default: 10)
 ```
 
 **How it works:**
+
 - Prisma automatically manages connection pooling
 - Connection limit appended to connection URL: `?connection_limit=10&pool_timeout=10`
 - SQLite: No connection pooling (single connection per process)
 
 **Recommendations:**
+
 - **Serverless (Lambda/Workers)**: 5-10 connections per function instance
 - **Traditional servers**: 10-20 connections per process
 - **High traffic**: Monitor and increase as needed
@@ -324,6 +343,7 @@ DATABASE_POOL_TIMEOUT=10          # Connection timeout in seconds (default: 10)
 ### Mongoose (MongoDB)
 
 **Configuration via Environment Variables:**
+
 ```bash
 DATABASE_MAX_POOL_SIZE=10         # Max connections in pool (default: 10)
 DATABASE_MIN_POOL_SIZE=2          # Min connections in pool (default: 2)
@@ -331,6 +351,7 @@ DATABASE_MAX_IDLE_TIME_MS=60000   # Max idle time in milliseconds (default: 6000
 ```
 
 **Connection Pool Options:**
+
 - `maxPoolSize`: Maximum number of connections (default: 10)
 - `minPoolSize`: Minimum number of connections (default: 2)
 - `maxIdleTimeMS`: Max time a connection can be idle before being closed (default: 60000ms)
@@ -338,6 +359,7 @@ DATABASE_MAX_IDLE_TIME_MS=60000   # Max idle time in milliseconds (default: 6000
 - `socketTimeoutMS`: Socket timeout (default: 45000ms)
 
 **Recommendations:**
+
 - **Serverless (Lambda)**: `maxPoolSize=5`, `minPoolSize=1`
 - **Traditional servers**: `maxPoolSize=10-20`, `minPoolSize=2-5`
 - **High traffic**: `maxPoolSize=50-100`, `minPoolSize=10`
@@ -365,16 +387,19 @@ DATABASE_MAX_IDLE_TIME_MS=60000   # Max idle time in milliseconds (default: 6000
 ### Database-Specific Tips
 
 **Prisma/SQL:**
+
 - Use `EXPLAIN` to verify index usage
 - Add covering indexes for frequently accessed columns
 - Monitor query execution time in production
 
 **MongoDB:**
+
 - Use `explain("executionStats")` to verify index usage
 - Create compound indexes in query field order
 - Enable profiler: `db.setProfilingLevel(1, { slowms: 100 })`
 
 **DynamoDB:**
+
 - ✅ Always query with partition key
 - ✅ Use sort key for range queries
 - ❌ Never use FilterExpression for high-selectivity filters
@@ -384,6 +409,7 @@ DATABASE_MAX_IDLE_TIME_MS=60000   # Max idle time in milliseconds (default: 6000
 ### Cost Optimization
 
 **DynamoDB:**
+
 - Use sparse indexes to reduce storage costs
 - PAY_PER_REQUEST for unpredictable workloads
 - PROVISIONED for predictable, steady workloads
@@ -396,6 +422,7 @@ DATABASE_MAX_IDLE_TIME_MS=60000   # Max idle time in milliseconds (default: 6000
 If you need to add the DynamoDB GSI to an existing table:
 
 1. **Create GSI** (online operation, no downtime):
+
    ```bash
    aws dynamodb update-table \
      --table-name configurations \
@@ -420,6 +447,7 @@ If you need to add the DynamoDB GSI to an existing table:
    ```
 
 2. **Backfill GSI attributes** for existing stable versions:
+
    ```typescript
    // See scripts/dynamodb-backfill-gsi.ts
    ```
@@ -435,16 +463,19 @@ If you need to add the DynamoDB GSI to an existing table:
 ### Key Metrics to Track
 
 **SQL Databases:**
+
 - Slow query log (queries > 100ms)
 - Index usage statistics
 - Table scan count (should be zero)
 
 **MongoDB:**
+
 - Query execution time (use profiler)
 - Index hit ratio (should be > 99%)
 - Collection scan count (should be near zero)
 
 **DynamoDB:**
+
 - ConsumedReadCapacityUnits
 - ConsumedWriteCapacityUnits
 - ThrottledRequests (should be zero)
@@ -457,6 +488,7 @@ If you need to add the DynamoDB GSI to an existing table:
 See `packages/database/src/__tests__/index-performance.test.ts` for performance benchmarks.
 
 **Expected Query Times:**
+
 - Get by PK: < 5ms (all databases)
 - Get latest stable: < 10ms (with proper indexes)
 - List paginated: < 20ms for first page (all databases)

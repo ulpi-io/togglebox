@@ -1,15 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { deletePlatformApi } from '@/lib/api/platforms';
-import { Button } from '@togglebox/ui';
+import { useState } from "react";
+import { deletePlatformApi } from "@/lib/api/platforms";
+import { Button } from "@togglebox/ui";
 
 interface DeletePlatformButtonProps {
   platform: string;
   onSuccess?: () => void;
 }
 
-export function DeletePlatformButton({ platform, onSuccess }: DeletePlatformButtonProps) {
+export function DeletePlatformButton({
+  platform,
+  onSuccess,
+}: DeletePlatformButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -21,7 +24,7 @@ export function DeletePlatformButton({ platform, onSuccess }: DeletePlatformButt
         onSuccess();
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete platform');
+      alert(err instanceof Error ? err.message : "Failed to delete platform");
       setIsDeleting(false);
     }
   }
@@ -35,7 +38,7 @@ export function DeletePlatformButton({ platform, onSuccess }: DeletePlatformButt
           onClick={handleDelete}
           disabled={isDeleting}
         >
-          {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+          {isDeleting ? "Deleting..." : "Confirm Delete"}
         </Button>
         <Button
           variant="outline"

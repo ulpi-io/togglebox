@@ -17,13 +17,13 @@
  * Converts between Prisma models and domain models via `mapToPasswordResetToken()`.
  */
 
-import { IPasswordResetRepository } from '../../interfaces/IPasswordResetRepository';
+import { IPasswordResetRepository } from "../../interfaces/IPasswordResetRepository";
 import {
   PasswordResetToken,
   CreatePasswordResetTokenData,
-} from '../../models/PasswordResetToken';
-import { prisma } from './database';
-import type { PasswordResetToken as PrismaPasswordResetTokenModel } from '.prisma/client-auth';
+} from "../../models/PasswordResetToken";
+import { prisma } from "./database";
+import type { PasswordResetToken as PrismaPasswordResetTokenModel } from ".prisma/client-auth";
 
 /**
  * Prisma password reset repository implementation.
@@ -35,7 +35,9 @@ import type { PasswordResetToken as PrismaPasswordResetTokenModel } from '.prism
  * Cascade delete configured when user deleted.
  */
 export class PrismaPasswordResetRepository implements IPasswordResetRepository {
-  async create(data: CreatePasswordResetTokenData): Promise<PasswordResetToken> {
+  async create(
+    data: CreatePasswordResetTokenData,
+  ): Promise<PasswordResetToken> {
     const token = await prisma.passwordResetToken.create({
       data: {
         userId: data.userId,
@@ -72,10 +74,12 @@ export class PrismaPasswordResetRepository implements IPasswordResetRepository {
           gt: now,
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
-    return tokens.map((token: PrismaPasswordResetTokenModel) => this.mapToPasswordResetToken(token));
+    return tokens.map((token: PrismaPasswordResetTokenModel) =>
+      this.mapToPasswordResetToken(token),
+    );
   }
 
   async delete(id: string): Promise<void> {
@@ -106,7 +110,9 @@ export class PrismaPasswordResetRepository implements IPasswordResetRepository {
   /**
    * Map Prisma password reset token to domain PasswordResetToken model
    */
-  private mapToPasswordResetToken(prismaToken: PrismaPasswordResetTokenModel): PasswordResetToken {
+  private mapToPasswordResetToken(
+    prismaToken: PrismaPasswordResetTokenModel,
+  ): PasswordResetToken {
     return {
       id: prismaToken.id,
       userId: prismaToken.userId,

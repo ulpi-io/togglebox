@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { use } from 'react';
-import Link from 'next/link';
-import { getEnvironmentsApi } from '@/lib/api/platforms';
-import type { Environment } from '@/lib/api/types';
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@togglebox/ui';
-import { DeleteEnvironmentButton } from '@/components/environments/delete-environment-button';
+import { useState, useEffect, useCallback } from "react";
+import { use } from "react";
+import Link from "next/link";
+import { getEnvironmentsApi } from "@/lib/api/platforms";
+import type { Environment } from "@/lib/api/types";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+} from "@togglebox/ui";
+import { DeleteEnvironmentButton } from "@/components/environments/delete-environment-button";
 
 interface PlatformPageProps {
   params: Promise<{
@@ -27,7 +33,9 @@ export default function PlatformPage({ params }: PlatformPageProps) {
       setEnvironments(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load environments');
+      setError(
+        err instanceof Error ? err.message : "Failed to load environments",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -122,8 +130,8 @@ export default function PlatformPage({ params }: PlatformPageProps) {
         </div>
         <div className="flex space-x-2">
           <Link href={`/platforms/${platform}/environments/create`}>
-              <Button>Create Environment</Button>
-            </Link>
+            <Button>Create Environment</Button>
+          </Link>
           <Link href="/platforms">
             <Button variant="outline">Back to Platforms</Button>
           </Link>
@@ -167,18 +175,36 @@ export default function PlatformPage({ params }: PlatformPageProps) {
                 </div>
 
                 <div className="space-y-2 pt-3 border-t border-black/10">
-                  <Button asChild variant="outline" className="w-full justify-start">
-                    <Link href={`/configs?platform=${platform}&environment=${env.environment}`}>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
+                    <Link
+                      href={`/configs?platform=${platform}&environment=${env.environment}`}
+                    >
                       Remote Config
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" className="w-full justify-start">
-                    <Link href={`/flags?platform=${platform}&environment=${env.environment}`}>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
+                    <Link
+                      href={`/flags?platform=${platform}&environment=${env.environment}`}
+                    >
                       Feature Flags
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" className="w-full justify-start">
-                    <Link href={`/experiments?platform=${platform}&environment=${env.environment}`}>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
+                    <Link
+                      href={`/experiments?platform=${platform}&environment=${env.environment}`}
+                    >
                       Experiments
                     </Link>
                   </Button>

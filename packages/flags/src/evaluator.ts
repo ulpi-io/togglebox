@@ -5,25 +5,25 @@
  * Returns valueA or valueB based on the evaluation context.
  */
 
-import { getPercentage } from '@togglebox/core';
+import { getPercentage } from "@togglebox/core";
 import type {
   Flag,
   EvaluationContext,
   EvaluationResult,
   FlagValue,
-} from './schemas';
+} from "./schemas";
 
 /**
  * Evaluation reasons for debugging.
  */
 export const EvaluationReason = {
-  FLAG_DISABLED: 'Flag is disabled - serving default value',
-  FORCE_EXCLUDED: 'User is in force exclude list - serving valueB',
-  FORCE_INCLUDED: 'User is in force include list - serving valueA',
-  COUNTRY_LANGUAGE_MATCH: 'Matched country and language targeting',
-  COUNTRY_MATCH: 'Matched country targeting',
-  ROLLOUT_PERCENTAGE: 'Assigned via percentage rollout',
-  DEFAULT: 'No targeting matched - serving default value',
+  FLAG_DISABLED: "Flag is disabled - serving default value",
+  FORCE_EXCLUDED: "User is in force exclude list - serving valueB",
+  FORCE_INCLUDED: "User is in force include list - serving valueA",
+  COUNTRY_LANGUAGE_MATCH: "Matched country and language targeting",
+  COUNTRY_MATCH: "Matched country targeting",
+  ROLLOUT_PERCENTAGE: "Assigned via percentage rollout",
+  DEFAULT: "No targeting matched - serving default value",
 } as const;
 
 /**
@@ -45,14 +45,14 @@ export const EvaluationReason = {
  */
 export function evaluateFlag(
   flag: Flag,
-  context: EvaluationContext
+  context: EvaluationContext,
 ): EvaluationResult {
   const { userId, country, language } = context;
   const { targeting, defaultValue } = flag;
 
   // Helper to get the actual value
-  const getValue = (which: 'A' | 'B'): FlagValue => {
-    return which === 'A' ? flag.valueA : flag.valueB;
+  const getValue = (which: "A" | "B"): FlagValue => {
+    return which === "A" ? flag.valueA : flag.valueB;
   };
 
   // 1. Check if flag is disabled
@@ -69,8 +69,8 @@ export function evaluateFlag(
   if (targeting.forceExcludeUsers.includes(userId)) {
     return {
       flagKey: flag.flagKey,
-      value: getValue('B'),
-      servedValue: 'B',
+      value: getValue("B"),
+      servedValue: "B",
       reason: EvaluationReason.FORCE_EXCLUDED,
     };
   }
@@ -79,8 +79,8 @@ export function evaluateFlag(
   if (targeting.forceIncludeUsers.includes(userId)) {
     return {
       flagKey: flag.flagKey,
-      value: getValue('A'),
-      servedValue: 'A',
+      value: getValue("A"),
+      servedValue: "A",
       reason: EvaluationReason.FORCE_INCLUDED,
     };
   }
@@ -88,14 +88,14 @@ export function evaluateFlag(
   // 4. Check country + language targeting
   if (country) {
     const countryTarget = targeting.countries.find(
-      (c) => c.country.toUpperCase() === country.toUpperCase()
+      (c) => c.country.toUpperCase() === country.toUpperCase(),
     );
 
     if (countryTarget) {
       // Check for language-specific override
       if (language && countryTarget.languages) {
         const languageTarget = countryTarget.languages.find(
-          (l) => l.language.toLowerCase() === language.toLowerCase()
+          (l) => l.language.toLowerCase() === language.toLowerCase(),
         );
 
         if (languageTarget) {
@@ -124,7 +124,8 @@ export function evaluateFlag(
     const rolloutPercentageA = flag.rolloutPercentageA ?? 100;
 
     // User gets valueA if their percentage is below the rollout threshold
-    const servedValue: 'A' | 'B' = userPercentage < rolloutPercentageA ? 'A' : 'B';
+    const servedValue: "A" | "B" =
+      userPercentage < rolloutPercentageA ? "A" : "B";
 
     return {
       flagKey: flag.flagKey,
@@ -152,7 +153,7 @@ export function evaluateFlag(
  */
 export function evaluateMultipleFlags(
   flags: Flag[],
-  context: EvaluationContext
+  context: EvaluationContext,
 ): Map<string, EvaluationResult> {
   const results = new Map<string, EvaluationResult>();
 
@@ -171,13 +172,10 @@ export function evaluateMultipleFlags(
  * @param context - The evaluation context
  * @returns true if valueA is served, false if valueB is served
  */
-export function isEnabled(
-  flag: Flag,
-  context: EvaluationContext
-): boolean {
-  if (flag.flagType !== 'boolean') {
+export function isEnabled(flag: Flag, context: EvaluationContext): boolean {
+  if (flag.flagType !== "boolean") {
     throw new Error(
-      `isEnabled() can only be used with boolean flags. Flag "${flag.flagKey}" is type "${flag.flagType}"`
+      `isEnabled() can only be used with boolean flags. Flag "${flag.flagKey}" is type "${flag.flagType}"`,
     );
   }
 
@@ -194,9 +192,9 @@ export interface IFlagStatsTracker {
     platform: string,
     environment: string,
     flagKey: string,
-    value: 'A' | 'B',
+    value: "A" | "B",
     userId: string,
-    country?: string
+    country?: string,
   ): Promise<void>;
 }
 
@@ -223,23 +221,25 @@ export interface IFlagStatsTracker {
 export async function evaluateFlagWithTracking(
   flag: Flag,
   context: EvaluationContext,
-  statsTracker?: IFlagStatsTracker
+  statsTracker?: IFlagStatsTracker,
 ): Promise<EvaluationResult> {
   const result = evaluateFlag(flag, context);
 
   // Track evaluation via stats repository (fire and forget)
   if (statsTracker && context.userId) {
-    statsTracker.incrementFlagEvaluation(
-      flag.platform,
-      flag.environment,
-      flag.flagKey,
-      result.servedValue,
-      context.userId,
-      context.country
-    ).catch((error) => {
-      // Log but don't throw - stats tracking should not affect evaluation
-      console.error('Failed to track flag evaluation:', error);
-    });
+    statsTracker
+      .incrementFlagEvaluation(
+        flag.platform,
+        flag.environment,
+        flag.flagKey,
+        result.servedValue,
+        context.userId,
+        context.country,
+      )
+      .catch((error) => {
+        // Log but don't throw - stats tracking should not affect evaluation
+        console.error("Failed to track flag evaluation:", error);
+      });
   }
 
   return result;

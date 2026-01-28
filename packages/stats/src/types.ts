@@ -7,7 +7,7 @@
  * - Experiments: exposures, conversions, metrics
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // ============================================================================
 // REMOTE CONFIG STATS
@@ -92,7 +92,9 @@ export const ExperimentVariationStatsSchema = z.object({
   exposures: z.number().int().nonnegative().default(0),
 });
 
-export type ExperimentVariationStats = z.infer<typeof ExperimentVariationStatsSchema>;
+export type ExperimentVariationStats = z.infer<
+  typeof ExperimentVariationStatsSchema
+>;
 
 /**
  * Stats for an Experiment metric (per variation).
@@ -154,6 +156,24 @@ export const ExperimentStatsSchema = z.object({
 export type ExperimentStats = z.infer<typeof ExperimentStatsSchema>;
 
 // ============================================================================
+// CUSTOM EVENT STATS
+// ============================================================================
+
+/**
+ * Stored custom event record.
+ */
+export const CustomEventStatsSchema = z.object({
+  platform: z.string(),
+  environment: z.string(),
+  eventName: z.string(),
+  userId: z.string().optional(),
+  properties: z.record(z.unknown()).optional(),
+  timestamp: z.string().datetime(),
+});
+
+export type CustomEventStats = z.infer<typeof CustomEventStatsSchema>;
+
+// ============================================================================
 // SDK EVENTS
 // ============================================================================
 
@@ -161,11 +181,11 @@ export type ExperimentStats = z.infer<typeof ExperimentStatsSchema>;
  * Event types sent by SDKs.
  */
 export const StatsEventTypeEnum = z.enum([
-  'config_fetch',
-  'flag_evaluation',
-  'experiment_exposure',
-  'conversion',
-  'custom_event',
+  "config_fetch",
+  "flag_evaluation",
+  "experiment_exposure",
+  "conversion",
+  "custom_event",
 ]);
 
 export type StatsEventType = z.infer<typeof StatsEventTypeEnum>;
@@ -183,7 +203,7 @@ const BaseEventSchema = z.object({
  * Config fetch event.
  */
 export const ConfigFetchEventSchema = BaseEventSchema.extend({
-  type: z.literal('config_fetch'),
+  type: z.literal("config_fetch"),
   key: z.string(),
 });
 
@@ -193,9 +213,9 @@ export type ConfigFetchEvent = z.infer<typeof ConfigFetchEventSchema>;
  * Flag evaluation event.
  */
 export const FlagEvaluationEventSchema = BaseEventSchema.extend({
-  type: z.literal('flag_evaluation'),
+  type: z.literal("flag_evaluation"),
   flagKey: z.string(),
-  value: z.enum(['A', 'B']),
+  value: z.enum(["A", "B"]),
   userId: z.string(),
   country: z.string().optional(),
   language: z.string().optional(),
@@ -207,21 +227,28 @@ export type FlagEvaluationEvent = z.infer<typeof FlagEvaluationEventSchema>;
  * Experiment exposure event.
  */
 export const ExperimentExposureEventSchema = BaseEventSchema.extend({
-  type: z.literal('experiment_exposure'),
+  type: z.literal("experiment_exposure"),
   experimentKey: z.string(),
   variationKey: z.string(),
   userId: z.string(),
 });
 
-export type ExperimentExposureEvent = z.infer<typeof ExperimentExposureEventSchema>;
+export type ExperimentExposureEvent = z.infer<
+  typeof ExperimentExposureEventSchema
+>;
 
 /**
  * Conversion event.
+ *
+ * @remarks
+ * **BREAKING CHANGE (v2.0):** Field renamed from `metricName` to `metricId`.
+ * SDKs must send the metric identifier (e.g., "purchase-completed"),
+ * not a display name (e.g., "Purchase Completed").
  */
 export const ConversionEventSchema = BaseEventSchema.extend({
-  type: z.literal('conversion'),
+  type: z.literal("conversion"),
   experimentKey: z.string(),
-  metricName: z.string(),
+  metricId: z.string(), // Metric identifier (not display name)
   variationKey: z.string(), // Required: which variation the user was assigned to
   userId: z.string(),
   value: z.number().optional(), // For revenue/sum metrics
@@ -233,7 +260,7 @@ export type ConversionEvent = z.infer<typeof ConversionEventSchema>;
  * Custom event.
  */
 export const CustomEventSchema = BaseEventSchema.extend({
-  type: z.literal('custom_event'),
+  type: z.literal("custom_event"),
   eventName: z.string(),
   userId: z.string().optional(),
   properties: z.record(z.unknown()).optional(),
@@ -244,7 +271,7 @@ export type CustomEvent = z.infer<typeof CustomEventSchema>;
 /**
  * Union of all event types.
  */
-export const StatsEventSchema = z.discriminatedUnion('type', [
+export const StatsEventSchema = z.discriminatedUnion("type", [
   ConfigFetchEventSchema,
   FlagEvaluationEventSchema,
   ExperimentExposureEventSchema,

@@ -76,7 +76,7 @@ export interface ApiKey {
  */
 export type CreateApiKeyData = Omit<
   ApiKey,
-  'id' | 'keyHash' | 'keyPrefix' | 'keyLast4' | 'lastUsedAt' | 'createdAt'
+  "id" | "keyHash" | "keyPrefix" | "keyLast4" | "lastUsedAt" | "createdAt"
 > & {
   /** Plain text key to be hashed (only available before storage) */
   key: string;
@@ -92,7 +92,7 @@ export type CreateApiKeyData = Omit<
  *
  * Use this type for list API responses.
  */
-export type PublicApiKey = Omit<ApiKey, 'keyHash' | 'userId'>;
+export type PublicApiKey = Omit<ApiKey, "keyHash" | "userId">;
 
 /**
  * API key with the plain text key (only returned once at creation).
@@ -222,6 +222,9 @@ export function isApiKeyExpired(apiKey: ApiKey): boolean {
  * apiKeyHasPermission(apiKey, 'user:manage'); // false
  * ```
  */
-export function apiKeyHasPermission(apiKey: ApiKey, permission: string): boolean {
+export function apiKeyHasPermission(
+  apiKey: ApiKey,
+  permission: string,
+): boolean {
   return apiKey.permissions.includes(permission);
 }

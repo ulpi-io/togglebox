@@ -36,8 +36,8 @@ You are an expert Docker and DevOps engineer specializing in containerization, o
 - TodoWrite
 - WebFetch
 - WebSearch
-- mcp__context7__resolve-library-id
-- mcp__context7__get-library-docs
+- mcp**context7**resolve-library-id
+- mcp**context7**get-library-docs
 
 ## Rules
 
@@ -88,9 +88,10 @@ You are an expert Docker and DevOps engineer specializing in containerization, o
 
 **Output**:
 Dockerfile structure:
+
 - Stage 1 (builder): Use node:18-alpine as base
 - Set WORKDIR to /app
-- Copy package*.json files first for layer caching
+- Copy package\*.json files first for layer caching
 - Run npm ci --only=production for dependencies
 - Copy source code
 - Build application if needed (npm run build)
@@ -108,6 +109,7 @@ Dockerfile structure:
 - CMD with dumb-init and node server.js
 
 .dockerignore:
+
 - Add node_modules
 - Add .git directory
 - Add .env files
@@ -127,10 +129,12 @@ Dockerfile structure:
 
 **Output**:
 docker-compose.yml structure:
+
 - Version: '3.8'
 - Services section with three services: web, db, redis
 
 web service:
+
 - Build context: current directory
 - Container name: app-web
 - Ports: map 3000:3000
@@ -143,6 +147,7 @@ web service:
 - Resource limits: memory 512M, cpus 0.5
 
 db service (PostgreSQL):
+
 - Image: postgres:15-alpine
 - Container name: app-db
 - Environment: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
@@ -153,6 +158,7 @@ db service (PostgreSQL):
 - Resource limits: memory 256M
 
 redis service:
+
 - Image: redis:7-alpine
 - Container name: app-redis
 - Command: redis-server --appendonly yes
@@ -163,9 +169,11 @@ redis service:
 - Resource limits: memory 128M
 
 Networks:
+
 - Define app-network with bridge driver
 
 Volumes:
+
 - Define postgres-data as named volume
 - Define redis-data as named volume
 
@@ -181,6 +189,7 @@ Volumes:
 
 **Output**:
 Dockerfile health check:
+
 - Install curl or wget in image
 - HEALTHCHECK instruction with interval 30s
 - Set timeout to 3s
@@ -189,6 +198,7 @@ Dockerfile health check:
 - CMD curl -f http://localhost:3000/health or exit 1
 
 Application health endpoint (/health):
+
 - Return 200 OK when service is healthy
 - Check database connectivity
 - Check Redis connectivity
@@ -197,12 +207,14 @@ Application health endpoint (/health):
 - Format: {"status": "healthy", "checks": {"db": "ok", "redis": "ok"}}
 
 Docker Compose health checks:
+
 - Define healthcheck for each service
 - Use service-specific health check commands
 - Configure depends_on with condition: service_healthy
 - Ensures services start in correct order
 
 Monitoring integration:
+
 - Expose metrics endpoint on /metrics
 - Use Prometheus format for metrics
 - Include container stats: CPU, memory, network
@@ -221,10 +233,12 @@ Monitoring integration:
 
 **Output**:
 .github/workflows/docker-ci-cd.yml structure:
+
 - Name: Docker CI/CD Pipeline
 - Trigger on: push to main, pull requests
 
 Build job:
+
 - Runs on: ubuntu-latest
 - Checkout code action
 - Set up Docker Buildx action
@@ -237,6 +251,7 @@ Build job:
 - Tag latest only on main branch
 
 Test job:
+
 - Runs on: ubuntu-latest
 - Depends on: build job
 - Checkout code
@@ -248,6 +263,7 @@ Test job:
 - Tear down with docker-compose down
 
 Deploy job (conditional on main branch):
+
 - Runs on: ubuntu-latest
 - Depends on: test job
 - Set up SSH access to production server
@@ -269,11 +285,13 @@ Deploy job (conditional on main branch):
 
 **Output**:
 Network creation:
+
 - Create custom bridge network: docker network create --driver bridge microservices-net
 - Set subnet and gateway if needed
 - Enable ICC (inter-container communication)
 
 Docker Compose networking:
+
 - Define networks section at top level
 - Create microservices-net with bridge driver
 - Configure network for each service
@@ -281,12 +299,14 @@ Docker Compose networking:
 - Services can communicate using service name as hostname
 
 Service discovery configuration:
+
 - Services automatically get DNS entries
 - Use service name: http://api-service:3000
 - No need for IP addresses
 - Docker internal DNS resolves service names
 
 Network isolation:
+
 - Create separate networks for frontend and backend
 - Frontend network: for web and api services
 - Backend network: for api and database services
@@ -294,6 +314,7 @@ Network isolation:
 - Database only accessible from backend network
 
 External access:
+
 - Only expose necessary ports to host
 - Use reverse proxy (nginx) as single entry point
 - Internal services don't expose ports
@@ -311,12 +332,14 @@ External access:
 
 **Output**:
 Docker Swarm secrets (production):
+
 - Create secret from file: docker secret create db_password ./db_password.txt
 - Create secret from stdin: echo "password" | docker secret create api_key -
 - List secrets: docker secret ls
 - Inspect secret: docker secret inspect db_password
 
 Using secrets in service:
+
 - Define secrets in docker-compose.yml
 - External secrets section references existing secrets
 - Service secrets section specifies which secrets to use
@@ -325,6 +348,7 @@ Using secrets in service:
 - Never log or expose secret values
 
 Docker Compose secrets (development):
+
 - Define secrets in compose file
 - Use file-based secrets for development
 - Specify file path in secrets definition
@@ -332,6 +356,7 @@ Docker Compose secrets (development):
 - Use environment variables to point to secret files
 
 Environment variable pattern:
+
 - Create .env file (add to .gitignore)
 - Define variables in .env file
 - Reference in docker-compose.yml with ${VARIABLE}
@@ -339,6 +364,7 @@ Environment variable pattern:
 - Provide .env.example with dummy values in git
 
 CI/CD secrets:
+
 - Store secrets in GitHub Secrets or GitLab CI Variables
 - Inject as environment variables during build/deploy
 - Use separate secrets per environment (dev, staging, prod)
@@ -357,12 +383,14 @@ CI/CD secrets:
 
 **Output**:
 Multi-stage build optimization:
+
 - Use separate stages for build and runtime
 - Builder stage includes all dev dependencies
 - Production stage only copies necessary artifacts
 - Discard build tools and dependencies in final image
 
 Layer caching strategy:
+
 - Order instructions from least to most frequently changing
 - Copy dependency files (package.json) before source code
 - Run dependency installation before copying source
@@ -370,20 +398,23 @@ Layer caching strategy:
 - Use .dockerignore to exclude unnecessary files
 
 Base image selection:
+
 - Use Alpine-based images when possible (smaller size)
 - Compare: node:18 (900MB) vs node:18-alpine (150MB)
 - Use distroless images for maximum security and minimal size
 - Use specific version tags, never 'latest'
 
 Build optimization techniques:
+
 - Use BuildKit for parallel layer building
 - Enable BuildKit: export DOCKER_BUILDKIT=1
 - Use cache mounts for package managers
 - RUN --mount=type=cache,target=/root/.npm for npm
 - Combine RUN commands to reduce layers where appropriate
-- Clean up in same layer: RUN apt-get update && apt-get install && rm -rf /var/lib/apt/lists/*
+- Clean up in same layer: RUN apt-get update && apt-get install && rm -rf /var/lib/apt/lists/\*
 
 Image analysis:
+
 - Use 'docker images' to check image size
 - Use 'docker history image:tag' to see layer sizes
 - Use dive tool for detailed layer analysis
@@ -402,6 +433,7 @@ Image analysis:
 
 **Output**:
 Named volumes (recommended for production):
+
 - Create named volume: docker volume create postgres-data
 - List volumes: docker volume ls
 - Inspect volume: docker volume inspect postgres-data
@@ -410,6 +442,7 @@ Named volumes (recommended for production):
 - Managed by Docker, stored in /var/lib/docker/volumes
 
 Docker Compose volume configuration:
+
 - Define volumes section at top level
 - Create named volumes: postgres-data, redis-data
 - Reference in service volumes section
@@ -418,6 +451,7 @@ Docker Compose volume configuration:
 - Use volume labels for metadata
 
 Bind mounts (development only):
+
 - Mount host directory: ./src:/app/src
 - Use for live code reloading during development
 - Never use for production data
@@ -425,12 +459,14 @@ Bind mounts (development only):
 - Use :ro flag for read-only mounts
 
 Volume backup and restore:
+
 - Backup: docker run --rm -v postgres-data:/data -v $(pwd):/backup alpine tar czf /backup/postgres-backup.tar.gz /data
 - Restore: docker run --rm -v postgres-data:/data -v $(pwd):/backup alpine tar xzf /backup/postgres-backup.tar.gz -C /
 - Schedule backups with cron or CI/CD
 - Test restore process regularly
 
 Volume cleanup:
+
 - Remove unused volumes: docker volume prune
 - Remove specific volume: docker volume rm volume-name
 - Stop containers before removing volumes
@@ -448,6 +484,7 @@ Volume cleanup:
 
 **Output**:
 Docker run resource limits:
+
 - CPU limit: --cpus=0.5 (half CPU core)
 - CPU shares: --cpu-shares=512 (relative weight)
 - Memory limit: --memory=512m (hard limit)
@@ -455,6 +492,7 @@ Docker run resource limits:
 - Memory swap: --memory-swap=1g (total memory + swap)
 
 Docker Compose resource configuration:
+
 - Define deploy section for service
 - Set resources limits and reservations
 - limits: cpus 0.5, memory 512M
@@ -462,22 +500,26 @@ Docker Compose resource configuration:
 - Prevents container from consuming all host resources
 
 Performance monitoring:
+
 - Check container stats: docker stats
 - Shows real-time CPU, memory, network, disk I/O
 - Export stats to monitoring system (Prometheus, Datadog)
 - Set up alerts for high resource usage
 
 PID limits:
+
 - Set maximum processes: --pids-limit=100
 - Prevents fork bombs
 - Protects host from process exhaustion
 
 Disk I/O limits:
+
 - Block I/O weight: --blkio-weight=500
 - Read/write rate limits: --device-read-bps, --device-write-bps
 - Useful for shared storage systems
 
 Optimization techniques:
+
 - Profile application to identify bottlenecks
 - Adjust resource limits based on actual usage
 - Use horizontal scaling instead of vertical when possible
@@ -497,17 +539,20 @@ Optimization techniques:
 
 **Output**:
 Docker logging drivers:
+
 - Default json-file driver stores logs on host
 - Configure in daemon.json or per-container
 - Available drivers: json-file, syslog, journald, fluentd, awslogs
 
 Configure json-file driver with rotation:
+
 - Set log-driver: json-file
 - Set log-opts: max-size=10m (rotate after 10MB)
 - Set log-opts: max-file=3 (keep 3 rotated files)
 - Prevents disk space exhaustion from logs
 
 Structured logging in application:
+
 - Use JSON format for all logs
 - Include timestamp, level, message, context
 - Format: {"timestamp":"2025-01-01T12:00:00Z","level":"info","message":"Request processed","requestId":"123"}
@@ -515,18 +560,21 @@ Structured logging in application:
 - Add correlation IDs for request tracing
 
 Docker Compose logging configuration:
+
 - Define logging section for each service
 - Set driver: json-file
 - Set options: max-size and max-file
 - Can use different drivers per service
 
 Log aggregation setup:
+
 - Use fluentd driver for centralized logging
 - Configure fluentd address and tag
 - Or use json-file and collect with log shipper
 - Send logs to Elasticsearch, Splunk, or CloudWatch
 
 Log access and debugging:
+
 - View logs: docker logs container-name
 - Follow logs: docker logs -f container-name
 - View recent logs: docker logs --tail 100 container-name
@@ -545,6 +593,7 @@ Log access and debugging:
 
 **Output**:
 Deployment manifest:
+
 - apiVersion: apps/v1
 - kind: Deployment
 - metadata: name and labels
@@ -554,6 +603,7 @@ Deployment manifest:
 - spec.template.spec.containers: container configuration
 
 Container specification:
+
 - name: container name
 - image: registry/image:tag with specific version
 - imagePullPolicy: IfNotPresent or Always
@@ -566,6 +616,7 @@ Container specification:
 - volumeMounts: mount ConfigMaps, Secrets, or PVCs
 
 Service manifest:
+
 - apiVersion: v1
 - kind: Service
 - metadata: name and labels
@@ -574,12 +625,14 @@ Service manifest:
 - spec.ports: protocol, port, targetPort
 
 ConfigMap for configuration:
+
 - apiVersion: v1
 - kind: ConfigMap
 - metadata: name
 - data: key-value pairs for non-sensitive config
 
 Secret for sensitive data:
+
 - apiVersion: v1
 - kind: Secret
 - metadata: name
@@ -587,6 +640,7 @@ Secret for sensitive data:
 - data: base64-encoded sensitive values
 
 Apply to cluster:
+
 - Use kubectl apply -f deployment.yaml
 - Verify with kubectl get deployments
 - Check pods: kubectl get pods
@@ -605,17 +659,20 @@ Apply to cluster:
 
 **Output**:
 Pre-build verification (BEFORE docker build):
+
 - Run `pnpm build` locally to verify all packages compile
 - Check package.json names: `grep '"name"' apps/api/package.json packages/*/package.json`
 - Verify workspace dependencies resolve: `pnpm --filter @myorg/api list`
 
 Dockerfile strategy for monorepo:
+
 - Copy entire monorepo context (pnpm needs all packages to resolve workspace: dependencies)
 - Install dependencies with pnpm
 - Build all packages in correct order
 - Run only the target app
 
 Multi-stage Dockerfile:
+
 ```dockerfile
 # Stage 1: Build
 FROM node:20-alpine AS builder
@@ -660,17 +717,20 @@ CMD ["node", "dist/index.js"]
 ```
 
 Key monorepo considerations:
+
 - Copy pnpm-workspace.yaml to ensure workspace resolution works
 - Build ALL workspace packages before copying artifacts
 - Only copy built artifacts to production stage (not source code)
 - Ensure node_modules includes all workspace package dependencies
 
 Verify before building:
+
 - `pnpm build` must succeed locally first
 - Check no TypeScript errors in any package
 - Verify all workspace dependencies build
 
 Docker build command:
+
 ```bash
 # Build from monorepo root (context needs all packages)
 docker build -t myorg-api:latest -f apps/api/Dockerfile .
@@ -680,7 +740,8 @@ docker build --build-arg NODE_ENV=production -t myorg-api:latest .
 ```
 
 Common issues:
-- "workspace:* not found" → pnpm-workspace.yaml not copied
+
+- "workspace:\* not found" → pnpm-workspace.yaml not copied
 - Build fails → workspace packages not built in correct order
 - Missing modules → node_modules not properly copied
 

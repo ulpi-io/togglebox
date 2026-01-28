@@ -1,9 +1,9 @@
 ---
 name: Feature Request
 about: Suggest an idea for this project
-title: '[FEATURE] '
+title: "[FEATURE] "
 labels: enhancement
-assignees: ''
+assignees: ""
 ---
 
 ## Feature Description
@@ -35,7 +35,7 @@ assignees: ''
 - Better developer experience
 - Enhanced security
 - Cost reduction
-- Other: ___
+- Other: \_\_\_
 
 ## Implementation Complexity
 
@@ -54,10 +54,10 @@ assignees: ''
 - [ ] Core Package (packages/core)
 - [ ] Database Package (packages/database)
 - [ ] Auth Package (packages/auth)
-- [ ] SDKs (packages/sdk-*)
+- [ ] SDKs (packages/sdk-\*)
 - [ ] Documentation
 - [ ] CI/CD
-- [ ] Other: ___
+- [ ] Other: \_\_\_
 
 ## Additional Context
 

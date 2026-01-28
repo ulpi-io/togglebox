@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { verifyResetTokenApi } from '@/lib/api/auth';
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { verifyResetTokenApi } from "@/lib/api/auth";
 import {
   Card,
   CardContent,
@@ -11,8 +11,8 @@ import {
   CardTitle,
   Spinner,
   Button,
-} from '@togglebox/ui';
-import Link from 'next/link';
+} from "@togglebox/ui";
+import Link from "next/link";
 
 export default function VerifyResetTokenPage() {
   const params = useParams();
@@ -31,11 +31,13 @@ export default function VerifyResetTokenPage() {
           router.push(`/password-reset/complete/${token}`);
         } else {
           setVerifying(false);
-          setError('Invalid or expired reset token');
+          setError("Invalid or expired reset token");
         }
       } catch (err) {
         setVerifying(false);
-        setError(err instanceof Error ? err.message : 'Invalid or expired reset token');
+        setError(
+          err instanceof Error ? err.message : "Invalid or expired reset token",
+        );
       }
     }
 
@@ -47,7 +49,9 @@ export default function VerifyResetTokenPage() {
       <Card>
         <CardHeader>
           <CardTitle>Verifying Reset Token</CardTitle>
-          <CardDescription>Please wait while we verify your reset link...</CardDescription>
+          <CardDescription>
+            Please wait while we verify your reset link...
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center py-8">
           <Spinner />
@@ -61,7 +65,9 @@ export default function VerifyResetTokenPage() {
       <Card>
         <CardHeader>
           <CardTitle>Invalid Reset Link</CardTitle>
-          <CardDescription>This password reset link is invalid or has expired</CardDescription>
+          <CardDescription>
+            This password reset link is invalid or has expired
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="border-2 border-destructive p-3">

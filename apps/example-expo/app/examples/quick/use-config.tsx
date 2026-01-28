@@ -1,15 +1,21 @@
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native'
-import { useConfig } from '@togglebox/sdk-expo'
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
+import { useConfig } from "@togglebox/sdk-expo";
 
 export default function UseConfigScreen() {
-  const { config, isLoading, error, refresh } = useConfig()
+  const { config, isLoading, error, refresh } = useConfig();
 
   if (isLoading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#3b82f6" />
       </View>
-    )
+    );
   }
 
   if (error) {
@@ -20,11 +26,11 @@ export default function UseConfigScreen() {
           <Text style={styles.buttonText}>Retry</Text>
         </TouchableOpacity>
       </View>
-    )
+    );
   }
 
-  const theme = (config?.theme as string) ?? 'light'
-  const apiTimeout = (config?.apiTimeout as number) ?? 5000
+  const theme = (config?.theme as string) ?? "light";
+  const apiTimeout = (config?.apiTimeout as number) ?? 5000;
 
   return (
     <View style={styles.container}>
@@ -44,17 +50,28 @@ export default function UseConfigScreen() {
         <Text style={styles.buttonText}>Refresh Config</Text>
       </TouchableOpacity>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
-  card: { backgroundColor: '#f3f4f6', padding: 16, borderRadius: 8, marginBottom: 12 },
-  label: { fontSize: 12, color: '#6b7280', marginBottom: 4 },
-  value: { fontSize: 18, fontWeight: '600', color: '#111827' },
-  button: { backgroundColor: '#3b82f6', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  errorText: { color: '#dc2626', fontSize: 16, marginBottom: 16 },
-})
+  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 16 },
+  card: {
+    backgroundColor: "#f3f4f6",
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  label: { fontSize: 12, color: "#6b7280", marginBottom: 4 },
+  value: { fontSize: 18, fontWeight: "600", color: "#111827" },
+  button: {
+    backgroundColor: "#3b82f6",
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  errorText: { color: "#dc2626", fontSize: 16, marginBottom: 16 },
+});

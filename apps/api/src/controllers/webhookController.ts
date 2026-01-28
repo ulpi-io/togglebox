@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { logger, CloudFrontService } from '@togglebox/shared';
-import { CacheProvider } from '@togglebox/cache';
+import { Request, Response, NextFunction } from "express";
+import { logger, CloudFrontService } from "@togglebox/shared";
+import { CacheProvider } from "@togglebox/cache";
 
 /**
  * Controller handling webhook-compatible HTTP endpoints for CI/CD integration.
@@ -55,35 +55,39 @@ export class WebhookController {
    *
    * @returns HTTP 200 with invalidation ID, paths, and scope, or 400 if parameters are invalid
    */
-  invalidateCache = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  invalidateCache = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, version, global: globalParam } = req.query;
 
-      if (globalParam === 'true') {
+      if (globalParam === "true") {
         const invalidationId = await this.cacheProvider.invalidateGlobalCache();
 
         if (invalidationId) {
-          logger.logCloudFrontInvalidation(invalidationId, ['/*'], true);
+          logger.logCloudFrontInvalidation(invalidationId, ["/*"], true);
         }
-        logger.info('Created global cache invalidation via webhook');
+        logger.info("Created global cache invalidation via webhook");
 
         res.json({
           success: true,
           data: {
             invalidationId,
-            paths: ['/*'],
-            scope: 'global',
+            paths: ["/*"],
+            scope: "global",
           },
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      if (!platform || typeof platform !== 'string') {
+      if (!platform || typeof platform !== "string") {
         res.status(422).json({
           success: false,
-          error: 'Platform parameter is required when global is not true',
-          code: 'VALIDATION_FAILED',
+          error: "Platform parameter is required when global is not true",
+          code: "VALIDATION_FAILED",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -92,20 +96,25 @@ export class WebhookController {
       let paths: string[];
       let scope: string;
 
-      if (version && typeof version === 'string') {
-        if (!environment || typeof environment !== 'string') {
+      if (version && typeof version === "string") {
+        if (!environment || typeof environment !== "string") {
           res.status(422).json({
             success: false,
-            error: 'Environment parameter is required when version is specified',
-            code: 'VALIDATION_FAILED',
+            error:
+              "Environment parameter is required when version is specified",
+            code: "VALIDATION_FAILED",
             timestamp: new Date().toISOString(),
           });
           return;
         }
 
-        paths = this.cacheProvider.generateCachePaths(platform, environment, version);
+        paths = this.cacheProvider.generateCachePaths(
+          platform,
+          environment,
+          version,
+        );
         scope = `platform:${platform}/environment:${environment}/version:${version}`;
-      } else if (environment && typeof environment === 'string') {
+      } else if (environment && typeof environment === "string") {
         paths = this.cacheProvider.generateCachePaths(platform, environment);
         scope = `platform:${platform}/environment:${environment}`;
       } else {
@@ -118,7 +127,9 @@ export class WebhookController {
       if (invalidationId) {
         logger.logCloudFrontInvalidation(invalidationId, paths, true);
       }
-      logger.info(`Created cache invalidation ${invalidationId || 'skipped'} via webhook for scope: ${scope}`);
+      logger.info(
+        `Created cache invalidation ${invalidationId || "skipped"} via webhook for scope: ${scope}`,
+      );
 
       res.json({
         success: true,
@@ -130,7 +141,7 @@ export class WebhookController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error('Webhook cache invalidation failed', error);
+      logger.error("Webhook cache invalidation failed", error);
       next(error);
     }
   };
@@ -148,21 +159,26 @@ export class WebhookController {
    *
    * @returns HTTP 200 with invalidation status and details, or 400 if ID is missing
    */
-  getInvalidationStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getInvalidationStatus = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { invalidationId } = req.params;
 
       if (!invalidationId) {
         res.status(422).json({
           success: false,
-          error: 'Invalidation ID is required',
-          code: 'VALIDATION_FAILED',
+          error: "Invalidation ID is required",
+          code: "VALIDATION_FAILED",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      const invalidation = await this.cloudfrontService.getInvalidation(invalidationId);
+      const invalidation =
+        await this.cloudfrontService.getInvalidation(invalidationId);
 
       res.json({
         success: true,
@@ -175,7 +191,7 @@ export class WebhookController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error('Failed to get invalidation status', error);
+      logger.error("Failed to get invalidation status", error);
       next(error);
     }
   };
@@ -198,22 +214,29 @@ export class WebhookController {
    *
    * @returns HTTP 200 with invalidation list and pagination metadata, or 400 if maxItems is invalid
    */
-  listInvalidations = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  listInvalidations = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { maxItems } = req.query;
-      const maxItemsNum = maxItems ? parseInt(maxItems as string, 10) : undefined;
+      const maxItemsNum = maxItems
+        ? parseInt(maxItems as string, 10)
+        : undefined;
 
       if (maxItemsNum && (isNaN(maxItemsNum) || maxItemsNum <= 0)) {
         res.status(422).json({
           success: false,
-          error: 'maxItems must be a positive integer',
-          code: 'VALIDATION_FAILED',
+          error: "maxItems must be a positive integer",
+          code: "VALIDATION_FAILED",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      const invalidationList = await this.cloudfrontService.listInvalidations(maxItemsNum);
+      const invalidationList =
+        await this.cloudfrontService.listInvalidations(maxItemsNum);
 
       res.json({
         success: true,
@@ -227,7 +250,7 @@ export class WebhookController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error('Failed to list invalidations', error);
+      logger.error("Failed to list invalidations", error);
       next(error);
     }
   };

@@ -66,7 +66,7 @@ export interface PasswordResetToken {
  */
 export type CreatePasswordResetTokenData = Omit<
   PasswordResetToken,
-  'id' | 'createdAt'
+  "id" | "createdAt"
 > & {
   /** Plain text token to be hashed (never stored, only sent via email) */
   token: string;
@@ -91,7 +91,9 @@ export type CreatePasswordResetTokenData = Omit<
  * isPasswordResetTokenExpired(token); // true (if current time is after expiration)
  * ```
  */
-export function isPasswordResetTokenExpired(token: PasswordResetToken): boolean {
+export function isPasswordResetTokenExpired(
+  token: PasswordResetToken,
+): boolean {
   return new Date() > new Date(token.expiresAt);
 }
 
@@ -149,14 +151,14 @@ export function generatePasswordResetToken(): string {
   // Generate 32 random bytes and convert to hex string
   // This will be hashed before storage
   const bytes = new Uint8Array(32);
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
     crypto.getRandomValues(bytes);
   } else {
     // Fallback for Node.js
-    const nodeCrypto = require('crypto');
+    const nodeCrypto = require("crypto");
     nodeCrypto.randomFillSync(bytes);
   }
   return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }

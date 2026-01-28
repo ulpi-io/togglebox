@@ -1,12 +1,13 @@
-import { requireAuth } from '@/lib/auth/session';
-import { UserMenu } from '@/components/layout/user-menu';
-import { Sidebar } from '@/components/layout/sidebar';
-import { MobileSidebar } from '@/components/layout/mobile-sidebar';
-import { Breadcrumbs } from '@/components/layout/breadcrumbs';
-import Link from 'next/link';
-import type { User } from '@/lib/api/types';
+import { requireAuth } from "@/lib/auth/session";
+import { UserMenu } from "@/components/layout/user-menu";
+import { Sidebar } from "@/components/layout/sidebar";
+import { MobileSidebar } from "@/components/layout/mobile-sidebar";
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { DashboardContent } from "@/components/layout/dashboard-content";
+import Link from "next/link";
+import type { User } from "@/lib/api/types";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({
   children,
@@ -48,7 +49,7 @@ export default async function DashboardLayout({
         <main className="flex-1 min-w-0">
           <div className="p-4 sm:p-6 lg:p-8">
             <Breadcrumbs />
-            {children}
+            <DashboardContent>{children}</DashboardContent>
           </div>
         </main>
       </div>

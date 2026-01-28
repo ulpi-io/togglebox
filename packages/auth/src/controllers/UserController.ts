@@ -18,9 +18,15 @@
  * Admin-only endpoints should be protected by role middleware.
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { UserService } from '../services/UserService';
-import { AuthRequest } from '../middleware/auth';
+import { Request, Response, NextFunction } from "express";
+import { z } from "zod";
+import { UserService } from "../services/UserService";
+import { AuthRequest } from "../middleware/auth";
+import {
+  updateProfileSchema,
+  changePasswordSchema,
+  adminCreateUserSchema,
+} from "../validators/authSchemas";
 
 /**
  * User management controller class.
@@ -63,12 +69,16 @@ export class UserController {
    * - 404 Not Found: User no longer exists
    * - 500 Internal Server Error: Server error
    */
-  getMe = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  getMe = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          error: 'Authentication required',
+          error: "Authentication required",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -78,7 +88,7 @@ export class UserController {
       if (!user) {
         res.status(404).json({
           success: false,
-          error: 'User not found',
+          error: "User not found",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -132,18 +142,26 @@ export class UserController {
    * **Security Note:**
    * For password changes, use the dedicated password endpoint instead.
    */
-  updateMe = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  updateMe = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          error: 'Authentication required',
+          error: "Authentication required",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      const user = await this.userService.updateProfile(req.user.userId, req.body);
+      // SECURITY: Validate input to prevent privilege escalation
+      // updateProfileSchema only allows { name? }, blocking role/passwordHash
+      const data = updateProfileSchema.parse(req.body);
+
+      const user = await this.userService.updateProfile(req.user.userId, data);
 
       res.status(200).json({
         success: true,
@@ -151,6 +169,18 @@ export class UserController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: "Validation failed",
+          details: error.errors.map((err) => ({
+            field: err.path.join("."),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       next(error);
     }
   };
@@ -193,34 +223,49 @@ export class UserController {
   changePassword = async (
     req: AuthRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          error: 'Authentication required',
+          error: "Authentication required",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      const { currentPassword, newPassword } = req.body;
+      // SECURITY: Validate input to enforce password strength requirements
+      const { currentPassword, newPassword } = changePasswordSchema.parse(
+        req.body,
+      );
 
       await this.userService.changePassword(
         req.user.userId,
         currentPassword,
-        newPassword
+        newPassword,
       );
 
       res.status(200).json({
         success: true,
-        message: 'Password changed successfully',
+        message: "Password changed successfully",
         timestamp: new Date().toISOString(),
       });
     } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: "Validation failed",
+          details: error.errors.map((err) => ({
+            field: err.path.join("."),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       const err = error as { message?: string };
-      if (err.message?.includes('incorrect')) {
+      if (err.message?.includes("incorrect")) {
         res.status(401).json({
           success: false,
           error: err.message,
@@ -276,36 +321,23 @@ export class UserController {
    * - Password is hashed with bcrypt before storage
    * - Password hash is never returned in response
    */
-  createUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  createUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { name, email, password, role } = req.body;
-
-      // Validate required fields
-      if (!name || !email || !password) {
-        res.status(400).json({
-          success: false,
-          error: 'Name, email, and password are required',
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-
-      // Validate role if provided
-      if (role && !['admin', 'developer', 'viewer'].includes(role)) {
-        res.status(422).json({
-          success: false,
-          error: 'Invalid role. Must be admin, developer, or viewer',
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
+      // SECURITY: Validate input to enforce email format and password strength
+      const { name, email, password, role } = adminCreateUserSchema.parse(
+        req.body,
+      );
 
       // Register user via service
       const user = await this.userService.register({
         name,
         email,
         password,
-        role: role || 'viewer',
+        role: role || "viewer",
       });
 
       res.status(201).json({
@@ -314,8 +346,20 @@ export class UserController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: "Validation failed",
+          details: error.errors.map((err) => ({
+            field: err.path.join("."),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       const err = error as { message?: string };
-      if (err.message?.includes('already exists')) {
+      if (err.message?.includes("already exists")) {
         res.status(409).json({
           success: false,
           error: err.message,
@@ -379,11 +423,24 @@ export class UserController {
    * - 403 Forbidden: Non-admin user
    * - 500 Internal Server Error: Server error
    */
-  listUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  listUsers = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const limit = parseInt((req.query['limit'] as string) || '20', 10);
-      const offset = parseInt((req.query['offset'] as string) || '0', 10);
-      const role = req.query['role'] as string | undefined;
+      // Safely parse and clamp limit/offset to valid ranges
+      const toPositiveInt = (v: unknown, fallback: number): number => {
+        const n = Number(v);
+        return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+      };
+
+      const limit = Math.min(
+        100,
+        Math.max(1, toPositiveInt(req.query["limit"], 20)),
+      );
+      const offset = Math.max(0, toPositiveInt(req.query["offset"], 0));
+      const role = req.query["role"] as string | undefined;
 
       const result = await this.userService.listUsers({
         limit,
@@ -447,14 +504,14 @@ export class UserController {
   getUserById = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
-      const id = req.params['id'];
+      const id = req.params["id"];
       if (!id) {
         res.status(400).json({
           success: false,
-          error: 'Missing user ID',
+          error: "Missing user ID",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -465,7 +522,7 @@ export class UserController {
       if (!user) {
         res.status(404).json({
           success: false,
-          error: 'User not found',
+          error: "User not found",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -523,14 +580,14 @@ export class UserController {
   deleteUser = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
-      const id = req.params['id'];
+      const id = req.params["id"];
       if (!id) {
         res.status(400).json({
           success: false,
-          error: 'Missing user ID',
+          error: "Missing user ID",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -540,7 +597,7 @@ export class UserController {
 
       res.status(200).json({
         success: true,
-        message: 'User deleted successfully',
+        message: "User deleted successfully",
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
@@ -595,49 +652,51 @@ export class UserController {
   updateUserRole = async (
     req: AuthRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
-      const id = req.params['id'];
+      const id = req.params["id"];
       const { role } = req.body;
 
       if (!id) {
         res.status(400).json({
           success: false,
-          error: 'Missing user ID',
+          error: "Missing user ID",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      if (!role || !['admin', 'developer', 'viewer'].includes(role)) {
+      if (!role || !["admin", "developer", "viewer"].includes(role)) {
         res.status(400).json({
           success: false,
-          error: 'Invalid role. Must be admin, developer, or viewer',
+          error: "Invalid role. Must be admin, developer, or viewer",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
       // Prevent admin from demoting themselves
-      if (req.user && req.user.userId === id && role !== 'admin') {
+      if (req.user && req.user.userId === id && role !== "admin") {
         res.status(403).json({
           success: false,
-          error: 'Cannot demote yourself. Ask another admin to change your role.',
+          error:
+            "Cannot demote yourself. Ask another admin to change your role.",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
       // SECURITY: Prevent demoting the last admin user
-      if (role !== 'admin') {
+      if (role !== "admin") {
         const targetUser = await this.userService.getUserById(id);
-        if (targetUser?.role === 'admin') {
-          const adminCount = await this.userService.countByRole('admin');
+        if (targetUser?.role === "admin") {
+          const adminCount = await this.userService.countByRole("admin");
           if (adminCount <= 1) {
             res.status(400).json({
               success: false,
-              error: 'Cannot demote the last admin user. Promote another user to admin first.',
+              error:
+                "Cannot demote the last admin user. Promote another user to admin first.",
               timestamp: new Date().toISOString(),
             });
             return;
@@ -654,10 +713,10 @@ export class UserController {
       });
     } catch (error: unknown) {
       const err = error as { message?: string };
-      if (err.message?.includes('not found')) {
+      if (err.message?.includes("not found")) {
         res.status(404).json({
           success: false,
-          error: 'User not found',
+          error: "User not found",
           timestamp: new Date().toISOString(),
         });
         return;

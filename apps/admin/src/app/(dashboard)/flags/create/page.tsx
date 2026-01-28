@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { createFlagApi } from '@/lib/api/flags';
-import { getPlatformsApi, getEnvironmentsApi } from '@/lib/api/platforms';
-import type { Platform, Environment } from '@/lib/api/types';
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createFlagApi } from "@/lib/api/flags";
+import { getPlatformsApi, getEnvironmentsApi } from "@/lib/api/platforms";
+import type { Platform, Environment } from "@/lib/api/types";
 import {
   Button,
   Checkbox,
@@ -18,15 +18,15 @@ import {
   CardHeader,
   CardTitle,
   Steps,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
-type FlagType = 'boolean' | 'string' | 'number';
+type FlagType = "boolean" | "string" | "number";
 
 interface CountryLanguagePair {
   id: string;
   country: string;
   languages: string;
-  serveValue: 'A' | 'B';
+  serveValue: "A" | "B";
 }
 
 interface ValidationResult {
@@ -36,9 +36,9 @@ interface ValidationResult {
 }
 
 const STEPS = [
-  { id: 'basic', label: 'Basic Info' },
-  { id: 'values', label: 'Values' },
-  { id: 'targeting', label: 'Targeting' },
+  { id: "basic", label: "Basic Info" },
+  { id: "values", label: "Values" },
+  { id: "targeting", label: "Targeting" },
 ];
 
 function validateUserList(input: string): ValidationResult {
@@ -48,7 +48,7 @@ function validateUserList(input: string): ValidationResult {
 
   const entries = input
     .split(/[,\n]/)
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean);
 
   const seen = new Set<string>();
@@ -72,20 +72,27 @@ function validateUserList(input: string): ValidationResult {
   return { valid, duplicates, invalid };
 }
 
-function validateCountryCode(code: string): { valid: boolean; formatted: string } {
+function validateCountryCode(code: string): {
+  valid: boolean;
+  formatted: string;
+} {
   const trimmed = code.trim().toUpperCase();
   const isValid = /^[A-Z]{2}$/.test(trimmed);
-  return { valid: isValid || trimmed === '', formatted: trimmed };
+  return { valid: isValid || trimmed === "", formatted: trimmed };
 }
 
-function validateLanguages(input: string): { valid: string[]; invalid: string[]; duplicates: string[] } {
+function validateLanguages(input: string): {
+  valid: string[];
+  invalid: string[];
+  duplicates: string[];
+} {
   if (!input.trim()) {
     return { valid: [], invalid: [], duplicates: [] };
   }
 
   const entries = input
-    .split(',')
-    .map(s => s.trim().toLowerCase())
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
 
   const seen = new Set<string>();
@@ -114,14 +121,14 @@ export default function CreateFlagPage() {
   const router = useRouter();
 
   // Step navigation
-  const [currentStep, setCurrentStep] = useState('basic');
+  const [currentStep, setCurrentStep] = useState("basic");
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
 
   // Platform/Environment selection
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [selectedPlatform, setSelectedPlatform] = useState('');
-  const [selectedEnvironment, setSelectedEnvironment] = useState('');
+  const [selectedPlatform, setSelectedPlatform] = useState("");
+  const [selectedEnvironment, setSelectedEnvironment] = useState("");
   const [loadingPlatforms, setLoadingPlatforms] = useState(true);
   const [loadingEnvironments, setLoadingEnvironments] = useState(false);
 
@@ -138,7 +145,7 @@ export default function CreateFlagPage() {
   useEffect(() => {
     if (selectedPlatform) {
       setLoadingEnvironments(true);
-      setSelectedEnvironment('');
+      setSelectedEnvironment("");
       getEnvironmentsApi(selectedPlatform)
         .then(setEnvironments)
         .catch(console.error)
@@ -150,38 +157,51 @@ export default function CreateFlagPage() {
   const environment = selectedEnvironment;
 
   // Basic fields
-  const [flagKey, setFlagKey] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [flagType, setFlagType] = useState<FlagType>('boolean');
+  const [flagKey, setFlagKey] = useState("");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [flagType, setFlagType] = useState<FlagType>("boolean");
   const [enabled, setEnabled] = useState(false);
 
   // 2-value model
-  const [valueA, setValueA] = useState<string>('true');
-  const [valueB, setValueB] = useState<string>('false');
+  const [valueA, setValueA] = useState<string>("true");
+  const [valueB, setValueB] = useState<string>("false");
 
   // Targeting
-  const [countryLanguagePairs, setCountryLanguagePairs] = useState<CountryLanguagePair[]>([]);
-  const [forceIncludeUsers, setForceIncludeUsers] = useState('');
-  const [forceExcludeUsers, setForceExcludeUsers] = useState('');
+  const [countryLanguagePairs, setCountryLanguagePairs] = useState<
+    CountryLanguagePair[]
+  >([]);
+  const [forceIncludeUsers, setForceIncludeUsers] = useState("");
+  const [forceExcludeUsers, setForceExcludeUsers] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Validation results for targeting
-  const includeUsersValidation = useMemo(() => validateUserList(forceIncludeUsers), [forceIncludeUsers]);
-  const excludeUsersValidation = useMemo(() => validateUserList(forceExcludeUsers), [forceExcludeUsers]);
+  const includeUsersValidation = useMemo(
+    () => validateUserList(forceIncludeUsers),
+    [forceIncludeUsers],
+  );
+  const excludeUsersValidation = useMemo(
+    () => validateUserList(forceExcludeUsers),
+    [forceExcludeUsers],
+  );
 
   // Step validation
   const stepValidation = useMemo(() => {
     const basic = {
-      isValid: !!(selectedPlatform && selectedEnvironment && flagKey.trim() && name.trim()),
+      isValid: !!(
+        selectedPlatform &&
+        selectedEnvironment &&
+        flagKey.trim() &&
+        name.trim()
+      ),
       errors: [] as string[],
     };
-    if (!selectedPlatform) basic.errors.push('Platform is required');
-    if (!selectedEnvironment) basic.errors.push('Environment is required');
-    if (!flagKey.trim()) basic.errors.push('Flag key is required');
-    if (!name.trim()) basic.errors.push('Display name is required');
+    if (!selectedPlatform) basic.errors.push("Platform is required");
+    if (!selectedEnvironment) basic.errors.push("Environment is required");
+    if (!flagKey.trim()) basic.errors.push("Flag key is required");
+    if (!name.trim()) basic.errors.push("Display name is required");
 
     const values = {
       isValid: true,
@@ -189,60 +209,79 @@ export default function CreateFlagPage() {
     };
 
     const targeting = {
-      isValid: includeUsersValidation.invalid.length === 0 && excludeUsersValidation.invalid.length === 0,
+      isValid:
+        includeUsersValidation.invalid.length === 0 &&
+        excludeUsersValidation.invalid.length === 0,
       errors: [] as string[],
     };
     if (includeUsersValidation.invalid.length > 0) {
-      targeting.errors.push(`Invalid include users: ${includeUsersValidation.invalid.join(', ')}`);
+      targeting.errors.push(
+        `Invalid include users: ${includeUsersValidation.invalid.join(", ")}`,
+      );
     }
     if (excludeUsersValidation.invalid.length > 0) {
-      targeting.errors.push(`Invalid exclude users: ${excludeUsersValidation.invalid.join(', ')}`);
+      targeting.errors.push(
+        `Invalid exclude users: ${excludeUsersValidation.invalid.join(", ")}`,
+      );
     }
 
     return { basic, values, targeting };
-  }, [selectedPlatform, selectedEnvironment, flagKey, name, includeUsersValidation, excludeUsersValidation]);
+  }, [
+    selectedPlatform,
+    selectedEnvironment,
+    flagKey,
+    name,
+    includeUsersValidation,
+    excludeUsersValidation,
+  ]);
 
   const canProceed = (step: string) => {
-    if (step === 'basic') return stepValidation.basic.isValid;
-    if (step === 'values') return stepValidation.values.isValid;
-    if (step === 'targeting') return stepValidation.targeting.isValid;
+    if (step === "basic") return stepValidation.basic.isValid;
+    if (step === "values") return stepValidation.values.isValid;
+    if (step === "targeting") return stepValidation.targeting.isValid;
     return false;
   };
 
-  const allStepsValid = stepValidation.basic.isValid && stepValidation.values.isValid && stepValidation.targeting.isValid;
+  const allStepsValid =
+    stepValidation.basic.isValid &&
+    stepValidation.values.isValid &&
+    stepValidation.targeting.isValid;
 
   const handleStepClick = (stepId: string) => {
-    const stepIndex = STEPS.findIndex(s => s.id === stepId);
-    const currentIndex = STEPS.findIndex(s => s.id === currentStep);
+    const stepIndex = STEPS.findIndex((s) => s.id === stepId);
+    const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
 
     if (stepIndex < currentIndex) {
       setCurrentStep(stepId);
     } else if (stepIndex === currentIndex + 1 && canProceed(currentStep)) {
-      setCompletedSteps(prev => new Set([...prev, currentStep]));
+      setCompletedSteps((prev) => new Set([...prev, currentStep]));
       setCurrentStep(stepId);
     }
   };
 
   const handleNext = () => {
-    const currentIndex = STEPS.findIndex(s => s.id === currentStep);
+    const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
     if (currentIndex < STEPS.length - 1 && canProceed(currentStep)) {
-      setCompletedSteps(prev => new Set([...prev, currentStep]));
+      setCompletedSteps((prev) => new Set([...prev, currentStep]));
       setCurrentStep(STEPS[currentIndex + 1].id);
     }
   };
 
   const handleBack = () => {
-    const currentIndex = STEPS.findIndex(s => s.id === currentStep);
+    const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
     if (currentIndex > 0) {
       setCurrentStep(STEPS[currentIndex - 1].id);
     }
   };
 
-  const parseValue = (val: string, type: FlagType): string | number | boolean | null => {
-    if (type === 'boolean') return val === 'true';
-    if (type === 'number') {
+  const parseValue = (
+    val: string,
+    type: FlagType,
+  ): string | number | boolean | null => {
+    if (type === "boolean") return val === "true";
+    if (type === "number") {
       const parsed = Number(val);
-      if (val.trim() === '' || Number.isNaN(parsed)) {
+      if (val.trim() === "" || Number.isNaN(parsed)) {
         return null; // Signal invalid number
       }
       return parsed;
@@ -252,34 +291,39 @@ export default function CreateFlagPage() {
 
   const handleCountryChange = (id: string, country: string) => {
     const { formatted } = validateCountryCode(country);
-    setCountryLanguagePairs(prev =>
-      prev.map(pair => pair.id === id ? { ...pair, country: formatted } : pair)
+    setCountryLanguagePairs((prev) =>
+      prev.map((pair) =>
+        pair.id === id ? { ...pair, country: formatted } : pair,
+      ),
     );
   };
 
   const handleLanguagesChange = (id: string, languages: string) => {
-    setCountryLanguagePairs(prev =>
-      prev.map(pair => pair.id === id ? { ...pair, languages } : pair)
+    setCountryLanguagePairs((prev) =>
+      prev.map((pair) => (pair.id === id ? { ...pair, languages } : pair)),
     );
   };
 
-  const handleServeValueChange = (id: string, serveValue: 'A' | 'B') => {
-    setCountryLanguagePairs(prev =>
-      prev.map(pair => pair.id === id ? { ...pair, serveValue } : pair)
+  const handleServeValueChange = (id: string, serveValue: "A" | "B") => {
+    setCountryLanguagePairs((prev) =>
+      prev.map((pair) => (pair.id === id ? { ...pair, serveValue } : pair)),
     );
   };
 
   const addCountryLanguagePair = () => {
-    setCountryLanguagePairs(prev => [...prev, {
-      id: crypto.randomUUID(),
-      country: '',
-      languages: '',
-      serveValue: 'A',
-    }]);
+    setCountryLanguagePairs((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        country: "",
+        languages: "",
+        serveValue: "A",
+      },
+    ]);
   };
 
   const removeCountryLanguagePair = (id: string) => {
-    setCountryLanguagePairs(prev => prev.filter(pair => pair.id !== id));
+    setCountryLanguagePairs((prev) => prev.filter((pair) => pair.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -290,11 +334,11 @@ export default function CreateFlagPage() {
     const parsedValueA = parseValue(valueA, flagType);
     const parsedValueB = parseValue(valueB, flagType);
     if (parsedValueA === null) {
-      setError('Value A must be a valid number');
+      setError("Value A must be a valid number");
       return;
     }
     if (parsedValueB === null) {
-      setError('Value B must be a valid number');
+      setError("Value B must be a valid number");
       return;
     }
 
@@ -302,18 +346,22 @@ export default function CreateFlagPage() {
     setError(null);
 
     const validCountries = countryLanguagePairs
-      .filter(pair => {
+      .filter((pair) => {
         const { valid } = validateCountryCode(pair.country);
         return valid && pair.country.trim();
       })
-      .map(pair => {
+      .map((pair) => {
         const { valid: validLangs } = validateLanguages(pair.languages);
         return {
           country: pair.country.trim().toUpperCase(),
           serveValue: pair.serveValue,
-          languages: validLangs.length > 0
-            ? validLangs.map(l => ({ language: l, serveValue: pair.serveValue }))
-            : undefined,
+          languages:
+            validLangs.length > 0
+              ? validLangs.map((l) => ({
+                  language: l,
+                  serveValue: pair.serveValue,
+                }))
+              : undefined,
         };
       });
 
@@ -328,19 +376,25 @@ export default function CreateFlagPage() {
         valueB: parsedValueB,
         targeting: {
           countries: validCountries.length > 0 ? validCountries : undefined,
-          forceIncludeUsers: includeUsersValidation.valid.length > 0 ? includeUsersValidation.valid : undefined,
-          forceExcludeUsers: excludeUsersValidation.valid.length > 0 ? excludeUsersValidation.valid : undefined,
+          forceIncludeUsers:
+            includeUsersValidation.valid.length > 0
+              ? includeUsersValidation.valid
+              : undefined,
+          forceExcludeUsers:
+            excludeUsersValidation.valid.length > 0
+              ? excludeUsersValidation.valid
+              : undefined,
         },
       });
       router.push(`/flags?platform=${platform}&environment=${environment}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create flag');
+      setError(err instanceof Error ? err.message : "Failed to create flag");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
+  const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
   const isLastStep = currentStepIndex === STEPS.length - 1;
 
   return (
@@ -368,15 +422,15 @@ export default function CreateFlagPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{STEPS.find(s => s.id === currentStep)?.label}</CardTitle>
+          <CardTitle>
+            {STEPS.find((s) => s.id === currentStep)?.label}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <Alert variant="destructive">{error}</Alert>
-            )}
+            {error && <Alert variant="destructive">{error}</Alert>}
 
-            {currentStep === 'basic' && (
+            {currentStep === "basic" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -388,7 +442,7 @@ export default function CreateFlagPage() {
                       disabled={loadingPlatforms}
                     >
                       <option value="">
-                        {loadingPlatforms ? 'Loading...' : 'Select platform'}
+                        {loadingPlatforms ? "Loading..." : "Select platform"}
                       </option>
                       {platforms.map((p) => (
                         <option key={p.name} value={p.name}>
@@ -406,7 +460,9 @@ export default function CreateFlagPage() {
                       disabled={!selectedPlatform || loadingEnvironments}
                     >
                       <option value="">
-                        {loadingEnvironments ? 'Loading...' : 'Select environment'}
+                        {loadingEnvironments
+                          ? "Loading..."
+                          : "Select environment"}
                       </option>
                       {environments.map((e) => (
                         <option key={e.environment} value={e.environment}>
@@ -422,12 +478,15 @@ export default function CreateFlagPage() {
                   <Input
                     id="flagKey"
                     value={flagKey}
-                    onChange={(e) => setFlagKey(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+                    onChange={(e) =>
+                      setFlagKey(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))
+                    }
                     placeholder="e.g., new-checkout-flow"
                     className="font-mono"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Unique identifier. Only letters, numbers, hyphens, underscores.
+                    Unique identifier. Only letters, numbers, hyphens,
+                    underscores.
                   </p>
                 </div>
 
@@ -459,15 +518,15 @@ export default function CreateFlagPage() {
                     onChange={(e) => {
                       const newType = e.target.value as FlagType;
                       setFlagType(newType);
-                      if (newType === 'boolean') {
-                        setValueA('true');
-                        setValueB('false');
-                      } else if (newType === 'number') {
-                        setValueA('1');
-                        setValueB('0');
+                      if (newType === "boolean") {
+                        setValueA("true");
+                        setValueB("false");
+                      } else if (newType === "number") {
+                        setValueA("1");
+                        setValueB("0");
                       } else {
-                        setValueA('variant-a');
-                        setValueB('variant-b');
+                        setValueA("variant-a");
+                        setValueB("variant-b");
                       }
                     }}
                   >
@@ -479,14 +538,12 @@ export default function CreateFlagPage() {
               </div>
             )}
 
-            {currentStep === 'values' && (
+            {currentStep === "values" && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="valueA">
-                      Value A {flagType === 'boolean' && '(when enabled)'}
-                    </Label>
-                    {flagType === 'boolean' ? (
+                    <Label htmlFor="valueA">Value A (default)</Label>
+                    {flagType === "boolean" ? (
                       <Select
                         id="valueA"
                         value={valueA}
@@ -498,21 +555,20 @@ export default function CreateFlagPage() {
                     ) : (
                       <Input
                         id="valueA"
-                        type={flagType === 'number' ? 'number' : 'text'}
+                        type={flagType === "number" ? "number" : "text"}
                         value={valueA}
                         onChange={(e) => setValueA(e.target.value)}
                         className="font-mono"
                       />
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Served when flag is ON
+                      Default value, served when flag is disabled or no rules
+                      match
                     </p>
                   </div>
                   <div>
-                    <Label htmlFor="valueB">
-                      Value B {flagType === 'boolean' && '(when disabled)'}
-                    </Label>
-                    {flagType === 'boolean' ? (
+                    <Label htmlFor="valueB">Value B (rollout)</Label>
+                    {flagType === "boolean" ? (
                       <Select
                         id="valueB"
                         value={valueB}
@@ -524,14 +580,14 @@ export default function CreateFlagPage() {
                     ) : (
                       <Input
                         id="valueB"
-                        type={flagType === 'number' ? 'number' : 'text'}
+                        type={flagType === "number" ? "number" : "text"}
                         value={valueB}
                         onChange={(e) => setValueB(e.target.value)}
                         className="font-mono"
                       />
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Served when flag is OFF
+                      Served when rollout or targeting applies
                     </p>
                   </div>
                 </div>
@@ -543,18 +599,21 @@ export default function CreateFlagPage() {
                       checked={enabled}
                       onChange={(e) => setEnabled(e.target.checked)}
                     />
-                    <Label htmlFor="enabled" className="font-normal cursor-pointer">
+                    <Label
+                      htmlFor="enabled"
+                      className="font-normal cursor-pointer"
+                    >
                       Enable flag immediately after creation
                     </Label>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 ml-6">
-                    When enabled, matching users will receive Value A
+                    When disabled, all users receive Value A (the default)
                   </p>
                 </div>
               </div>
             )}
 
-            {currentStep === 'targeting' && (
+            {currentStep === "targeting" && (
               <div className="space-y-6">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -575,41 +634,62 @@ export default function CreateFlagPage() {
                   ) : (
                     <div className="space-y-2">
                       {countryLanguagePairs.map((pair) => {
-                        const countryValidation = validateCountryCode(pair.country);
-                        const langValidation = validateLanguages(pair.languages);
+                        const countryValidation = validateCountryCode(
+                          pair.country,
+                        );
+                        const langValidation = validateLanguages(
+                          pair.languages,
+                        );
                         return (
                           <div key={pair.id} className="flex gap-2 items-start">
                             <div className="w-20">
                               <Input
                                 value={pair.country}
-                                onChange={(e) => handleCountryChange(pair.id, e.target.value)}
+                                onChange={(e) =>
+                                  handleCountryChange(pair.id, e.target.value)
+                                }
                                 placeholder="US"
                                 maxLength={2}
                                 className={`font-mono uppercase ${
-                                  pair.country && !countryValidation.valid ? 'border-destructive' : ''
+                                  pair.country && !countryValidation.valid
+                                    ? "border-destructive"
+                                    : ""
                                 }`}
                               />
                               {pair.country && !countryValidation.valid && (
-                                <p className="text-xs text-destructive mt-1">Invalid</p>
+                                <p className="text-xs text-destructive mt-1">
+                                  Invalid
+                                </p>
                               )}
                             </div>
                             <div className="flex-1">
                               <Input
                                 value={pair.languages}
-                                onChange={(e) => handleLanguagesChange(pair.id, e.target.value)}
+                                onChange={(e) =>
+                                  handleLanguagesChange(pair.id, e.target.value)
+                                }
                                 placeholder="en, es, fr (optional)"
-                                className={langValidation.invalid.length > 0 ? 'border-destructive' : ''}
+                                className={
+                                  langValidation.invalid.length > 0
+                                    ? "border-destructive"
+                                    : ""
+                                }
                               />
                               {langValidation.invalid.length > 0 && (
                                 <p className="text-xs text-destructive mt-1">
-                                  Invalid: {langValidation.invalid.join(', ')}
+                                  Invalid: {langValidation.invalid.join(", ")}
                                 </p>
                               )}
                             </div>
                             <div className="w-24">
                               <Select
                                 value={pair.serveValue}
-                                onChange={(e) => handleServeValueChange(pair.id, e.target.value as 'A' | 'B')}
+                                onChange={(e) =>
+                                  handleServeValueChange(
+                                    pair.id,
+                                    e.target.value as "A" | "B",
+                                  )
+                                }
                               >
                                 <option value="A">Serve A</option>
                                 <option value="B">Serve B</option>
@@ -646,12 +726,13 @@ export default function CreateFlagPage() {
                   )}
                   {includeUsersValidation.duplicates.length > 0 && (
                     <p className="text-xs text-warning mt-1">
-                      Duplicates ignored: {includeUsersValidation.duplicates.join(', ')}
+                      Duplicates ignored:{" "}
+                      {includeUsersValidation.duplicates.join(", ")}
                     </p>
                   )}
                   {includeUsersValidation.invalid.length > 0 && (
                     <p className="text-xs text-destructive mt-1">
-                      Invalid: {includeUsersValidation.invalid.join(', ')}
+                      Invalid: {includeUsersValidation.invalid.join(", ")}
                     </p>
                   )}
                 </div>
@@ -672,12 +753,13 @@ export default function CreateFlagPage() {
                   )}
                   {excludeUsersValidation.duplicates.length > 0 && (
                     <p className="text-xs text-warning mt-1">
-                      Duplicates ignored: {excludeUsersValidation.duplicates.join(', ')}
+                      Duplicates ignored:{" "}
+                      {excludeUsersValidation.duplicates.join(", ")}
                     </p>
                   )}
                   {excludeUsersValidation.invalid.length > 0 && (
                     <p className="text-xs text-destructive mt-1">
-                      Invalid: {excludeUsersValidation.invalid.join(', ')}
+                      Invalid: {excludeUsersValidation.invalid.join(", ")}
                     </p>
                   )}
                 </div>
@@ -703,11 +785,8 @@ export default function CreateFlagPage() {
                     Next
                   </Button>
                 ) : (
-                  <Button
-                    type="submit"
-                    disabled={isLoading || !allStepsValid}
-                  >
-                    {isLoading ? 'Creating...' : 'Create Flag'}
+                  <Button type="submit" disabled={isLoading || !allStepsValid}>
+                    {isLoading ? "Creating..." : "Create Flag"}
                   </Button>
                 )}
               </div>

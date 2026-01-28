@@ -1,11 +1,11 @@
-import { getPlatformsApi, getEnvironmentsApi } from './platforms';
-import { listConfigParametersApi } from './configs';
-import { getFlagsApi } from './flags';
-import { getExperimentsApi } from './experiments';
-import { getUsersApi } from './users';
-import { getApiKeysApi } from './api-keys';
-import { browserApiClient } from './browser-client';
-import type { FlagStats, FlagCountryStats, FlagDailyStats } from './types';
+import { getPlatformsApi, getEnvironmentsApi } from "./platforms";
+import { listConfigParametersApi } from "./configs";
+import { getFlagsApi } from "./flags";
+import { getExperimentsApi } from "./experiments";
+import { getUsersApi } from "./users";
+import { getApiKeysApi } from "./api-keys";
+import { browserApiClient } from "./browser-client";
+import type { FlagStats, FlagCountryStats, FlagDailyStats } from "./types";
 
 export interface DashboardStats {
   totalPlatforms: number;
@@ -74,23 +74,31 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
             environments.map(async (env) => {
               try {
                 const [configParams, flags, experiments] = await Promise.all([
-                  listConfigParametersApi(platform.name, env.environment).catch(() => []),
+                  listConfigParametersApi(platform.name, env.environment).catch(
+                    () => [],
+                  ),
                   getFlagsApi(platform.name, env.environment).catch(() => []),
-                  getExperimentsApi(platform.name, env.environment).catch(() => []),
+                  getExperimentsApi(platform.name, env.environment).catch(
+                    () => [],
+                  ),
                 ]);
 
-                totalConfigParameters += Array.isArray(configParams) ? configParams.length : 0;
+                totalConfigParameters += Array.isArray(configParams)
+                  ? configParams.length
+                  : 0;
                 totalFlags += Array.isArray(flags) ? flags.length : 0;
-                totalExperiments += Array.isArray(experiments) ? experiments.length : 0;
+                totalExperiments += Array.isArray(experiments)
+                  ? experiments.length
+                  : 0;
               } catch {
                 // Silently ignore individual environment errors
               }
-            })
+            }),
           );
         } catch {
           // Silently ignore platform errors
         }
-      })
+      }),
     );
 
     // Fetch users and API keys counts
@@ -139,10 +147,10 @@ export async function getDashboardStatsApi(): Promise<DashboardStats> {
 export async function getFlagStatsApi(
   platform: string,
   environment: string,
-  flagKey: string
+  flagKey: string,
 ): Promise<FlagStats> {
   return browserApiClient(
-    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/stats`
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/stats`,
   );
 }
 
@@ -152,10 +160,10 @@ export async function getFlagStatsApi(
 export async function getFlagStatsByCountryApi(
   platform: string,
   environment: string,
-  flagKey: string
+  flagKey: string,
 ): Promise<FlagCountryStats[]> {
   return browserApiClient(
-    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/stats/by-country`
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/stats/by-country`,
   );
 }
 
@@ -166,9 +174,9 @@ export async function getFlagStatsDailyApi(
   platform: string,
   environment: string,
   flagKey: string,
-  days: number = 30
+  days: number = 30,
 ): Promise<FlagDailyStats[]> {
   return browserApiClient(
-    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/stats/daily?days=${days}`
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/stats/daily?days=${days}`,
   );
 }

@@ -1,29 +1,35 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { AlertCircle, CheckCircle2, Info, AlertTriangle, X } from 'lucide-react';
-import { cn } from '../utils/cn';
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Info,
+  AlertTriangle,
+  X,
+} from "lucide-react";
+import { cn } from "../utils/cn";
 
 const alertVariants = cva(
-  'relative w-full rounded-xl border p-4 [&>svg~*]:pl-7 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground',
+  "relative w-full rounded-xl border p-4 [&>svg~*]:pl-7 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
   {
     variants: {
       variant: {
-        default: 'bg-white/90 border-black/10 text-foreground',
+        default: "bg-white/90 border-black/10 text-foreground",
         destructive:
-          'bg-destructive/10 border-destructive/20 text-destructive [&>svg]:text-destructive',
+          "bg-destructive/10 border-destructive/20 text-destructive [&>svg]:text-destructive",
         success:
-          'bg-success/10 border-success/20 text-success [&>svg]:text-success',
+          "bg-success/10 border-success/20 text-success [&>svg]:text-success",
         warning:
-          'bg-warning/10 border-warning/20 text-warning [&>svg]:text-warning',
-        info: 'bg-info/10 border-info/20 text-info [&>svg]:text-info',
+          "bg-warning/10 border-warning/20 text-warning [&>svg]:text-warning",
+        info: "bg-info/10 border-info/20 text-info [&>svg]:text-info",
       },
     },
     defaultVariants: {
-      variant: 'default',
+      variant: "default",
     },
-  }
+  },
 );
 
 const iconMap = {
@@ -41,8 +47,8 @@ interface AlertProps
 }
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
-  ({ className, variant = 'default', children, onClose, ...props }, ref) => {
-    const Icon = iconMap[variant || 'default'];
+  ({ className, variant = "default", children, onClose, ...props }, ref) => {
+    const Icon = iconMap[variant || "default"];
 
     return (
       <div
@@ -65,9 +71,9 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
         )}
       </div>
     );
-  }
+  },
 );
-Alert.displayName = 'Alert';
+Alert.displayName = "Alert";
 
 const AlertTitle = React.forwardRef<
   HTMLParagraphElement,
@@ -75,11 +81,11 @@ const AlertTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h5
     ref={ref}
-    className={cn('mb-1 font-semibold leading-none tracking-tight', className)}
+    className={cn("mb-1 font-semibold leading-none tracking-tight", className)}
     {...props}
   />
 ));
-AlertTitle.displayName = 'AlertTitle';
+AlertTitle.displayName = "AlertTitle";
 
 const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
@@ -87,10 +93,10 @@ const AlertDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('text-sm [&_p]:leading-relaxed', className)}
+    className={cn("text-sm [&_p]:leading-relaxed", className)}
     {...props}
   />
 ));
-AlertDescription.displayName = 'AlertDescription';
+AlertDescription.displayName = "AlertDescription";
 
 export { Alert, AlertTitle, AlertDescription };

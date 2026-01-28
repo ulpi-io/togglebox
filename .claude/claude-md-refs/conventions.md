@@ -3,6 +3,7 @@
 **Recommended** development standards and workflow conventions for ToggleBox dual monorepo structure.
 
 **Architecture:** This file documents conventions for **BOTH monorepos**:
+
 ```
 /Users/ciprian/work/_______OGG_______/togglebox/  ← Parent directory
 ├── togglebox/          ← Open source monorepo
@@ -10,6 +11,7 @@
 ```
 
 **Current Status (togglebox/ - Open Source):**
+
 - ✅ **Git repository initialized** - `.git` directory exists
 - ✅ **CI/CD configured** - GitHub Actions in `.github/workflows/`
   - `ci.yml` - Lint, TypeCheck, Test, Security Audit, Format Check
@@ -24,6 +26,7 @@
 - ✅ **Jest testing** - Configured
 
 **Current Status (togglebox-cloud/ - Private Cloud):**
+
 - ⚠️ **Separate git repository** - togglebox-cloud has its own repository
 - ⚠️ **CI/CD to be configured** - Based on deployment target
 - ✅ **.env.example exists** - Located at `apps/cloud-api/.env.example` and `.env.local.example`
@@ -35,6 +38,7 @@
 ## Git Workflow
 
 **Branching Strategy:** GitHub Flow
+
 - `main` - Production-ready code, protected branch
 - `develop` - Integration branch for features
 - `feature/*` - New features (e.g., `feature/user-authentication`)
@@ -42,16 +46,19 @@
 - `hotfix/*` - Critical production fixes (e.g., `hotfix/payment-error`)
 
 **CI/CD Triggers:**
+
 - CI runs on push to `main` and `develop` branches
 - CI runs on all pull requests targeting `main` or `develop`
 
 **Branch Protection (configure in GitHub):**
+
 - Require pull request before merging to `main`
 - Require 1-2 approvals from team members
 - Require all CI checks to pass
 - No force push to `main`
 
 **Commit Messages:** Conventional Commits format
+
 ```
 feat: add user profile export functionality
 fix: resolve login validation error
@@ -62,6 +69,7 @@ chore: update dependencies
 ```
 
 **Commit Format:**
+
 - `feat:` - New features
 - `fix:` - Bug fixes
 - `docs:` - Documentation only changes
@@ -73,6 +81,7 @@ chore: update dependencies
 ## Pull Request Process
 
 **Requirements:**
+
 - 2 approvals required before merge
 - All CI/CD checks must pass
 - Code review within 24 hours
@@ -80,11 +89,14 @@ chore: update dependencies
 - Delete branch after merge
 
 **PR Template (actual .github/pull_request_template.md):**
+
 ```markdown
 ## Description
+
 <!-- Provide a brief description of the changes in this PR -->
 
 ## Type of Change
+
 - [ ] Bug fix (non-breaking change that fixes an issue)
 - [ ] New feature (non-breaking change that adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
@@ -94,12 +106,14 @@ chore: update dependencies
 - [ ] Dependency update
 
 ## Testing
+
 - [ ] Unit tests added/updated
 - [ ] Integration tests added/updated
 - [ ] Manual testing performed
 - [ ] All existing tests pass
 
 ## Code Quality Checklist
+
 - [ ] Code follows the project's style guidelines (ESLint and Prettier)
 - [ ] Self-review of code completed
 - [ ] Code commented where necessary (especially complex logic)
@@ -109,6 +123,7 @@ chore: update dependencies
 - [ ] Environment variables documented in `.env.example`
 
 ## Security Checklist
+
 - [ ] No secrets or API keys in code
 - [ ] Input validation implemented
 - [ ] No SQL injection vulnerabilities
@@ -116,17 +131,20 @@ chore: update dependencies
 - [ ] Dependencies scanned for vulnerabilities (`pnpm audit`)
 
 ## Performance Checklist
+
 - [ ] No N+1 query patterns introduced
 - [ ] Database queries optimized (indexes, eager loading)
 - [ ] No blocking operations in request handlers
 - [ ] Caching strategy considered (if applicable)
 
 ## Database Changes (if applicable)
+
 - [ ] Prisma schema updated
 - [ ] Migrations created
 - [ ] Rollback plan documented
 
 ## Reviewer Checklist
+
 - [ ] Code is easy to understand and maintain
 - [ ] Tests are comprehensive and meaningful
 - [ ] No security vulnerabilities introduced
@@ -134,6 +152,7 @@ chore: update dependencies
 ```
 
 **Merge Strategy:** Squash and merge
+
 - Keeps `main` history clean
 - Single commit per feature/fix
 - Detailed history preserved in PR
@@ -141,6 +160,7 @@ chore: update dependencies
 ## Code Review Guidelines
 
 **Review Checklist:**
+
 - [ ] Code passes ESLint and Prettier checks
 - [ ] Tests included for new features/fixes
 - [ ] No N+1 queries (check with logging in development)
@@ -155,6 +175,7 @@ chore: update dependencies
 **Review SLA:** Reviews completed within 24 hours (business days)
 
 **Blocking Issues:**
+
 - Security vulnerabilities
 - Failing tests
 - Missing tests for new features
@@ -190,16 +211,19 @@ pnpm lint:fix && pnpm format
 ```
 
 **ESLint Configuration:**
+
 - TypeScript-specific rules via `@typescript-eslint`
 - Configured at root level, applies to all packages
 - Individual packages can extend with package-specific rules
 
 **Prettier Configuration:**
+
 - Consistent formatting across all packages
 - Configured at root level: `.prettierrc` or `prettier.config.js`
 - Formats TypeScript, JSON, YAML, Markdown files
 
 **TypeScript Standards:**
+
 - Strict mode enabled (`strict: true` in `tsconfig.json`)
 - Explicit return types for public functions
 - Avoid `any` type (use `unknown` if truly dynamic)
@@ -207,6 +231,7 @@ pnpm lint:fix && pnpm format
 - Enable `noImplicitAny`, `strictNullChecks`, `strictFunctionTypes`
 
 **Run Before Commit (when git is initialized):**
+
 ```bash
 git add .
 pnpm lint:fix
@@ -216,6 +241,7 @@ git commit -m "feat: your commit message"
 ```
 
 **Additional Standards:**
+
 - Use async/await over promises/callbacks
 - Use const by default, let when reassignment needed, never var
 - Use template literals for string interpolation
@@ -227,12 +253,14 @@ git commit -m "feat: your commit message"
 **Framework:** Jest + ts-jest (TypeScript support)
 
 **Required Tests:**
+
 - Integration test for every API endpoint
 - Unit test for database abstraction layer
 - Test for validation schemas (Zod)
 - Type safety tests (compilation tests via `tsc`)
 
 **Coverage Requirements (Recommended):**
+
 - Controllers: Test all endpoints
 - Database layer: Test multi-database abstractions
 - Core business logic: 80% minimum
@@ -241,6 +269,7 @@ git commit -m "feat: your commit message"
 **Test Organization:**
 
 **togglebox/ (Open Source):**
+
 ```
 apps/api/src/
   controllers/__tests__/
@@ -255,6 +284,7 @@ packages/database/src/
 ```
 
 **togglebox-cloud/ (Private Cloud):**
+
 ```
 apps/cloud-api/src/
   controllers/__tests__/
@@ -271,18 +301,20 @@ packages/multitenancy/src/
 ```
 
 **Test Naming:** Use descriptive names
+
 ```typescript
-describe('POST /api/v1/internal/platforms', () => {
-  it('should create a new platform with valid data', async () => {});
-  it('should return 422 for invalid platform name', async () => {});
-  it('should return 409 for duplicate platform', async () => {});
+describe("POST /api/v1/internal/platforms", () => {
+  it("should create a new platform with valid data", async () => {});
+  it("should return 422 for invalid platform name", async () => {});
+  it("should return 409 for duplicate platform", async () => {});
 });
 ```
 
 **Mock External Services:**
+
 ```typescript
-jest.mock('aws-sdk');
-jest.mock('@prisma/client');
+jest.mock("aws-sdk");
+jest.mock("@prisma/client");
 
 // In test
 const mockDynamoDB = DynamoDB as jest.Mocked<typeof DynamoDB>;
@@ -292,12 +324,14 @@ mockDynamoDB.DocumentClient.prototype.put.mockReturnValue({
 ```
 
 **Run Tests Before Deployment:**
+
 ```bash
 pnpm test
 pnpm build  # Type check via TypeScript compilation
 ```
 
 **CI/CD (Configured):**
+
 - ✅ GitHub Actions configured in `.github/workflows/ci.yml`
 - **Jobs run on PR/push:**
   - `lint` - ESLint checks
@@ -310,6 +344,7 @@ pnpm build  # Type check via TypeScript compilation
 ## Database Conventions
 
 **Multi-Database Support:**
+
 - DynamoDB (single-table design, no migrations)
 - Prisma for SQL databases (MySQL, PostgreSQL, SQLite)
 - Mongoose for MongoDB (schema-less, no migrations)
@@ -334,6 +369,7 @@ pnpm prisma:deploy
 ```
 
 **Prisma Schema Example:**
+
 ```prisma
 model Platform {
   id          String   @id @default(uuid())
@@ -348,6 +384,7 @@ model Platform {
 ```
 
 **Naming Conventions:**
+
 - **Prisma Models**: PascalCase (e.g., `Platform`, `Environment`)
 - **Database Tables**: snake_case (e.g., `platforms`, `environments`)
 - **Columns**: camelCase in Prisma, snake_case in database via `@map()`
@@ -355,6 +392,7 @@ model Platform {
 - **Timestamps**: `createdAt`, `updatedAt` in code, `created_at` in DB
 
 **DynamoDB Conventions:**
+
 ```typescript
 // Single-table design with PK/SK pattern
 {
@@ -367,6 +405,7 @@ model Platform {
 ```
 
 **Indexes:**
+
 - Prisma: Define in schema via `@@index([field])`
 - DynamoDB: Use GSI (Global Secondary Index) for alternate query patterns
 - MongoDB: Create via Mongoose schema `index: true`
@@ -374,6 +413,7 @@ model Platform {
 ## API Conventions
 
 **Response Format:** Consistent JSON structure
+
 ```json
 {
   "data": {
@@ -388,6 +428,7 @@ model Platform {
 ```
 
 **List Response:**
+
 ```json
 {
   "data": [
@@ -404,18 +445,18 @@ model Platform {
 ```
 
 **Error Format:**
+
 ```json
 {
   "error": {
     "message": "Validation failed",
-    "details": [
-      { "field": "email", "message": "Email is required" }
-    ]
+    "details": [{ "field": "email", "message": "Email is required" }]
   }
 }
 ```
 
 **HTTP Status Codes:**
+
 - `200 OK` - Successful GET, PUT, PATCH
 - `201 Created` - Successful POST
 - `204 No Content` - Successful DELETE
@@ -427,12 +468,14 @@ model Platform {
 - `500 Internal Server Error` - Server error
 
 **Pagination:**
+
 - Default limit: 20 items per page
 - Max limit: 100 items per page
 - Query params: `?page=1&perPage=20`
 - Include pagination meta in response
 
 **Filtering:**
+
 - Query parameters for filtering: `?status=active&role=admin`
 - Sorting: `?sort=-createdAt` (- for descending)
 - Search: `?search=keyword`
@@ -451,41 +494,45 @@ API (Express):       Auth/Onboarding: https://api.togglebox.local
 ```
 
 **Frontend URL Pattern:**
+
 - Users ALWAYS access dashboard via `app.togglebox.local`
 - NO redirects to tenant subdomains
 - Tenant context stored in `tenant-subdomain` cookie
 - Cookie is readable by client-side JavaScript (`httpOnly: false`)
 
 **API URL Pattern:**
+
 - Auth endpoints (login, register, password-reset): `api.togglebox.local`
 - Onboarding endpoints (create tenant): `api.togglebox.local`
 - All tenant-specific endpoints: `{tenant}.togglebox.local`
 
 **Cookie-Based Tenant Context:**
+
 ```typescript
 // After onboarding, set tenant cookie with shared domain
-const domain = process.env.NEXT_PUBLIC_DOMAIN || 'togglebox.local';
-cookieStore.set('tenant-subdomain', tenant.subdomain, {
-  httpOnly: false,     // Client needs to read for API URL construction
+const domain = process.env.NEXT_PUBLIC_DOMAIN || "togglebox.local";
+cookieStore.set("tenant-subdomain", tenant.subdomain, {
+  httpOnly: false, // Client needs to read for API URL construction
   secure: true,
-  sameSite: 'lax',
-  maxAge: 60 * 60 * 24 * 365,  // 1 year
-  path: '/',
-  domain: `.${domain}`,  // Shared across all subdomains
+  sameSite: "lax",
+  maxAge: 60 * 60 * 24 * 365, // 1 year
+  path: "/",
+  domain: `.${domain}`, // Shared across all subdomains
 });
 ```
 
 **API Client Pattern:**
+
 ```typescript
 // Server-side: read tenant from cookie
 async function getTenantSubdomain(): Promise<string | null> {
   const cookieStore = await cookies();
-  return cookieStore.get('tenant-subdomain')?.value || null;
+  return cookieStore.get("tenant-subdomain")?.value || null;
 }
 
 // Client-side: read tenant from document.cookie
 function getTenantSubdomainClient(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   const match = document.cookie.match(/(?:^|; )tenant-subdomain=([^;]*)/);
   return match ? decodeURIComponent(match[1]) : null;
 }
@@ -494,15 +541,17 @@ function getTenantSubdomainClient(): string | null {
 const tenant = await getTenantSubdomain();
 const baseUrl = tenant
   ? `https://${tenant}.togglebox.local`
-  : 'https://api.togglebox.local';
+  : "https://api.togglebox.local";
 ```
 
 **Middleware Pattern:**
+
 - Frontend middleware handles ONLY authentication (check `auth-token` cookie)
 - NO tenant detection in frontend middleware (tenant not in URL)
 - API middleware extracts tenant from subdomain
 
 **Environment Variables for Multi-Tenancy:**
+
 ```bash
 # Frontend (cloud-app)
 NEXT_PUBLIC_API_URL=https://api.togglebox.local   # For auth/onboarding
@@ -515,42 +564,51 @@ DOMAIN=togglebox.local                             # Base domain for tenant subd
 ## Naming Conventions
 
 **Files:**
+
 - kebab-case for all files: `config-controller.ts`, `auth-middleware.ts`
 - TypeScript extension: `.ts` for code, `.d.ts` for type declarations
 
 **Controllers:**
+
 - camelCase exported functions (not classes in this project)
 - File suffix: `Controller`
 - Example: `configController.ts` exports functions like `createPlatform`
 
 **Interfaces and Types:**
+
 - PascalCase: `Platform`, `Environment`, `ConfigVersion`
 - Prefix interfaces with `I` if ambiguous: `IConfigInput` vs `Config` model
 
 **Functions:**
+
 - camelCase: `getPlatforms`, `deployConfiguration`, `toggleFeatureFlag`
 
 **Constants:**
+
 - UPPER_SNAKE_CASE: `CACHE_TTL`, `DEFAULT_PAGE_SIZE`, `MAX_PLATFORMS`
 
 **Environment Variables:**
+
 - UPPER_SNAKE_CASE: `DB_TYPE`, `AWS_REGION`, `DYNAMODB_TABLE`
 
 **Package Names (monorepo):**
 
 **togglebox/ (Open Source):**
+
 - Core: `@togglebox/core`, `@togglebox/configs`, `@togglebox/flags`, `@togglebox/experiments`, `@togglebox/stats`
 - Infrastructure: `@togglebox/database`, `@togglebox/cache`, `@togglebox/auth`, `@togglebox/shared`, `@togglebox/ui`
 - JavaScript SDKs: `@togglebox/sdk`, `@togglebox/sdk-nextjs`, `@togglebox/sdk-expo`
 - PHP SDKs: `togglebox/sdk-php` (Composer), `togglebox/sdk-laravel` (Composer)
 
 **togglebox-cloud/ (Private Cloud):**
+
 - Scoped: `@togglebox/billing`, `@togglebox/multitenancy`
 - Uses all open source packages from `togglebox/` plus cloud-specific packages
 
 ## Documentation Standards
 
 **TSDoc Comments:** All public functions and types
+
 ```typescript
 /**
  * Deploys a new configuration version to the specified platform and environment.
@@ -564,24 +622,27 @@ DOMAIN=togglebox.local                             # Base domain for tenant subd
 export async function deployConfiguration(
   platformName: string,
   environmentName: string,
-  config: Record<string, unknown>
+  config: Record<string, unknown>,
 ): Promise<ConfigVersion> {
   // Implementation
 }
 ```
 
 **Focus on WHY, not WHAT:**
+
 - TypeScript types document WHAT the code does
 - Comments explain WHY decisions were made
 - Document business logic and non-obvious patterns
 
 **README Updates:**
+
 - Keep setup instructions current
 - Document all environment variables in `.env.example`
 - Include deployment procedures for each platform
 - Document monorepo workspace structure
 
 **Environment Variables:**
+
 - ✅ **`.env.example` files exist** in both monorepos:
   - `togglebox/apps/api/.env.example` (open source)
   - `togglebox-cloud/apps/cloud-api/.env.example` (cloud)
@@ -660,11 +721,13 @@ API_KEY_SECRET=your-api-key-secret-32-chars-minimum
 ## Security Standards
 
 **Environment Variables:**
+
 - Never commit `.env` files
 - Always update `.env.example` (with dummy values)
 - Document each variable's purpose
 
 **Code Review for Security:**
+
 - Authentication/authorization changes require security-focused review
 - Payment-related code requires lead developer review
 - SQL queries reviewed for injection vulnerabilities
@@ -672,18 +735,21 @@ API_KEY_SECRET=your-api-key-secret-32-chars-minimum
 - Rate limiting implemented on public endpoints
 
 **Secrets Management:**
+
 - Development: `.env` file
 - Production: AWS Secrets Manager, Azure Key Vault, or similar
 - Rotate API keys quarterly
 - Use different keys per environment
 
 **Input Validation:**
+
 - Validate ALL user input with Joi or Zod
 - Sanitize user input before database queries
 - Use parameterized queries (Sequelize does this automatically)
 - Implement rate limiting on all endpoints
 
 **Dependencies:**
+
 - Run `npm audit` regularly
 - Update dependencies monthly
 - Review security advisories
@@ -692,12 +758,14 @@ API_KEY_SECRET=your-api-key-secret-32-chars-minimum
 ## Performance Standards
 
 **Query Optimization:**
+
 - Eager load relationships: `User.findAll({ include: ['posts', 'profile'] })`
 - Use `attributes` to limit columns returned
 - Use `limit` and `offset` for pagination
 - Never query inside loops (N+1 problem)
 
 **N+1 Detection Example:**
+
 ```javascript
 // Bad: N+1 query problem
 const users = await User.findAll();
@@ -707,17 +775,19 @@ for (const user of users) {
 
 // Good: Eager loading
 const users = await User.findAll({
-  include: ['posts']
+  include: ["posts"],
 });
 ```
 
 **Caching Requirements:**
+
 - Cache queries taking >100ms
 - Document cache keys and TTL
 - Invalidate cache before updates
 - Use descriptive cache key prefixes: `cache:users:${id}`
 
 **Async Operations:**
+
 - Always use async/await for I/O operations
 - Never use blocking operations (sync file reads, etc.)
 - Queue long-running operations (>2 seconds)
@@ -728,16 +798,19 @@ const users = await User.findAll({
 **Deployment Targets:**
 
 **togglebox/ (Open Source):**
+
 - AWS Lambda (serverless deploy)
 - Cloudflare Workers (wrangler deploy)
 - Netlify Functions (netlify deploy)
 - Docker/Self-hosted (docker-compose up)
 
 **togglebox-cloud/ (Private Cloud):**
+
 - AWS Lambda + CloudFront + DynamoDB (CloudFormation + serverless)
 - Docker development (make up)
 
 **Pre-Deployment Checklist:**
+
 - [ ] All tests passing locally
 - [ ] All tests passing in CI/CD (when configured)
 - [ ] Code reviewed and approved (when git initialized)
@@ -749,6 +822,7 @@ const users = await User.findAll({
 **Deployment Process (varies by platform):**
 
 **AWS Lambda Deployment:**
+
 ```bash
 # Navigate to app directory
 cd togglebox/apps/api  # or togglebox-cloud/apps/cloud-api
@@ -759,6 +833,7 @@ serverless deploy --stage production
 ```
 
 **Cloudflare Workers Deployment:**
+
 ```bash
 # Navigate to app directory
 cd togglebox/apps/api
@@ -769,6 +844,7 @@ wrangler deploy
 ```
 
 **Docker Deployment (togglebox-cloud/):**
+
 ```bash
 # Navigate to cloud monorepo
 cd /Users/ciprian/work/_______OGG_______/togglebox/togglebox-cloud
@@ -779,6 +855,7 @@ make up
 ```
 
 **Post-Deployment:**
+
 - Monitor error rates in logs
 - Check queue processing
 - Verify cache is working
@@ -787,25 +864,27 @@ make up
 - Announce deployment in team channel
 
 **Health Checks:**
+
 ```javascript
 // /health endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // /ready endpoint (checks dependencies)
-app.get('/ready', async (req, res) => {
+app.get("/ready", async (req, res) => {
   try {
     await sequelize.authenticate();
     await redis.ping();
-    res.json({ status: 'ready' });
+    res.json({ status: "ready" });
   } catch (error) {
-    res.status(503).json({ status: 'not ready' });
+    res.status(503).json({ status: "not ready" });
   }
 });
 ```
 
 **Rollback Procedure:**
+
 ```bash
 # Revert to previous deployment
 pm2 delete all
@@ -818,6 +897,7 @@ pm2 start ecosystem.config.js
 ## Logging Standards
 
 **Log Levels:**
+
 - `trace` - Very detailed debugging (not in production)
 - `debug` - Debugging information
 - `info` - General informational messages
@@ -826,6 +906,7 @@ pm2 start ecosystem.config.js
 - `fatal` - Fatal errors (application crash)
 
 **What to Log:**
+
 - All errors with stack traces
 - Authentication attempts (success/failure)
 - Authorization failures
@@ -834,6 +915,7 @@ pm2 start ecosystem.config.js
 - Database query errors
 
 **What NOT to Log:**
+
 - Passwords or secrets
 - Credit card numbers
 - JWT tokens
@@ -841,12 +923,17 @@ pm2 start ecosystem.config.js
 - Full request/response bodies (unless debugging)
 
 **Structured Logging:**
+
 ```javascript
-logger.info({ userId, action: 'user_created' }, 'User created successfully');
-logger.error({ err, userId, context: { orderId } }, 'Failed to process payment');
+logger.info({ userId, action: "user_created" }, "User created successfully");
+logger.error(
+  { err, userId, context: { orderId } },
+  "Failed to process payment",
+);
 ```
 
 **Correlation IDs:**
+
 - Add unique request ID to every request
 - Include request ID in all logs for that request
 - Return request ID in error responses for support
@@ -865,10 +952,12 @@ app.use((req, res, next) => {
 **Last Updated:** 2026-01-26
 
 **Note:** These conventions apply to **BOTH monorepos**:
+
 - **togglebox/** (open source) - Located at `/Users/ciprian/work/_______OGG_______/togglebox/togglebox`
 - **togglebox-cloud/** (private cloud) - Located at `/Users/ciprian/work/_______OGG_______/togglebox/togglebox-cloud`
 
 **Current Implementation Status:**
+
 - ✅ pnpm workspaces (configured in both)
 - ✅ TypeScript with strict mode (configured in both)
 - ✅ ESLint + Prettier (configured in both)

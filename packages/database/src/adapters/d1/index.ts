@@ -32,22 +32,22 @@
  * ```
  */
 
-import { D1PlatformRepository } from './D1PlatformRepository';
-import { D1EnvironmentRepository } from './D1EnvironmentRepository';
-import { D1ConfigRepository } from './D1ConfigRepository';
-import { D1UsageRepository } from './D1UsageRepository';
-import { D1FlagRepository } from './D1FlagRepository';
-import { D1ExperimentRepository } from './D1ExperimentRepository';
-import { D1StatsRepository } from './D1StatsRepository';
+import { D1PlatformRepository } from "./D1PlatformRepository";
+import { D1EnvironmentRepository } from "./D1EnvironmentRepository";
+import { D1ConfigRepository } from "./D1ConfigRepository";
+import { D1UsageRepository } from "./D1UsageRepository";
+import { D1FlagRepository } from "./D1FlagRepository";
+import { D1ExperimentRepository } from "./D1ExperimentRepository";
+import { D1StatsRepository } from "./D1StatsRepository";
 import {
   IPlatformRepository,
   IEnvironmentRepository,
   IConfigRepository,
   IUsageRepository,
-} from '../../interfaces';
-import type { IFlagRepository } from '@togglebox/flags';
-import type { IExperimentRepository } from '@togglebox/experiments';
-import type { IStatsRepository } from '@togglebox/stats';
+} from "../../interfaces";
+import type { IFlagRepository } from "@togglebox/flags";
+import type { IExperimentRepository } from "@togglebox/experiments";
+import type { IStatsRepository } from "@togglebox/stats";
 
 export interface DatabaseRepositories {
   platform: IPlatformRepository;
@@ -69,7 +69,7 @@ export interface ThreeTierRepositories {
  * Configuration for Cloudflare D1 database
  */
 export interface D1DatabaseConfig {
-  type: 'd1';
+  type: "d1";
   database: D1Database; // D1 database binding from Cloudflare Workers environment
 }
 
@@ -90,7 +90,9 @@ export interface D1DatabaseConfig {
  * }
  * ```
  */
-export function createD1Repositories(config: D1DatabaseConfig): DatabaseRepositories {
+export function createD1Repositories(
+  config: D1DatabaseConfig,
+): DatabaseRepositories {
   const { database } = config;
 
   return {
@@ -132,7 +134,9 @@ export function createD1Repositories(config: D1DatabaseConfig): DatabaseReposito
  * }
  * ```
  */
-export function createD1ThreeTierRepositories(database: D1Database): ThreeTierRepositories {
+export function createD1ThreeTierRepositories(
+  database: D1Database,
+): ThreeTierRepositories {
   return {
     flag: new D1FlagRepository(database),
     experiment: new D1ExperimentRepository(database),

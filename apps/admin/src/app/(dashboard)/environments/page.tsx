@@ -1,10 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { getPlatformsApi, getEnvironmentsApi, updateEnvironmentApi } from '@/lib/api/platforms';
-import { getCurrentUserApi } from '@/lib/api/auth';
-import type { Platform, Environment, User } from '@/lib/api/types';
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import {
+  getPlatformsApi,
+  getEnvironmentsApi,
+  updateEnvironmentApi,
+} from "@/lib/api/platforms";
+import { getCurrentUserApi } from "@/lib/api/auth";
+import type { Platform, Environment, User } from "@/lib/api/types";
 import {
   Card,
   CardContent,
@@ -18,9 +22,9 @@ import {
   TableHeader,
   TableRow,
   FilterTabs,
-} from '@togglebox/ui';
-import { DeleteEnvironmentButton } from '@/components/environments/delete-environment-button';
-import { Layers, Flag, FlaskConical, Pencil, Check, X } from 'lucide-react';
+} from "@togglebox/ui";
+import { DeleteEnvironmentButton } from "@/components/environments/delete-environment-button";
+import { Layers, Flag, FlaskConical, Pencil, Check, X } from "lucide-react";
 
 interface EnvironmentWithPlatform extends Environment {
   platformName: string;
@@ -29,21 +33,23 @@ interface EnvironmentWithPlatform extends Environment {
 interface EditState {
   platformName: string;
   environmentName: string;
-  field: 'description';
+  field: "description";
   value: string;
 }
 
 export default function EnvironmentsPage() {
-  const [environments, setEnvironments] = useState<EnvironmentWithPlatform[]>([]);
+  const [environments, setEnvironments] = useState<EnvironmentWithPlatform[]>(
+    [],
+  );
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPlatform, setSelectedPlatform] = useState<string>('all');
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [editState, setEditState] = useState<EditState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === "admin";
 
   const loadData = useCallback(async () => {
     try {
@@ -65,7 +71,7 @@ export default function EnvironmentsPage() {
             ...envs.map((env) => ({
               ...env,
               platformName: platform.name,
-            }))
+            })),
           );
         } catch {
           // Continue loading other platforms
@@ -74,7 +80,9 @@ export default function EnvironmentsPage() {
 
       setEnvironments(allEnvironments);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load environments');
+      setError(
+        err instanceof Error ? err.message : "Failed to load environments",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -85,16 +93,16 @@ export default function EnvironmentsPage() {
   }, [loadData]);
 
   const filteredEnvironments =
-    selectedPlatform === 'all'
+    selectedPlatform === "all"
       ? environments
       : environments.filter((e) => e.platformName === selectedPlatform);
 
-  const startEditing = (env: EnvironmentWithPlatform, field: 'description') => {
+  const startEditing = (env: EnvironmentWithPlatform, field: "description") => {
     setEditState({
       platformName: env.platformName,
       environmentName: env.environment,
       field,
-      value: env.description || '',
+      value: env.description || "",
     });
   };
 
@@ -107,36 +115,43 @@ export default function EnvironmentsPage() {
 
     setIsSaving(true);
     try {
-      await updateEnvironmentApi(editState.platformName, editState.environmentName, {
-        description: editState.value,
-      });
+      await updateEnvironmentApi(
+        editState.platformName,
+        editState.environmentName,
+        {
+          description: editState.value,
+        },
+      );
       // Update local state
       setEnvironments((prev) =>
         prev.map((e) =>
-          e.platformName === editState.platformName && e.environment === editState.environmentName
+          e.platformName === editState.platformName &&
+          e.environment === editState.environmentName
             ? { ...e, description: editState.value }
-            : e
-        )
+            : e,
+        ),
       );
       setEditState(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update environment');
+      setError(
+        err instanceof Error ? err.message : "Failed to update environment",
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   // Build filter options
   const filterOptions = [
-    { value: 'all', label: 'All Platforms', count: environments.length },
+    { value: "all", label: "All Platforms", count: environments.length },
     ...platforms.map((p) => ({
       value: p.name,
       label: p.name,
@@ -223,9 +238,9 @@ export default function EnvironmentsPage() {
             <div className="text-5xl mb-4">🌍</div>
             <h3 className="text-xl font-semibold mb-2">No Environments Yet</h3>
             <p className="text-muted-foreground mb-6">
-              {selectedPlatform !== 'all'
+              {selectedPlatform !== "all"
                 ? `No environments found for ${selectedPlatform}. Create one to get started.`
-                : 'Create platforms first, then add environments to them.'}
+                : "Create platforms first, then add environments to them."}
             </p>
             <Button asChild>
               <Link href="/platforms">Go to Platforms</Link>
@@ -295,19 +310,22 @@ export default function EnvironmentsPage() {
                   <TableCell>
                     {editState?.platformName === env.platformName &&
                     editState?.environmentName === env.environment &&
-                    editState.field === 'description' ? (
+                    editState.field === "description" ? (
                       <div className="flex items-center gap-2">
                         <Input
                           value={editState.value}
                           onChange={(e) =>
-                            setEditState({ ...editState, value: e.target.value })
+                            setEditState({
+                              ...editState,
+                              value: e.target.value,
+                            })
                           }
                           className="h-8"
                           placeholder="Enter description..."
                           disabled={isSaving}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveEdit();
-                            if (e.key === 'Escape') cancelEditing();
+                            if (e.key === "Enter") saveEdit();
+                            if (e.key === "Escape") cancelEditing();
                           }}
                         />
                         <Button
@@ -330,13 +348,13 @@ export default function EnvironmentsPage() {
                     ) : (
                       <div className="flex items-center gap-2 group">
                         <span className="text-muted-foreground">
-                          {env.description || '-'}
+                          {env.description || "-"}
                         </span>
                         <Button
                           size="sm"
                           variant="ghost"
                           className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-                          onClick={() => startEditing(env, 'description')}
+                          onClick={() => startEditing(env, "description")}
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
@@ -344,28 +362,43 @@ export default function EnvironmentsPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {env.createdBy || '-'}
+                    {env.createdBy || "-"}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {formatDate(env.createdAt)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
-                      <Button asChild variant="ghost" size="icon-sm" title="Configs">
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon-sm"
+                        title="Configs"
+                      >
                         <Link
                           href={`/configs?platform=${env.platformName}&environment=${env.environment}`}
                         >
                           <Layers className="h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button asChild variant="ghost" size="icon-sm" title="Flags">
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon-sm"
+                        title="Flags"
+                      >
                         <Link
                           href={`/flags?platform=${env.platformName}&environment=${env.environment}`}
                         >
                           <Flag className="h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button asChild variant="ghost" size="icon-sm" title="Experiments">
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon-sm"
+                        title="Experiments"
+                      >
                         <Link
                           href={`/experiments?platform=${env.platformName}&environment=${env.environment}`}
                         >

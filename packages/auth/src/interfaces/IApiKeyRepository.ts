@@ -6,7 +6,7 @@
  * API keys are hashed for security and include metadata for tracking and permissions.
  */
 
-import type { ApiKey, PublicApiKey } from '../models/ApiKey';
+import type { ApiKey, PublicApiKey } from "../models/ApiKey";
 
 /**
  * API Key creation data for repository (includes computed security fields).

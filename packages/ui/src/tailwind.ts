@@ -1,1 +1,1 @@
-export { default } from './tailwind/preset';
+export { default } from "./tailwind/preset";

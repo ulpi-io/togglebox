@@ -35,25 +35,25 @@
  * ```
  */
 
-import mongoose from 'mongoose';
-import { DatabaseRepositories, ThreeTierRepositories } from '../../factory';
-import { MongoosePlatformRepository } from './MongoosePlatformRepository';
-import { MongooseEnvironmentRepository } from './MongooseEnvironmentRepository';
-import { MongooseConfigRepository } from './MongooseConfigRepository';
-import { MongooseUsageRepository } from './MongooseUsageRepository';
-import { MongooseFlagRepository } from './MongooseFlagRepository';
-import { MongooseExperimentRepository } from './MongooseExperimentRepository';
-import { MongooseStatsRepository } from './MongooseStatsRepository';
-import { logger } from '@togglebox/shared';
+import mongoose from "mongoose";
+import { DatabaseRepositories, ThreeTierRepositories } from "../../factory";
+import { MongoosePlatformRepository } from "./MongoosePlatformRepository";
+import { MongooseEnvironmentRepository } from "./MongooseEnvironmentRepository";
+import { MongooseConfigRepository } from "./MongooseConfigRepository";
+import { MongooseUsageRepository } from "./MongooseUsageRepository";
+import { MongooseFlagRepository } from "./MongooseFlagRepository";
+import { MongooseExperimentRepository } from "./MongooseExperimentRepository";
+import { MongooseStatsRepository } from "./MongooseStatsRepository";
+import { logger } from "@togglebox/shared";
 
-export * from './MongoosePlatformRepository';
-export * from './MongooseEnvironmentRepository';
-export * from './MongooseConfigRepository';
-export * from './MongooseUsageRepository';
-export * from './MongooseFlagRepository';
-export * from './MongooseExperimentRepository';
-export * from './MongooseStatsRepository';
-export * from './schemas';
+export * from "./MongoosePlatformRepository";
+export * from "./MongooseEnvironmentRepository";
+export * from "./MongooseConfigRepository";
+export * from "./MongooseUsageRepository";
+export * from "./MongooseFlagRepository";
+export * from "./MongooseExperimentRepository";
+export * from "./MongooseStatsRepository";
+export * from "./schemas";
 
 let connectionPromise: Promise<typeof mongoose> | null = null;
 
@@ -83,9 +83,18 @@ let connectionPromise: Promise<typeof mongoose> | null = null;
 function ensureConnection(connectionUrl: string): Promise<typeof mongoose> {
   if (!connectionPromise) {
     // Parse connection pool configuration from environment
-    const maxPoolSize = parseInt(process.env['DATABASE_MAX_POOL_SIZE'] || '10', 10);
-    const minPoolSize = parseInt(process.env['DATABASE_MIN_POOL_SIZE'] || '2', 10);
-    const maxIdleTimeMS = parseInt(process.env['DATABASE_MAX_IDLE_TIME_MS'] || '60000', 10);
+    const maxPoolSize = parseInt(
+      process.env["DATABASE_MAX_POOL_SIZE"] || "10",
+      10,
+    );
+    const minPoolSize = parseInt(
+      process.env["DATABASE_MIN_POOL_SIZE"] || "2",
+      10,
+    );
+    const maxIdleTimeMS = parseInt(
+      process.env["DATABASE_MAX_IDLE_TIME_MS"] || "60000",
+      10,
+    );
 
     const options = {
       // Connection pool configuration
@@ -105,9 +114,9 @@ function ensureConnection(connectionUrl: string): Promise<typeof mongoose> {
     connectionPromise = mongoose.connect(connectionUrl, options);
 
     // Log connection pool events in development
-    if (process.env['NODE_ENV'] === 'development') {
-      mongoose.connection.on('connected', () => {
-        logger.info('MongoDB connection pool established', {
+    if (process.env["NODE_ENV"] === "development") {
+      mongoose.connection.on("connected", () => {
+        logger.info("MongoDB connection pool established", {
           maxPoolSize,
           minPoolSize,
           maxIdleTimeMS,
@@ -127,10 +136,12 @@ function ensureConnection(connectionUrl: string): Promise<typeof mongoose> {
  * @remarks
  * Connection to MongoDB is established lazily on first database operation.
  */
-export function createMongooseRepositories(connectionUrl: string): DatabaseRepositories {
+export function createMongooseRepositories(
+  connectionUrl: string,
+): DatabaseRepositories {
   // Store the connection URL and ensure connection on first use
   ensureConnection(connectionUrl).catch((error) => {
-    logger.error('Failed to connect to MongoDB', error);
+    logger.error("Failed to connect to MongoDB", error);
   });
 
   return {
@@ -191,11 +202,16 @@ export function createMongooseRepositories(connectionUrl: string): DatabaseRepos
  * await threeTier.stats.incrementFlagEvaluation('web', 'production', 'dark-mode', 'A', 'user-123');
  * ```
  */
-export function createMongooseThreeTierRepositories(connectionUrl?: string): ThreeTierRepositories {
+export function createMongooseThreeTierRepositories(
+  connectionUrl?: string,
+): ThreeTierRepositories {
   // Ensure connection if URL provided
   if (connectionUrl) {
     ensureConnection(connectionUrl).catch((error) => {
-      logger.error('Failed to connect to MongoDB for three-tier repositories', error);
+      logger.error(
+        "Failed to connect to MongoDB for three-tier repositories",
+        error,
+      );
     });
   }
 

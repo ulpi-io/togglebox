@@ -1,11 +1,19 @@
-import type { Flag, EvaluationContext as FlagContext, EvaluationResult as FlagResult } from '@togglebox/flags'
-import { evaluateFlag } from '@togglebox/flags'
-import type { Experiment, ExperimentContext, VariantAssignment } from '@togglebox/experiments'
-import { assignVariation } from '@togglebox/experiments'
-import { HttpClient } from './http'
-import { Cache } from './cache'
-import { StatsReporter } from './stats'
-import { ConfigurationError } from './errors'
+import type {
+  Flag,
+  EvaluationContext as FlagContext,
+  EvaluationResult as FlagResult,
+} from "@togglebox/flags";
+import { evaluateFlag } from "@togglebox/flags";
+import type {
+  Experiment,
+  ExperimentContext,
+  VariantAssignment,
+} from "@togglebox/experiments";
+import { assignVariation } from "@togglebox/experiments";
+import { HttpClient } from "./http";
+import { Cache } from "./cache";
+import { StatsReporter } from "./stats";
+import { ConfigurationError } from "./errors";
 import type {
   ClientOptions,
   Config,
@@ -14,7 +22,7 @@ import type {
   ConversionData,
   EventData,
   HealthCheckResponse,
-} from './types'
+} from "./types";
 
 /**
  * ToggleBox Client
@@ -25,60 +33,60 @@ import type {
  * - Tier 3: Experiments (multi-variant A/B testing)
  */
 export class ToggleBoxClient {
-  private http: HttpClient
-  private cache: Cache
-  private stats: StatsReporter
-  private platform: string
-  private environment: string
-  private pollingInterval: number
-  private pollingTimer: NodeJS.Timeout | null = null
-  private isRefreshing = false // Guard against overlapping refresh calls
-  private globalContext: FlagContext = { userId: 'anonymous' }
-  private listeners: Map<ClientEvent, Set<EventListener>> = new Map()
+  private http: HttpClient;
+  private cache: Cache;
+  private stats: StatsReporter;
+  private platform: string;
+  private environment: string;
+  private pollingInterval: number;
+  private pollingTimer: NodeJS.Timeout | null = null;
+  private isRefreshing = false; // Guard against overlapping refresh calls
+  private globalContext: FlagContext = { userId: "anonymous" };
+  private listeners: Map<ClientEvent, Set<EventListener>> = new Map();
 
   constructor(options: ClientOptions) {
     // Validate required options
     if (!options.platform || !options.environment) {
       throw new ConfigurationError(
-        'Missing required options: platform and environment are required'
-      )
+        "Missing required options: platform and environment are required",
+      );
     }
 
     // Validate API URL configuration
     if (!options.apiUrl && !options.tenantSubdomain) {
       throw new ConfigurationError(
-        'Either apiUrl or tenantSubdomain must be provided'
-      )
+        "Either apiUrl or tenantSubdomain must be provided",
+      );
     }
 
     if (options.apiUrl && options.tenantSubdomain) {
       throw new ConfigurationError(
-        'Cannot provide both apiUrl and tenantSubdomain - use one or the other'
-      )
+        "Cannot provide both apiUrl and tenantSubdomain - use one or the other",
+      );
     }
 
     // Construct API URL
     const apiUrl = options.tenantSubdomain
       ? `https://${options.tenantSubdomain}.togglebox.io`
-      : options.apiUrl!
+      : options.apiUrl!;
 
-    this.platform = options.platform
-    this.environment = options.environment
-    this.pollingInterval = options.pollingInterval || 0
-    this.http = new HttpClient(apiUrl, options.fetchImpl, options.apiKey)
-    this.cache = new Cache(options.cache)
+    this.platform = options.platform;
+    this.environment = options.environment;
+    this.pollingInterval = options.pollingInterval || 0;
+    this.http = new HttpClient(apiUrl, options.fetchImpl, options.apiKey);
+    this.cache = new Cache(options.cache);
     this.stats = new StatsReporter(
       this.http,
       this.platform,
       this.environment,
       options.stats,
-      (data) => this.emit('statsFlush', data),
-      (error) => this.emit('error', error)
-    )
+      (data) => this.emit("statsFlush", data),
+      (error) => this.emit("error", error),
+    );
 
     // Start polling if interval is set
     if (this.pollingInterval > 0) {
-      this.startPolling()
+      this.startPolling();
     }
   }
 
@@ -99,8 +107,8 @@ export class ToggleBoxClient {
    * ```
    */
   async checkConnection(): Promise<HealthCheckResponse> {
-    const response = await this.http.get<HealthCheckResponse>('/health')
-    return response
+    const response = await this.http.get<HealthCheckResponse>("/health");
+    return response;
   }
 
   // ==================== TIER 1: REMOTE CONFIGS ====================
@@ -120,15 +128,15 @@ export class ToggleBoxClient {
    */
   async getConfigValue<T>(key: string, defaultValue: T): Promise<T> {
     try {
-      const config = await this.getConfig()
-      const value = config[key]
+      const config = await this.getConfig();
+      const value = config[key];
 
       // Track the fetch
-      this.stats.trackConfigFetch(key)
+      this.stats.trackConfigFetch(key);
 
-      return value !== undefined ? (value as T) : defaultValue
+      return value !== undefined ? (value as T) : defaultValue;
     } catch {
-      return defaultValue
+      return defaultValue;
     }
   }
 
@@ -146,7 +154,7 @@ export class ToggleBoxClient {
    * ```
    */
   async getAllConfigs(): Promise<Config> {
-    return this.getConfig()
+    return this.getConfig();
   }
 
   /**
@@ -157,23 +165,23 @@ export class ToggleBoxClient {
    * but the API returns only active versions as a simple key-value object.
    */
   async getConfig(): Promise<Config> {
-    const cacheKey = `config:${this.platform}:${this.environment}`
+    const cacheKey = `config:${this.platform}:${this.environment}`;
 
     // Try cache first
-    const cached = this.cache.get<Config>(cacheKey)
+    const cached = this.cache.get<Config>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
     // Fetch from Firebase-style endpoint
-    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/configs`
-    const response = await this.http.get<{ data: Config }>(path)
-    const config = response.data
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/configs`;
+    const response = await this.http.get<{ data: Config }>(path);
+    const config = response.data;
 
     // Cache
-    this.cache.set(cacheKey, config)
+    this.cache.set(cacheKey, config);
 
-    return config
+    return config;
   }
 
   // ==================== TIER 2: FEATURE FLAGS (2-value) ====================
@@ -192,34 +200,34 @@ export class ToggleBoxClient {
    * ```
    */
   async getFlag(flagKey: string, context: FlagContext): Promise<FlagResult> {
-    const cacheKey = `flags:${this.platform}:${this.environment}`
+    const cacheKey = `flags:${this.platform}:${this.environment}`;
 
     // Try cache first
-    let flags = this.cache.get<Flag[]>(cacheKey)
+    let flags = this.cache.get<Flag[]>(cacheKey);
     if (!flags) {
-      const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/flags`
-      const response = await this.http.get<{ data: Flag[] }>(path)
-      flags = response.data
-      this.cache.set(cacheKey, flags)
+      const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/flags`;
+      const response = await this.http.get<{ data: Flag[] }>(path);
+      flags = response.data;
+      this.cache.set(cacheKey, flags);
     }
 
-    const flag = flags.find((f) => f.flagKey === flagKey)
+    const flag = flags.find((f) => f.flagKey === flagKey);
     if (!flag) {
-      throw new Error(`Flag "${flagKey}" not found`)
+      throw new Error(`Flag "${flagKey}" not found`);
     }
 
-    const result = evaluateFlag(flag, context)
+    const result = evaluateFlag(flag, context);
 
     // Track the evaluation
     this.stats.trackFlagEvaluation(
       flagKey,
       result.servedValue,
-      context.userId ?? 'anonymous',
+      context.userId ?? "anonymous",
       context.country,
-      context.language
-    )
+      context.language,
+    );
 
-    return result
+    return result;
   }
 
   /**
@@ -241,13 +249,13 @@ export class ToggleBoxClient {
   async isFlagEnabled(
     flagKey: string,
     context: FlagContext,
-    defaultValue = false
+    defaultValue = false,
   ): Promise<boolean> {
     try {
-      const result = await this.getFlag(flagKey, context)
-      return result.servedValue === 'A'
+      const result = await this.getFlag(flagKey, context);
+      return result.servedValue === "A";
     } catch {
-      return defaultValue
+      return defaultValue;
     }
   }
 
@@ -268,12 +276,12 @@ export class ToggleBoxClient {
    * ```
    */
   async getFlagInfo(flagKey: string): Promise<Flag | null> {
-    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/flags/${flagKey}`
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/flags/${flagKey}`;
     try {
-      const response = await this.http.get<{ data: Flag }>(path)
-      return response.data
+      const response = await this.http.get<{ data: Flag }>(path);
+      return response.data;
     } catch {
-      return null
+      return null;
     }
   }
 
@@ -296,36 +304,38 @@ export class ToggleBoxClient {
    */
   async getVariant(
     experimentKey: string,
-    context: ExperimentContext
+    context: ExperimentContext,
   ): Promise<VariantAssignment | null> {
-    const cacheKey = `experiments:${this.platform}:${this.environment}`
+    const cacheKey = `experiments:${this.platform}:${this.environment}`;
 
     // Try cache first
-    let experiments = this.cache.get<Experiment[]>(cacheKey)
+    let experiments = this.cache.get<Experiment[]>(cacheKey);
     if (!experiments) {
-      const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments`
-      const response = await this.http.get<{ data: Experiment[] }>(path)
-      experiments = response.data
-      this.cache.set(cacheKey, experiments)
+      const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments`;
+      const response = await this.http.get<{ data: Experiment[] }>(path);
+      experiments = response.data;
+      this.cache.set(cacheKey, experiments);
     }
 
-    const experiment = experiments.find((e) => e.experimentKey === experimentKey)
+    const experiment = experiments.find(
+      (e) => e.experimentKey === experimentKey,
+    );
     if (!experiment) {
-      throw new Error(`Experiment "${experimentKey}" not found`)
+      throw new Error(`Experiment "${experimentKey}" not found`);
     }
 
-    const assignment = assignVariation(experiment, context)
+    const assignment = assignVariation(experiment, context);
 
     if (assignment) {
       // Track the exposure
       this.stats.trackExperimentExposure(
         experimentKey,
         assignment.variationKey,
-        context.userId
-      )
+        context.userId,
+      );
     }
 
-    return assignment
+    return assignment;
   }
 
   /**
@@ -333,13 +343,18 @@ export class ToggleBoxClient {
    *
    * @param experimentKey - The experiment key
    * @param context - Experiment context
-   * @param data - Conversion data (metricName, optional value)
+   * @param data - Conversion data (metricId, optional value)
+   *
+   * @remarks
+   * This method retrieves the user's variation assignment without tracking
+   * an additional exposure event, preventing double-exposure when the user
+   * has already been exposed via getVariant().
    *
    * @example
    * ```typescript
    * // Track a purchase conversion
    * await client.trackConversion('checkout-test', { userId: 'user-123' }, {
-   *   metricName: 'purchase',
+   *   metricId: 'purchase',
    *   value: 99.99, // Revenue amount
    * })
    * ```
@@ -347,20 +362,50 @@ export class ToggleBoxClient {
   async trackConversion(
     experimentKey: string,
     context: ExperimentContext,
-    data: ConversionData
+    data: ConversionData,
   ): Promise<void> {
-    // Get the user's assigned variation
-    const assignment = await this.getVariant(experimentKey, context)
+    // Get the user's assigned variation WITHOUT tracking exposure
+    // to avoid double-exposure (user was already exposed via getVariant)
+    const assignment = await this.getVariantInternal(experimentKey, context);
 
     if (assignment) {
       this.stats.trackConversion(
         experimentKey,
-        data.metricName,
+        data.metricId,
         assignment.variationKey,
         context.userId,
-        data.value
-      )
+        data.value,
+      );
     }
+  }
+
+  /**
+   * Internal method to get variant assignment without tracking exposure.
+   * Used by trackConversion to avoid double-exposure.
+   */
+  private async getVariantInternal(
+    experimentKey: string,
+    context: ExperimentContext,
+  ): Promise<VariantAssignment | null> {
+    const cacheKey = `experiments:${this.platform}:${this.environment}`;
+
+    // Try cache first
+    let experiments = this.cache.get<Experiment[]>(cacheKey);
+    if (!experiments) {
+      const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments`;
+      const response = await this.http.get<{ data: Experiment[] }>(path);
+      experiments = response.data;
+      this.cache.set(cacheKey, experiments);
+    }
+
+    const experiment = experiments.find(
+      (e) => e.experimentKey === experimentKey,
+    );
+    if (!experiment) {
+      throw new Error(`Experiment "${experimentKey}" not found`);
+    }
+
+    return assignVariation(experiment, context);
   }
 
   /**
@@ -381,10 +426,10 @@ export class ToggleBoxClient {
   trackEvent(
     eventName: string,
     context: ExperimentContext,
-    data?: EventData
+    data?: EventData,
   ): void {
     // Always track the custom event for general analytics
-    this.stats.trackCustomEvent(eventName, context.userId, data?.properties)
+    this.stats.trackCustomEvent(eventName, context.userId, data?.properties);
 
     // Additionally, track as conversion if experiment context is provided
     if (data?.experimentKey && data?.variationKey) {
@@ -393,8 +438,8 @@ export class ToggleBoxClient {
         eventName,
         data.variationKey,
         context.userId,
-        undefined
-      )
+        undefined,
+      );
     }
   }
 
@@ -407,23 +452,23 @@ export class ToggleBoxClient {
    * ```
    */
   async getExperiments(): Promise<Experiment[]> {
-    const cacheKey = `experiments:${this.platform}:${this.environment}`
+    const cacheKey = `experiments:${this.platform}:${this.environment}`;
 
     // Try cache first
-    const cached = this.cache.get<Experiment[]>(cacheKey)
+    const cached = this.cache.get<Experiment[]>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
     // Fetch from API
-    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments`
-    const response = await this.http.get<{ data: Experiment[] }>(path)
-    const experiments = response.data
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments`;
+    const response = await this.http.get<{ data: Experiment[] }>(path);
+    const experiments = response.data;
 
     // Cache
-    this.cache.set(cacheKey, experiments)
+    this.cache.set(cacheKey, experiments);
 
-    return experiments
+    return experiments;
   }
 
   /**
@@ -443,12 +488,12 @@ export class ToggleBoxClient {
    * ```
    */
   async getExperimentInfo(experimentKey: string): Promise<Experiment | null> {
-    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments/${experimentKey}`
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments/${experimentKey}`;
     try {
-      const response = await this.http.get<{ data: Experiment }>(path)
-      return response.data
+      const response = await this.http.get<{ data: Experiment }>(path);
+      return response.data;
     } catch {
-      return null
+      return null;
     }
   }
 
@@ -461,23 +506,23 @@ export class ToggleBoxClient {
    * ```
    */
   async getFlags(): Promise<Flag[]> {
-    const cacheKey = `flags:${this.platform}:${this.environment}`
+    const cacheKey = `flags:${this.platform}:${this.environment}`;
 
     // Try cache first
-    const cached = this.cache.get<Flag[]>(cacheKey)
+    const cached = this.cache.get<Flag[]>(cacheKey);
     if (cached) {
-      return cached
+      return cached;
     }
 
     // Fetch from API
-    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/flags`
-    const response = await this.http.get<{ data: Flag[] }>(path)
-    const flags = response.data
+    const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/flags`;
+    const response = await this.http.get<{ data: Flag[] }>(path);
+    const flags = response.data;
 
     // Cache
-    this.cache.set(cacheKey, flags)
+    this.cache.set(cacheKey, flags);
 
-    return flags
+    return flags;
   }
 
   // ==================== CONTEXT & LIFECYCLE ====================
@@ -486,14 +531,14 @@ export class ToggleBoxClient {
    * Set global evaluation context
    */
   setContext(context: FlagContext): void {
-    this.globalContext = context
+    this.globalContext = context;
   }
 
   /**
    * Get current global context
    */
   getContext(): FlagContext {
-    return { ...this.globalContext }
+    return { ...this.globalContext };
   }
 
   /**
@@ -501,26 +546,26 @@ export class ToggleBoxClient {
    */
   async refresh(): Promise<void> {
     // Clear cache for this platform/environment
-    this.cache.delete(`config:${this.platform}:${this.environment}`)
-    this.cache.delete(`flags:${this.platform}:${this.environment}`)
-    this.cache.delete(`experiments:${this.platform}:${this.environment}`)
+    this.cache.delete(`config:${this.platform}:${this.environment}`);
+    this.cache.delete(`flags:${this.platform}:${this.environment}`);
+    this.cache.delete(`experiments:${this.platform}:${this.environment}`);
 
     // Fetch fresh data for all three tiers
     const [config, flags, experiments] = await Promise.all([
       this.getConfig(),
       this.getFlags(),
       this.getExperiments(),
-    ])
+    ]);
 
     // Emit update event with all data
-    this.emit('update', { config, flags, experiments })
+    this.emit("update", { config, flags, experiments });
   }
 
   /**
    * Flush pending stats events
    */
   async flushStats(): Promise<void> {
-    await this.stats.flush()
+    await this.stats.flush();
   }
 
   /**
@@ -528,23 +573,23 @@ export class ToggleBoxClient {
    */
   private startPolling(): void {
     if (this.pollingTimer) {
-      return
+      return;
     }
 
     this.pollingTimer = setInterval(async () => {
       // Guard against overlapping refreshes from slow API responses
       if (this.isRefreshing) {
-        return
+        return;
       }
-      this.isRefreshing = true
+      this.isRefreshing = true;
       try {
-        await this.refresh()
+        await this.refresh();
       } catch (error) {
-        this.emit('error', error)
+        this.emit("error", error);
       } finally {
-        this.isRefreshing = false
+        this.isRefreshing = false;
       }
-    }, this.pollingInterval)
+    }, this.pollingInterval);
   }
 
   /**
@@ -552,8 +597,8 @@ export class ToggleBoxClient {
    */
   stopPolling(): void {
     if (this.pollingTimer) {
-      clearInterval(this.pollingTimer)
-      this.pollingTimer = null
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
     }
   }
 
@@ -562,18 +607,18 @@ export class ToggleBoxClient {
    */
   on(event: ClientEvent, listener: EventListener): void {
     if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set())
+      this.listeners.set(event, new Set());
     }
-    this.listeners.get(event)!.add(listener)
+    this.listeners.get(event)!.add(listener);
   }
 
   /**
    * Remove event listener
    */
   off(event: ClientEvent, listener: EventListener): void {
-    const eventListeners = this.listeners.get(event)
+    const eventListeners = this.listeners.get(event);
     if (eventListeners) {
-      eventListeners.delete(listener)
+      eventListeners.delete(listener);
     }
   }
 
@@ -581,9 +626,9 @@ export class ToggleBoxClient {
    * Emit event
    */
   private emit(event: ClientEvent, data: unknown): void {
-    const eventListeners = this.listeners.get(event)
+    const eventListeners = this.listeners.get(event);
     if (eventListeners) {
-      eventListeners.forEach((listener) => listener(data))
+      eventListeners.forEach((listener) => listener(data));
     }
   }
 
@@ -591,9 +636,9 @@ export class ToggleBoxClient {
    * Cleanup resources
    */
   destroy(): void {
-    this.stopPolling()
-    this.stats.destroy()
-    this.cache.clear()
-    this.listeners.clear()
+    this.stopPolling();
+    this.stats.destroy();
+    this.cache.clear();
+    this.listeners.clear();
   }
 }

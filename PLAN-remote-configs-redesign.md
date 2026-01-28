@@ -9,19 +9,23 @@ Replace the current "versioned JSON blob" model with individual config parameter
 ## Current vs Target Model
 
 ### Current Model (ToggleBox)
+
 ```
 Platform → Environment → Version → ONE JSON blob
 ```
+
 - One blob contains all config values
 - Versioning is per-blob (deploy entire config at once)
 - No individual parameter targeting/conditions
 
 ### Target Model (Firebase-Style)
+
 ```
 Platform → Environment → MANY Config Parameters
                        → Conditions (targeting rules)
                        → Template Versions (snapshots)
 ```
+
 - Many individual parameters (up to 2000 per environment)
 - Each parameter has its own key, value, type, and conditions
 - Template versioning (snapshot all parameters at once for rollback)
@@ -39,13 +43,14 @@ export const ConfigParameterSchema = z.object({
   // Identity
   platform: z.string(),
   environment: z.string(),
-  parameterKey: z.string()
+  parameterKey: z
+    .string()
     .min(1)
     .max(256)
-    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'Must start with letter or underscore'),
+    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, "Must start with letter or underscore"),
 
   // Value
-  valueType: z.enum(['string', 'number', 'boolean', 'json']),
+  valueType: z.enum(["string", "number", "boolean", "json"]),
   defaultValue: z.string(), // All values stored as strings, parsed by type
 
   // Metadata
@@ -112,6 +117,7 @@ export type ConfigTemplate = z.infer<typeof ConfigTemplateSchema>;
 ### 2.1 New Tables/Collections
 
 #### Prisma Schema (SQL)
+
 ```prisma
 model ConfigParameter {
   platform        String
@@ -154,6 +160,7 @@ model ConfigTemplate {
 ```
 
 #### DynamoDB Single-Table Design
+
 ```
 PK: PLATFORM#{platform}
 SK: ENV#{environment}#PARAM#{parameterKey}
@@ -171,20 +178,59 @@ SK: ENV#{environment}#TEMPLATE#{templateVersion}
 
 export interface IConfigParameterRepository {
   // Parameters
-  createParameter(param: Omit<ConfigParameter, 'createdAt' | 'updatedAt'>): Promise<ConfigParameter>;
-  getParameter(platform: string, environment: string, key: string): Promise<ConfigParameter | null>;
-  listParameters(platform: string, environment: string): Promise<ConfigParameter[]>;
-  updateParameter(platform: string, environment: string, key: string, updates: Partial<ConfigParameter>): Promise<ConfigParameter | null>;
-  deleteParameter(platform: string, environment: string, key: string): Promise<boolean>;
+  createParameter(
+    param: Omit<ConfigParameter, "createdAt" | "updatedAt">,
+  ): Promise<ConfigParameter>;
+  getParameter(
+    platform: string,
+    environment: string,
+    key: string,
+  ): Promise<ConfigParameter | null>;
+  listParameters(
+    platform: string,
+    environment: string,
+  ): Promise<ConfigParameter[]>;
+  updateParameter(
+    platform: string,
+    environment: string,
+    key: string,
+    updates: Partial<ConfigParameter>,
+  ): Promise<ConfigParameter | null>;
+  deleteParameter(
+    platform: string,
+    environment: string,
+    key: string,
+  ): Promise<boolean>;
 
   // NOTE: Condition methods REMOVED - no conditions in simplified design
 
   // Templates (versioning)
-  createTemplate(platform: string, environment: string, createdBy: string, description?: string): Promise<ConfigTemplate>;
-  getTemplate(platform: string, environment: string, version: number): Promise<ConfigTemplate | null>;
-  getLatestTemplate(platform: string, environment: string): Promise<ConfigTemplate | null>;
-  listTemplates(platform: string, environment: string, limit?: number): Promise<ConfigTemplate[]>;
-  rollbackToTemplate(platform: string, environment: string, version: number, createdBy: string): Promise<ConfigTemplate>;
+  createTemplate(
+    platform: string,
+    environment: string,
+    createdBy: string,
+    description?: string,
+  ): Promise<ConfigTemplate>;
+  getTemplate(
+    platform: string,
+    environment: string,
+    version: number,
+  ): Promise<ConfigTemplate | null>;
+  getLatestTemplate(
+    platform: string,
+    environment: string,
+  ): Promise<ConfigTemplate | null>;
+  listTemplates(
+    platform: string,
+    environment: string,
+    limit?: number,
+  ): Promise<ConfigTemplate[]>;
+  rollbackToTemplate(
+    platform: string,
+    environment: string,
+    version: number,
+    createdBy: string,
+  ): Promise<ConfigTemplate>;
 }
 ```
 
@@ -255,10 +301,10 @@ class ToggleBoxClient {
    */
   async getConfigValue<T extends string | number | boolean | object>(
     key: string,
-    defaultValue: T
+    defaultValue: T,
   ): Promise<T> {
     const params = await this.getAllConfigParameters();
-    const param = params.find(p => p.parameterKey === key);
+    const param = params.find((p) => p.parameterKey === key);
 
     if (!param) return defaultValue;
 
@@ -275,7 +321,7 @@ class ToggleBoxClient {
     let params = this.cache.get<ConfigParameter[]>(cacheKey);
     if (!params) {
       const response = await this.http.get<{ data: ConfigParameter[] }>(
-        `/api/v1/platforms/${this.platform}/environments/${this.environment}/configs`
+        `/api/v1/platforms/${this.platform}/environments/${this.environment}/configs`,
       );
       params = response.data;
       this.cache.set(cacheKey, params);
@@ -294,7 +340,10 @@ class ToggleBoxClient {
     const result: Record<string, unknown> = {};
 
     for (const param of params) {
-      result[param.parameterKey] = this.parseValue(param.defaultValue, param.valueType);
+      result[param.parameterKey] = this.parseValue(
+        param.defaultValue,
+        param.valueType,
+      );
     }
 
     return result;
@@ -308,10 +357,14 @@ class ToggleBoxClient {
    */
   private parseValue(value: string, valueType: string): unknown {
     switch (valueType) {
-      case 'boolean': return value === 'true';
-      case 'number': return parseFloat(value);
-      case 'json': return JSON.parse(value);
-      default: return value;
+      case "boolean":
+        return value === "true";
+      case "number":
+        return parseFloat(value);
+      case "json":
+        return JSON.parse(value);
+      default:
+        return value;
     }
   }
 }
@@ -329,6 +382,7 @@ Users handle any targeting logic in their app code by parsing JSON values.
 ### 5.1 Backward Compatibility
 
 Keep the old "versioned blob" API working during migration:
+
 - Old endpoints: `/versions/latest/stable` → returns blob
 - New endpoints: `/configs` → returns individual parameters
 
@@ -340,7 +394,7 @@ Keep the old "versioned blob" API working during migration:
 async function migrateVersionToParameters(
   platform: string,
   environment: string,
-  version: Version
+  version: Version,
 ) {
   const { config } = version;
 
@@ -359,13 +413,13 @@ async function migrateVersionToParameters(
   }
 }
 
-function flattenConfig(obj: object, prefix = ''): Record<string, unknown> {
+function flattenConfig(obj: object, prefix = ""): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(obj)) {
     const fullKey = prefix ? `${prefix}.${key}` : key;
 
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
       Object.assign(result, flattenConfig(value, fullKey));
     } else {
       result[fullKey] = value;
@@ -387,13 +441,13 @@ function flattenConfig(obj: object, prefix = ''): Record<string, unknown> {
 
 ### 6.1 System Limits (Firebase-aligned)
 
-| Resource | Limit |
-|----------|-------|
-| Parameters per environment | 2000 |
-| Parameter key length | 256 characters |
-| Parameter value length | 10,000 characters |
+| Resource                    | Limit                |
+| --------------------------- | -------------------- |
+| Parameters per environment  | 2000                 |
+| Parameter key length        | 256 characters       |
+| Parameter value length      | 10,000 characters    |
 | Total parameter values size | 1,000,000 characters |
-| Template versions retained | 300 |
+| Template versions retained  | 300                  |
 
 NOTE: No conditions limits - conditions removed for simplicity.
 
@@ -416,17 +470,20 @@ const LIMITS = {
 ## Phase 7: Implementation Order
 
 ### Step 1: Schema & Types (1-2 days) ✅ COMPLETE
+
 - [x] Add new Zod schemas to `@togglebox/configs`
 - [x] Export new types
 - [x] Add validation helpers
 
 ### Step 2: Database Layer (2-3 days)
+
 - [ ] Add Prisma schema for SQL databases
 - [ ] Implement DynamoDB adapter
 - [ ] Implement repository interface
 - [ ] Add database migrations
 
 ### Step 3: API Endpoints (2-3 days)
+
 - [ ] Create `configParameterController.ts`
 - [ ] Add public routes (`/configs`, `/configs/:key`)
 - [ ] Add internal routes (CRUD)
@@ -434,12 +491,14 @@ const LIMITS = {
 - [ ] Add template routes
 
 ### Step 4: SDK Changes (2-3 days)
+
 - [ ] Update `@togglebox/sdk` with new methods
 - [ ] Update `@togglebox/sdk-nextjs`
 - [ ] Update `@togglebox/sdk-expo`
 - [ ] Add condition evaluation logic
 
 ### Step 5: Migration & Docs (1-2 days)
+
 - [ ] Write migration script
 - [ ] Update example apps
 - [ ] Update documentation
@@ -449,14 +508,14 @@ const LIMITS = {
 
 ## Summary
 
-| Component | Change |
-|-----------|--------|
-| Data Model | Blob → Individual parameters |
-| Targeting | None → User-managed via JSON values (no conditions) |
-| Versioning | Per-blob → Template snapshots |
-| API | `/versions` → `/configs` + `/templates` |
-| SDK | `getConfig()` → `getConfigValue()` + `getAllConfigs()` |
-| Limits | 300KB blob → 2000 params |
+| Component  | Change                                                 |
+| ---------- | ------------------------------------------------------ |
+| Data Model | Blob → Individual parameters                           |
+| Targeting  | None → User-managed via JSON values (no conditions)    |
+| Versioning | Per-blob → Template snapshots                          |
+| API        | `/versions` → `/configs` + `/templates`                |
+| SDK        | `getConfig()` → `getConfigValue()` + `getAllConfigs()` |
+| Limits     | 300KB blob → 2000 params                               |
 
 ---
 

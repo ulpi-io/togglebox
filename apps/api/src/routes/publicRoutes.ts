@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import { asyncHandler, conditionalAuth } from '@togglebox/shared';
-import { Container } from '../container';
+import { Router } from "express";
+import { asyncHandler, conditionalAuth } from "@togglebox/shared";
+import { Container } from "../container";
 
 /**
  * Public router for read-only (GET) endpoints
@@ -36,10 +36,10 @@ const statsController = Container.createStatsController();
  * NOTE: This endpoint is intentionally NOT protected by authentication
  * to allow load balancers and monitoring systems to check service health.
  */
-publicRouter.get('/health', (_req, res) => {
+publicRouter.get("/health", (_req, res) => {
   res.json({
     success: true,
-    message: 'Config Service is running',
+    message: "Config Service is running",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
@@ -65,15 +65,24 @@ publicRouter.use(conditionalAuth());
 // PLATFORM READ ENDPOINTS
 // ============================================================================
 
-publicRouter.get('/platforms', asyncHandler(configController.listPlatforms));
-publicRouter.get('/platforms/:name', asyncHandler(configController.getPlatform));
+publicRouter.get("/platforms", asyncHandler(configController.listPlatforms));
+publicRouter.get(
+  "/platforms/:name",
+  asyncHandler(configController.getPlatform),
+);
 
 // ============================================================================
 // ENVIRONMENT READ ENDPOINTS
 // ============================================================================
 
-publicRouter.get('/platforms/:platform/environments', asyncHandler(configController.listEnvironments));
-publicRouter.get('/platforms/:platform/environments/:environment', asyncHandler(configController.getEnvironment));
+publicRouter.get(
+  "/platforms/:platform/environments",
+  asyncHandler(configController.listEnvironments),
+);
+publicRouter.get(
+  "/platforms/:platform/environments/:environment",
+  asyncHandler(configController.getEnvironment),
+);
 
 // ============================================================================
 // CONFIG PARAMETER READ ENDPOINTS (Tier 1: Firebase-style individual parameters)
@@ -85,7 +94,10 @@ publicRouter.get('/platforms/:platform/environments/:environment', asyncHandler(
  *
  * Example response: { "storeName": "My Store", "maxItems": 100, "isDark": true }
  */
-publicRouter.get('/platforms/:platform/environments/:environment/configs', asyncHandler(configController.getConfigs));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/configs",
+  asyncHandler(configController.getConfigs),
+);
 
 /**
  * List all active config parameters with metadata
@@ -93,7 +105,10 @@ publicRouter.get('/platforms/:platform/environments/:environment/configs', async
  *
  * NOTE: This route MUST come before /:parameterKey to avoid "list" being matched as a parameter key
  */
-publicRouter.get('/platforms/:platform/environments/:environment/configs/list', asyncHandler(configController.listConfigParameters));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/configs/list",
+  asyncHandler(configController.listConfigParameters),
+);
 
 /**
  * Count active config parameters in an environment
@@ -101,7 +116,10 @@ publicRouter.get('/platforms/:platform/environments/:environment/configs/list', 
  *
  * NOTE: This route MUST come before /:parameterKey to avoid "count" being matched as a parameter key
  */
-publicRouter.get('/platforms/:platform/environments/:environment/configs/count', asyncHandler(configController.countConfigParameters));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/configs/count",
+  asyncHandler(configController.countConfigParameters),
+);
 
 /**
  * List all versions of a config parameter (version history)
@@ -109,19 +127,28 @@ publicRouter.get('/platforms/:platform/environments/:environment/configs/count',
  *
  * NOTE: This route MUST come before /:parameterKey to avoid "versions" being matched incorrectly
  */
-publicRouter.get('/platforms/:platform/environments/:environment/configs/:parameterKey/versions', asyncHandler(configController.listConfigParameterVersions));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/configs/:parameterKey/versions",
+  asyncHandler(configController.listConfigParameterVersions),
+);
 
 /**
  * Get active version of a specific config parameter
  * Returns full parameter metadata including version, type, description
  */
-publicRouter.get('/platforms/:platform/environments/:environment/configs/:parameterKey', asyncHandler(configController.getConfigParameter));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/configs/:parameterKey",
+  asyncHandler(configController.getConfigParameter),
+);
 
 // ============================================================================
 // FLAG READ ENDPOINTS (Tier 2: 2-value model)
 // ============================================================================
 
-publicRouter.get('/platforms/:platform/environments/:environment/flags', asyncHandler(flagController.listFlags));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/flags",
+  asyncHandler(flagController.listFlags),
+);
 
 /**
  * Public GET endpoint for evaluating a feature flag.
@@ -131,15 +158,24 @@ publicRouter.get('/platforms/:platform/environments/:environment/flags', asyncHa
  *
  * NOTE: This route MUST come before /:flagKey to avoid "evaluate" being matched as a flag key
  */
-publicRouter.get('/platforms/:platform/environments/:environment/flags/:flagKey/evaluate', asyncHandler(flagController.evaluateFlagPublic));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/flags/:flagKey/evaluate",
+  asyncHandler(flagController.evaluateFlagPublic),
+);
 
-publicRouter.get('/platforms/:platform/environments/:environment/flags/:flagKey', asyncHandler(flagController.getFlag));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/flags/:flagKey",
+  asyncHandler(flagController.getFlag),
+);
 
 // ============================================================================
 // EXPERIMENT READ ENDPOINTS
 // ============================================================================
 
-publicRouter.get('/platforms/:platform/environments/:environment/experiments', asyncHandler(experimentController.listExperiments));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/experiments",
+  asyncHandler(experimentController.listExperiments),
+);
 
 /**
  * Public GET endpoint for assigning a user to an experiment variation.
@@ -149,9 +185,15 @@ publicRouter.get('/platforms/:platform/environments/:environment/experiments', a
  *
  * NOTE: This route MUST come before /:experimentKey to avoid "assign" being matched as an experiment key
  */
-publicRouter.get('/platforms/:platform/environments/:environment/experiments/:experimentKey/assign', asyncHandler(experimentController.assignVariationPublic));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/assign",
+  asyncHandler(experimentController.assignVariationPublic),
+);
 
-publicRouter.get('/platforms/:platform/environments/:environment/experiments/:experimentKey', asyncHandler(experimentController.getExperiment));
+publicRouter.get(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey",
+  asyncHandler(experimentController.getExperiment),
+);
 
 // ============================================================================
 // STATS EVENT INGESTION (SDK events)
@@ -161,6 +203,9 @@ publicRouter.get('/platforms/:platform/environments/:environment/experiments/:ex
  * Batch event ingestion endpoint for SDK stats reporting.
  * Accepts config fetches, flag evaluations, experiment exposures, and conversions.
  */
-publicRouter.post('/platforms/:platform/environments/:environment/stats/events', asyncHandler(statsController.processBatch));
+publicRouter.post(
+  "/platforms/:platform/environments/:environment/stats/events",
+  asyncHandler(statsController.processBatch),
+);
 
 export { publicRouter };

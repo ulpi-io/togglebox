@@ -1,9 +1,9 @@
-import { IPasswordResetRepository } from '../../interfaces/IPasswordResetRepository';
+import { IPasswordResetRepository } from "../../interfaces/IPasswordResetRepository";
 import {
   PasswordResetToken,
   CreatePasswordResetTokenData,
-} from '../../models/PasswordResetToken';
-import * as passwordResetService from './passwordResetService';
+} from "../../models/PasswordResetToken";
+import * as passwordResetService from "./passwordResetService";
 
 /**
  * DynamoDB implementation of password reset token repository.
@@ -45,8 +45,12 @@ import * as passwordResetService from './passwordResetService';
  * }
  * ```
  */
-export class DynamoDBPasswordResetRepository implements IPasswordResetRepository {
-  async create(data: CreatePasswordResetTokenData): Promise<PasswordResetToken> {
+export class DynamoDBPasswordResetRepository
+  implements IPasswordResetRepository
+{
+  async create(
+    data: CreatePasswordResetTokenData,
+  ): Promise<PasswordResetToken> {
     return passwordResetService.createPasswordResetToken(data);
   }
 

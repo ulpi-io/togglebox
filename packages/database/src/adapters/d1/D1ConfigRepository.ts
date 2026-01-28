@@ -11,13 +11,13 @@ import {
   CreateConfigParameter,
   UpdateConfigParameter,
   parseConfigValue,
-} from '@togglebox/configs';
+} from "@togglebox/configs";
 import {
   IConfigRepository,
   OffsetPaginationParams,
   TokenPaginationParams,
   PaginatedResult,
-} from '../../interfaces';
+} from "../../interfaces";
 
 /**
  * D1 result row type for config parameters.
@@ -56,13 +56,13 @@ export class D1ConfigRepository implements IConfigRepository {
    */
   async getConfigs(
     platform: string,
-    environment: string
+    environment: string,
   ): Promise<Record<string, unknown>> {
     const result = await this.db
       .prepare(
         `SELECT parameterKey, defaultValue, valueType
         FROM config_parameters
-        WHERE platform = ?1 AND environment = ?2 AND isActive = 1`
+        WHERE platform = ?1 AND environment = ?2 AND isActive = 1`,
       )
       .bind(platform, environment)
       .all<{ parameterKey: string; defaultValue: string; valueType: string }>();
@@ -72,7 +72,7 @@ export class D1ConfigRepository implements IConfigRepository {
       for (const param of result.results) {
         configs[param.parameterKey] = parseConfigValue(
           param.defaultValue,
-          param.valueType as 'string' | 'number' | 'boolean' | 'json'
+          param.valueType as "string" | "number" | "boolean" | "json",
         );
       }
     }
@@ -89,14 +89,14 @@ export class D1ConfigRepository implements IConfigRepository {
    */
   async create(param: CreateConfigParameter): Promise<ConfigParameter> {
     const timestamp = new Date().toISOString();
-    const version = '1';
+    const version = "1";
 
     try {
       await this.db
         .prepare(
           `INSERT INTO config_parameters
           (platform, environment, parameterKey, version, valueType, defaultValue, description, parameterGroup, isActive, createdBy, createdAt)
-          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, ?9, ?10)`
+          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, ?9, ?10)`,
         )
         .bind(
           param.platform,
@@ -108,7 +108,7 @@ export class D1ConfigRepository implements IConfigRepository {
           param.description ?? null,
           param.parameterGroup ?? null,
           param.createdBy,
-          timestamp
+          timestamp,
         )
         .run();
 
@@ -126,10 +126,13 @@ export class D1ConfigRepository implements IConfigRepository {
         createdAt: timestamp,
       };
     } catch (error: unknown) {
-      const errMessage = (error as Error).message || '';
-      if (errMessage.includes('UNIQUE constraint failed') || errMessage.includes('PRIMARY KEY')) {
+      const errMessage = (error as Error).message || "";
+      if (
+        errMessage.includes("UNIQUE constraint failed") ||
+        errMessage.includes("PRIMARY KEY")
+      ) {
         throw new Error(
-          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`
+          `Parameter ${param.parameterKey} already exists in ${param.platform}/${param.environment}`,
         );
       }
       throw error;
@@ -147,20 +150,20 @@ export class D1ConfigRepository implements IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    updates: UpdateConfigParameter
+    updates: UpdateConfigParameter,
   ): Promise<ConfigParameter> {
     // 1. Get current active version
     const current = await this.db
       .prepare(
         `SELECT * FROM config_parameters
-        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND isActive = 1`
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND isActive = 1`,
       )
       .bind(platform, environment, parameterKey)
       .first<ConfigParameterRow>();
 
     if (!current) {
       throw new Error(
-        `Parameter ${parameterKey} not found in ${platform}/${environment}`
+        `Parameter ${parameterKey} not found in ${platform}/${environment}`,
       );
     }
 
@@ -171,18 +174,20 @@ export class D1ConfigRepository implements IConfigRepository {
     // 3. Prepare new values
     const newValueType = updates.valueType ?? current.valueType;
     const newDefaultValue = updates.defaultValue ?? current.defaultValue;
-    const newDescription = updates.description !== undefined
-      ? (updates.description ?? null)
-      : current.description;
-    const newParameterGroup = updates.parameterGroup !== undefined
-      ? (updates.parameterGroup ?? null)
-      : current.parameterGroup;
+    const newDescription =
+      updates.description !== undefined
+        ? (updates.description ?? null)
+        : current.description;
+    const newParameterGroup =
+      updates.parameterGroup !== undefined
+        ? (updates.parameterGroup ?? null)
+        : current.parameterGroup;
 
     // 4. SECURITY: Use batch to execute both operations atomically
     const deactivateStmt = this.db
       .prepare(
         `UPDATE config_parameters SET isActive = 0
-        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`,
       )
       .bind(platform, environment, parameterKey, current.version);
 
@@ -190,7 +195,7 @@ export class D1ConfigRepository implements IConfigRepository {
       .prepare(
         `INSERT INTO config_parameters
         (platform, environment, parameterKey, version, valueType, defaultValue, description, parameterGroup, isActive, createdBy, createdAt)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, ?9, ?10)`
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, ?9, ?10)`,
       )
       .bind(
         platform,
@@ -202,7 +207,7 @@ export class D1ConfigRepository implements IConfigRepository {
         newDescription,
         newParameterGroup,
         updates.createdBy,
-        timestamp
+        timestamp,
       );
 
     await this.db.batch([deactivateStmt, insertStmt]);
@@ -212,7 +217,7 @@ export class D1ConfigRepository implements IConfigRepository {
       environment,
       parameterKey,
       version: nextVersion,
-      valueType: newValueType as 'string' | 'number' | 'boolean' | 'json',
+      valueType: newValueType as "string" | "number" | "boolean" | "json",
       defaultValue: newDefaultValue,
       description: newDescription ?? undefined,
       parameterGroup: newParameterGroup ?? undefined,
@@ -228,12 +233,12 @@ export class D1ConfigRepository implements IConfigRepository {
   async delete(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<boolean> {
     const result = await this.db
       .prepare(
         `DELETE FROM config_parameters
-        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3`
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3`,
       )
       .bind(platform, environment, parameterKey)
       .run();
@@ -247,12 +252,12 @@ export class D1ConfigRepository implements IConfigRepository {
   async getActive(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<ConfigParameter | null> {
     const result = await this.db
       .prepare(
         `SELECT * FROM config_parameters
-        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND isActive = 1`
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND isActive = 1`,
       )
       .bind(platform, environment, parameterKey)
       .first<ConfigParameterRow>();
@@ -266,13 +271,13 @@ export class D1ConfigRepository implements IConfigRepository {
   async listActive(
     platform: string,
     environment: string,
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<PaginatedResult<ConfigParameter>> {
     // Get total count
     const countResult = await this.db
       .prepare(
         `SELECT COUNT(*) as count FROM config_parameters
-        WHERE platform = ?1 AND environment = ?2 AND isActive = 1`
+        WHERE platform = ?1 AND environment = ?2 AND isActive = 1`,
       )
       .bind(platform, environment)
       .first<{ count: number }>();
@@ -280,19 +285,33 @@ export class D1ConfigRepository implements IConfigRepository {
     const total = countResult?.count || 0;
 
     // Use offset-based pagination
+    // Only apply pagination if explicitly provided; otherwise fetch all items
     const offsetPagination = pagination as OffsetPaginationParams | undefined;
-    const limit = offsetPagination?.limit ?? 100;
-    const offset = offsetPagination?.offset ?? 0;
 
-    const result = await this.db
-      .prepare(
-        `SELECT * FROM config_parameters
-        WHERE platform = ?1 AND environment = ?2 AND isActive = 1
-        ORDER BY parameterKey ASC
-        LIMIT ?3 OFFSET ?4`
-      )
-      .bind(platform, environment, limit, offset)
-      .all<ConfigParameterRow>();
+    let result;
+    if (offsetPagination) {
+      const limit = offsetPagination.limit;
+      const offset = offsetPagination.offset ?? 0;
+
+      result = await this.db
+        .prepare(
+          `SELECT * FROM config_parameters
+          WHERE platform = ?1 AND environment = ?2 AND isActive = 1
+          ORDER BY parameterKey ASC
+          LIMIT ?3 OFFSET ?4`,
+        )
+        .bind(platform, environment, limit, offset)
+        .all<ConfigParameterRow>();
+    } else {
+      result = await this.db
+        .prepare(
+          `SELECT * FROM config_parameters
+          WHERE platform = ?1 AND environment = ?2 AND isActive = 1
+          ORDER BY parameterKey ASC`,
+        )
+        .bind(platform, environment)
+        .all<ConfigParameterRow>();
+    }
 
     const items = result.results
       ? result.results.map((row) => this.mapToConfigParameter(row))
@@ -307,13 +326,13 @@ export class D1ConfigRepository implements IConfigRepository {
   async listVersions(
     platform: string,
     environment: string,
-    parameterKey: string
+    parameterKey: string,
   ): Promise<ConfigParameter[]> {
     const result = await this.db
       .prepare(
         `SELECT * FROM config_parameters
         WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3
-        ORDER BY CAST(version AS INTEGER) DESC`
+        ORDER BY CAST(version AS INTEGER) DESC`,
       )
       .bind(platform, environment, parameterKey)
       .all<ConfigParameterRow>();
@@ -333,13 +352,13 @@ export class D1ConfigRepository implements IConfigRepository {
     platform: string,
     environment: string,
     parameterKey: string,
-    version: string
+    version: string,
   ): Promise<ConfigParameter | null> {
     // 1. Check target version exists
     const targetVersion = await this.db
       .prepare(
         `SELECT * FROM config_parameters
-        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`,
       )
       .bind(platform, environment, parameterKey, version)
       .first<ConfigParameterRow>();
@@ -352,7 +371,7 @@ export class D1ConfigRepository implements IConfigRepository {
     const currentActive = await this.db
       .prepare(
         `SELECT version FROM config_parameters
-        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND isActive = 1`
+        WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND isActive = 1`,
       )
       .bind(platform, environment, parameterKey)
       .first<{ version: string }>();
@@ -367,14 +386,14 @@ export class D1ConfigRepository implements IConfigRepository {
       const deactivateStmt = this.db
         .prepare(
           `UPDATE config_parameters SET isActive = 0
-          WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`
+          WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`,
         )
         .bind(platform, environment, parameterKey, currentActive.version);
 
       const activateStmt = this.db
         .prepare(
           `UPDATE config_parameters SET isActive = 1
-          WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`
+          WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`,
         )
         .bind(platform, environment, parameterKey, version);
 
@@ -384,7 +403,7 @@ export class D1ConfigRepository implements IConfigRepository {
       await this.db
         .prepare(
           `UPDATE config_parameters SET isActive = 1
-          WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`
+          WHERE platform = ?1 AND environment = ?2 AND parameterKey = ?3 AND version = ?4`,
         )
         .bind(platform, environment, parameterKey, version)
         .run();
@@ -403,7 +422,7 @@ export class D1ConfigRepository implements IConfigRepository {
     const result = await this.db
       .prepare(
         `SELECT COUNT(*) as count FROM config_parameters
-        WHERE platform = ?1 AND environment = ?2 AND isActive = 1`
+        WHERE platform = ?1 AND environment = ?2 AND isActive = 1`,
       )
       .bind(platform, environment)
       .first<{ count: number }>();
@@ -424,7 +443,7 @@ export class D1ConfigRepository implements IConfigRepository {
       environment: row.environment,
       parameterKey: row.parameterKey,
       version: row.version,
-      valueType: row.valueType as 'string' | 'number' | 'boolean' | 'json',
+      valueType: row.valueType as "string" | "number" | "boolean" | "json",
       defaultValue: row.defaultValue,
       description: row.description ?? undefined,
       parameterGroup: row.parameterGroup ?? undefined,

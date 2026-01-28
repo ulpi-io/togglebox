@@ -1,9 +1,24 @@
-import { getConfig, getFlags, getExperiments } from '@togglebox/sdk-nextjs/server'
+import {
+  getConfig,
+  getFlags,
+  getExperiments,
+} from "@togglebox/sdk-nextjs/server";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY // Required if authentication is enabled
-const PLATFORM = process.env.NEXT_PUBLIC_PLATFORM || 'web'
-const ENVIRONMENT = process.env.NEXT_PUBLIC_ENVIRONMENT || 'production'
+// Server-side env vars (no NEXT_PUBLIC_ prefix needed for server components)
+const API_URL =
+  process.env.TOGGLEBOX_API_URL ||
+  process.env.NEXT_PUBLIC_TOGGLEBOX_API_URL ||
+  "http://localhost:3000/api/v1";
+const API_KEY =
+  process.env.TOGGLEBOX_API_KEY || process.env.NEXT_PUBLIC_TOGGLEBOX_API_KEY;
+const PLATFORM =
+  process.env.TOGGLEBOX_PLATFORM ||
+  process.env.NEXT_PUBLIC_TOGGLEBOX_PLATFORM ||
+  "web";
+const ENVIRONMENT =
+  process.env.TOGGLEBOX_ENVIRONMENT ||
+  process.env.NEXT_PUBLIC_TOGGLEBOX_ENVIRONMENT ||
+  "production";
 
 export default async function Page() {
   const serverOptions = {
@@ -11,18 +26,18 @@ export default async function Page() {
     environment: ENVIRONMENT,
     apiUrl: API_URL,
     apiKey: API_KEY, // Required if authentication is enabled
-  }
+  };
 
   const [{ config }, { flags }, { experiments }] = await Promise.all([
     getConfig(serverOptions),
     getFlags(serverOptions),
     getExperiments(serverOptions),
-  ])
+  ]);
 
-  const theme = (config?.theme as string) ?? 'light'
-  const configKeys = Object.keys(config || {})
-  const enabledFlags = flags.filter((f) => f.enabled)
-  const runningExperiments = experiments.filter((e) => e.status === 'running')
+  const theme = (config?.theme as string) ?? "light";
+  const configKeys = Object.keys(config || {});
+  const enabledFlags = flags.filter((f) => f.enabled);
+  const runningExperiments = experiments.filter((e) => e.status === "running");
 
   return (
     <div className="min-h-screen p-8">
@@ -34,10 +49,13 @@ export default async function Page() {
             <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-medium rounded">
               SSR
             </span>
-            <span className="text-sm text-purple-700">Server-rendered data</span>
+            <span className="text-sm text-purple-700">
+              Server-rendered data
+            </span>
           </div>
           <p className="text-xs text-purple-600">
-            This content was rendered on the server and is visible in page source.
+            This content was rendered on the server and is visible in page
+            source.
           </p>
         </div>
 
@@ -47,17 +65,23 @@ export default async function Page() {
             <div className="text-xs text-gray-500">Config Keys</div>
           </div>
           <div className="p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold">{enabledFlags.length}/{flags.length}</div>
+            <div className="text-2xl font-bold">
+              {enabledFlags.length}/{flags.length}
+            </div>
             <div className="text-xs text-gray-500">Flags</div>
           </div>
           <div className="p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold">{runningExperiments.length}/{experiments.length}</div>
+            <div className="text-2xl font-bold">
+              {runningExperiments.length}/{experiments.length}
+            </div>
             <div className="text-xs text-gray-500">Experiments</div>
           </div>
         </div>
 
         <div className="p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-semibold mb-2 text-gray-900">Theme from config</h3>
+          <h3 className="font-semibold mb-2 text-gray-900">
+            Theme from config
+          </h3>
           <p className="text-lg font-mono">{theme}</p>
         </div>
 
@@ -76,5 +100,5 @@ export default async function Page() {
         </p>
       </div>
     </div>
-  )
+  );
 }

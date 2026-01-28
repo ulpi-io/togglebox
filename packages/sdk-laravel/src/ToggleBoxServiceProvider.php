@@ -101,7 +101,7 @@ class ToggleBoxServiceProvider extends ServiceProvider
         Blade::directive('variant', function (string $expression) {
             return "<?php
                 \$_togglebox_v = app('togglebox')->variant({$expression});
-                echo \$_togglebox_v?->value ?? '';
+                echo e(\$_togglebox_v?->value ?? '');
             ?>";
         });
 

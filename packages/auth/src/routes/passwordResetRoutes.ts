@@ -34,14 +34,14 @@
  * ```
  */
 
-import { Router } from 'express';
-import { PasswordResetController } from '../controllers/PasswordResetController';
-import { validate } from '../validators/authSchemas';
+import { Router } from "express";
+import { PasswordResetController } from "../controllers/PasswordResetController";
+import { validate } from "../validators/authSchemas";
 import {
   passwordResetRequestSchema,
   passwordResetVerifySchema,
   passwordResetCompleteSchema,
-} from '../validators/authSchemas';
+} from "../validators/authSchemas";
 
 /**
  * Create password reset routes.
@@ -62,7 +62,7 @@ import {
  * - All user's reset tokens invalidated on completion
  */
 export function createPasswordResetRoutes(
-  passwordResetController: PasswordResetController
+  passwordResetController: PasswordResetController,
 ): Router {
   const router = Router();
 
@@ -77,9 +77,9 @@ export function createPasswordResetRoutes(
    * **Security:** Always returns success (user enumeration prevention)
    */
   router.post(
-    '/request',
+    "/request",
     validate(passwordResetRequestSchema),
-    passwordResetController.requestReset
+    passwordResetController.requestReset,
   );
 
   /**
@@ -93,9 +93,9 @@ export function createPasswordResetRoutes(
    * **Purpose:** Frontend can validate token before showing password form
    */
   router.post(
-    '/verify',
+    "/verify",
     validate(passwordResetVerifySchema),
-    passwordResetController.verifyToken
+    passwordResetController.verifyToken,
   );
 
   /**
@@ -109,9 +109,9 @@ export function createPasswordResetRoutes(
    * **Effect:** Updates password, deletes ALL user's reset tokens
    */
   router.post(
-    '/complete',
+    "/complete",
     validate(passwordResetCompleteSchema),
-    passwordResetController.completeReset
+    passwordResetController.completeReset,
   );
 
   return router;

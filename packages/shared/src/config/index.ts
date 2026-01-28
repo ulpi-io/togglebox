@@ -43,7 +43,7 @@
  */
 
 // Environment configuration
-export * from './env';
+export * from "./env";
 
 // Application configuration
-export * from './app';
+export * from "./app";

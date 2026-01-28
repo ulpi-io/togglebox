@@ -12,5 +12,5 @@
  * - Stats: @togglebox/stats
  */
 
-export * from './schemas';
-export * from './hash';
+export * from "./schemas";
+export * from "./hash";

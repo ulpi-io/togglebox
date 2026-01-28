@@ -5,7 +5,7 @@
  * SRM indicates a problem with the experiment setup or data collection.
  */
 
-import type { VariationData } from './significance';
+import type { VariationData } from "./significance";
 
 /**
  * Result of SRM check.
@@ -133,20 +133,23 @@ function logGamma(x: number): number {
 export function checkSRM(
   variations: VariationData[],
   expectedRatios: number[],
-  threshold = 0.01
+  threshold = 0.01,
 ): SRMResult {
   // Validate inputs
   if (variations.length !== expectedRatios.length) {
-    throw new Error('Variations and expected ratios must have same length');
+    throw new Error("Variations and expected ratios must have same length");
   }
 
   const ratioSum = expectedRatios.reduce((a, b) => a + b, 0);
   if (Math.abs(ratioSum - 1) > 0.001) {
-    throw new Error('Expected ratios must sum to 1');
+    throw new Error("Expected ratios must sum to 1");
   }
 
   // Calculate totals
-  const totalParticipants = variations.reduce((sum, v) => sum + v.participants, 0);
+  const totalParticipants = variations.reduce(
+    (sum, v) => sum + v.participants,
+    0,
+  );
 
   if (totalParticipants === 0) {
     return {
@@ -155,12 +158,14 @@ export function checkSRM(
       expectedRatios,
       observedRatios: expectedRatios.map(() => 0),
       chiSquared: 0,
-      warning: 'No participants to analyze',
+      warning: "No participants to analyze",
     };
   }
 
   // Calculate observed ratios
-  const observedRatios = variations.map((v) => v.participants / totalParticipants);
+  const observedRatios = variations.map(
+    (v) => v.participants / totalParticipants,
+  );
 
   // Calculate expected counts
   const expectedCounts = expectedRatios.map((r) => r * totalParticipants);
@@ -191,7 +196,7 @@ export function checkSRM(
     observedRatios,
     chiSquared,
     warning: hasMismatch
-      ? 'Sample Ratio Mismatch detected! Investigate before trusting results.'
+      ? "Sample Ratio Mismatch detected! Investigate before trusting results."
       : undefined,
   };
 }
@@ -200,8 +205,8 @@ export function checkSRM(
  * Get a human-readable description of SRM severity.
  */
 export function getSRMSeverity(pValue: number): string {
-  if (pValue >= 0.1) return 'None';
-  if (pValue >= 0.01) return 'Warning';
-  if (pValue >= 0.001) return 'Serious';
-  return 'Critical';
+  if (pValue >= 0.1) return "None";
+  if (pValue >= 0.01) return "Warning";
+  if (pValue >= 0.001) return "Serious";
+  return "Critical";
 }

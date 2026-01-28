@@ -52,7 +52,10 @@ export interface CacheProvider {
    * @param environment - Environment name
    * @returns Invalidation ID or null if disabled
    */
-  invalidateEnvironmentCache(platform: string, environment: string): Promise<string | null>;
+  invalidateEnvironmentCache(
+    platform: string,
+    environment: string,
+  ): Promise<string | null>;
 
   /**
    * Invalidate cache for a specific version within a platform and environment
@@ -61,7 +64,11 @@ export interface CacheProvider {
    * @param version - Version timestamp (ISO-8601)
    * @returns Invalidation ID or null if disabled
    */
-  invalidateVersionCache(platform: string, environment: string, version: string): Promise<string | null>;
+  invalidateVersionCache(
+    platform: string,
+    environment: string,
+    version: string,
+  ): Promise<string | null>;
 
   /**
    * Invalidate cache for a specific flag
@@ -70,7 +77,11 @@ export interface CacheProvider {
    * @param flagKey - Flag key
    * @returns Invalidation ID or null if disabled
    */
-  invalidateFlagCache(platform: string, environment: string, flagKey: string): Promise<string | null>;
+  invalidateFlagCache(
+    platform: string,
+    environment: string,
+    flagKey: string,
+  ): Promise<string | null>;
 
   /**
    * Invalidate cache for a specific experiment
@@ -79,7 +90,11 @@ export interface CacheProvider {
    * @param experimentKey - Experiment key
    * @returns Invalidation ID or null if disabled
    */
-  invalidateExperimentCache(platform: string, environment: string, experimentKey: string): Promise<string | null>;
+  invalidateExperimentCache(
+    platform: string,
+    environment: string,
+    experimentKey: string,
+  ): Promise<string | null>;
 
   /**
    * Invalidate cache for all experiments in an environment
@@ -87,7 +102,10 @@ export interface CacheProvider {
    * @param environment - Environment name
    * @returns Invalidation ID or null if disabled
    */
-  invalidateAllExperimentsCache(platform: string, environment: string): Promise<string | null>;
+  invalidateAllExperimentsCache(
+    platform: string,
+    environment: string,
+  ): Promise<string | null>;
 
   /**
    * Invalidate cache for stats endpoints in an environment
@@ -95,7 +113,36 @@ export interface CacheProvider {
    * @param environment - Environment name
    * @returns Invalidation ID or null if disabled
    */
-  invalidateStatsCache(platform: string, environment: string): Promise<string | null>;
+  invalidateStatsCache(
+    platform: string,
+    environment: string,
+  ): Promise<string | null>;
+
+  /**
+   * Invalidate cache for a specific flag's stats
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @param flagKey - Flag key
+   * @returns Invalidation ID or null if disabled
+   */
+  invalidateFlagStatsCache(
+    platform: string,
+    environment: string,
+    flagKey: string,
+  ): Promise<string | null>;
+
+  /**
+   * Invalidate cache for a specific experiment's stats
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @param experimentKey - Experiment key
+   * @returns Invalidation ID or null if disabled
+   */
+  invalidateExperimentStatsCache(
+    platform: string,
+    environment: string,
+    experimentKey: string,
+  ): Promise<string | null>;
 
   /**
    * Generate cache paths based on platform, environment, and version
@@ -104,7 +151,11 @@ export interface CacheProvider {
    * @param version - Optional version timestamp
    * @returns Array of paths to invalidate
    */
-  generateCachePaths(platform?: string, environment?: string, version?: string): string[];
+  generateCachePaths(
+    platform?: string,
+    environment?: string,
+    version?: string,
+  ): string[];
 
   /**
    * Check if cache provider is enabled
@@ -121,7 +172,7 @@ export interface CacheConfig {
   enabled: boolean;
 
   /** Cache provider type */
-  provider?: 'cloudfront' | 'cloudflare' | 'none';
+  provider?: "cloudfront" | "cloudflare" | "none";
 
   /** CloudFront-specific configuration */
   cloudfront?: {

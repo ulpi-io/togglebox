@@ -16,7 +16,7 @@
  * - Stats: @togglebox/stats
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // ============================================================================
 // ORGANIZATIONAL UNITS (Shared by ALL three tiers)
@@ -199,9 +199,9 @@ export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
  */
 export function bumpVersion(
   currentVersion: string,
-  type: 'major' | 'minor' | 'patch' = 'patch'
+  type: "major" | "minor" | "patch" = "patch",
 ): string {
-  const parts = currentVersion.split('.');
+  const parts = currentVersion.split(".");
   if (parts.length === 3) {
     const parsed = parts.map((p) => parseInt(p, 10));
     const major = parsed[0];
@@ -216,11 +216,11 @@ export function bumpVersion(
       !isNaN(patch)
     ) {
       switch (type) {
-        case 'major':
+        case "major":
           return `${major + 1}.0.0`;
-        case 'minor':
+        case "minor":
           return `${major}.${minor + 1}.0`;
-        case 'patch':
+        case "patch":
         default:
           return `${major}.${minor}.${patch + 1}`;
       }

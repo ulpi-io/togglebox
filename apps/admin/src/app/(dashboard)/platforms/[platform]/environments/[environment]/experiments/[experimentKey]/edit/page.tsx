@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { use } from 'react';
-import Link from 'next/link';
-import { getExperimentApi, updateExperimentApi } from '@/lib/api/experiments';
-import type { Experiment, TrafficAllocation } from '@/lib/api/types';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { use } from "react";
+import Link from "next/link";
+import { getExperimentApi, updateExperimentApi } from "@/lib/api/experiments";
+import type { Experiment, TrafficAllocation } from "@/lib/api/types";
 import {
   Button,
   Input,
@@ -17,7 +17,7 @@ import {
   CardTitle,
   Badge,
   Steps,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
 interface EditExperimentPageProps {
   params: Promise<{
@@ -39,9 +39,9 @@ interface ValidationResult {
 }
 
 const STEPS = [
-  { id: 'basic', label: 'Basic Info' },
-  { id: 'traffic', label: 'Traffic' },
-  { id: 'targeting', label: 'Targeting' },
+  { id: "basic", label: "Basic Info" },
+  { id: "traffic", label: "Traffic" },
+  { id: "targeting", label: "Targeting" },
 ];
 
 // Validation helpers
@@ -52,7 +52,7 @@ function validateUserList(input: string): ValidationResult {
 
   const entries = input
     .split(/[,\n]/)
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean);
 
   const seen = new Set<string>();
@@ -76,20 +76,27 @@ function validateUserList(input: string): ValidationResult {
   return { valid, duplicates, invalid };
 }
 
-function validateCountryCode(code: string): { valid: boolean; formatted: string } {
+function validateCountryCode(code: string): {
+  valid: boolean;
+  formatted: string;
+} {
   const trimmed = code.trim().toUpperCase();
   const isValid = /^[A-Z]{2}$/.test(trimmed);
-  return { valid: isValid || trimmed === '', formatted: trimmed };
+  return { valid: isValid || trimmed === "", formatted: trimmed };
 }
 
-function validateLanguages(input: string): { valid: string[]; invalid: string[]; duplicates: string[] } {
+function validateLanguages(input: string): {
+  valid: string[];
+  invalid: string[];
+  duplicates: string[];
+} {
   if (!input.trim()) {
     return { valid: [], invalid: [], duplicates: [] };
   }
 
   const entries = input
-    .split(',')
-    .map(s => s.trim().toLowerCase())
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
 
   const seen = new Set<string>();
@@ -114,12 +121,14 @@ function validateLanguages(input: string): { valid: string[]; invalid: string[];
   return { valid, invalid, duplicates };
 }
 
-export default function EditExperimentPage({ params }: EditExperimentPageProps) {
+export default function EditExperimentPage({
+  params,
+}: EditExperimentPageProps) {
   const { platform, environment, experimentKey } = use(params);
   const router = useRouter();
 
   // Step navigation
-  const [currentStep, setCurrentStep] = useState('basic');
+  const [currentStep, setCurrentStep] = useState("basic");
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
 
   const [experiment, setExperiment] = useState<Experiment | null>(null);
@@ -127,24 +136,34 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Form fields - Basic
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [hypothesis, setHypothesis] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [hypothesis, setHypothesis] = useState("");
 
   // Form fields - Traffic Allocation
-  const [trafficAllocation, setTrafficAllocation] = useState<TrafficAllocation[]>([]);
+  const [trafficAllocation, setTrafficAllocation] = useState<
+    TrafficAllocation[]
+  >([]);
 
   // Form fields - Targeting
-  const [countryLanguagePairs, setCountryLanguagePairs] = useState<CountryLanguagePair[]>([]);
-  const [forceIncludeUsers, setForceIncludeUsers] = useState('');
-  const [forceExcludeUsers, setForceExcludeUsers] = useState('');
+  const [countryLanguagePairs, setCountryLanguagePairs] = useState<
+    CountryLanguagePair[]
+  >([]);
+  const [forceIncludeUsers, setForceIncludeUsers] = useState("");
+  const [forceExcludeUsers, setForceExcludeUsers] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Validation results for targeting
-  const includeUsersValidation = useMemo(() => validateUserList(forceIncludeUsers), [forceIncludeUsers]);
-  const excludeUsersValidation = useMemo(() => validateUserList(forceExcludeUsers), [forceExcludeUsers]);
+  const includeUsersValidation = useMemo(
+    () => validateUserList(forceIncludeUsers),
+    [forceIncludeUsers],
+  );
+  const excludeUsersValidation = useMemo(
+    () => validateUserList(forceExcludeUsers),
+    [forceExcludeUsers],
+  );
 
   // Step validation
   const stepValidation = useMemo(() => {
@@ -152,35 +171,51 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
       isValid: !!name.trim() && !!hypothesis.trim(),
       errors: [] as string[],
     };
-    if (!name.trim()) basic.errors.push('Display name is required');
-    if (!hypothesis.trim()) basic.errors.push('Hypothesis is required');
+    if (!name.trim()) basic.errors.push("Display name is required");
+    if (!hypothesis.trim()) basic.errors.push("Hypothesis is required");
 
     const traffic = {
-      isValid: trafficAllocation.reduce((sum, t) => sum + t.percentage, 0) === 100,
+      isValid:
+        trafficAllocation.reduce((sum, t) => sum + t.percentage, 0) === 100,
       errors: [] as string[],
     };
-    const totalPercentage = trafficAllocation.reduce((sum, t) => sum + t.percentage, 0);
+    const totalPercentage = trafficAllocation.reduce(
+      (sum, t) => sum + t.percentage,
+      0,
+    );
     if (totalPercentage !== 100) {
-      traffic.errors.push(`Traffic allocation must sum to 100% (currently ${totalPercentage}%)`);
+      traffic.errors.push(
+        `Traffic allocation must sum to 100% (currently ${totalPercentage}%)`,
+      );
     }
 
     const targeting = {
-      isValid: includeUsersValidation.invalid.length === 0 && excludeUsersValidation.invalid.length === 0,
+      isValid:
+        includeUsersValidation.invalid.length === 0 &&
+        excludeUsersValidation.invalid.length === 0,
       errors: [] as string[],
     };
-    if (includeUsersValidation.invalid.length > 0) targeting.errors.push('Invalid user IDs in Force Include');
-    if (excludeUsersValidation.invalid.length > 0) targeting.errors.push('Invalid user IDs in Force Exclude');
+    if (includeUsersValidation.invalid.length > 0)
+      targeting.errors.push("Invalid user IDs in Force Include");
+    if (excludeUsersValidation.invalid.length > 0)
+      targeting.errors.push("Invalid user IDs in Force Exclude");
 
     return { basic, traffic, targeting };
-  }, [name, hypothesis, trafficAllocation, includeUsersValidation, excludeUsersValidation]);
+  }, [
+    name,
+    hypothesis,
+    trafficAllocation,
+    includeUsersValidation,
+    excludeUsersValidation,
+  ]);
 
   // Remove completed status if step validation fails
   useEffect(() => {
-    setCompletedSteps(prev => {
+    setCompletedSteps((prev) => {
       const newCompleted = new Set(prev);
-      if (!stepValidation.basic.isValid) newCompleted.delete('basic');
-      if (!stepValidation.traffic.isValid) newCompleted.delete('traffic');
-      if (!stepValidation.targeting.isValid) newCompleted.delete('targeting');
+      if (!stepValidation.basic.isValid) newCompleted.delete("basic");
+      if (!stepValidation.traffic.isValid) newCompleted.delete("traffic");
+      if (!stepValidation.targeting.isValid) newCompleted.delete("targeting");
       if (newCompleted.size !== prev.size) return newCompleted;
       for (const item of prev) {
         if (!newCompleted.has(item)) return newCompleted;
@@ -195,7 +230,7 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
       const data = await getExperimentApi(platform, environment, experimentKey);
       setExperiment(data);
       setName(data.name);
-      setDescription(data.description || '');
+      setDescription(data.description || "");
       setHypothesis(data.hypothesis);
       setTrafficAllocation(data.trafficAllocation || []);
 
@@ -204,17 +239,19 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
         setCountryLanguagePairs(
           data.targeting.countries.map((c) => ({
             country: c.country,
-            languages: c.languages?.map((l) => l.language).join(', ') || '',
-          }))
+            languages: c.languages?.map((l) => l.language).join(", ") || "",
+          })),
         );
       } else {
         setCountryLanguagePairs([]);
       }
-      setForceIncludeUsers(data.targeting?.forceIncludeUsers?.join(', ') || '');
-      setForceExcludeUsers(data.targeting?.forceExcludeUsers?.join(', ') || '');
+      setForceIncludeUsers(data.targeting?.forceIncludeUsers?.join(", ") || "");
+      setForceExcludeUsers(data.targeting?.forceExcludeUsers?.join(", ") || "");
       setLoadError(null);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Failed to load experiment');
+      setLoadError(
+        err instanceof Error ? err.message : "Failed to load experiment",
+      );
     } finally {
       setIsLoadingExperiment(false);
     }
@@ -225,13 +262,13 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
   }, [loadExperiment]);
 
   // Navigation
-  const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
+  const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
 
   function markCurrentStepAsCompleted() {
     const stepId = currentStep;
     const validation = stepValidation[stepId as keyof typeof stepValidation];
     if (validation?.isValid && !completedSteps.has(stepId)) {
-      setCompletedSteps(prev => new Set([...prev, stepId]));
+      setCompletedSteps((prev) => new Set([...prev, stepId]));
     }
   }
 
@@ -250,7 +287,7 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
 
   function handleStepClick(stepId: string) {
     if (stepId !== currentStep) {
-      const targetIndex = STEPS.findIndex(s => s.id === stepId);
+      const targetIndex = STEPS.findIndex((s) => s.id === stepId);
       if (targetIndex > currentStepIndex) {
         markCurrentStepAsCompleted();
       }
@@ -259,22 +296,30 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
   }
 
   // Traffic allocation helpers
-  function updateTrafficPercentage(variationKey: string, newPercentage: number) {
-    setTrafficAllocation(prev =>
-      prev.map(t =>
-        t.variationKey === variationKey ? { ...t, percentage: newPercentage } : t
-      )
+  function updateTrafficPercentage(
+    variationKey: string,
+    newPercentage: number,
+  ) {
+    setTrafficAllocation((prev) =>
+      prev.map((t) =>
+        t.variationKey === variationKey
+          ? { ...t, percentage: newPercentage }
+          : t,
+      ),
     );
   }
 
   // Country/Language pair management
   function addCountryLanguagePair() {
-    setCountryLanguagePairs([...countryLanguagePairs, { country: '', languages: '' }]);
+    setCountryLanguagePairs([
+      ...countryLanguagePairs,
+      { country: "", languages: "" },
+    ]);
   }
 
   function updateCountryLanguagePair(
     index: number,
-    update: Partial<{ country: string; languages: string }>
+    update: Partial<{ country: string; languages: string }>,
   ) {
     const updated = [...countryLanguagePairs];
     updated[index] = { ...updated[index], ...update };
@@ -286,7 +331,8 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
   }
 
   // Check if all steps are valid for submission
-  const canSubmit = stepValidation.basic.isValid &&
+  const canSubmit =
+    stepValidation.basic.isValid &&
     stepValidation.traffic.isValid &&
     stepValidation.targeting.isValid;
 
@@ -296,13 +342,13 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
 
     if (!canSubmit) {
       if (!stepValidation.basic.isValid) {
-        setCurrentStep('basic');
+        setCurrentStep("basic");
         setError(stepValidation.basic.errors[0]);
       } else if (!stepValidation.traffic.isValid) {
-        setCurrentStep('traffic');
+        setCurrentStep("traffic");
         setError(stepValidation.traffic.errors[0]);
       } else if (!stepValidation.targeting.isValid) {
-        setCurrentStep('targeting');
+        setCurrentStep("targeting");
         setError(stepValidation.targeting.errors[0]);
       }
       return;
@@ -318,12 +364,14 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
         forceExcludeUsers?: string[];
       } = {};
 
-      const validPairs = countryLanguagePairs.filter(p => p.country.trim());
+      const validPairs = countryLanguagePairs.filter((p) => p.country.trim());
       if (validPairs.length > 0) {
-        targeting.countries = validPairs.map(pair => ({
+        targeting.countries = validPairs.map((pair) => ({
           country: pair.country.trim().toUpperCase(),
           languages: pair.languages.trim()
-            ? pair.languages.split(',').map(l => ({ language: l.trim().toLowerCase() }))
+            ? pair.languages
+                .split(",")
+                .map((l) => ({ language: l.trim().toLowerCase() }))
             : undefined,
         }));
       }
@@ -344,9 +392,11 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
         targeting: Object.keys(targeting).length > 0 ? targeting : undefined,
       });
 
-      router.push(`/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`);
+      router.push(
+        `/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`,
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -354,24 +404,31 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
 
   // Render validation feedback for user lists
   function renderUserListValidation(validation: ValidationResult) {
-    const hasIssues = validation.duplicates.length > 0 || validation.invalid.length > 0;
+    const hasIssues =
+      validation.duplicates.length > 0 || validation.invalid.length > 0;
     if (!hasIssues && validation.valid.length === 0) return null;
 
     return (
       <div className="mt-2 space-y-1">
         {validation.valid.length > 0 && (
           <p className="text-xs text-muted-foreground">
-            {validation.valid.length} valid {validation.valid.length === 1 ? 'user' : 'users'}
+            {validation.valid.length} valid{" "}
+            {validation.valid.length === 1 ? "user" : "users"}
           </p>
         )}
         {validation.duplicates.length > 0 && (
           <p className="text-xs text-warning">
-            {validation.duplicates.length} duplicate{validation.duplicates.length === 1 ? '' : 's'} will be ignored: {validation.duplicates.slice(0, 3).join(', ')}{validation.duplicates.length > 3 ? '...' : ''}
+            {validation.duplicates.length} duplicate
+            {validation.duplicates.length === 1 ? "" : "s"} will be ignored:{" "}
+            {validation.duplicates.slice(0, 3).join(", ")}
+            {validation.duplicates.length > 3 ? "..." : ""}
           </p>
         )}
         {validation.invalid.length > 0 && (
           <p className="text-xs text-destructive">
-            {validation.invalid.length} invalid format: {validation.invalid.slice(0, 3).join(', ')}{validation.invalid.length > 3 ? '...' : ''}
+            {validation.invalid.length} invalid format:{" "}
+            {validation.invalid.slice(0, 3).join(", ")}
+            {validation.invalid.length > 3 ? "..." : ""}
           </p>
         )}
       </div>
@@ -403,15 +460,21 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
       <div>
         <div className="mb-8">
           <h1 className="text-4xl font-black mb-2">Edit Experiment</h1>
-          <p className="text-muted-foreground">{platform} / {environment}</p>
+          <p className="text-muted-foreground">
+            {platform} / {environment}
+          </p>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
             <div className="text-destructive text-lg font-bold mb-2">
               Error loading experiment
             </div>
-            <p className="text-muted-foreground mb-4">{loadError || 'Experiment not found'}</p>
-            <Link href={`/experiments?platform=${platform}&environment=${environment}`}>
+            <p className="text-muted-foreground mb-4">
+              {loadError || "Experiment not found"}
+            </p>
+            <Link
+              href={`/experiments?platform=${platform}&environment=${environment}`}
+            >
               <Button variant="outline">Back to Experiments</Button>
             </Link>
           </CardContent>
@@ -421,12 +484,14 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
   }
 
   // Only allow editing draft experiments
-  if (experiment.status !== 'draft') {
+  if (experiment.status !== "draft") {
     return (
       <div>
         <div className="mb-8">
           <h1 className="text-4xl font-black mb-2">Edit Experiment</h1>
-          <p className="text-muted-foreground">{platform} / {environment}</p>
+          <p className="text-muted-foreground">
+            {platform} / {environment}
+          </p>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
@@ -434,9 +499,12 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
               Cannot Edit Experiment
             </div>
             <p className="text-muted-foreground mb-4">
-              Only draft experiments can be edited. This experiment is currently &ldquo;{experiment.status}&rdquo;.
+              Only draft experiments can be edited. This experiment is currently
+              &ldquo;{experiment.status}&rdquo;.
             </p>
-            <Link href={`/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`}>
+            <Link
+              href={`/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`}
+            >
               <Button variant="outline">Back to Experiment</Button>
             </Link>
           </CardContent>
@@ -445,7 +513,10 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
     );
   }
 
-  const totalPercentage = trafficAllocation.reduce((sum, t) => sum + t.percentage, 0);
+  const totalPercentage = trafficAllocation.reduce(
+    (sum, t) => sum + t.percentage,
+    0,
+  );
 
   return (
     <div>
@@ -460,7 +531,9 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
               {platform} / {environment} / {experimentKey}
             </p>
           </div>
-          <Link href={`/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`}>
+          <Link
+            href={`/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`}
+          >
             <Button variant="outline">Cancel</Button>
           </Link>
         </div>
@@ -478,7 +551,7 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
 
       <form onSubmit={handleSubmit}>
         {/* Step 1: Basic Info */}
-        {currentStep === 'basic' && (
+        {currentStep === "basic" && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -487,7 +560,11 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Experiment Key (immutable)</Label>
-                  <Input value={experiment.experimentKey} disabled className="bg-muted" />
+                  <Input
+                    value={experiment.experimentKey}
+                    disabled
+                    className="bg-muted"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -528,16 +605,20 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
               </CardContent>
             </Card>
 
-            {!stepValidation.basic.isValid && stepValidation.basic.errors.length > 0 && (
-              <Alert variant="warning">
-                <span>Missing required fields: {stepValidation.basic.errors.join(', ')}</span>
-              </Alert>
-            )}
+            {!stepValidation.basic.isValid &&
+              stepValidation.basic.errors.length > 0 && (
+                <Alert variant="warning">
+                  <span>
+                    Missing required fields:{" "}
+                    {stepValidation.basic.errors.join(", ")}
+                  </span>
+                </Alert>
+              )}
           </div>
         )}
 
         {/* Step 2: Traffic Allocation */}
-        {currentStep === 'traffic' && (
+        {currentStep === "traffic" && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -545,19 +626,27 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Variations cannot be changed after creation. You can adjust the traffic allocation below.
+                  Variations cannot be changed after creation. You can adjust
+                  the traffic allocation below.
                 </p>
                 <div className="space-y-2">
                   {experiment.variations.map((variation) => (
-                    <div key={variation.key} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <div
+                      key={variation.key}
+                      className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{variation.name}</span>
                           {variation.isControl && (
-                            <Badge variant="secondary" className="text-xs">Control</Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              Control
+                            </Badge>
                           )}
                         </div>
-                        <span className="text-sm text-muted-foreground">Key: {variation.key}</span>
+                        <span className="text-sm text-muted-foreground">
+                          Key: {variation.key}
+                        </span>
                       </div>
                       <div className="text-sm text-muted-foreground">
                         Value: {JSON.stringify(variation.value)}
@@ -579,24 +668,35 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
 
                 <div className="space-y-4">
                   {trafficAllocation.map((allocation) => {
-                    const variation = experiment.variations.find(v => v.key === allocation.variationKey);
+                    const variation = experiment.variations.find(
+                      (v) => v.key === allocation.variationKey,
+                    );
                     return (
                       <div key={allocation.variationKey} className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label className="flex items-center gap-2">
                             {variation?.name || allocation.variationKey}
                             {variation?.isControl && (
-                              <Badge variant="secondary" className="text-xs">Control</Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                Control
+                              </Badge>
                             )}
                           </Label>
-                          <span className="text-sm font-medium">{allocation.percentage}%</span>
+                          <span className="text-sm font-medium">
+                            {allocation.percentage}%
+                          </span>
                         </div>
                         <input
                           type="range"
                           min="0"
                           max="100"
                           value={allocation.percentage}
-                          onChange={(e) => updateTrafficPercentage(allocation.variationKey, parseInt(e.target.value))}
+                          onChange={(e) =>
+                            updateTrafficPercentage(
+                              allocation.variationKey,
+                              parseInt(e.target.value),
+                            )
+                          }
                           className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                           disabled={isLoading}
                         />
@@ -608,14 +708,21 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
                 {/* Visual bar */}
                 <div className="h-6 rounded-full overflow-hidden flex">
                   {trafficAllocation.map((allocation, index) => {
-                    const colors = ['bg-primary', 'bg-blue-400', 'bg-green-400', 'bg-orange-400', 'bg-purple-400'];
+                    const colors = [
+                      "bg-primary",
+                      "bg-blue-400",
+                      "bg-green-400",
+                      "bg-orange-400",
+                      "bg-purple-400",
+                    ];
                     return (
                       <div
                         key={allocation.variationKey}
                         className={`${colors[index % colors.length]} transition-all duration-200 flex items-center justify-center text-xs text-white font-medium`}
                         style={{ width: `${allocation.percentage}%` }}
                       >
-                        {allocation.percentage > 10 && `${allocation.percentage}%`}
+                        {allocation.percentage > 10 &&
+                          `${allocation.percentage}%`}
                       </div>
                     );
                   })}
@@ -623,14 +730,19 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
 
                 <div className="flex items-center justify-between pt-2 border-t">
                   <span className="text-sm font-medium">Total:</span>
-                  <span className={`text-sm font-bold ${totalPercentage === 100 ? 'text-green-600' : 'text-destructive'}`}>
+                  <span
+                    className={`text-sm font-bold ${totalPercentage === 100 ? "text-green-600" : "text-destructive"}`}
+                  >
                     {totalPercentage}%
                   </span>
                 </div>
 
                 {totalPercentage !== 100 && (
                   <Alert variant="warning">
-                    <span>Traffic allocation must equal 100%. Currently at {totalPercentage}%.</span>
+                    <span>
+                      Traffic allocation must equal 100%. Currently at{" "}
+                      {totalPercentage}%.
+                    </span>
                   </Alert>
                 )}
               </CardContent>
@@ -639,7 +751,7 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
         )}
 
         {/* Step 3: Targeting */}
-        {currentStep === 'targeting' && (
+        {currentStep === "targeting" && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -649,7 +761,9 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
                 {/* Country/Language Pairs */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-base font-medium">Country/Language Targeting</Label>
+                    <Label className="text-base font-medium">
+                      Country/Language Targeting
+                    </Label>
                     <Button
                       type="button"
                       variant="outline"
@@ -663,56 +777,88 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
 
                   {countryLanguagePairs.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No country targeting configured. Experiment will apply to all users.
+                      No country targeting configured. Experiment will apply to
+                      all users.
                     </p>
                   ) : (
                     <div className="space-y-2">
                       {countryLanguagePairs.map((pair, index) => {
-                        const countryValidation = validateCountryCode(pair.country);
-                        const langValidation = validateLanguages(pair.languages);
-                        const hasCountryError = pair.country.trim() && !countryValidation.valid;
+                        const countryValidation = validateCountryCode(
+                          pair.country,
+                        );
+                        const langValidation = validateLanguages(
+                          pair.languages,
+                        );
+                        const hasCountryError =
+                          pair.country.trim() && !countryValidation.valid;
                         const hasLangError = langValidation.invalid.length > 0;
 
                         return (
-                          <div key={index} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                          <div
+                            key={index}
+                            className="p-3 bg-muted/50 rounded-lg space-y-2"
+                          >
                             <div className="flex items-start gap-3">
                               <div className="flex-1 grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                  <Label className="text-xs">Country Code (2-letter ISO)</Label>
+                                  <Label className="text-xs">
+                                    Country Code (2-letter ISO)
+                                  </Label>
                                   <Input
                                     value={pair.country}
-                                    onChange={(e) => updateCountryLanguagePair(index, { country: e.target.value.toUpperCase() })}
+                                    onChange={(e) =>
+                                      updateCountryLanguagePair(index, {
+                                        country: e.target.value.toUpperCase(),
+                                      })
+                                    }
                                     placeholder="e.g., AE"
                                     disabled={isLoading}
-                                    className={`uppercase ${hasCountryError ? 'border-destructive' : ''}`}
+                                    className={`uppercase ${hasCountryError ? "border-destructive" : ""}`}
                                     maxLength={2}
                                   />
                                   {hasCountryError && (
-                                    <p className="text-xs text-destructive">Must be 2 uppercase letters</p>
+                                    <p className="text-xs text-destructive">
+                                      Must be 2 uppercase letters
+                                    </p>
                                   )}
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-xs">Languages (comma-separated)</Label>
+                                  <Label className="text-xs">
+                                    Languages (comma-separated)
+                                  </Label>
                                   <Input
                                     value={pair.languages}
-                                    onChange={(e) => updateCountryLanguagePair(index, { languages: e.target.value })}
+                                    onChange={(e) =>
+                                      updateCountryLanguagePair(index, {
+                                        languages: e.target.value,
+                                      })
+                                    }
                                     placeholder="e.g., en, ar"
                                     disabled={isLoading}
-                                    className={hasLangError ? 'border-destructive' : ''}
+                                    className={
+                                      hasLangError ? "border-destructive" : ""
+                                    }
                                   />
                                   {langValidation.valid.length > 0 && (
                                     <p className="text-xs text-muted-foreground">
-                                      {langValidation.valid.length} language{langValidation.valid.length === 1 ? '' : 's'}: {langValidation.valid.join(', ')}
+                                      {langValidation.valid.length} language
+                                      {langValidation.valid.length === 1
+                                        ? ""
+                                        : "s"}
+                                      : {langValidation.valid.join(", ")}
                                     </p>
                                   )}
                                   {langValidation.duplicates.length > 0 && (
                                     <p className="text-xs text-warning">
-                                      Duplicates ignored: {langValidation.duplicates.join(', ')}
+                                      Duplicates ignored:{" "}
+                                      {langValidation.duplicates.join(", ")}
                                     </p>
                                   )}
                                   {langValidation.invalid.length > 0 && (
                                     <p className="text-xs text-destructive">
-                                      Invalid: {langValidation.invalid.join(', ')} (must be 2 lowercase letters)
+                                      Invalid:{" "}
+                                      {langValidation.invalid.join(", ")} (must
+                                      be 2 lowercase letters)
                                     </p>
                                   )}
                                 </div>
@@ -732,7 +878,8 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
                         );
                       })}
                       <p className="text-xs text-muted-foreground">
-                        Each country can have multiple languages. Leave languages empty for all languages in that country.
+                        Each country can have multiple languages. Leave
+                        languages empty for all languages in that country.
                       </p>
                     </div>
                   )}
@@ -741,36 +888,46 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
                 {/* Force Include/Exclude Users */}
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="forceIncludeUsers">Force Include Users</Label>
+                    <Label htmlFor="forceIncludeUsers">
+                      Force Include Users
+                    </Label>
                     <textarea
                       id="forceIncludeUsers"
                       value={forceIncludeUsers}
                       onChange={(e) => setForceIncludeUsers(e.target.value)}
                       placeholder="user123, user456, user789"
                       className={`w-full p-3 border rounded-lg min-h-[80px] bg-white/80 focus:ring-2 focus:ring-black/20 focus:border-black/40 focus:bg-white transition-all duration-200 resize-y ${
-                        includeUsersValidation.invalid.length > 0 ? 'border-destructive' : 'border-black/20'
+                        includeUsersValidation.invalid.length > 0
+                          ? "border-destructive"
+                          : "border-black/20"
                       }`}
                       disabled={isLoading}
                     />
                     <p className="text-xs text-muted-foreground">
-                      User IDs always included in experiment (comma or newline separated)
+                      User IDs always included in experiment (comma or newline
+                      separated)
                     </p>
                     {renderUserListValidation(includeUsersValidation)}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="forceExcludeUsers">Force Exclude Users</Label>
+                    <Label htmlFor="forceExcludeUsers">
+                      Force Exclude Users
+                    </Label>
                     <textarea
                       id="forceExcludeUsers"
                       value={forceExcludeUsers}
                       onChange={(e) => setForceExcludeUsers(e.target.value)}
                       placeholder="user789, user012"
                       className={`w-full p-3 border rounded-lg min-h-[80px] bg-white/80 focus:ring-2 focus:ring-black/20 focus:border-black/40 focus:bg-white transition-all duration-200 resize-y ${
-                        excludeUsersValidation.invalid.length > 0 ? 'border-destructive' : 'border-black/20'
+                        excludeUsersValidation.invalid.length > 0
+                          ? "border-destructive"
+                          : "border-black/20"
                       }`}
                       disabled={isLoading}
                     />
                     <p className="text-xs text-muted-foreground">
-                      User IDs always excluded from experiment (comma or newline separated)
+                      User IDs always excluded from experiment (comma or newline
+                      separated)
                     </p>
                     {renderUserListValidation(excludeUsersValidation)}
                   </div>
@@ -802,25 +959,20 @@ export default function EditExperimentPage({ params }: EditExperimentPageProps) 
             )}
           </div>
           <div className="flex items-center gap-3">
-            <Link href={`/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`}>
+            <Link
+              href={`/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`}
+            >
               <Button type="button" variant="outline" disabled={isLoading}>
                 Cancel
               </Button>
             </Link>
             {currentStepIndex < STEPS.length - 1 ? (
-              <Button
-                type="button"
-                onClick={goToNextStep}
-                disabled={isLoading}
-              >
+              <Button type="button" onClick={goToNextStep} disabled={isLoading}>
                 Next
               </Button>
             ) : (
-              <Button
-                type="submit"
-                disabled={isLoading || !canSubmit}
-              >
-                {isLoading ? 'Saving...' : 'Save Changes'}
+              <Button type="submit" disabled={isLoading || !canSubmit}>
+                {isLoading ? "Saving..." : "Save Changes"}
               </Button>
             )}
           </div>

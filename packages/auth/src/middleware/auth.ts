@@ -22,11 +22,11 @@
  * - `AUTH_MODULE_ENABLED`: Alternative flag for enabling auth
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { verifyToken as verifyJWT } from '../utils/jwt';
-import { ApiKeyService } from '../services/ApiKeyService';
-import { UserService } from '../services/UserService';
-import { USER_PERMISSIONS } from '../models/User';
+import { Request, Response, NextFunction } from "express";
+import { verifyToken as verifyJWT } from "../utils/jwt";
+import { ApiKeyService } from "../services/ApiKeyService";
+import { UserService } from "../services/UserService";
+import { USER_PERMISSIONS } from "../models/User";
 
 /**
  * Extended Express Request with authenticated JWT user.
@@ -144,8 +144,8 @@ export function createAuthMiddleware(config: AuthConfig) {
   const { apiKeyService, userService } = config;
   const authEnabled =
     config.authEnabled ??
-    (process.env['ENABLE_AUTHENTICATION'] === 'true' ||
-      process.env['AUTH_MODULE_ENABLED'] === 'true');
+    (process.env["ENABLE_AUTHENTICATION"] === "true" ||
+      process.env["AUTH_MODULE_ENABLED"] === "true");
 
   /**
    * Authenticate request using JWT token from Authorization header.
@@ -181,15 +181,15 @@ export function createAuthMiddleware(config: AuthConfig) {
   async function authenticateJWT(
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       res.status(401).json({
         success: false,
-        error: 'Missing or invalid Authorization header',
-        code: 'UNAUTHORIZED',
+        error: "Missing or invalid Authorization header",
+        code: "UNAUTHORIZED",
         timestamp: new Date().toISOString(),
       });
       return;
@@ -200,13 +200,13 @@ export function createAuthMiddleware(config: AuthConfig) {
     try {
       const decoded = verifyJWT(token);
       if (!decoded) {
-        throw new Error('Invalid token');
+        throw new Error("Invalid token");
       }
 
       // Verify user still exists
       const user = await userService.getUserById(decoded.id);
       if (!user) {
-        throw new Error('User not found');
+        throw new Error("User not found");
       }
 
       req.user = {
@@ -219,8 +219,8 @@ export function createAuthMiddleware(config: AuthConfig) {
     } catch (error) {
       res.status(401).json({
         success: false,
-        error: 'Invalid or expired JWT token',
-        code: 'UNAUTHORIZED',
+        error: "Invalid or expired JWT token",
+        code: "UNAUTHORIZED",
         timestamp: new Date().toISOString(),
       });
     }
@@ -261,15 +261,15 @@ export function createAuthMiddleware(config: AuthConfig) {
   async function authenticateAPIKey(
     req: ApiKeyRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
-    const apiKeyHeader = req.headers['x-api-key'];
+    const apiKeyHeader = req.headers["x-api-key"];
 
-    if (!apiKeyHeader || typeof apiKeyHeader !== 'string') {
+    if (!apiKeyHeader || typeof apiKeyHeader !== "string") {
       res.status(401).json({
         success: false,
-        error: 'Missing or invalid X-API-Key header',
-        code: 'UNAUTHORIZED',
+        error: "Missing or invalid X-API-Key header",
+        code: "UNAUTHORIZED",
         timestamp: new Date().toISOString(),
       });
       return;
@@ -279,7 +279,7 @@ export function createAuthMiddleware(config: AuthConfig) {
       // Verify API key from database
       const apiKey = await apiKeyService.verifyApiKey(apiKeyHeader);
       if (!apiKey) {
-        throw new Error('Invalid API key');
+        throw new Error("Invalid API key");
       }
 
       req.apiKey = {
@@ -293,10 +293,76 @@ export function createAuthMiddleware(config: AuthConfig) {
     } catch (error) {
       res.status(401).json({
         success: false,
-        error: 'Invalid or expired API key',
-        code: 'UNAUTHORIZED',
+        error: "Invalid or expired API key",
+        code: "UNAUTHORIZED",
         timestamp: new Date().toISOString(),
       });
+    }
+  }
+
+  /**
+   * Try JWT authentication without sending response on failure.
+   * Returns true if authenticated, false otherwise.
+   */
+  async function tryJWTAuth(req: AuthenticatedRequest): Promise<boolean> {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return false;
+    }
+
+    const token = authHeader.slice(7);
+
+    try {
+      const decoded = verifyJWT(token);
+      if (!decoded) {
+        return false;
+      }
+
+      const user = await userService.getUserById(decoded.id);
+      if (!user) {
+        return false;
+      }
+
+      req.user = {
+        userId: decoded.id,
+        email: decoded.email,
+        role: decoded.role,
+      };
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Try API key authentication without sending response on failure.
+   * Returns true if authenticated, false otherwise.
+   */
+  async function tryAPIKeyAuth(req: ApiKeyRequest): Promise<boolean> {
+    const apiKeyHeader = req.headers["x-api-key"];
+
+    if (!apiKeyHeader || typeof apiKeyHeader !== "string") {
+      return false;
+    }
+
+    try {
+      const apiKey = await apiKeyService.verifyApiKey(apiKeyHeader);
+      if (!apiKey) {
+        return false;
+      }
+
+      req.apiKey = {
+        id: apiKey.id,
+        name: apiKey.name,
+        permissions: apiKey.permissions,
+        userId: apiKey.userId,
+      };
+
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -310,8 +376,12 @@ export function createAuthMiddleware(config: AuthConfig) {
    * @remarks
    * **Priority:**
    * 1. Try JWT authentication (Authorization: Bearer header)
-   * 2. Try API key authentication (X-API-Key header)
-   * 3. Reject if neither provided
+   * 2. If JWT fails, try API key authentication (X-API-Key header)
+   * 3. Reject if neither succeeds
+   *
+   * **Fallback Behavior:**
+   * If both headers are provided and JWT fails, API key is attempted as fallback.
+   * This allows clients to provide both for graceful degradation.
    *
    * **Accepted Headers:**
    * - `Authorization: Bearer <jwt>` - JWT authentication
@@ -335,28 +405,34 @@ export function createAuthMiddleware(config: AuthConfig) {
   async function authenticate(
     req: AuthRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     const authHeader = req.headers.authorization;
-    const apiKeyHeader = req.headers['x-api-key'];
+    const apiKeyHeader = req.headers["x-api-key"];
 
-    // Try JWT authentication first
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      await authenticateJWT(req as AuthenticatedRequest, res, next);
-      return;
+    // Try JWT authentication first (if header present)
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      if (await tryJWTAuth(req as AuthenticatedRequest)) {
+        next();
+        return;
+      }
+      // JWT failed - fall through to try API key
     }
 
-    // Try API key authentication
-    if (apiKeyHeader && typeof apiKeyHeader === 'string') {
-      await authenticateAPIKey(req as ApiKeyRequest, res, next);
-      return;
+    // Try API key authentication (if header present)
+    if (apiKeyHeader && typeof apiKeyHeader === "string") {
+      if (await tryAPIKeyAuth(req as ApiKeyRequest)) {
+        next();
+        return;
+      }
     }
 
-    // No valid authentication provided
+    // No valid authentication provided or all attempts failed
     res.status(401).json({
       success: false,
-      error: 'Authentication required. Provide either Bearer token or X-API-Key header',
-      code: 'UNAUTHORIZED',
+      error:
+        "Authentication required. Provide valid Bearer token or X-API-Key header",
+      code: "UNAUTHORIZED",
       timestamp: new Date().toISOString(),
     });
   }
@@ -381,16 +457,20 @@ export function createAuthMiddleware(config: AuthConfig) {
    * }
    * ```
    */
-  function hasPermission(req: AuthRequest, requiredPermission: string): boolean {
+  function hasPermission(
+    req: AuthRequest,
+    requiredPermission: string,
+  ): boolean {
     // JWT authentication check
     if (req.user) {
       // Admin users have all permissions
-      if (req.user.role === 'admin') {
+      if (req.user.role === "admin") {
         return true;
       }
 
       // Check if user role has the required permission
-      const permissions = USER_PERMISSIONS[req.user.role as keyof typeof USER_PERMISSIONS] || [];
+      const permissions =
+        USER_PERMISSIONS[req.user.role as keyof typeof USER_PERMISSIONS] || [];
       return permissions.includes(requiredPermission);
     }
 
@@ -436,8 +516,8 @@ export function createAuthMiddleware(config: AuthConfig) {
       if (!hasPermission(req, permission)) {
         res.status(403).json({
           success: false,
-          error: 'Insufficient permissions',
-          code: 'FORBIDDEN',
+          error: "Insufficient permissions",
+          code: "FORBIDDEN",
           timestamp: new Date().toISOString(),
           meta: {
             requiredPermission: permission,
@@ -477,8 +557,8 @@ export function createAuthMiddleware(config: AuthConfig) {
       if (req.user && req.user.role !== role) {
         res.status(403).json({
           success: false,
-          error: 'Insufficient role',
-          code: 'FORBIDDEN',
+          error: "Insufficient role",
+          code: "FORBIDDEN",
           timestamp: new Date().toISOString(),
           meta: {
             requiredRole: role,
@@ -514,7 +594,11 @@ export function createAuthMiddleware(config: AuthConfig) {
    * ```
    */
   function conditionalAuth() {
-    return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    return async (
+      req: AuthRequest,
+      res: Response,
+      next: NextFunction,
+    ): Promise<void> => {
       if (authEnabled) {
         await authenticate(req, res, next);
       } else {

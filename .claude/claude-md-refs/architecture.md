@@ -3,6 +3,7 @@
 Architecture decisions and patterns for ToggleBox dual monorepo structure.
 
 **Directory Structure:**
+
 ```
 /Users/ciprian/work/_______OGG_______/togglebox/  ← Parent directory
 ├── togglebox/          ← Open source monorepo
@@ -18,6 +19,7 @@ Architecture decisions and patterns for ToggleBox dual monorepo structure.
 **Location:** `/Users/ciprian/work/_______OGG_______/togglebox/togglebox`
 
 **Apps:**
+
 - **apps/api**: Express.js API with multi-platform handlers (Lambda, Workers, Netlify, Docker)
 - **apps/admin**: Admin dashboard (Next.js 15)
 - **apps/example-nextjs**: Example Next.js app demonstrating SDK usage
@@ -25,6 +27,7 @@ Architecture decisions and patterns for ToggleBox dual monorepo structure.
 - **apps/example-nodejs**: Example Node.js app demonstrating SDK usage
 
 **Packages:**
+
 - **packages/core**: Core business logic, types, and hashing utilities
 - **packages/database**: Multi-database abstraction layer (Prisma, Mongoose, DynamoDB, D1)
 - **packages/cache**: Multi-provider cache abstraction (CloudFront, Cloudflare, NoOp)
@@ -42,6 +45,7 @@ Architecture decisions and patterns for ToggleBox dual monorepo structure.
 - **packages/shared**: Shared utilities, types, and middleware
 
 **API Architecture (Open Source):**
+
 - **Controllers**: `configController`, `flagController`, `experimentController`, `statsController`, `webhookController`
 - **Routes**:
   - `publicRoutes.ts` - Read-only GET endpoints with conditional auth (`conditionalAuth()`)
@@ -56,17 +60,20 @@ Architecture decisions and patterns for ToggleBox dual monorepo structure.
 **Location:** `/Users/ciprian/work/_______OGG_______/togglebox/togglebox-cloud`
 
 **Apps:**
+
 - **apps/cloud-api**: Cloud API with billing and multitenancy
 - **apps/cloud-app**: Cloud dashboard (Next.js 15)
 - **apps/web**: Marketing/landing pages (Next.js 15)
 
 **Packages:**
+
 - **packages/billing**: Stripe billing integration
 - **packages/multitenancy**: Multi-tenant features (subdomain routing, tenant isolation)
 
 **Dependencies:** Uses all open source packages from `../togglebox/packages/` plus cloud-specific packages
 
 **API Architecture (Cloud):**
+
 - **Multi-tenancy**: Subdomain-based tenant routing (`subdomainTenantContext()` middleware)
 - **Billing**: Stripe integration with usage-based pricing
 - **Usage Tracking**: API request tracking and limits per tenant
@@ -82,6 +89,7 @@ Architecture decisions and patterns for ToggleBox dual monorepo structure.
 **Status:** ⚠️ Authentication is **DISABLED by default** - endpoints are publicly accessible unless you enable auth
 
 **Auth Package:** `@togglebox/auth` provides optional authentication:
+
 - **Dependencies:** bcrypt, jsonwebtoken, nodemailer, zod
 - **Features:** User registration, login, password reset, API key management
 - **Multi-database:** Works with Prisma (SQL), Mongoose (MongoDB), and DynamoDB
@@ -89,14 +97,15 @@ Architecture decisions and patterns for ToggleBox dual monorepo structure.
 
 ```typescript
 // Authentication middleware from @togglebox/auth package
-import { authenticateJWT, authenticateAPIKey } from '@togglebox/auth';
+import { authenticateJWT, authenticateAPIKey } from "@togglebox/auth";
 
 // Apply to routes when you want authentication:
-router.use('/api/v1/internal', authenticateJWT);
-router.use('/api/v1/internal', authenticateAPIKey);
+router.use("/api/v1/internal", authenticateJWT);
+router.use("/api/v1/internal", authenticateAPIKey);
 ```
 
 **Deployment-Specific Security:**
+
 - **AWS Lambda**: Can use API Gateway Resource Policy for network-level protection (no app auth needed)
 - **Cloudflare Workers**: Must use application-level auth (no VPC concept)
 - **Self-hosted**: Choose application auth or network isolation (firewall, VPN)
@@ -106,6 +115,7 @@ router.use('/api/v1/internal', authenticateAPIKey);
 **Status:** ✅ Authentication is **REQUIRED** - all endpoints require authentication
 
 **Security Model:**
+
 - JWT tokens for client authentication
 - API keys for service-to-service communication
 - RBAC (Role-Based Access Control) with roles: `admin`, `editor`, `viewer`
@@ -116,6 +126,7 @@ router.use('/api/v1/internal', authenticateAPIKey);
 **Multi-Tenancy Architecture:**
 
 **CRITICAL: Frontend vs API Subdomain Pattern**
+
 - **Frontend**: ALWAYS on single domain (`app.togglebox.local` / `app.togglebox.dev`)
   - NO tenant subdomains for frontend
   - Tenant context stored in `tenant-subdomain` cookie
@@ -126,22 +137,24 @@ router.use('/api/v1/internal', authenticateAPIKey);
   - Tenant context extracted from subdomain via `subdomainTenantContext()` middleware
 
 **Security Model:**
+
 - Database-level isolation (tenant-specific records)
 - Usage limits enforced per tenant based on subscription plan
 - Tenant subdomain validated against database on every API request
 
 **Cookie-Based Tenant Context:**
+
 ```typescript
 // After onboarding, tenant subdomain stored in cookie
-cookieStore.set('tenant-subdomain', tenant.subdomain, {
-  httpOnly: false,  // Client needs to read for API calls
+cookieStore.set("tenant-subdomain", tenant.subdomain, {
+  httpOnly: false, // Client needs to read for API calls
   secure: true,
-  sameSite: 'lax',
-  domain: '.togglebox.local',  // Shared across subdomains
+  sameSite: "lax",
+  domain: ".togglebox.local", // Shared across subdomains
 });
 
 // API client reads tenant from cookie, NOT from URL
-const tenant = getTenantSubdomain();  // Reads from cookie
+const tenant = getTenantSubdomain(); // Reads from cookie
 const apiUrl = `https://${tenant}.togglebox.local`;
 ```
 
@@ -150,10 +163,12 @@ const apiUrl = `https://${tenant}.togglebox.local`;
 **Style:** RESTful with JSON responses
 
 **Endpoint Separation:**
+
 - **Public Endpoints** (`/api/v1/platforms/*`): Read-only GET requests, internet-accessible
 - **Internal Endpoints** (`/api/v1/internal/*`): Write operations (POST/PUT/PATCH/DELETE), network-restricted
 
 **Actual API Endpoints (from publicRoutes.ts and internalRoutes.ts):**
+
 ```
 # Public (Read-only) - conditionalAuth based on ENABLE_AUTHENTICATION
 GET /api/v1/health                                                    # Health check (always unauthenticated)
@@ -176,14 +191,17 @@ POST /api/v1/internal/api-keys                                        # Create A
 ```
 
 **Versioning:** URL-based (`/api/v1/`)
+
 - Current version: v1
 - Breaking changes require new version
 
 **Rate Limiting:**
+
 - All endpoints: 100 requests/minute per IP
 - Implemented via express-rate-limit
 
 **Response Format:**
+
 ```json
 {
   "data": { ... },
@@ -197,15 +215,16 @@ POST /api/v1/internal/api-keys                                        # Create A
 
 **Multi-Database Architecture:** Supports multiple database backends based on deployment platform
 
-| Platform | Database | ORM/Client |
-|----------|----------|------------|
-| AWS Lambda | DynamoDB | AWS SDK |
-| Cloudflare Workers | D1 (SQLite) | Prisma |
-| Self-hosted/RDS | MySQL | Prisma |
-| MongoDB Atlas | MongoDB | Mongoose |
-| Local Development | SQLite | Prisma |
+| Platform           | Database    | ORM/Client |
+| ------------------ | ----------- | ---------- |
+| AWS Lambda         | DynamoDB    | AWS SDK    |
+| Cloudflare Workers | D1 (SQLite) | Prisma     |
+| Self-hosted/RDS    | MySQL       | Prisma     |
+| MongoDB Atlas      | MongoDB     | Mongoose   |
+| Local Development  | SQLite      | Prisma     |
 
 ### DynamoDB (AWS Lambda - Production)
+
 - Single-table design with PK/SK pattern
 - No connection pooling (serverless)
 - Global Secondary Indexes for query patterns
@@ -218,6 +237,7 @@ SK: ENV#{envName}#VERSION#{version}
 ```
 
 ### Prisma (SQL databases)
+
 - Schema generation based on DB_TYPE environment variable
 - Migrations managed via `prisma migrate`
 - Type-safe query interface
@@ -229,11 +249,13 @@ npm run prisma:migrate
 ```
 
 ### Mongoose (MongoDB)
+
 - Document-based storage
 - No migrations (schema-less)
 - Connection pooling enabled
 
 **Indexes:**
+
 - DynamoDB: GSI on platform, environment, version, stable flag
 - Prisma: Index on frequently queried columns in schema
 - MongoDB: Compound indexes on query patterns
@@ -243,54 +265,62 @@ npm run prisma:migrate
 **Cache Package:** `@togglebox/cache` - Multi-provider cache abstraction
 
 **Supported Providers:**
+
 - **CloudFront** (AWS) - For Lambda deployments
 - **Cloudflare** - For Cloudflare Workers deployments
 - **NoOp** (disabled) - For development or when caching not needed
 
 **Cache Strategy:**
+
 - Default TTL: 3600 seconds (1 hour) configured via env `CACHE_TTL`
 - Max age: 86400 seconds (24 hours) configured via env `CACHE_MAX_AGE`
 - Cache-Control headers set on public GET endpoints via middleware
 
 **Middleware Integration:**
+
 ```typescript
-import { cacheHeaders, noCacheHeaders } from '@togglebox/cache';
+import { cacheHeaders, noCacheHeaders } from "@togglebox/cache";
 
 // Apply cache headers to public endpoints
-app.use('/api/v1/platforms', cacheHeaders({
-  ttl: 3600,      // 1 hour browser cache
-  maxAge: 86400   // 24 hours CDN cache
-}));
+app.use(
+  "/api/v1/platforms",
+  cacheHeaders({
+    ttl: 3600, // 1 hour browser cache
+    maxAge: 86400, // 24 hours CDN cache
+  }),
+);
 
 // Disable caching on internal endpoints
-app.use('/api/v1/internal', noCacheHeaders());
+app.use("/api/v1/internal", noCacheHeaders());
 ```
 
 **Cache Invalidation:**
+
 ```typescript
-import { createCacheProvider } from '@togglebox/cache';
+import { createCacheProvider } from "@togglebox/cache";
 
 const cache = createCacheProvider({
-  enabled: process.env.CACHE_ENABLED === 'true',
-  provider: 'cloudfront', // or 'cloudflare' or 'none'
+  enabled: process.env.CACHE_ENABLED === "true",
+  provider: "cloudfront", // or 'cloudflare' or 'none'
   cloudfront: {
     distributionId: process.env.CLOUDFRONT_DISTRIBUTION_ID,
-    region: process.env.AWS_REGION
+    region: process.env.AWS_REGION,
   },
   cloudflare: {
     zoneId: process.env.CLOUDFLARE_ZONE_ID,
-    apiToken: process.env.CLOUDFLARE_API_TOKEN
-  }
+    apiToken: process.env.CLOUDFLARE_API_TOKEN,
+  },
 });
 
 // Granular invalidation by platform, environment, version
-await cache.invalidateVersionCache('web', 'production', '1.2.3');
-await cache.invalidateEnvironmentCache('web', 'production');
-await cache.invalidatePlatformCache('web');
-await cache.invalidateFeatureFlagCache('web', 'production', 'dark-mode');
+await cache.invalidateVersionCache("web", "production", "1.2.3");
+await cache.invalidateEnvironmentCache("web", "production");
+await cache.invalidatePlatformCache("web");
+await cache.invalidateFeatureFlagCache("web", "production", "dark-mode");
 ```
 
 **Webhook Integration:**
+
 - Webhook endpoints trigger cache invalidation for CI/CD integration
 - Automatic invalidation after configuration deployments
 
@@ -299,6 +329,7 @@ await cache.invalidateFeatureFlagCache('web', 'production', 'dark-mode');
 **Current Implementation:** No queue system (synchronous operations)
 
 **Future Considerations:**
+
 - CloudFront cache invalidation is synchronous (typically < 100ms)
 - Database operations are fast enough for synchronous handling
 - For heavy operations in future: Consider AWS SQS/EventBridge or Cloudflare Queues
@@ -310,10 +341,12 @@ await cache.invalidateFeatureFlagCache('web', 'production', 'dark-mode');
 **Log Levels:** trace, debug, info, warn, error, fatal
 
 **Log Destinations:**
+
 - **Development**: Console (pretty-printed via pino-pretty)
 - **Production**: Grafana Cloud (configured via env vars)
 
 **Grafana Cloud Integration:**
+
 ```typescript
 // Environment variables
 GRAFANA_CLOUD_API_KEY=your-api-key
@@ -322,6 +355,7 @@ LOG_LEVEL=info
 ```
 
 **What to Log:**
+
 - All errors (with stack traces)
 - API requests (method, path, status, duration)
 - Cache invalidation events
@@ -329,13 +363,14 @@ LOG_LEVEL=info
 - Configuration deployments
 
 **Never Log:**
+
 - JWT tokens or API keys
 - Secrets from environment variables
 - Full configuration payloads (may contain sensitive data)
 
 ```typescript
-logger.info({ platform, env, version }, 'Configuration deployed');
-logger.error({ err, platform, env }, 'Failed to deploy configuration');
+logger.info({ platform, env, version }, "Configuration deployed");
+logger.error({ err, platform, env }, "Failed to deploy configuration");
 ```
 
 ## Data Validation
@@ -343,13 +378,15 @@ logger.error({ err, platform, env }, 'Failed to deploy configuration');
 **Framework:** Zod (runtime type validation)
 
 **Why Zod:**
+
 - TypeScript-first schema validation
 - Automatic type inference
 - Runtime safety with compile-time types
 
 **Actual schema from @togglebox/core (packages/core/src/schemas.ts):**
+
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 // Platform schema - shared across all tiers (configs, flags, experiments)
 export const PlatformSchema = z.object({
@@ -373,7 +410,7 @@ export const EnvironmentSchema = z.object({
 export const ErrorResponseSchema = z.object({
   success: z.literal(false),
   error: z.string(),
-  code: z.string().optional(),       // e.g., "API_LIMIT_EXCEEDED", "VALIDATION_FAILED"
+  code: z.string().optional(), // e.g., "API_LIMIT_EXCEEDED", "VALIDATION_FAILED"
   timestamp: z.string(),
   details: z.array(z.string()).optional(),
   meta: z.record(z.unknown()).optional(), // retryAfter, usage/limit, upgradeUrl, etc.
@@ -390,6 +427,7 @@ export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 **Framework:** Jest + ts-jest (TypeScript support)
 
 **Test Organization:**
+
 ```
 apps/api/src/
   controllers/__tests__/
@@ -400,11 +438,13 @@ packages/*/src/
 ```
 
 **Coverage Target:**
+
 - Controllers: Test all endpoints
 - Database layer: Test multi-database abstractions
 - Type safety: TypeScript provides compile-time validation
 
 **CI/CD:**
+
 - ✅ **GitHub Actions configured** in `.github/workflows/`
 - **ci.yml**: Lint, TypeCheck, Test, Security Audit, Format Check (runs on push/PR to main/develop)
 - **deploy-aws-lambda.yml**: AWS Lambda deployment workflow
@@ -415,26 +455,31 @@ packages/*/src/
 ## Security
 
 **Secrets Management:**
+
 - Development: `.env` file (never commit)
 - Production: AWS Secrets Manager or HashiCorp Vault
 - Rotate API keys quarterly
 
 **HTTPS:**
+
 - Always use HTTPS in production
 - Redirect HTTP to HTTPS
 - HSTS header enabled (max-age: 31536000)
 
 **Input Validation:**
+
 - All requests validated with Joi/Zod schemas
 - Sanitize user input
 - Parameterized queries (Sequelize does this)
 
 **Security Headers:**
+
 - helmet middleware for all routes
 - CSP, X-Frame-Options, X-Content-Type-Options
 - Hide X-Powered-By header
 
 **Rate Limiting:**
+
 - Global: 100 requests/minute per IP
 - Login: 5 attempts/minute per IP
 - Registration: 3 attempts/minute per IP
@@ -444,14 +489,15 @@ packages/*/src/
 
 **Multi-Platform Support:** Single codebase deploys to multiple platforms
 
-| Platform | Entry Point | Command | Database |
-|----------|-------------|---------|----------|
-| AWS Lambda | `lambda.ts` | `serverless deploy` | DynamoDB |
-| Cloudflare Workers | `worker.ts` | `wrangler deploy` | D1 (SQLite) |
-| Netlify Functions | `netlify.ts` | `netlify deploy` | External DB |
-| Docker/Self-hosted | `index.ts` | `docker-compose up` | MySQL/MongoDB/SQLite |
+| Platform           | Entry Point  | Command             | Database             |
+| ------------------ | ------------ | ------------------- | -------------------- |
+| AWS Lambda         | `lambda.ts`  | `serverless deploy` | DynamoDB             |
+| Cloudflare Workers | `worker.ts`  | `wrangler deploy`   | D1 (SQLite)          |
+| Netlify Functions  | `netlify.ts` | `netlify deploy`    | External DB          |
+| Docker/Self-hosted | `index.ts`   | `docker-compose up` | MySQL/MongoDB/SQLite |
 
 **Deployment Process:**
+
 1. Build TypeScript: `pnpm build`
 2. Run tests: `pnpm test`
 3. Deploy to platform:
@@ -460,11 +506,13 @@ packages/*/src/
    - Docker: `docker-compose up -d --build`
 
 **Environment-Specific Configuration:**
+
 - Each platform uses same Express app
 - Platform detection via environment variables
 - Database selection via `DB_TYPE` or auto-detection
 
 **Rollback:**
+
 - AWS Lambda: Deploy previous version via Serverless
 - Cloudflare Workers: Rollback via Wrangler dashboard
 - Docker: Redeploy previous image tag
@@ -472,17 +520,20 @@ packages/*/src/
 ## Monitoring
 
 **Application Metrics:**
+
 - PM2 monitoring dashboard
 - Health check endpoints: `/health`, `/ready`
 - Response time tracking
 - Error rate monitoring
 
 **Logs:**
+
 - Centralized logging (ELK stack or CloudWatch)
 - Log retention: 30 days
 - Alert on error spikes
 
 **Metrics to Monitor:**
+
 - Request rate and response times
 - Error rate (4xx, 5xx)
 - Queue depth and processing time
@@ -491,6 +542,7 @@ packages/*/src/
 - Failed login attempts
 
 **Alerting:**
+
 - Error rate >1% for 5 minutes
 - Response time >500ms average
 - Queue depth >1000 jobs
@@ -502,6 +554,7 @@ packages/*/src/
 **Last Updated:** 2026-01-26
 
 **Note:** This architecture documentation covers **BOTH monorepos**:
+
 - **togglebox/** (open source) - Multi-database, multi-platform deployment, optional auth, multi-provider caching
 - **togglebox-cloud/** (private cloud) - Multi-tenancy, Stripe billing, usage tracking, mandatory auth
 

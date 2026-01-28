@@ -1,5 +1,5 @@
-import { browserApiClient } from './browser-client';
-import type { InvalidationStatus } from './types';
+import { browserApiClient } from "./browser-client";
+import type { InvalidationStatus } from "./types";
 
 export interface CacheInvalidationResult {
   success: boolean;
@@ -24,15 +24,15 @@ export interface CacheInvalidationListResult {
 export async function invalidateCacheApi(
   platform?: string,
   environment?: string,
-  version?: string
+  version?: string,
 ): Promise<CacheInvalidationResult> {
   const body: Record<string, string> = {};
   if (platform) body.platform = platform;
   if (environment) body.environment = environment;
   if (version) body.version = version;
 
-  return browserApiClient('/api/v1/internal/cache/invalidate', {
-    method: 'POST',
+  return browserApiClient("/api/v1/internal/cache/invalidate", {
+    method: "POST",
     body: JSON.stringify(body),
   });
 }
@@ -41,8 +41,8 @@ export async function invalidateCacheApi(
  * Invalidate all cache entries.
  */
 export async function invalidateAllCacheApi(): Promise<CacheInvalidationResult> {
-  return browserApiClient('/api/v1/internal/cache/invalidate-all', {
-    method: 'POST',
+  return browserApiClient("/api/v1/internal/cache/invalidate-all", {
+    method: "POST",
   });
 }
 
@@ -53,10 +53,10 @@ export async function invalidateAllCacheApi(): Promise<CacheInvalidationResult> 
  * @returns List of invalidation operations with their status
  */
 export async function getCacheInvalidationsApi(
-  maxItems: number = 10
+  maxItems: number = 10,
 ): Promise<CacheInvalidationListResult> {
   return browserApiClient<CacheInvalidationListResult>(
-    `/api/v1/internal/webhook/cache/invalidations?maxItems=${maxItems}`
+    `/api/v1/internal/webhook/cache/invalidations?maxItems=${maxItems}`,
   );
 }
 
@@ -67,9 +67,9 @@ export async function getCacheInvalidationsApi(
  * @returns Invalidation status details
  */
 export async function getCacheInvalidationStatusApi(
-  invalidationId: string
+  invalidationId: string,
 ): Promise<InvalidationStatus> {
   return browserApiClient<InvalidationStatus>(
-    `/api/v1/internal/webhook/cache/invalidations/${invalidationId}`
+    `/api/v1/internal/webhook/cache/invalidations/${invalidationId}`,
   );
 }

@@ -1,5 +1,5 @@
-import { IUsageRepository } from '../../interfaces';
-import { PrismaClient } from '.prisma/client-database';
+import { IUsageRepository } from "../../interfaces";
+import { PrismaClient } from ".prisma/client-database";
 
 /**
  * Prisma implementation of usage tracking repository (SQL databases)

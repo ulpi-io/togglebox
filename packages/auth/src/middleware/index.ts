@@ -12,4 +12,4 @@
  * - {@link AuthConfig} - Configuration for middleware factory
  * - {@link AuthMiddleware} - Return type of factory
  */
-export * from './auth';
+export * from "./auth";

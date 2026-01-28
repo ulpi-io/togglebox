@@ -36,7 +36,7 @@
  * @see {@link RequestWithDatabaseContext} - Express Request with database context
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 /**
  * Database configuration for a request.
@@ -80,7 +80,7 @@ export interface RequestWithDatabaseContext extends Request {
 export function defaultDatabaseContext() {
   return (req: Request, _res: Response, next: NextFunction) => {
     (req as RequestWithDatabaseContext).dbConfig = {
-      tablePrefix: process.env['TABLE_PREFIX'] || '',
+      tablePrefix: process.env["TABLE_PREFIX"] || "",
     };
     next();
   };

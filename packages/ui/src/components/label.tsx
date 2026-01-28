@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { forwardRef } from 'react';
-import * as LabelPrimitive from '@radix-ui/react-label';
-import { cn } from '../utils/cn';
+import { forwardRef } from "react";
+import * as LabelPrimitive from "@radix-ui/react-label";
+import { cn } from "../utils/cn";
 
 export const Label = forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
@@ -11,8 +11,8 @@ export const Label = forwardRef<
   <LabelPrimitive.Root
     ref={ref}
     className={cn(
-      'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
-      className
+      "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+      className,
     )}
     {...props}
   />

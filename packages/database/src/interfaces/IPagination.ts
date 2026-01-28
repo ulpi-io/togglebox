@@ -322,4 +322,6 @@ export interface TokenPaginatedResult<T> {
  * }
  * ```
  */
-export type PaginatedResult<T> = OffsetPaginatedResult<T> | TokenPaginatedResult<T>;
+export type PaginatedResult<T> =
+  | OffsetPaginatedResult<T>
+  | TokenPaginatedResult<T>;

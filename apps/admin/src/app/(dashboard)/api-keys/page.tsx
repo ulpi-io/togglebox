@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { getApiKeysApi, type ApiKey } from '@/lib/api/api-keys';
-import { Badge, Button, Card, CardContent } from '@togglebox/ui';
-import { CreateApiKeyDialog } from '@/components/api-keys/create-api-key-dialog';
-import { DeleteApiKeyButton } from '@/components/api-keys/delete-api-key-button';
+import { useState, useEffect } from "react";
+import { getApiKeysApi, type ApiKey } from "@/lib/api/api-keys";
+import { Badge, Button, Card, CardContent } from "@togglebox/ui";
+import { CreateApiKeyDialog } from "@/components/api-keys/create-api-key-dialog";
+import { DeleteApiKeyButton } from "@/components/api-keys/delete-api-key-button";
 
 export default function ApiKeysPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
@@ -18,7 +18,7 @@ export default function ApiKeysPage() {
       setApiKeys(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load API keys');
+      setError(err instanceof Error ? err.message : "Failed to load API keys");
     } finally {
       setIsLoading(false);
     }
@@ -89,16 +89,23 @@ export default function ApiKeysPage() {
                     <th className="text-left py-3 px-4 font-black">Name</th>
                     <th className="text-left py-3 px-4 font-black">Key</th>
                     <th className="text-left py-3 px-4 font-black">Created</th>
-                    <th className="text-left py-3 px-4 font-black">Last Used</th>
+                    <th className="text-left py-3 px-4 font-black">
+                      Last Used
+                    </th>
                     <th className="text-right py-3 px-4 font-black">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {apiKeys.map((apiKey) => (
-                    <tr key={apiKey.id} className="border-b border-black/5 last:border-0 hover:bg-muted/50 transition-colors">
+                    <tr
+                      key={apiKey.id}
+                      className="border-b border-black/5 last:border-0 hover:bg-muted/50 transition-colors"
+                    >
                       <td className="py-3 px-4">
                         <div className="font-medium">{apiKey.name}</div>
-                        <div className="text-xs text-muted-foreground">{apiKey.createdBy}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {apiKey.createdBy}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <code className="text-xs bg-muted px-2 py-1 rounded">
@@ -109,13 +116,20 @@ export default function ApiKeysPage() {
                         {new Date(apiKey.createdAt).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">
-                        {apiKey.lastUsed
-                          ? new Date(apiKey.lastUsed).toLocaleDateString()
-                          : <span className="text-muted-foreground/50">Never</span>
-                        }
+                        {apiKey.lastUsed ? (
+                          new Date(apiKey.lastUsed).toLocaleDateString()
+                        ) : (
+                          <span className="text-muted-foreground/50">
+                            Never
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <DeleteApiKeyButton keyId={apiKey.id} keyName={apiKey.name} onSuccess={loadApiKeys} />
+                        <DeleteApiKeyButton
+                          keyId={apiKey.id}
+                          keyName={apiKey.name}
+                          onSuccess={loadApiKeys}
+                        />
                       </td>
                     </tr>
                   ))}

@@ -17,11 +17,21 @@
  * GSI1 allows efficient querying of all platforms without scanning.
  */
 
-import { Platform } from '@togglebox/core';
-import { v4 as uuidv4 } from 'uuid';
-import { dynamoDBClient, getPlatformsTableName } from './database';
-import { TokenPaginationParams, TokenPaginatedResult } from './interfaces/IPagination';
-import { PutCommand, GetCommand, DeleteCommand, QueryCommand, QueryCommandInput, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { Platform } from "@togglebox/core";
+import { v4 as uuidv4 } from "uuid";
+import { dynamoDBClient, getPlatformsTableName } from "./database";
+import {
+  TokenPaginationParams,
+  TokenPaginatedResult,
+} from "./interfaces/IPagination";
+import {
+  PutCommand,
+  GetCommand,
+  DeleteCommand,
+  QueryCommand,
+  QueryCommandInput,
+  UpdateCommand,
+} from "@aws-sdk/lib-dynamodb";
 
 /**
  * Type guard for DynamoDB errors with a name property.
@@ -31,7 +41,7 @@ import { PutCommand, GetCommand, DeleteCommand, QueryCommand, QueryCommandInput,
  * @returns True if error is an Error with a name property
  */
 function isDynamoDBError(error: unknown): error is Error & { name: string } {
-  return error instanceof Error && typeof error.name === 'string';
+  return error instanceof Error && typeof error.name === "string";
 }
 
 /**
@@ -70,7 +80,9 @@ function isDynamoDBError(error: unknown): error is Error & { name: string } {
  * console.log(newPlatform.name); // "web"
  * ```
  */
-export async function createPlatform(platform: Omit<Platform, 'id'>): Promise<Platform> {
+export async function createPlatform(
+  platform: Omit<Platform, "id">,
+): Promise<Platform> {
   const platformWithId: Platform = {
     ...platform,
     id: uuidv4(),
@@ -81,18 +93,21 @@ export async function createPlatform(platform: Omit<Platform, 'id'>): Promise<Pl
     Item: {
       PK: `PLATFORM#${platform.name}`,
       // SECURITY: GSI1 keys enable efficient listing without full table scan
-      GSI1PK: 'PLATFORM',
+      GSI1PK: "PLATFORM",
       GSI1SK: `PLATFORM#${platform.name}`,
       ...platformWithId,
     },
-    ConditionExpression: 'attribute_not_exists(PK)',
+    ConditionExpression: "attribute_not_exists(PK)",
   };
 
   try {
     await dynamoDBClient.send(new PutCommand(params));
     return platformWithId;
   } catch (error: unknown) {
-    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
+    if (
+      isDynamoDBError(error) &&
+      error.name === "ConditionalCheckFailedException"
+    ) {
       throw new Error(`Platform ${platform.name} already exists`);
     }
     throw error;
@@ -184,10 +199,13 @@ export async function getPlatform(name: string): Promise<Platform | null> {
  * }
  * ```
  */
+// Safety limit to prevent unbounded iteration
+const MAX_ITEMS_TO_FETCH = 10000;
+
 export async function listPlatforms(
-  pagination?: TokenPaginationParams
+  pagination?: TokenPaginationParams,
 ): Promise<TokenPaginatedResult<Platform>> {
-  // If no pagination requested, fetch ALL items
+  // If no pagination requested, fetch ALL items (with safety limit)
   if (!pagination) {
     const allItems: Platform[] = [];
     let nextToken: string | undefined;
@@ -196,6 +214,14 @@ export async function listPlatforms(
       const page = await listPlatforms({ limit: 100, nextToken });
       allItems.push(...page.items);
       nextToken = page.nextToken;
+
+      // Safety check to prevent unbounded iteration
+      if (allItems.length >= MAX_ITEMS_TO_FETCH) {
+        console.warn(
+          `Reached MAX_ITEMS_TO_FETCH limit (${MAX_ITEMS_TO_FETCH}). Results may be truncated.`,
+        );
+        break;
+      }
     } while (nextToken);
 
     return {
@@ -208,10 +234,10 @@ export async function listPlatforms(
   // SECURITY: Use Query on GSI1 instead of Scan for efficient listing
   const params: QueryCommandInput = {
     TableName: getPlatformsTableName(),
-    IndexName: 'GSI1',
-    KeyConditionExpression: 'GSI1PK = :pk',
+    IndexName: "GSI1",
+    KeyConditionExpression: "GSI1PK = :pk",
     ExpressionAttributeValues: {
-      ':pk': 'PLATFORM',
+      ":pk": "PLATFORM",
     },
     Limit: pagination.limit,
   };
@@ -219,20 +245,22 @@ export async function listPlatforms(
   // Add ExclusiveStartKey for pagination (if provided)
   if (pagination.nextToken) {
     try {
-      params['ExclusiveStartKey'] = JSON.parse(
-        Buffer.from(pagination.nextToken, 'base64').toString('utf-8')
+      params["ExclusiveStartKey"] = JSON.parse(
+        Buffer.from(pagination.nextToken, "base64").toString("utf-8"),
       );
     } catch (error) {
-      throw new Error('Invalid pagination token');
+      throw new Error("Invalid pagination token");
     }
   }
 
   const result = await dynamoDBClient.send(new QueryCommand(params));
-  const items = result.Items ? result.Items.map((item) => mapToPlatform(item as Record<string, unknown>)) : [];
+  const items = result.Items
+    ? result.Items.map((item) => mapToPlatform(item as Record<string, unknown>))
+    : [];
 
   // Encode LastEvaluatedKey as base64 token for next page
   const nextToken = result.LastEvaluatedKey
-    ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+    ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString("base64")
     : undefined;
 
   return {
@@ -274,7 +302,7 @@ export async function deletePlatform(name: string): Promise<boolean> {
     Key: {
       PK: `PLATFORM#${name}`,
     },
-    ConditionExpression: 'attribute_exists(PK)',
+    ConditionExpression: "attribute_exists(PK)",
   };
 
   try {
@@ -282,7 +310,10 @@ export async function deletePlatform(name: string): Promise<boolean> {
     return true;
   } catch (error: unknown) {
     // Platform not found (condition failed)
-    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
+    if (
+      isDynamoDBError(error) &&
+      error.name === "ConditionalCheckFailedException"
+    ) {
       return false;
     }
     // Other errors (network, permissions, etc.)
@@ -342,7 +373,7 @@ function mapToPlatform(item: Record<string, unknown>): Platform {
  */
 export async function updatePlatform(
   currentName: string,
-  updates: { name?: string; description?: string }
+  updates: { name?: string; description?: string },
 ): Promise<Platform | null> {
   // Build update expression dynamically
   const updateExpressions: string[] = [];
@@ -350,9 +381,9 @@ export async function updatePlatform(
   const expressionAttributeValues: Record<string, unknown> = {};
 
   if (updates.description !== undefined) {
-    updateExpressions.push('#description = :description');
-    expressionAttributeNames['#description'] = 'description';
-    expressionAttributeValues[':description'] = updates.description;
+    updateExpressions.push("#description = :description");
+    expressionAttributeNames["#description"] = "description";
+    expressionAttributeValues[":description"] = updates.description;
   }
 
   // If no fields to update, just return the existing platform
@@ -365,18 +396,23 @@ export async function updatePlatform(
     Key: {
       PK: `PLATFORM#${currentName}`,
     },
-    UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+    UpdateExpression: `SET ${updateExpressions.join(", ")}`,
     ExpressionAttributeNames: expressionAttributeNames,
     ExpressionAttributeValues: expressionAttributeValues,
-    ConditionExpression: 'attribute_exists(PK)',
-    ReturnValues: 'ALL_NEW' as const,
+    ConditionExpression: "attribute_exists(PK)",
+    ReturnValues: "ALL_NEW" as const,
   };
 
   try {
     const result = await dynamoDBClient.send(new UpdateCommand(params));
-    return result.Attributes ? mapToPlatform(result.Attributes as Record<string, unknown>) : null;
+    return result.Attributes
+      ? mapToPlatform(result.Attributes as Record<string, unknown>)
+      : null;
   } catch (error: unknown) {
-    if (isDynamoDBError(error) && error.name === 'ConditionalCheckFailedException') {
+    if (
+      isDynamoDBError(error) &&
+      error.name === "ConditionalCheckFailedException"
+    ) {
       return null;
     }
     throw error;

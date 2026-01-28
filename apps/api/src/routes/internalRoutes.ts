@@ -1,6 +1,10 @@
-import { Router } from 'express';
-import { asyncHandler, requireAuth, requirePermission } from '@togglebox/shared';
-import { Container } from '../container';
+import { Router } from "express";
+import {
+  asyncHandler,
+  requireAuth,
+  requirePermission,
+} from "@togglebox/shared";
+import { Container } from "../container";
 import {
   UserController,
   UserService,
@@ -10,7 +14,7 @@ import {
   DatabaseType,
   validate,
   createApiKeySchema,
-} from '@togglebox/auth';
+} from "@togglebox/auth";
 
 /**
  * Internal router for write operations (POST/PUT/PATCH/DELETE)
@@ -46,49 +50,58 @@ const experimentController = Container.createExperimentController();
 const statsController = Container.createStatsController();
 
 // Create user and API key controllers for user/apikey management
-const dbType = (process.env['DB_TYPE'] || 'dynamodb') as DatabaseType;
+const dbType = (process.env["DB_TYPE"] || "dynamodb") as DatabaseType;
 const authRepositories = createAuthRepositories(dbType);
 const userService = new UserService(authRepositories.user);
 const userController = new UserController(userService);
-const apiKeyService = new ApiKeyService(authRepositories.apiKey, authRepositories.user);
+const apiKeyService = new ApiKeyService(
+  authRepositories.apiKey,
+  authRepositories.user,
+);
 const apiKeyController = new ApiKeyController(apiKeyService);
 
 // ============================================================================
 // PLATFORM WRITE ENDPOINTS
 // ============================================================================
 
-internalRouter.post('/platforms',
-  requirePermission('config:write'),
-  asyncHandler(configController.createPlatform)
+internalRouter.post(
+  "/platforms",
+  requirePermission("config:write"),
+  asyncHandler(configController.createPlatform),
 );
 
-internalRouter.delete('/platforms/:platform',
-  requirePermission('config:delete'),
-  asyncHandler(configController.deletePlatform)
+internalRouter.delete(
+  "/platforms/:platform",
+  requirePermission("config:delete"),
+  asyncHandler(configController.deletePlatform),
 );
 
-internalRouter.patch('/platforms/:platform',
-  requirePermission('config:write'),
-  asyncHandler(configController.updatePlatform)
+internalRouter.patch(
+  "/platforms/:platform",
+  requirePermission("config:write"),
+  asyncHandler(configController.updatePlatform),
 );
 
 // ============================================================================
 // ENVIRONMENT WRITE ENDPOINTS
 // ============================================================================
 
-internalRouter.post('/platforms/:platform/environments',
-  requirePermission('config:write'),
-  asyncHandler(configController.createEnvironment)
+internalRouter.post(
+  "/platforms/:platform/environments",
+  requirePermission("config:write"),
+  asyncHandler(configController.createEnvironment),
 );
 
-internalRouter.delete('/platforms/:platform/environments/:environment',
-  requirePermission('config:delete'),
-  asyncHandler(configController.deleteEnvironment)
+internalRouter.delete(
+  "/platforms/:platform/environments/:environment",
+  requirePermission("config:delete"),
+  asyncHandler(configController.deleteEnvironment),
 );
 
-internalRouter.patch('/platforms/:platform/environments/:environment',
-  requirePermission('config:write'),
-  asyncHandler(configController.updateEnvironment)
+internalRouter.patch(
+  "/platforms/:platform/environments/:environment",
+  requirePermission("config:write"),
+  asyncHandler(configController.updateEnvironment),
 );
 
 // ============================================================================
@@ -101,9 +114,10 @@ internalRouter.patch('/platforms/:platform/environments/:environment',
  *
  * NOTE: This route MUST come before /:parameterKey to avoid "list" being matched as a parameter key
  */
-internalRouter.get('/platforms/:platform/environments/:environment/configs/list',
-  requirePermission('config:read'),
-  asyncHandler(configController.listConfigParameters)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/configs/list",
+  requirePermission("config:read"),
+  asyncHandler(configController.listConfigParameters),
 );
 
 /**
@@ -112,66 +126,74 @@ internalRouter.get('/platforms/:platform/environments/:environment/configs/list'
  *
  * NOTE: This route MUST come before /:parameterKey to avoid "count" being matched as a parameter key
  */
-internalRouter.get('/platforms/:platform/environments/:environment/configs/count',
-  requirePermission('config:read'),
-  asyncHandler(configController.countConfigParameters)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/configs/count",
+  requirePermission("config:read"),
+  asyncHandler(configController.countConfigParameters),
 );
 
 /**
  * Create a new config parameter (version 1)
  * Body: { parameterKey, valueType, defaultValue, description?, parameterGroup? }
  */
-internalRouter.post('/platforms/:platform/environments/:environment/configs',
-  requirePermission('config:write'),
-  asyncHandler(configController.createConfigParameter)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/configs",
+  requirePermission("config:write"),
+  asyncHandler(configController.createConfigParameter),
 );
 
 /**
  * Update a config parameter (creates new version, marks it active)
  * Body: { valueType?, defaultValue?, description?, parameterGroup? }
  */
-internalRouter.patch('/platforms/:platform/environments/:environment/configs/:parameterKey',
-  requirePermission('config:write'),
-  asyncHandler(configController.updateConfigParameter)
+internalRouter.patch(
+  "/platforms/:platform/environments/:environment/configs/:parameterKey",
+  requirePermission("config:write"),
+  asyncHandler(configController.updateConfigParameter),
 );
 
 /**
  * Delete a config parameter (all versions)
  */
-internalRouter.delete('/platforms/:platform/environments/:environment/configs/:parameterKey',
-  requirePermission('config:delete'),
-  asyncHandler(configController.deleteConfigParameter)
+internalRouter.delete(
+  "/platforms/:platform/environments/:environment/configs/:parameterKey",
+  requirePermission("config:delete"),
+  asyncHandler(configController.deleteConfigParameter),
 );
 
 /**
  * List all versions of a config parameter (version history)
  */
-internalRouter.get('/platforms/:platform/environments/:environment/configs/:parameterKey/versions',
-  requirePermission('config:read'),
-  asyncHandler(configController.listConfigParameterVersions)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/configs/:parameterKey/versions",
+  requirePermission("config:read"),
+  asyncHandler(configController.listConfigParameterVersions),
 );
 
 /**
  * Rollback a config parameter to a previous version
  * Body: { version: "1" | "2" | ... }
  */
-internalRouter.post('/platforms/:platform/environments/:environment/configs/:parameterKey/rollback',
-  requirePermission('config:write'),
-  asyncHandler(configController.rollbackConfigParameter)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/configs/:parameterKey/rollback",
+  requirePermission("config:write"),
+  asyncHandler(configController.rollbackConfigParameter),
 );
 
 // ============================================================================
 // CACHE INVALIDATION ENDPOINTS
 // ============================================================================
 
-internalRouter.post('/cache/invalidate',
-  requirePermission('cache:invalidate'),
-  asyncHandler(configController.invalidateCache)
+internalRouter.post(
+  "/cache/invalidate",
+  requirePermission("cache:invalidate"),
+  asyncHandler(configController.invalidateCache),
 );
 
-internalRouter.post('/cache/invalidate-all',
-  requirePermission('cache:invalidate'),
-  asyncHandler(configController.invalidateAllCache)
+internalRouter.post(
+  "/cache/invalidate-all",
+  requirePermission("cache:invalidate"),
+  asyncHandler(configController.invalidateAllCache),
 );
 
 /**
@@ -180,9 +202,10 @@ internalRouter.post('/cache/invalidate-all',
  * Note: Uses GET for compatibility with CI/CD systems that only support URL-based triggers.
  * While this violates HTTP semantics (GET shouldn't mutate), it's required for some webhook systems.
  */
-internalRouter.get('/webhook/cache/invalidate',
-  requirePermission('cache:invalidate'),
-  asyncHandler(webhookController.invalidateCache)
+internalRouter.get(
+  "/webhook/cache/invalidate",
+  requirePermission("cache:invalidate"),
+  asyncHandler(webhookController.invalidateCache),
 );
 
 // ============================================================================
@@ -193,14 +216,16 @@ internalRouter.get('/webhook/cache/invalidate',
  * Monitoring/debugging endpoints for cache invalidation operations
  * These expose internal CloudFront invalidation details and should be restricted
  */
-internalRouter.get('/webhook/cache/invalidations/:invalidationId',
-  requirePermission('config:read'),
-  asyncHandler(webhookController.getInvalidationStatus)
+internalRouter.get(
+  "/webhook/cache/invalidations/:invalidationId",
+  requirePermission("config:read"),
+  asyncHandler(webhookController.getInvalidationStatus),
 );
 
-internalRouter.get('/webhook/cache/invalidations',
-  requirePermission('config:read'),
-  asyncHandler(webhookController.listInvalidations)
+internalRouter.get(
+  "/webhook/cache/invalidations",
+  requirePermission("config:read"),
+  asyncHandler(webhookController.listInvalidations),
 );
 
 // ============================================================================
@@ -217,29 +242,34 @@ internalRouter.get('/webhook/cache/invalidations',
  * These are internal-only endpoints for managing users
  */
 
-internalRouter.post('/users',
-  requirePermission('user:manage'),
-  asyncHandler(userController.createUser)
+internalRouter.post(
+  "/users",
+  requirePermission("user:manage"),
+  asyncHandler(userController.createUser),
 );
 
-internalRouter.get('/users',
-  requirePermission('user:manage'),
-  asyncHandler(userController.listUsers)
+internalRouter.get(
+  "/users",
+  requirePermission("user:manage"),
+  asyncHandler(userController.listUsers),
 );
 
-internalRouter.get('/users/:id',
-  requirePermission('user:manage'),
-  asyncHandler(userController.getUserById)
+internalRouter.get(
+  "/users/:id",
+  requirePermission("user:manage"),
+  asyncHandler(userController.getUserById),
 );
 
-internalRouter.delete('/users/:id',
-  requirePermission('user:manage'),
-  asyncHandler(userController.deleteUser)
+internalRouter.delete(
+  "/users/:id",
+  requirePermission("user:manage"),
+  asyncHandler(userController.deleteUser),
 );
 
-internalRouter.patch('/users/:id/role',
-  requirePermission('user:manage'),
-  asyncHandler(userController.updateUserRole)
+internalRouter.patch(
+  "/users/:id/role",
+  requirePermission("user:manage"),
+  asyncHandler(userController.updateUserRole),
 );
 
 // ============================================================================
@@ -251,25 +281,29 @@ internalRouter.patch('/users/:id/role',
  * Users can manage their own API keys (apikey:manage permission)
  */
 
-internalRouter.get('/api-keys',
-  requirePermission('apikey:manage'),
-  asyncHandler(apiKeyController.listApiKeys)
+internalRouter.get(
+  "/api-keys",
+  requirePermission("apikey:manage"),
+  asyncHandler(apiKeyController.listApiKeys),
 );
 
-internalRouter.post('/api-keys',
-  requirePermission('apikey:manage'),
+internalRouter.post(
+  "/api-keys",
+  requirePermission("apikey:manage"),
   validate(createApiKeySchema),
-  asyncHandler(apiKeyController.createApiKey)
+  asyncHandler(apiKeyController.createApiKey),
 );
 
-internalRouter.get('/api-keys/:id',
-  requirePermission('apikey:manage'),
-  asyncHandler(apiKeyController.getApiKey)
+internalRouter.get(
+  "/api-keys/:id",
+  requirePermission("apikey:manage"),
+  asyncHandler(apiKeyController.getApiKey),
 );
 
-internalRouter.delete('/api-keys/:id',
-  requirePermission('apikey:manage'),
-  asyncHandler(apiKeyController.revokeApiKey)
+internalRouter.delete(
+  "/api-keys/:id",
+  requirePermission("apikey:manage"),
+  asyncHandler(apiKeyController.revokeApiKey),
 );
 
 // ============================================================================
@@ -277,51 +311,59 @@ internalRouter.delete('/api-keys/:id',
 // ============================================================================
 
 // Create new feature flag
-internalRouter.post('/platforms/:platform/environments/:environment/flags',
-  requirePermission('config:write'),
-  asyncHandler(flagController.createFlag)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/flags",
+  requirePermission("config:write"),
+  asyncHandler(flagController.createFlag),
 );
 
 // Update feature flag (creates new version)
-internalRouter.put('/platforms/:platform/environments/:environment/flags/:flagKey',
-  requirePermission('config:write'),
-  asyncHandler(flagController.updateFlag)
+internalRouter.put(
+  "/platforms/:platform/environments/:environment/flags/:flagKey",
+  requirePermission("config:write"),
+  asyncHandler(flagController.updateFlag),
 );
 
 // Toggle flag enabled state (in-place update)
-internalRouter.patch('/platforms/:platform/environments/:environment/flags/:flagKey/toggle',
-  requirePermission('config:write'),
-  asyncHandler(flagController.toggleFlag)
+internalRouter.patch(
+  "/platforms/:platform/environments/:environment/flags/:flagKey/toggle",
+  requirePermission("config:write"),
+  asyncHandler(flagController.toggleFlag),
 );
 
 // Update rollout settings (in-place update, no new version)
-internalRouter.patch('/platforms/:platform/environments/:environment/flags/:flagKey/rollout',
-  requirePermission('config:write'),
-  asyncHandler(flagController.updateRolloutSettings)
+internalRouter.patch(
+  "/platforms/:platform/environments/:environment/flags/:flagKey/rollout",
+  requirePermission("config:write"),
+  asyncHandler(flagController.updateRolloutSettings),
 );
 
 // List all versions of a flag
-internalRouter.get('/platforms/:platform/environments/:environment/flags/:flagKey/versions',
-  requirePermission('config:read'),
-  asyncHandler(flagController.listFlagVersions)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/flags/:flagKey/versions",
+  requirePermission("config:read"),
+  asyncHandler(flagController.listFlagVersions),
 );
 
 // Get specific version of a flag
-internalRouter.get('/platforms/:platform/environments/:environment/flags/:flagKey/versions/:version',
-  requirePermission('config:read'),
-  asyncHandler(flagController.getFlagVersion)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/flags/:flagKey/versions/:version",
+  requirePermission("config:read"),
+  asyncHandler(flagController.getFlagVersion),
 );
 
 // Delete flag (all versions)
-internalRouter.delete('/platforms/:platform/environments/:environment/flags/:flagKey',
-  requirePermission('config:delete'),
-  asyncHandler(flagController.deleteFlag)
+internalRouter.delete(
+  "/platforms/:platform/environments/:environment/flags/:flagKey",
+  requirePermission("config:delete"),
+  asyncHandler(flagController.deleteFlag),
 );
 
 // Evaluate flag (POST with context body)
-internalRouter.post('/platforms/:platform/environments/:environment/flags/:flagKey/evaluate',
-  requirePermission('config:read'),
-  asyncHandler(flagController.evaluateFlag)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/flags/:flagKey/evaluate",
+  requirePermission("config:read"),
+  asyncHandler(flagController.evaluateFlag),
 );
 
 // ============================================================================
@@ -329,69 +371,80 @@ internalRouter.post('/platforms/:platform/environments/:environment/flags/:flagK
 // ============================================================================
 
 // Create experiment (draft status)
-internalRouter.post('/platforms/:platform/environments/:environment/experiments',
-  requirePermission('config:write'),
-  asyncHandler(experimentController.createExperiment)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/experiments",
+  requirePermission("config:write"),
+  asyncHandler(experimentController.createExperiment),
 );
 
 // Update experiment (draft only)
-internalRouter.put('/platforms/:platform/environments/:environment/experiments/:experimentKey',
-  requirePermission('config:write'),
-  asyncHandler(experimentController.updateExperiment)
+internalRouter.put(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey",
+  requirePermission("config:write"),
+  asyncHandler(experimentController.updateExperiment),
 );
 
 // Update experiment traffic allocation (running/paused/draft)
-internalRouter.patch('/platforms/:platform/environments/:environment/experiments/:experimentKey/traffic',
-  requirePermission('config:write'),
-  asyncHandler(experimentController.updateTrafficAllocation)
+internalRouter.patch(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/traffic",
+  requirePermission("config:write"),
+  asyncHandler(experimentController.updateTrafficAllocation),
 );
 
 // Start experiment (draft → running)
-internalRouter.post('/platforms/:platform/environments/:environment/experiments/:experimentKey/start',
-  requirePermission('config:write'),
-  asyncHandler(experimentController.startExperiment)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/start",
+  requirePermission("config:write"),
+  asyncHandler(experimentController.startExperiment),
 );
 
 // Pause experiment (running → paused)
-internalRouter.post('/platforms/:platform/environments/:environment/experiments/:experimentKey/pause',
-  requirePermission('config:write'),
-  asyncHandler(experimentController.pauseExperiment)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/pause",
+  requirePermission("config:write"),
+  asyncHandler(experimentController.pauseExperiment),
 );
 
 // Resume experiment (paused → running)
-internalRouter.post('/platforms/:platform/environments/:environment/experiments/:experimentKey/resume',
-  requirePermission('config:write'),
-  asyncHandler(experimentController.resumeExperiment)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/resume",
+  requirePermission("config:write"),
+  asyncHandler(experimentController.resumeExperiment),
 );
 
 // Complete experiment (running/paused → completed)
-internalRouter.post('/platforms/:platform/environments/:environment/experiments/:experimentKey/complete',
-  requirePermission('config:write'),
-  asyncHandler(experimentController.completeExperiment)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/complete",
+  requirePermission("config:write"),
+  asyncHandler(experimentController.completeExperiment),
 );
 
 // Archive experiment (completed → archived)
-internalRouter.post('/platforms/:platform/environments/:environment/experiments/:experimentKey/archive',
-  requirePermission('config:write'),
-  asyncHandler(experimentController.archiveExperiment)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/archive",
+  requirePermission("config:write"),
+  asyncHandler(experimentController.archiveExperiment),
 );
 
 // Delete experiment
-internalRouter.delete('/platforms/:platform/environments/:environment/experiments/:experimentKey',
-  requirePermission('config:delete'),
-  asyncHandler(experimentController.deleteExperiment)
+internalRouter.delete(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey",
+  requirePermission("config:delete"),
+  asyncHandler(experimentController.deleteExperiment),
 );
 
 // Assign variation (POST with context body)
-internalRouter.post('/platforms/:platform/environments/:environment/experiments/:experimentKey/assign',
-  requirePermission('config:read'),
-  asyncHandler(experimentController.assignVariation)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/assign",
+  requirePermission("config:read"),
+  asyncHandler(experimentController.assignVariation),
 );
 
 // Get experiment results with statistical analysis
-internalRouter.get('/platforms/:platform/environments/:environment/experiments/:experimentKey/results',
-  requirePermission('config:read'),
-  asyncHandler(experimentController.getExperimentResults)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/results",
+  requirePermission("config:read"),
+  asyncHandler(experimentController.getExperimentResults),
 );
 
 // ============================================================================
@@ -399,39 +452,45 @@ internalRouter.get('/platforms/:platform/environments/:environment/experiments/:
 // ============================================================================
 
 // Get config stats
-internalRouter.get('/platforms/:platform/environments/:environment/configs/:configKey/stats',
-  requirePermission('config:read'),
-  asyncHandler(statsController.getConfigStats)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/configs/:configKey/stats",
+  requirePermission("config:read"),
+  asyncHandler(statsController.getConfigStats),
 );
 
 // Get flag stats
-internalRouter.get('/platforms/:platform/environments/:environment/flags/:flagKey/stats',
-  requirePermission('config:read'),
-  asyncHandler(statsController.getFlagStats)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/flags/:flagKey/stats",
+  requirePermission("config:read"),
+  asyncHandler(statsController.getFlagStats),
 );
 
 // Get flag stats by country
-internalRouter.get('/platforms/:platform/environments/:environment/flags/:flagKey/stats/by-country',
-  requirePermission('config:read'),
-  asyncHandler(statsController.getFlagStatsByCountry)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/flags/:flagKey/stats/by-country",
+  requirePermission("config:read"),
+  asyncHandler(statsController.getFlagStatsByCountry),
 );
 
 // Get flag stats daily time series
-internalRouter.get('/platforms/:platform/environments/:environment/flags/:flagKey/stats/daily',
-  requirePermission('config:read'),
-  asyncHandler(statsController.getFlagStatsDaily)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/flags/:flagKey/stats/daily",
+  requirePermission("config:read"),
+  asyncHandler(statsController.getFlagStatsDaily),
 );
 
 // Get experiment stats
-internalRouter.get('/platforms/:platform/environments/:environment/experiments/:experimentKey/stats',
-  requirePermission('config:read'),
-  asyncHandler(statsController.getExperimentStats)
+internalRouter.get(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/stats",
+  requirePermission("config:read"),
+  asyncHandler(statsController.getExperimentStats),
 );
 
 // Record conversion event
-internalRouter.post('/platforms/:platform/environments/:environment/experiments/:experimentKey/conversions',
-  requirePermission('config:write'),
-  asyncHandler(statsController.recordConversion)
+internalRouter.post(
+  "/platforms/:platform/environments/:environment/experiments/:experimentKey/conversions",
+  requirePermission("config:write"),
+  asyncHandler(statsController.recordConversion),
 );
 
 export { internalRouter };

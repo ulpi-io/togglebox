@@ -5,6 +5,7 @@ Comprehensive guide for the ToggleBox dual monorepo project - a remote configura
 ## About This Project
 
 **ToggleBox** is a remote configuration and feature flag service with:
+
 - **Open Source Core** (`togglebox/`) - Self-hostable, multi-platform deployment
 - **Cloud Version** (`togglebox-cloud/`) - Commercial SaaS with multi-tenancy and billing
 
@@ -37,6 +38,7 @@ Additional project-specific guidance is available in:
 **Location:** `/Users/ciprian/work/_______OGG_______/togglebox/togglebox`
 
 **Structure:**
+
 ```
 togglebox/
 ├── apps/
@@ -69,6 +71,7 @@ togglebox/
 ```
 
 **Key Characteristics:**
+
 - Authentication is **OPTIONAL** (disabled by default)
 - Supports multiple databases: DynamoDB, MySQL, PostgreSQL, SQLite, MongoDB
 - Deploys to: AWS Lambda, Cloudflare Workers, Netlify, Docker
@@ -81,6 +84,7 @@ togglebox/
 **Location:** `/Users/ciprian/work/_______OGG_______/togglebox/togglebox-cloud`
 
 **Structure:**
+
 ```
 togglebox-cloud/
 ├── apps/
@@ -100,6 +104,7 @@ togglebox-cloud/
 ```
 
 **Key Characteristics:**
+
 - Authentication is **MANDATORY**
 - Multi-tenant with subdomain-based API routing
 - Stripe billing with usage-based pricing
@@ -197,6 +202,7 @@ make status          # Show service status and access points
 ```
 
 **Docker Access Points:**
+
 - Frontend Dashboard: `https://app.togglebox.local`
 - Marketing Site: `https://togglebox.local`
 - Auth API: `https://api.togglebox.local`
@@ -209,6 +215,7 @@ make status          # Show service status and access points
 ## Code Style
 
 ### TypeScript Standards
+
 - Use ES6+ features (async/await, destructuring, arrow functions)
 - Use 2-space indentation
 - Use semicolons consistently
@@ -218,6 +225,7 @@ make status          # Show service status and access points
 - Strict mode enabled (`strict: true` in tsconfig.json)
 
 ### Naming Conventions
+
 - Files: kebab-case (`user-service.ts`, `auth-middleware.ts`)
 - Classes: PascalCase (`UserService`, `AuthMiddleware`)
 - Functions/variables: camelCase (`getUserById`, `isAuthenticated`)
@@ -225,6 +233,7 @@ make status          # Show service status and access points
 - Routes: kebab-case (`/api/v1/user-profiles`)
 
 ### Package Names
+
 - Core: `@togglebox/core`, `@togglebox/configs`, `@togglebox/flags`, `@togglebox/experiments`, `@togglebox/stats`
 - Infrastructure: `@togglebox/database`, `@togglebox/cache`, `@togglebox/auth`, `@togglebox/shared`, `@togglebox/ui`
 - JavaScript SDKs: `@togglebox/sdk`, `@togglebox/sdk-nextjs`, `@togglebox/sdk-expo`
@@ -232,6 +241,7 @@ make status          # Show service status and access points
 - Cloud: `@togglebox/billing`, `@togglebox/multitenancy`
 
 ### Naming Conventions
+
 - Files: kebab-case (e.g., `user-service.js`, `auth-middleware.js`)
 - Classes: PascalCase (e.g., `UserService`, `AuthMiddleware`)
 - Functions/variables: camelCase (e.g., `getUserById`, `isAuthenticated`)
@@ -241,11 +251,12 @@ make status          # Show service status and access points
 ## Application Architecture
 
 ### Route Handler Pattern
+
 Keep route handlers thin - they should only handle HTTP concerns:
 
 ```javascript
 // routes/users.js
-router.post('/', validateUser, async (req, res, next) => {
+router.post("/", validateUser, async (req, res, next) => {
   try {
     const user = await userService.createUser(req.body);
     res.status(201).json({ data: user });
@@ -256,6 +267,7 @@ router.post('/', validateUser, async (req, res, next) => {
 ```
 
 ### Service Layer Pattern
+
 All business logic lives in service classes:
 
 ```javascript
@@ -278,6 +290,7 @@ class UserService {
 ```
 
 ### Repository Pattern (Optional)
+
 For complex data access logic:
 
 ```javascript
@@ -285,7 +298,7 @@ For complex data access logic:
 class UserRepository {
   async findById(id) {
     return await User.findByPk(id, {
-      include: ['profile', 'roles']
+      include: ["profile", "roles"],
     });
   }
 
@@ -298,27 +311,29 @@ class UserRepository {
 ## Middleware Architecture
 
 ### Middleware Order
+
 ```javascript
 // Correct middleware order
-app.use(helmet());                    // Security headers first
-app.use(cors(corsOptions));           // CORS
-app.use(compression());               // Compression
-app.use(express.json());              // Body parsing
+app.use(helmet()); // Security headers first
+app.use(cors(corsOptions)); // CORS
+app.use(compression()); // Compression
+app.use(express.json()); // Body parsing
 app.use(express.urlencoded({ extended: true }));
-app.use(requestLogger);               // Logging
-app.use(rateLimiter);                 // Rate limiting
-app.use('/api', routes);              // Routes
-app.use(errorHandler);                // Error handling last
+app.use(requestLogger); // Logging
+app.use(rateLimiter); // Rate limiting
+app.use("/api", routes); // Routes
+app.use(errorHandler); // Error handling last
 ```
 
 ### Custom Middleware Pattern
+
 ```javascript
 // middleware/auth.js
 const auth = (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
-      throw new UnauthorizedError('No token provided');
+      throw new UnauthorizedError("No token provided");
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -333,6 +348,7 @@ const auth = (req, res, next) => {
 ## Async Error Handling
 
 ### Async Wrapper
+
 Always wrap async route handlers:
 
 ```javascript
@@ -342,13 +358,17 @@ const asyncHandler = (fn) => (req, res, next) => {
 };
 
 // Usage
-router.get('/', asyncHandler(async (req, res) => {
-  const users = await userService.getAllUsers();
-  res.json({ data: users });
-}));
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const users = await userService.getAllUsers();
+    res.json({ data: users });
+  }),
+);
 ```
 
 ### Custom Error Classes
+
 ```javascript
 // utils/errors.js
 class AppError extends Error {
@@ -361,35 +381,36 @@ class AppError extends Error {
 }
 
 class NotFoundError extends AppError {
-  constructor(message = 'Resource not found') {
+  constructor(message = "Resource not found") {
     super(message, 404);
   }
 }
 
 class ValidationError extends AppError {
-  constructor(message = 'Validation failed') {
+  constructor(message = "Validation failed") {
     super(message, 422);
   }
 }
 ```
 
 ### Centralized Error Handler
+
 ```javascript
 // middleware/error-handler.js
 const errorHandler = (err, req, res, next) => {
   logger.error({
     err,
-    req: { method: req.method, url: req.url }
+    req: { method: req.method, url: req.url },
   });
 
   const statusCode = err.statusCode || 500;
-  const message = err.isOperational ? err.message : 'Internal server error';
+  const message = err.isOperational ? err.message : "Internal server error";
 
   res.status(statusCode).json({
     error: {
       message,
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-    }
+      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+    },
   });
 };
 ```
@@ -397,11 +418,12 @@ const errorHandler = (err, req, res, next) => {
 ## Validation
 
 ### Input Validation with Zod
+
 **This project uses Zod for runtime type validation:**
 
 ```typescript
 // validators/config-validator.ts
-import { z } from 'zod';
+import { z } from "zod";
 
 const createConfigSchema = z.object({
   platformName: z.string().min(1).max(100),
@@ -421,7 +443,7 @@ const validateConfig = (req: Request, res: Response, next: NextFunction) => {
     if (error instanceof z.ZodError) {
       return res.status(422).json({
         error: {
-          message: 'Validation failed',
+          message: "Validation failed",
           details: error.errors,
         },
       });
@@ -432,6 +454,7 @@ const validateConfig = (req: Request, res: Response, next: NextFunction) => {
 ```
 
 ### Type-Safe Validation
+
 ```typescript
 // Zod provides automatic TypeScript types
 type CreateConfigInput = z.infer<typeof createConfigSchema>;
@@ -449,48 +472,55 @@ type CreateConfigInput = z.infer<typeof createConfigSchema>;
 ## Logging with Pino
 
 ### Logger Setup
+
 ```javascript
 // config/logger.js
-const pino = require('pino');
+const pino = require("pino");
 
 const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || "info",
   serializers: {
     req: pino.stdSerializers.req,
     res: pino.stdSerializers.res,
-    err: pino.stdSerializers.err
-  }
+    err: pino.stdSerializers.err,
+  },
 });
 
 module.exports = logger;
 ```
 
 ### Request Logging Middleware
+
 ```javascript
 // middleware/logger.js
-const pinoHttp = require('pino-http');
-const logger = require('../config/logger');
+const pinoHttp = require("pino-http");
+const logger = require("../config/logger");
 
 const requestLogger = pinoHttp({
   logger,
   customLogLevel: (req, res, err) => {
-    if (res.statusCode >= 500 || err) return 'error';
-    if (res.statusCode >= 400) return 'warn';
-    return 'info';
-  }
+    if (res.statusCode >= 500 || err) return "error";
+    if (res.statusCode >= 400) return "warn";
+    return "info";
+  },
 });
 ```
 
 ### Structured Logging
+
 ```javascript
 // In service
-logger.info({ userId: user.id, action: 'user_created' }, 'User created successfully');
-logger.error({ err, userId }, 'Failed to create user');
+logger.info(
+  { userId: user.id, action: "user_created" },
+  "User created successfully",
+);
+logger.error({ err, userId }, "Failed to create user");
 ```
 
 ## Database Best Practices
 
 **This project uses multi-database support:**
+
 - **DynamoDB** (AWS Lambda deployment)
 - **Cloudflare D1** (Cloudflare Workers deployment)
 - **MySQL** (Self-hosted or RDS)
@@ -498,12 +528,13 @@ logger.error({ err, userId }, 'Failed to create user');
 - **SQLite** (Local development)
 
 ### Prisma ORM (for SQL databases)
+
 ```typescript
 // packages/database - Prisma Client usage
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query'] : [],
+  log: process.env.NODE_ENV === "development" ? ["query"] : [],
 });
 
 // Generate schema based on DB_TYPE environment variable
@@ -512,9 +543,10 @@ const prisma = new PrismaClient({
 ```
 
 ### DynamoDB (AWS SDK)
+
 ```typescript
 // For DynamoDB single-table design
-import { DynamoDB } from 'aws-sdk';
+import { DynamoDB } from "aws-sdk";
 
 const dynamodb = new DynamoDB.DocumentClient({
   region: process.env.AWS_REGION,
@@ -533,14 +565,16 @@ await dynamodb.put({
 ```
 
 ### Mongoose (for MongoDB)
+
 ```typescript
 // For MongoDB document storage
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 await mongoose.connect(process.env.MONGODB_URI);
 ```
 
 ### Query Optimization
+
 - Use Prisma's `select` for specific columns
 - Use `include` for eager loading (prevent N+1)
 - Add indexes in Prisma schema
@@ -550,6 +584,7 @@ await mongoose.connect(process.env.MONGODB_URI);
 ## API Development
 
 ### RESTful Route Design
+
 ```javascript
 // Good REST structure
 GET    /api/v1/users           # List users
@@ -561,13 +596,14 @@ DELETE /api/v1/users/:id       # Delete user
 ```
 
 ### Response Format
+
 ```javascript
 // Success response
 res.status(200).json({
   data: user,
   meta: {
-    timestamp: new Date().toISOString()
-  }
+    timestamp: new Date().toISOString(),
+  },
 });
 
 // List response with pagination
@@ -577,22 +613,21 @@ res.status(200).json({
     page: 1,
     perPage: 20,
     total: 100,
-    totalPages: 5
-  }
+    totalPages: 5,
+  },
 });
 
 // Error response
 res.status(422).json({
   error: {
-    message: 'Validation failed',
-    details: [
-      { field: 'email', message: 'Email is required' }
-    ]
-  }
+    message: "Validation failed",
+    details: [{ field: "email", message: "Email is required" }],
+  },
 });
 ```
 
 ### HTTP Status Codes
+
 - `200 OK` - Successful GET, PUT, PATCH
 - `201 Created` - Successful POST
 - `204 No Content` - Successful DELETE
@@ -606,52 +641,58 @@ res.status(422).json({
 ## Security Best Practices
 
 ### Helmet Security Headers
-```javascript
-const helmet = require('helmet');
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"]
-    }
-  },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
-  }
-}));
+```javascript
+const helmet = require("helmet");
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+  }),
+);
 ```
 
 ### CORS Configuration
+
 ```javascript
-const cors = require('cors');
+const cors = require("cors");
 
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  origin: process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:3000"],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 app.use(cors(corsOptions));
 ```
 
 ### Rate Limiting
+
 ```javascript
-const rateLimit = require('express-rate-limit');
+const rateLimit = require("express-rate-limit");
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Max 100 requests per window
-  message: 'Too many requests, please try again later'
+  message: "Too many requests, please try again later",
 });
 
-app.use('/api/', limiter);
+app.use("/api/", limiter);
 ```
 
 ### Environment Variables
+
 ```javascript
 // .env
 NODE_ENV=development
@@ -666,54 +707,49 @@ REDIS_URL=redis://localhost:6379
 ## Testing
 
 ### Jest Configuration
+
 ```javascript
 // jest.config.js
 module.exports = {
-  testEnvironment: 'node',
-  coveragePathIgnorePatterns: ['/node_modules/'],
-  collectCoverageFrom: [
-    'src/**/*.js',
-    '!src/index.js'
-  ],
+  testEnvironment: "node",
+  coveragePathIgnorePatterns: ["/node_modules/"],
+  collectCoverageFrom: ["src/**/*.js", "!src/index.js"],
   coverageThreshold: {
     global: {
       branches: 80,
       functions: 80,
       lines: 80,
-      statements: 80
-    }
-  }
+      statements: 80,
+    },
+  },
 };
 ```
 
 ### Integration Tests with Supertest
+
 ```javascript
 // tests/integration/users.test.js
-const request = require('supertest');
-const app = require('../src/app');
+const request = require("supertest");
+const app = require("../src/app");
 
-describe('POST /api/v1/users', () => {
-  it('should create a new user', async () => {
-    const response = await request(app)
-      .post('/api/v1/users')
-      .send({
-        email: 'test@example.com',
-        password: 'password123',
-        name: 'Test User'
-      });
+describe("POST /api/v1/users", () => {
+  it("should create a new user", async () => {
+    const response = await request(app).post("/api/v1/users").send({
+      email: "test@example.com",
+      password: "password123",
+      name: "Test User",
+    });
 
     expect(response.status).toBe(201);
-    expect(response.body.data).toHaveProperty('id');
-    expect(response.body.data.email).toBe('test@example.com');
+    expect(response.body.data).toHaveProperty("id");
+    expect(response.body.data.email).toBe("test@example.com");
   });
 
-  it('should return 422 for invalid email', async () => {
-    const response = await request(app)
-      .post('/api/v1/users')
-      .send({
-        email: 'invalid-email',
-        password: 'password123'
-      });
+  it("should return 422 for invalid email", async () => {
+    const response = await request(app).post("/api/v1/users").send({
+      email: "invalid-email",
+      password: "password123",
+    });
 
     expect(response.status).toBe(422);
   });
@@ -721,29 +757,33 @@ describe('POST /api/v1/users', () => {
 ```
 
 ### Unit Tests for Services
+
 ```javascript
 // tests/unit/user-service.test.js
-const UserService = require('../src/services/user-service');
+const UserService = require("../src/services/user-service");
 
-describe('UserService', () => {
+describe("UserService", () => {
   let userService;
   let mockRepository;
 
   beforeEach(() => {
     mockRepository = {
       create: jest.fn(),
-      findByEmail: jest.fn()
+      findByEmail: jest.fn(),
     };
     userService = new UserService(mockRepository);
   });
 
-  it('should create a user', async () => {
+  it("should create a user", async () => {
     mockRepository.findByEmail.mockResolvedValue(null);
-    mockRepository.create.mockResolvedValue({ id: 1, email: 'test@example.com' });
+    mockRepository.create.mockResolvedValue({
+      id: 1,
+      email: "test@example.com",
+    });
 
-    const user = await userService.createUser({ email: 'test@example.com' });
+    const user = await userService.createUser({ email: "test@example.com" });
 
-    expect(user).toHaveProperty('id');
+    expect(user).toHaveProperty("id");
     expect(mockRepository.create).toHaveBeenCalled();
   });
 });
@@ -754,6 +794,7 @@ describe('UserService', () => {
 **This project supports multiple deployment platforms:**
 
 ### AWS Lambda Deployment
+
 ```bash
 # Deploy to AWS Lambda using Serverless Framework
 cd apps/api
@@ -765,6 +806,7 @@ serverless deploy --stage production
 ```
 
 ### Cloudflare Workers Deployment
+
 ```bash
 # Deploy to Cloudflare Workers
 cd apps/api
@@ -776,6 +818,7 @@ wrangler deploy
 ```
 
 ### Docker/Self-Hosted Deployment
+
 ```bash
 # Build Docker image
 docker build -t remote-config-api .
@@ -789,19 +832,20 @@ docker-compose up -d
 ```
 
 ### Health Checks
+
 ```typescript
 // routes/health.ts
-router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+router.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
 });
 
-router.get('/ready', async (req, res) => {
+router.get("/ready", async (req, res) => {
   try {
     // Check database connection based on DB type
     // For DynamoDB, Prisma, or Mongoose
-    res.status(200).json({ status: 'ready' });
+    res.status(200).json({ status: "ready" });
   } catch (error) {
-    res.status(503).json({ status: 'not ready', error: error.message });
+    res.status(503).json({ status: "not ready", error: error.message });
   }
 });
 ```
@@ -809,34 +853,36 @@ router.get('/ready', async (req, res) => {
 ## Configuration Management
 
 ### Config-Driven Development
+
 ```javascript
 // config/index.js
 module.exports = {
   app: {
     port: process.env.PORT || 3000,
-    env: process.env.NODE_ENV || 'development'
+    env: process.env.NODE_ENV || "development",
   },
   database: {
     url: process.env.DATABASE_URL,
     pool: {
       max: parseInt(process.env.DB_POOL_MAX, 10) || 10,
-      min: parseInt(process.env.DB_POOL_MIN, 10) || 2
-    }
+      min: parseInt(process.env.DB_POOL_MIN, 10) || 2,
+    },
   },
   jwt: {
     secret: process.env.JWT_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   },
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW, 10) || 900000,
-    max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100
-  }
+    max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
+  },
 };
 ```
 
 ## Recommended Packages
 
 **Packages used in this project:**
+
 - `express` - Web framework
 - `pino` / `pino-http` - Logging
 - `zod` - Runtime validation (type-safe)
@@ -854,11 +900,12 @@ module.exports = {
 - `serverless-http` - AWS Lambda adapter
 
 **Deployment Tools:**
+
 - `wrangler` - Cloudflare Workers CLI
 - `serverless` - AWS Lambda deployment
 
 ---
 
-*Last updated: 2026-01-26*
-*Framework: Express.js + TypeScript*
-*Architecture: pnpm monorepo with multi-database and multi-platform deployment support*
+_Last updated: 2026-01-26_
+_Framework: Express.js + TypeScript_
+_Architecture: pnpm monorepo with multi-database and multi-platform deployment support_

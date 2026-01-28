@@ -26,4 +26,4 @@
  * - `no-cache`: Force revalidation (mutations)
  */
 
-export { cacheHeaders, noCacheHeaders } from './cacheHeaders';
+export { cacheHeaders, noCacheHeaders } from "./cacheHeaders";

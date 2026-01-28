@@ -6,7 +6,7 @@
  * Uses database-level atomic operations for efficient stat updates.
  */
 
-import { PrismaClient } from '.prisma/client-database';
+import { PrismaClient } from ".prisma/client-database";
 import type {
   ConfigStats,
   FlagStats,
@@ -14,9 +14,10 @@ import type {
   FlagStatsDaily,
   ExperimentStats,
   ExperimentMetricStats,
+  CustomEventStats,
   StatsEvent,
-} from '@togglebox/stats';
-import type { IStatsRepository } from '@togglebox/stats';
+} from "@togglebox/stats";
+import type { IStatsRepository } from "@togglebox/stats";
 
 /**
  * Simple concurrency limiter for batch processing.
@@ -86,7 +87,7 @@ export class PrismaStatsRepository implements IStatsRepository {
     platform: string,
     environment: string,
     configKey: string,
-    _clientId?: string
+    _clientId?: string,
   ): Promise<void> {
     const now = new Date().toISOString();
 
@@ -117,7 +118,7 @@ export class PrismaStatsRepository implements IStatsRepository {
   async getConfigStats(
     platform: string,
     environment: string,
-    configKey: string
+    configKey: string,
   ): Promise<ConfigStats | null> {
     const stats = await this.prisma.configStats.findUnique({
       where: {
@@ -151,12 +152,12 @@ export class PrismaStatsRepository implements IStatsRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    value: 'A' | 'B',
+    value: "A" | "B",
     _userId: string,
-    country?: string
+    country?: string,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const today = now.split('T')[0] as string; // YYYY-MM-DD
+    const today = now.split("T")[0] as string; // YYYY-MM-DD
 
     // Update main stats
     await this.prisma.flagStats.upsert({
@@ -168,8 +169,8 @@ export class PrismaStatsRepository implements IStatsRepository {
         environment,
         flagKey,
         totalEvaluations: 1,
-        valueACount: value === 'A' ? 1 : 0,
-        valueBCount: value === 'B' ? 1 : 0,
+        valueACount: value === "A" ? 1 : 0,
+        valueBCount: value === "B" ? 1 : 0,
         uniqueUsersA24h: 0,
         uniqueUsersB24h: 0,
         lastEvaluatedAt: now,
@@ -177,8 +178,8 @@ export class PrismaStatsRepository implements IStatsRepository {
       },
       update: {
         totalEvaluations: { increment: 1 },
-        valueACount: value === 'A' ? { increment: 1 } : undefined,
-        valueBCount: value === 'B' ? { increment: 1 } : undefined,
+        valueACount: value === "A" ? { increment: 1 } : undefined,
+        valueBCount: value === "B" ? { increment: 1 } : undefined,
         lastEvaluatedAt: now,
         updatedAt: now,
       },
@@ -187,19 +188,24 @@ export class PrismaStatsRepository implements IStatsRepository {
     // Update daily stats
     await this.prisma.flagStatsDaily.upsert({
       where: {
-        platform_environment_flagKey_date: { platform, environment, flagKey, date: today },
+        platform_environment_flagKey_date: {
+          platform,
+          environment,
+          flagKey,
+          date: today,
+        },
       },
       create: {
         platform,
         environment,
         flagKey,
         date: today,
-        valueACount: value === 'A' ? 1 : 0,
-        valueBCount: value === 'B' ? 1 : 0,
+        valueACount: value === "A" ? 1 : 0,
+        valueBCount: value === "B" ? 1 : 0,
       },
       update: {
-        valueACount: value === 'A' ? { increment: 1 } : undefined,
-        valueBCount: value === 'B' ? { increment: 1 } : undefined,
+        valueACount: value === "A" ? { increment: 1 } : undefined,
+        valueBCount: value === "B" ? { increment: 1 } : undefined,
       },
     });
 
@@ -207,19 +213,24 @@ export class PrismaStatsRepository implements IStatsRepository {
     if (country) {
       await this.prisma.flagStatsByCountry.upsert({
         where: {
-          platform_environment_flagKey_country: { platform, environment, flagKey, country },
+          platform_environment_flagKey_country: {
+            platform,
+            environment,
+            flagKey,
+            country,
+          },
         },
         create: {
           platform,
           environment,
           flagKey,
           country,
-          valueACount: value === 'A' ? 1 : 0,
-          valueBCount: value === 'B' ? 1 : 0,
+          valueACount: value === "A" ? 1 : 0,
+          valueBCount: value === "B" ? 1 : 0,
         },
         update: {
-          valueACount: value === 'A' ? { increment: 1 } : undefined,
-          valueBCount: value === 'B' ? { increment: 1 } : undefined,
+          valueACount: value === "A" ? { increment: 1 } : undefined,
+          valueBCount: value === "B" ? { increment: 1 } : undefined,
         },
       });
     }
@@ -231,7 +242,7 @@ export class PrismaStatsRepository implements IStatsRepository {
   async getFlagStats(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<FlagStats | null> {
     const stats = await this.prisma.flagStats.findUnique({
       where: {
@@ -263,7 +274,7 @@ export class PrismaStatsRepository implements IStatsRepository {
   async getFlagStatsByCountry(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<FlagStatsByCountry[]> {
     const stats = await this.prisma.flagStatsByCountry.findMany({
       where: {
@@ -271,10 +282,10 @@ export class PrismaStatsRepository implements IStatsRepository {
         environment,
         flagKey,
       },
-      orderBy: { country: 'asc' },
+      orderBy: { country: "asc" },
     });
 
-    return stats.map(s => ({
+    return stats.map((s) => ({
       country: s.country,
       valueACount: s.valueACount,
       valueBCount: s.valueBCount,
@@ -288,13 +299,13 @@ export class PrismaStatsRepository implements IStatsRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    days: number = 30
+    days: number = 30,
   ): Promise<FlagStatsDaily[]> {
     const today = new Date();
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - days);
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = today.toISOString().split('T')[0];
+    const startDateStr = startDate.toISOString().split("T")[0];
+    const endDateStr = today.toISOString().split("T")[0];
 
     const stats = await this.prisma.flagStatsDaily.findMany({
       where: {
@@ -306,10 +317,10 @@ export class PrismaStatsRepository implements IStatsRepository {
           lte: endDateStr,
         },
       },
-      orderBy: { date: 'asc' },
+      orderBy: { date: "asc" },
     });
 
-    return stats.map(s => ({
+    return stats.map((s) => ({
       date: s.date,
       valueACount: s.valueACount,
       valueBCount: s.valueBCount,
@@ -328,10 +339,10 @@ export class PrismaStatsRepository implements IStatsRepository {
     environment: string,
     experimentKey: string,
     variationKey: string,
-    _userId: string
+    _userId: string,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const today = now.split('T')[0] as string;
+    const today = now.split("T")[0] as string;
 
     // Update variation stats
     await this.prisma.experimentVariationStats.upsert({
@@ -396,10 +407,10 @@ export class PrismaStatsRepository implements IStatsRepository {
     metricId: string,
     variationKey: string,
     _userId: string,
-    value?: number
+    value?: number,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const today = now.split('T')[0] as string;
+    const today = now.split("T")[0] as string;
 
     // Update aggregate metric stats (no date)
     await this.prisma.experimentMetricStats.upsert({
@@ -435,7 +446,7 @@ export class PrismaStatsRepository implements IStatsRepository {
       },
     });
 
-    // Update daily metric stats
+    // Update daily metric stats (per-metric breakdown)
     await this.prisma.experimentMetricStatsDaily.upsert({
       where: {
         platform_environment_experimentKey_variationKey_metricId_date: {
@@ -466,6 +477,32 @@ export class PrismaStatsRepository implements IStatsRepository {
         conversions: { increment: 1 },
       },
     });
+
+    // Update daily experiment stats (aggregate conversions for all metrics)
+    // This populates the dailyData array in getExperimentStats()
+    await this.prisma.experimentStatsDaily.upsert({
+      where: {
+        platform_environment_experimentKey_variationKey_date: {
+          platform,
+          environment,
+          experimentKey,
+          variationKey,
+          date: today,
+        },
+      },
+      create: {
+        platform,
+        environment,
+        experimentKey,
+        variationKey,
+        date: today,
+        participants: 0, // Participants are set by recordExperimentExposure
+        conversions: 1,
+      },
+      update: {
+        conversions: { increment: 1 },
+      },
+    });
   }
 
   /**
@@ -474,7 +511,7 @@ export class PrismaStatsRepository implements IStatsRepository {
   async getExperimentStats(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<ExperimentStats | null> {
     const variationStats = await this.prisma.experimentVariationStats.findMany({
       where: {
@@ -482,17 +519,34 @@ export class PrismaStatsRepository implements IStatsRepository {
         environment,
         experimentKey,
       },
-      orderBy: { variationKey: 'asc' },
+      orderBy: { variationKey: "asc" },
     });
 
     if (variationStats.length === 0) {
       return null;
     }
 
-    const variations = variationStats.map(v => ({
+    const variations = variationStats.map((v) => ({
       variationKey: v.variationKey,
       participants: v.participants,
       exposures: v.exposures,
+    }));
+
+    // Query daily stats for time series data
+    const dailyStats = await this.prisma.experimentStatsDaily.findMany({
+      where: {
+        platform,
+        environment,
+        experimentKey,
+      },
+      orderBy: [{ date: "asc" }, { variationKey: "asc" }],
+    });
+
+    const dailyData = dailyStats.map((d) => ({
+      date: d.date,
+      variationKey: d.variationKey,
+      participants: d.participants,
+      conversions: d.conversions,
     }));
 
     return {
@@ -501,7 +555,7 @@ export class PrismaStatsRepository implements IStatsRepository {
       experimentKey,
       variations,
       metricResults: [], // Populated separately via getExperimentMetricStats
-      dailyData: [],     // Populated separately via time-series queries
+      dailyData,
       updatedAt: new Date().toISOString(),
     };
   }
@@ -514,7 +568,7 @@ export class PrismaStatsRepository implements IStatsRepository {
     environment: string,
     experimentKey: string,
     variationKey: string,
-    metricId: string
+    metricId: string,
   ): Promise<ExperimentMetricStats[]> {
     // Query daily stats for time series data
     const stats = await this.prisma.experimentMetricStatsDaily.findMany({
@@ -525,10 +579,10 @@ export class PrismaStatsRepository implements IStatsRepository {
         variationKey,
         metricId,
       },
-      orderBy: { date: 'asc' },
+      orderBy: { date: "asc" },
     });
 
-    return stats.map(s => ({
+    return stats.map((s) => ({
       platform: s.platform,
       environment: s.environment,
       experimentKey: s.experimentKey,
@@ -539,6 +593,61 @@ export class PrismaStatsRepository implements IStatsRepository {
       sum: s.sumValue,
       count: s.count,
       conversions: s.conversions,
+    }));
+  }
+
+  // =========================================================================
+  // CUSTOM EVENT STATS
+  // =========================================================================
+
+  /**
+   * Record a custom event.
+   */
+  async recordCustomEvent(
+    platform: string,
+    environment: string,
+    eventName: string,
+    userId?: string,
+    properties?: Record<string, unknown>,
+  ): Promise<void> {
+    await this.prisma.customEventStats.create({
+      data: {
+        platform,
+        environment,
+        eventName,
+        userId,
+        properties: properties ? JSON.stringify(properties) : null,
+        timestamp: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Get custom events for a platform/environment.
+   */
+  async getCustomEvents(
+    platform: string,
+    environment: string,
+    eventName?: string,
+    limit: number = 100,
+  ): Promise<CustomEventStats[]> {
+    const events = await this.prisma.customEventStats.findMany({
+      where: {
+        platform,
+        environment,
+        ...(eventName && { eventName }),
+      },
+      orderBy: { timestamp: "desc" },
+      take: limit,
+    });
+
+    return events.map((e) => ({
+      platform: e.platform,
+      environment: e.environment,
+      eventName: e.eventName,
+      userId: e.userId ?? undefined,
+      properties: e.properties ? JSON.parse(e.properties) : undefined,
+      timestamp: e.timestamp.toISOString(),
     }));
   }
 
@@ -556,7 +665,7 @@ export class PrismaStatsRepository implements IStatsRepository {
   async processBatch(
     platform: string,
     environment: string,
-    events: StatsEvent[]
+    events: StatsEvent[],
   ): Promise<void> {
     // Limit concurrency to avoid overwhelming the database
     const limit = pLimit(25);
@@ -564,47 +673,56 @@ export class PrismaStatsRepository implements IStatsRepository {
     const processEvent = async (event: StatsEvent): Promise<void> => {
       try {
         switch (event.type) {
-          case 'config_fetch':
-            await this.incrementConfigFetch(platform, environment, event.key, event.clientId);
+          case "config_fetch":
+            await this.incrementConfigFetch(
+              platform,
+              environment,
+              event.key,
+              event.clientId,
+            );
             break;
 
-          case 'flag_evaluation':
+          case "flag_evaluation":
             await this.incrementFlagEvaluation(
               platform,
               environment,
               event.flagKey,
               event.value,
               event.userId,
-              event.country
+              event.country,
             );
             break;
 
-          case 'experiment_exposure':
+          case "experiment_exposure":
             await this.recordExperimentExposure(
               platform,
               environment,
               event.experimentKey,
               event.variationKey,
-              event.userId
+              event.userId,
             );
             break;
 
-          case 'conversion':
+          case "conversion":
             await this.recordConversion(
               platform,
               environment,
               event.experimentKey,
-              event.metricName, // metricName in the event maps to metricId in the repository
+              event.metricId,
               event.variationKey,
               event.userId,
-              event.value
+              event.value,
             );
             break;
 
-          case 'custom_event':
-            // Custom events are accepted but not persisted to database yet.
-            // Log for visibility instead of silently dropping.
-            console.log(`[stats] Custom event received: ${event.eventName} (userId: ${event.userId ?? 'anonymous'})`);
+          case "custom_event":
+            await this.recordCustomEvent(
+              platform,
+              environment,
+              event.eventName,
+              event.userId,
+              event.properties,
+            );
             break;
         }
       } catch (error) {
@@ -626,15 +744,17 @@ export class PrismaStatsRepository implements IStatsRepository {
   async deleteConfigStats(
     platform: string,
     environment: string,
-    configKey: string
+    configKey: string,
   ): Promise<void> {
-    await this.prisma.configStats.delete({
-      where: {
-        platform_environment_configKey: { platform, environment, configKey },
-      },
-    }).catch(() => {
-      // Ignore if not found
-    });
+    await this.prisma.configStats
+      .delete({
+        where: {
+          platform_environment_configKey: { platform, environment, configKey },
+        },
+      })
+      .catch(() => {
+        // Ignore if not found
+      });
   }
 
   /**
@@ -643,16 +763,18 @@ export class PrismaStatsRepository implements IStatsRepository {
   async deleteFlagStats(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<void> {
     // Delete main stats
-    await this.prisma.flagStats.delete({
-      where: {
-        platform_environment_flagKey: { platform, environment, flagKey },
-      },
-    }).catch(() => {
-      // Ignore if not found
-    });
+    await this.prisma.flagStats
+      .delete({
+        where: {
+          platform_environment_flagKey: { platform, environment, flagKey },
+        },
+      })
+      .catch(() => {
+        // Ignore if not found
+      });
 
     // Delete daily stats
     await this.prisma.flagStatsDaily.deleteMany({
@@ -671,7 +793,7 @@ export class PrismaStatsRepository implements IStatsRepository {
   async deleteExperimentStats(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<void> {
     // Delete variation stats
     await this.prisma.experimentVariationStats.deleteMany({

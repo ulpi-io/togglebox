@@ -1,5 +1,11 @@
-import { browserApiClient } from './browser-client';
-import type { FlagEvaluationResult, VariantAssignment, ConfigParameter, Flag, Experiment } from './types';
+import { browserApiClient } from "./browser-client";
+import type {
+  FlagEvaluationResult,
+  VariantAssignment,
+  ConfigParameter,
+  Flag,
+  Experiment,
+} from "./types";
 
 /**
  * Evaluation context for testing flags and experiments.
@@ -40,15 +46,15 @@ export async function evaluateFlagApi(
   platform: string,
   environment: string,
   flagKey: string,
-  context: EvaluationContext
+  context: EvaluationContext,
 ): Promise<FlagEvaluationResult> {
   const queryParams = new URLSearchParams();
-  if (context.userId) queryParams.append('userId', context.userId);
-  if (context.country) queryParams.append('country', context.country);
-  if (context.language) queryParams.append('language', context.language);
+  if (context.userId) queryParams.append("userId", context.userId);
+  if (context.country) queryParams.append("country", context.country);
+  if (context.language) queryParams.append("language", context.language);
 
   return browserApiClient<FlagEvaluationResult>(
-    `/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}/evaluate?${queryParams.toString()}`
+    `/api/v1/platforms/${platform}/environments/${environment}/flags/${flagKey}/evaluate?${queryParams.toString()}`,
   );
 }
 
@@ -66,15 +72,15 @@ export async function evaluateExperimentApi(
   platform: string,
   environment: string,
   experimentKey: string,
-  context: EvaluationContext
+  context: EvaluationContext,
 ): Promise<VariantAssignment> {
   const queryParams = new URLSearchParams();
-  if (context.userId) queryParams.append('userId', context.userId);
-  if (context.country) queryParams.append('country', context.country);
-  if (context.language) queryParams.append('language', context.language);
+  if (context.userId) queryParams.append("userId", context.userId);
+  if (context.country) queryParams.append("country", context.country);
+  if (context.language) queryParams.append("language", context.language);
 
   return browserApiClient<VariantAssignment>(
-    `/api/v1/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/assign?${queryParams.toString()}`
+    `/api/v1/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/assign?${queryParams.toString()}`,
   );
 }
 
@@ -89,9 +95,11 @@ export async function evaluateFlagWithTimingApi(
   platform: string,
   environment: string,
   flagKey: string,
-  context: EvaluationContext
+  context: EvaluationContext,
 ): Promise<TimedResult<FlagEvaluationResult>> {
-  return withTiming(() => evaluateFlagApi(platform, environment, flagKey, context));
+  return withTiming(() =>
+    evaluateFlagApi(platform, environment, flagKey, context),
+  );
 }
 
 /**
@@ -101,9 +109,11 @@ export async function evaluateExperimentWithTimingApi(
   platform: string,
   environment: string,
   experimentKey: string,
-  context: EvaluationContext
+  context: EvaluationContext,
 ): Promise<TimedResult<VariantAssignment>> {
-  return withTiming(() => evaluateExperimentApi(platform, environment, experimentKey, context));
+  return withTiming(() =>
+    evaluateExperimentApi(platform, environment, experimentKey, context),
+  );
 }
 
 // ============================================================================
@@ -118,12 +128,12 @@ export async function evaluateExperimentWithTimingApi(
  */
 export async function fetchConfigWithTimingApi(
   platform: string,
-  environment: string
+  environment: string,
 ): Promise<TimedResult<Record<string, unknown>>> {
   return withTiming(() =>
     browserApiClient<Record<string, unknown>>(
-      `/api/v1/platforms/${platform}/environments/${environment}/configs`
-    )
+      `/api/v1/platforms/${platform}/environments/${environment}/configs`,
+    ),
   );
 }
 
@@ -133,12 +143,12 @@ export async function fetchConfigWithTimingApi(
  */
 export async function fetchAllConfigParametersWithTimingApi(
   platform: string,
-  environment: string
+  environment: string,
 ): Promise<TimedResult<ConfigParameter[]>> {
   return withTiming(() =>
     browserApiClient<ConfigParameter[]>(
-      `/api/v1/internal/platforms/${platform}/environments/${environment}/configs/list`
-    )
+      `/api/v1/internal/platforms/${platform}/environments/${environment}/configs/list`,
+    ),
   );
 }
 
@@ -147,12 +157,12 @@ export async function fetchAllConfigParametersWithTimingApi(
  */
 export async function fetchAllFlagsWithTimingApi(
   platform: string,
-  environment: string
+  environment: string,
 ): Promise<TimedResult<Flag[]>> {
   return withTiming(() =>
     browserApiClient<Flag[]>(
-      `/api/v1/platforms/${platform}/environments/${environment}/flags`
-    )
+      `/api/v1/platforms/${platform}/environments/${environment}/flags`,
+    ),
   );
 }
 
@@ -161,12 +171,12 @@ export async function fetchAllFlagsWithTimingApi(
  */
 export async function fetchAllExperimentsWithTimingApi(
   platform: string,
-  environment: string
+  environment: string,
 ): Promise<TimedResult<Experiment[]>> {
   return withTiming(() =>
     browserApiClient<Experiment[]>(
-      `/api/v1/platforms/${platform}/environments/${environment}/experiments`
-    )
+      `/api/v1/platforms/${platform}/environments/${environment}/experiments`,
+    ),
   );
 }
 
@@ -185,18 +195,18 @@ export interface AllDataResult {
  */
 export async function fetchAllDataWithTimingApi(
   platform: string,
-  environment: string
+  environment: string,
 ): Promise<TimedResult<AllDataResult>> {
   return withTiming(async () => {
     const [configResult, flagsResult, experimentsResult] = await Promise.all([
       browserApiClient<Record<string, unknown>>(
-        `/api/v1/platforms/${platform}/environments/${environment}/configs`
+        `/api/v1/platforms/${platform}/environments/${environment}/configs`,
       ).catch(() => null),
       browserApiClient<Flag[]>(
-        `/api/v1/platforms/${platform}/environments/${environment}/flags`
+        `/api/v1/platforms/${platform}/environments/${environment}/flags`,
       ).catch(() => []),
       browserApiClient<Experiment[]>(
-        `/api/v1/platforms/${platform}/environments/${environment}/experiments`
+        `/api/v1/platforms/${platform}/environments/${environment}/experiments`,
       ).catch(() => []),
     ]);
 

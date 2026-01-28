@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { registerApi } from '@/lib/api/auth';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { registerApi } from "@/lib/api/auth";
 import {
   Button,
   Input,
@@ -14,8 +14,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@togglebox/ui';
-import { setCookie } from '@/lib/utils/cookies';
+} from "@togglebox/ui";
+import { setCookie } from "@/lib/utils/cookies";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -28,17 +28,17 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
     try {
       const response = await registerApi(name, email, password);
       // Store token in cookie
-      setCookie('auth-token', response.token, 7);
-      router.push('/dashboard');
+      setCookie("auth-token", response.token, 7);
+      router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setIsLoading(false);
     }
@@ -99,11 +99,11 @@ export default function RegisterPage() {
 
         <CardFooter className="flex-col space-y-4">
           <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? 'Creating account...' : 'Register'}
+            {isLoading ? "Creating account..." : "Register"}
           </Button>
 
           <div className="text-sm text-center">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Link href="/login" className="font-bold hover:underline">
               Login
             </Link>

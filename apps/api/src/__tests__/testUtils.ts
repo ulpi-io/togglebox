@@ -32,9 +32,12 @@
  * ```
  */
 
-import { DatabaseRepositories, ThreeTierRepositories } from '@togglebox/database';
-import { CacheProvider } from '@togglebox/cache';
-import { Container } from '../container';
+import {
+  DatabaseRepositories,
+  ThreeTierRepositories,
+} from "@togglebox/database";
+import { CacheProvider } from "@togglebox/cache";
+import { Container } from "../container";
 
 /**
  * Creates a mock database with jest mock functions for all repository methods
@@ -78,13 +81,17 @@ export function createMockDatabase(): jest.Mocked<DatabaseRepositories> {
  */
 export function createMockCacheProvider(): jest.Mocked<CacheProvider> {
   return {
-    invalidateCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
-    invalidateGlobalCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
-    invalidatePlatformCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
-    invalidateEnvironmentCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
-    invalidateVersionCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
-    invalidateFlagCache: jest.fn().mockResolvedValue('mock-invalidation-id'),
-    generateCachePaths: jest.fn().mockReturnValue(['/api/mock/path']),
+    invalidateCache: jest.fn().mockResolvedValue("mock-invalidation-id"),
+    invalidateGlobalCache: jest.fn().mockResolvedValue("mock-invalidation-id"),
+    invalidatePlatformCache: jest
+      .fn()
+      .mockResolvedValue("mock-invalidation-id"),
+    invalidateEnvironmentCache: jest
+      .fn()
+      .mockResolvedValue("mock-invalidation-id"),
+    invalidateVersionCache: jest.fn().mockResolvedValue("mock-invalidation-id"),
+    invalidateFlagCache: jest.fn().mockResolvedValue("mock-invalidation-id"),
+    generateCachePaths: jest.fn().mockReturnValue(["/api/mock/path"]),
     isEnabled: jest.fn().mockReturnValue(true),
   } as jest.Mocked<CacheProvider>;
 }
@@ -166,7 +173,7 @@ export function createMockRequest(overrides: Record<string, unknown> = {}) {
     body: {},
     params: {},
     query: {},
-    headers: { 'x-request-id': 'test-request-id' },
+    headers: { "x-request-id": "test-request-id" },
     ...overrides,
   };
 }

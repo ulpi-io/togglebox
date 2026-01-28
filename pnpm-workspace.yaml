@@ -1,28 +1,28 @@
 packages:
   # Core packages
-  - 'packages/core'
-  - 'packages/configs'
-  - 'packages/database'
-  - 'packages/shared'
-  - 'packages/auth'
-  - 'packages/cache'
-  - 'packages/ui'
+  - "packages/core"
+  - "packages/configs"
+  - "packages/database"
+  - "packages/shared"
+  - "packages/auth"
+  - "packages/cache"
+  - "packages/ui"
 
   # Three-tier architecture packages
-  - 'packages/flags'
-  - 'packages/experiments'
-  - 'packages/stats'
+  - "packages/flags"
+  - "packages/experiments"
+  - "packages/stats"
 
   # Client SDKs
-  - 'packages/sdk-js'
-  - 'packages/sdk-nextjs'
-  - 'packages/sdk-expo'
+  - "packages/sdk-js"
+  - "packages/sdk-nextjs"
+  - "packages/sdk-expo"
 
   # Applications
-  - 'apps/api'
-  - 'apps/admin'
+  - "apps/api"
+  - "apps/admin"
 
   # Example Applications
-  - 'apps/example-nextjs'
-  - 'apps/example-expo'
-  - 'apps/example-nodejs'
+  - "apps/example-nextjs"
+  - "apps/example-expo"
+  - "apps/example-nodejs"

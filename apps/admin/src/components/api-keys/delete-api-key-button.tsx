@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { deleteApiKeyApi } from '@/lib/api/api-keys';
-import { Button } from '@togglebox/ui';
+import { useState } from "react";
+import { deleteApiKeyApi } from "@/lib/api/api-keys";
+import { Button } from "@togglebox/ui";
 
 interface DeleteApiKeyButtonProps {
   keyId: string;
@@ -10,7 +10,11 @@ interface DeleteApiKeyButtonProps {
   onSuccess?: () => void;
 }
 
-export function DeleteApiKeyButton({ keyId, keyName, onSuccess }: DeleteApiKeyButtonProps) {
+export function DeleteApiKeyButton({
+  keyId,
+  keyName,
+  onSuccess,
+}: DeleteApiKeyButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -22,7 +26,7 @@ export function DeleteApiKeyButton({ keyId, keyName, onSuccess }: DeleteApiKeyBu
         onSuccess();
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete API key');
+      alert(err instanceof Error ? err.message : "Failed to delete API key");
       setIsDeleting(false);
     }
   }
@@ -36,7 +40,7 @@ export function DeleteApiKeyButton({ keyId, keyName, onSuccess }: DeleteApiKeyBu
           onClick={handleDelete}
           disabled={isDeleting}
         >
-          {isDeleting ? 'Deleting...' : 'Confirm'}
+          {isDeleting ? "Deleting..." : "Confirm"}
         </Button>
         <Button
           variant="outline"

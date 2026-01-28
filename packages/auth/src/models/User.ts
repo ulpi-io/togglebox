@@ -56,7 +56,7 @@ export interface User {
  *
  * Permissions are defined in {@link USER_PERMISSIONS}.
  */
-export type UserRole = 'admin' | 'developer' | 'viewer';
+export type UserRole = "admin" | "developer" | "viewer";
 
 /**
  * User data for creation (without system-generated fields).
@@ -65,7 +65,7 @@ export type UserRole = 'admin' | 'developer' | 'viewer';
  * Excludes `id`, `createdAt`, and `updatedAt` as these are auto-generated.
  * `passwordHash` must be pre-hashed with bcrypt before passing to repository.
  */
-export type CreateUserData = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateUserData = Omit<User, "id" | "createdAt" | "updatedAt">;
 
 /**
  * User data for updates (partial, without system fields).
@@ -75,7 +75,9 @@ export type CreateUserData = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
  * - All fields are optional (partial update)
  * - `passwordHash` can be updated for password changes
  */
-export type UpdateUserData = Partial<Omit<User, 'id' | 'email' | 'createdAt' | 'updatedAt'>>;
+export type UpdateUserData = Partial<
+  Omit<User, "id" | "email" | "createdAt" | "updatedAt">
+>;
 
 /**
  * Public user data (safe to return in API responses).
@@ -84,7 +86,7 @@ export type UpdateUserData = Partial<Omit<User, 'id' | 'email' | 'createdAt' | '
  * **Security:** Excludes `passwordHash` to prevent password hash leakage.
  * Use this type for all API responses that include user data.
  */
-export type PublicUser = Omit<User, 'passwordHash'>;
+export type PublicUser = Omit<User, "passwordHash">;
 
 /**
  * User permissions based on role.
@@ -106,29 +108,26 @@ export type PublicUser = Omit<User, 'passwordHash'>;
  */
 export const USER_PERMISSIONS: Record<UserRole, string[]> = {
   admin: [
-    'config:read',
-    'config:write',
-    'config:update',
-    'config:delete',
-    'cache:invalidate',
-    'user:manage',
-    'apikey:manage',
-    'member:read',
-    'member:invite',
-    'member:manage',
-    'member:remove',
+    "config:read",
+    "config:write",
+    "config:update",
+    "config:delete",
+    "cache:invalidate",
+    "user:manage",
+    "apikey:manage",
+    "member:read",
+    "member:invite",
+    "member:manage",
+    "member:remove",
   ],
   developer: [
-    'config:read',
-    'config:write',
-    'config:update',
-    'cache:invalidate',
-    'member:read',
+    "config:read",
+    "config:write",
+    "config:update",
+    "cache:invalidate",
+    "member:read",
   ],
-  viewer: [
-    'config:read',
-    'member:read',
-  ],
+  viewer: ["config:read", "member:read"],
 };
 
 /**

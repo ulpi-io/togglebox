@@ -1,6 +1,6 @@
-import { IUserRepository } from '../../interfaces/IUserRepository';
-import { User, CreateUserData, UpdateUserData } from '../../models/User';
-import * as userService from './userService';
+import { IUserRepository } from "../../interfaces/IUserRepository";
+import { User, CreateUserData, UpdateUserData } from "../../models/User";
+import * as userService from "./userService";
 
 /**
  * DynamoDB implementation of user repository.

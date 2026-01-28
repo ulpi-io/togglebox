@@ -8,8 +8,8 @@
  * These interfaces define the contract that all database adapters must implement.
  */
 
-export * from './IPlatformRepository';
-export * from './IEnvironmentRepository';
-export * from './IConfigRepository';
-export * from './IUsageRepository';
-export * from './IPagination';
+export * from "./IPlatformRepository";
+export * from "./IEnvironmentRepository";
+export * from "./IConfigRepository";
+export * from "./IUsageRepository";
+export * from "./IPagination";

@@ -5,6 +5,7 @@
 **Architecture:** Dual monorepo structure at parent directory level.
 
 **Directory Structure:**
+
 ```
 /Users/ciprian/work/_______OGG_______/togglebox/  ← Parent directory
 ├── togglebox/          ← Open source monorepo
@@ -167,6 +168,7 @@ make test-watch      # Run tests in watch mode
 ```
 
 **Docker Access Points:**
+
 - Marketing site: https://togglebox.local
 - Cloud Dashboard (Frontend): https://app.togglebox.local
   - **IMPORTANT:** Frontend is ALWAYS on `app.togglebox.local` (NO tenant subdomains)
@@ -179,10 +181,11 @@ make test-watch      # Run tests in watch mode
 - Traefik Dashboard: http://traefik.togglebox.local:8080
 
 **Multi-Tenancy Flow:**
+
 1. User visits https://app.togglebox.local/login
 2. After login, API calls go to https://api.togglebox.local/api/v1/auth/*
 3. After onboarding creates tenant, cookie `tenant-subdomain` is set
-4. Subsequent API calls go to https://{tenant}.togglebox.local/api/v1/*
+4. Subsequent API calls go to https://{tenant}.togglebox.local/api/v1/\*
 5. User STAYS on https://app.togglebox.local/dashboard (no redirect to tenant subdomain)
 
 See `togglebox-cloud/LOCAL_DEVELOPMENT.md` for complete Docker setup guide.
@@ -192,6 +195,7 @@ See `togglebox-cloud/LOCAL_DEVELOPMENT.md` for complete Docker setup guide.
 **Database Package Location:** `togglebox/packages/database/`
 
 Both monorepos can use the multi-database package from the open source repo. Supported databases:
+
 - **DynamoDB** (AWS Lambda deployment)
 - **Cloudflare D1** (Cloudflare Workers deployment)
 - **MySQL** (Self-hosted/RDS)
@@ -222,6 +226,7 @@ npx prisma studio
 ```
 
 #### DynamoDB (AWS Lambda deployment)
+
 ```bash
 # DynamoDB uses single-table design with PK/SK pattern
 # No migrations needed - table created via CloudFormation/Terraform
@@ -236,6 +241,7 @@ export AWS_REGION=us-east-1
 ```
 
 #### Cloudflare D1 (Cloudflare Workers deployment)
+
 ```bash
 # Create D1 database
 wrangler d1 create remote-config-db
@@ -251,6 +257,7 @@ wrangler d1 execute remote-config-db --local --file=packages/database/d1/schema.
 ```
 
 #### MongoDB (Alternative)
+
 ```bash
 # MongoDB uses Mongoose - no migrations
 # Connection handled via MONGODB_URI environment variable
@@ -324,6 +331,7 @@ pnpm --filter @config/database add @prisma/client
 ## Project-Specific Custom Commands
 
 ### Demo Data Seeding
+
 ```bash
 # Seed demo data for example apps (requires API to be running)
 ./scripts/seed-demo-data.sh
@@ -340,6 +348,7 @@ API_URL=http://localhost:3000/api/v1 ./scripts/seed-demo-data.sh
 ```
 
 ### Docker DynamoDB Initialization
+
 ```bash
 # Initialize DynamoDB tables (run from docker/ directory)
 ./docker/scripts/init-dynamodb.sh
@@ -354,6 +363,7 @@ API_URL=http://localhost:3000/api/v1 ./scripts/seed-demo-data.sh
 ```
 
 ### Database Schema Generation
+
 ```bash
 # Generate Prisma schema for specific database type
 cd packages/database
@@ -368,6 +378,7 @@ DB_TYPE=mysql pnpm schema:generate
 ```
 
 ### Multi-Platform Validation
+
 ```bash
 # Validate Prisma schemas for all database types
 cd packages/database
@@ -487,7 +498,6 @@ pnpm -r build  # Will fail if type errors exist
 pnpm test
 ```
 
-
 ## Maintenance & Monitoring
 
 ### Application Health
@@ -506,6 +516,7 @@ curl http://localhost:3000/metrics
 ### Log Management
 
 **togglebox-cloud with Docker:**
+
 ```bash
 cd /Users/ciprian/work/_______OGG_______/togglebox/togglebox-cloud
 make logs           # All services
@@ -515,6 +526,7 @@ make logs-web       # Marketing site only
 ```
 
 **Development mode:**
+
 ```bash
 # Logs are output to console when running pnpm dev:api or pnpm dev:cloud-api
 # Check terminal output
@@ -523,6 +535,7 @@ make logs-web       # Marketing site only
 ## Debugging
 
 ### Node.js Debugger
+
 ```bash
 # Start with debugger
 node --inspect src/index.js
@@ -538,6 +551,7 @@ chrome://inspect
 ```
 
 ### Environment Variables
+
 ```bash
 # Print all environment variables
 npm run env
@@ -553,14 +567,16 @@ npx dotenv -- node src/index.js
 ### Database Debugging
 
 **Prisma query logging:**
+
 ```typescript
 // In database configuration
 const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query'] : [],
+  log: process.env.NODE_ENV === "development" ? ["query"] : [],
 });
 ```
 
 **DynamoDB (Docker Local):**
+
 ```bash
 cd /Users/ciprian/work/_______OGG_______/togglebox/togglebox-cloud
 make logs-db  # View DynamoDB Local logs
@@ -611,6 +627,7 @@ pnpm info <package-name>
 **Last Updated:** 2026-01-26
 
 **Note:** This documentation covers commands for **BOTH monorepos**:
+
 - **togglebox/** - Open source core at `/Users/ciprian/work/_______OGG_______/togglebox/togglebox`
 - **togglebox-cloud/** - Private cloud at `/Users/ciprian/work/_______OGG_______/togglebox/togglebox-cloud`
 

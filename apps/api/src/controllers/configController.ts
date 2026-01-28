@@ -1,16 +1,27 @@
-import { Request, Response, NextFunction } from 'express';
-import { DatabaseRepositories } from '@togglebox/database';
-import { logger, withDatabaseContext, getTokenPaginationParams, createPaginationMeta } from '@togglebox/shared';
-import { CacheProvider } from '@togglebox/cache';
-import { CONFIG_LIMITS } from '@togglebox/configs';
-import { z } from 'zod';
+import { Request, Response, NextFunction } from "express";
+import { DatabaseRepositories } from "@togglebox/database";
+import {
+  logger,
+  withDatabaseContext,
+  getSmartPaginationParams,
+  createPaginationMeta,
+  AuthenticatedRequest,
+  NotFoundError,
+} from "@togglebox/shared";
+import { CacheProvider } from "@togglebox/cache";
+import {
+  CONFIG_LIMITS,
+  CreateConfigParameterSchema as SharedCreateConfigParameterSchema,
+  UpdateConfigParameterSchema as SharedUpdateConfigParameterSchema,
+} from "@togglebox/configs";
+import { z } from "zod";
 
 /**
  * Zod schema for cache invalidation request validation
  */
 const CacheInvalidationSchema = z.object({
-  platform: z.string().min(1, 'Platform is required'),
-  environment: z.string().min(1, 'Environment is required'),
+  platform: z.string().min(1, "Platform is required"),
+  environment: z.string().min(1, "Environment is required"),
   version: z.string().optional(),
 });
 
@@ -18,12 +29,17 @@ const CacheInvalidationSchema = z.object({
  * Zod schema for platform creation validation
  */
 const CreatePlatformSchema = z.object({
-  name: z.string()
-    .min(1, 'Platform name is required')
-    .max(100, 'Platform name must be 100 characters or less')
-    .regex(/^[a-zA-Z0-9-_]+$/, 'Platform name can only contain letters, numbers, hyphens, and underscores'),
-  description: z.string()
-    .max(500, 'Description must be 500 characters or less')
+  name: z
+    .string()
+    .min(1, "Platform name is required")
+    .max(100, "Platform name must be 100 characters or less")
+    .regex(
+      /^[a-zA-Z0-9-_]+$/,
+      "Platform name can only contain letters, numbers, hyphens, and underscores",
+    ),
+  description: z
+    .string()
+    .max(500, "Description must be 500 characters or less")
     .optional(),
 });
 
@@ -31,8 +47,27 @@ const CreatePlatformSchema = z.object({
  * Zod schema for platform update validation
  */
 const UpdatePlatformSchema = z.object({
-  description: z.string()
-    .max(500, 'Description must be 500 characters or less')
+  description: z
+    .string()
+    .max(500, "Description must be 500 characters or less")
+    .optional(),
+});
+
+/**
+ * Zod schema for environment creation validation
+ */
+const CreateEnvironmentSchema = z.object({
+  environment: z
+    .string()
+    .min(1, "Environment name is required")
+    .max(100, "Environment name must be 100 characters or less")
+    .regex(
+      /^[a-zA-Z0-9-_]+$/,
+      "Environment name can only contain letters, numbers, hyphens, and underscores",
+    ),
+  description: z
+    .string()
+    .max(500, "Description must be 500 characters or less")
     .optional(),
 });
 
@@ -40,44 +75,22 @@ const UpdatePlatformSchema = z.object({
  * Zod schema for environment update validation
  */
 const UpdateEnvironmentSchema = z.object({
-  description: z.string()
-    .max(500, 'Description must be 500 characters or less')
+  description: z
+    .string()
+    .max(500, "Description must be 500 characters or less")
     .optional(),
 });
 
-/**
- * Zod schema for config parameter creation.
- * Platform, environment, and createdBy are extracted from URL params and JWT token.
- */
-const CreateConfigParameterSchema = z.object({
-  parameterKey: z.string()
-    .min(1, 'Parameter key is required')
-    .max(256, 'Parameter key must be 256 characters or less')
-    .regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/, 'Parameter key must start with a letter and contain only letters, numbers, hyphens, and underscores'),
-  valueType: z.enum(['string', 'number', 'boolean', 'json'], {
-    errorMap: () => ({ message: 'Value type must be one of: string, number, boolean, json' }),
-  }),
-  defaultValue: z.string().min(1, 'Default value is required'),
-  description: z.string().max(500, 'Description must be 500 characters or less').optional(),
-  parameterGroup: z.string().max(100, 'Parameter group must be 100 characters or less').optional(),
-});
-
-/**
- * Zod schema for config parameter update.
- * Only includes updatable fields - parameterKey cannot be changed.
- */
-const UpdateConfigParameterSchema = z.object({
-  valueType: z.enum(['string', 'number', 'boolean', 'json']).optional(),
-  defaultValue: z.string().optional(),
-  description: z.string().max(500).optional().nullable(),
-  parameterGroup: z.string().max(100).optional().nullable(),
-});
+// Note: Config parameter schemas are imported from @togglebox/configs for consistent validation
+// (validates defaultValue against valueType, enforces MAX_VALUE_LENGTH)
 
 /**
  * Zod schema for rollback request.
  */
 const RollbackSchema = z.object({
-  version: z.string().regex(/^\d+$/, 'Version must be a numeric string (e.g., "1", "2", "3")'),
+  version: z
+    .string()
+    .regex(/^\d+$/, 'Version must be a numeric string (e.g., "1", "2", "3")'),
 });
 
 /**
@@ -134,16 +147,28 @@ export class ConfigController {
    *
    * @returns HTTP 200 with config key-value object
    */
-  getConfigs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getConfigs = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { platform, environment } = req.params as { platform: string; environment: string };
+      const { platform, environment } = req.params as {
+        platform: string;
+        environment: string;
+      };
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
         const configs = await this.db.config.getConfigs(platform, environment);
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getConfigs', 'config_parameters', duration, true);
+        logger.logDatabaseOperation(
+          "getConfigs",
+          "config_parameters",
+          duration,
+          true,
+        );
 
         res.json({
           success: true,
@@ -169,52 +194,103 @@ export class ConfigController {
    * @throws {ZodError} If request body validation fails
    * @returns HTTP 201 with created parameter data
    */
-  createConfigParameter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  createConfigParameter = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { platform, environment } = req.params as { platform: string; environment: string };
+      const { platform, environment } = req.params as {
+        platform: string;
+        environment: string;
+      };
 
       // Get createdBy from authenticated user
-      const user = (req as unknown as { user?: { email?: string } }).user;
-      const createdBy = user?.email || 'system@togglebox.dev';
+      const user = (req as AuthenticatedRequest).user;
+      const createdBy = user?.email || "system@togglebox.dev";
 
-      const bodyData = CreateConfigParameterSchema.parse(req.body);
+      // Use shared schema that validates defaultValue against valueType
+      const bodyData = SharedCreateConfigParameterSchema.parse({
+        ...req.body,
+        platform,
+        environment,
+        createdBy,
+      });
 
       await withDatabaseContext(req, async () => {
         // Check parameter count limit before creating
+        // Note: This is a best-effort check. Race conditions under high concurrency
+        // may allow slightly exceeding the limit. For strict enforcement,
+        // implement database-level constraints or use transactions.
         const currentCount = await this.db.config.count(platform, environment);
         if (currentCount >= CONFIG_LIMITS.MAX_PARAMETERS_PER_ENV) {
           res.status(422).json({
             success: false,
             error: `Maximum parameters limit reached (${CONFIG_LIMITS.MAX_PARAMETERS_PER_ENV})`,
-            code: 'LIMIT_EXCEEDED',
-            details: [`Environment ${platform}/${environment} already has ${currentCount} parameters`],
+            code: "LIMIT_EXCEEDED",
+            details: [
+              `Environment ${platform}/${environment} already has ${currentCount} parameters`,
+            ],
             timestamp: new Date().toISOString(),
           });
           return;
         }
 
         const startTime = Date.now();
-        const param = await this.db.config.create({
-          platform,
-          environment,
-          parameterKey: bodyData.parameterKey,
-          valueType: bodyData.valueType,
-          defaultValue: bodyData.defaultValue,
-          description: bodyData.description,
-          parameterGroup: bodyData.parameterGroup,
-          createdBy,
-        });
+        let param;
+        try {
+          param = await this.db.config.create({
+            platform,
+            environment,
+            parameterKey: bodyData.parameterKey,
+            valueType: bodyData.valueType,
+            defaultValue: bodyData.defaultValue,
+            description: bodyData.description,
+            parameterGroup: bodyData.parameterGroup,
+            createdBy,
+          });
+        } catch (createError) {
+          // Re-check count in case of race condition
+          const recheckCount = await this.db.config.count(
+            platform,
+            environment,
+          );
+          if (recheckCount >= CONFIG_LIMITS.MAX_PARAMETERS_PER_ENV) {
+            res.status(422).json({
+              success: false,
+              error: `Maximum parameters limit reached (${CONFIG_LIMITS.MAX_PARAMETERS_PER_ENV})`,
+              code: "LIMIT_EXCEEDED",
+              details: [
+                `Environment ${platform}/${environment} has reached the parameter limit`,
+              ],
+              timestamp: new Date().toISOString(),
+            });
+            return;
+          }
+          throw createError;
+        }
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('create', 'config_parameters', duration, true);
-        logger.info(`Created config parameter ${param.parameterKey} (v${param.version}) for ${platform}/${environment}`);
+        logger.logDatabaseOperation(
+          "create",
+          "config_parameters",
+          duration,
+          true,
+        );
+        logger.info(
+          `Created config parameter ${param.parameterKey} (v${param.version}) for ${platform}/${environment}`,
+        );
 
         // Invalidate configs cache
         const cachePaths = [
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
-        this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+          // WARN level since stale cache affects data consistency
+          logger.warn("Cache invalidation failed - stale data may be served", {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.status(201).json({
@@ -227,9 +303,11 @@ export class ConfigController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
@@ -251,7 +329,11 @@ export class ConfigController {
    *
    * @returns HTTP 200 with updated parameter data, or 404 if not found
    */
-  updateConfigParameter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  updateConfigParameter = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, parameterKey } = req.params as {
         platform: string;
@@ -260,28 +342,48 @@ export class ConfigController {
       };
 
       // Get createdBy from authenticated user
-      const user = (req as unknown as { user?: { email?: string } }).user;
-      const createdBy = user?.email || 'system@togglebox.dev';
+      const user = (req as AuthenticatedRequest).user;
+      const createdBy = user?.email || "system@togglebox.dev";
 
-      const bodyData = UpdateConfigParameterSchema.parse(req.body);
+      // Use shared schema that validates defaultValue against valueType
+      const bodyData = SharedUpdateConfigParameterSchema.parse({
+        ...req.body,
+        createdBy,
+      });
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const param = await this.db.config.update(platform, environment, parameterKey, {
-          ...bodyData,
-          createdBy,
-        });
+        const param = await this.db.config.update(
+          platform,
+          environment,
+          parameterKey,
+          {
+            ...bodyData,
+            createdBy,
+          },
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('update', 'config_parameters', duration, true);
-        logger.info(`Updated config parameter ${parameterKey} to v${param.version} for ${platform}/${environment}`);
+        logger.logDatabaseOperation(
+          "update",
+          "config_parameters",
+          duration,
+          true,
+        );
+        logger.info(
+          `Updated config parameter ${parameterKey} to v${param.version} for ${platform}/${environment}`,
+        );
 
         // Invalidate configs cache
         const cachePaths = [
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
-        this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+          // WARN level since stale cache affects data consistency
+          logger.warn("Cache invalidation failed - stale data may be served", {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.json({
@@ -294,15 +396,21 @@ export class ConfigController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
       }
       // Handle "not found" errors from repository
-      if (error instanceof Error && error.message.includes('not found')) {
+      if (
+        error instanceof NotFoundError ||
+        (error instanceof Error &&
+          error.message.toLowerCase().includes("not found"))
+      ) {
         res.status(404).json({
           success: false,
           error: error.message,
@@ -326,7 +434,11 @@ export class ConfigController {
    *
    * @returns HTTP 204 on success, or 404 if not found
    */
-  deleteConfigParameter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  deleteConfigParameter = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, parameterKey } = req.params as {
         platform: string;
@@ -336,28 +448,43 @@ export class ConfigController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const deleted = await this.db.config.delete(platform, environment, parameterKey);
+        const deleted = await this.db.config.delete(
+          platform,
+          environment,
+          parameterKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('delete', 'config_parameters', duration, true);
+        logger.logDatabaseOperation(
+          "delete",
+          "config_parameters",
+          duration,
+          true,
+        );
 
         if (!deleted) {
           res.status(404).json({
             success: false,
-            error: 'Parameter not found',
+            error: "Parameter not found",
             timestamp: new Date().toISOString(),
           });
           return;
         }
 
-        logger.info(`Deleted config parameter ${parameterKey} (all versions) for ${platform}/${environment}`);
+        logger.info(
+          `Deleted config parameter ${parameterKey} (all versions) for ${platform}/${environment}`,
+        );
 
         // Invalidate configs cache
         const cachePaths = [
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
-        this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+          // WARN level since stale cache affects data consistency
+          logger.warn("Cache invalidation failed - stale data may be served", {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.status(204).send();
@@ -376,7 +503,11 @@ export class ConfigController {
    *
    * @returns HTTP 200 with parameter data, or 404 if not found
    */
-  getConfigParameter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getConfigParameter = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, parameterKey } = req.params as {
         platform: string;
@@ -386,15 +517,24 @@ export class ConfigController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const param = await this.db.config.getActive(platform, environment, parameterKey);
+        const param = await this.db.config.getActive(
+          platform,
+          environment,
+          parameterKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('getActive', 'config_parameters', duration, true);
+        logger.logDatabaseOperation(
+          "getActive",
+          "config_parameters",
+          duration,
+          true,
+        );
 
         if (!param) {
           res.status(404).json({
             success: false,
-            error: 'Parameter not found',
+            error: "Parameter not found",
             timestamp: new Date().toISOString(),
           });
           return;
@@ -424,38 +564,54 @@ export class ConfigController {
    *
    * @returns HTTP 200 with paginated array of parameters
    */
-  listConfigParameters = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  listConfigParameters = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { platform, environment } = req.params as { platform: string; environment: string };
-      const pagination = getTokenPaginationParams(req);
+      const { platform, environment } = req.params as {
+        platform: string;
+        environment: string;
+      };
+      const { isToken, params, page, perPage } = getSmartPaginationParams(req);
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const result = await this.db.config.listActive(platform, environment, pagination);
+        const result = await this.db.config.listActive(
+          platform,
+          environment,
+          params,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('listActive', 'config_parameters', duration, true);
+        logger.logDatabaseOperation(
+          "listActive",
+          "config_parameters",
+          duration,
+          true,
+        );
 
         // Handle both offset-based and token-based pagination
-        if ('total' in result && result.total !== undefined) {
-          if (pagination) {
-            const paginationMeta = createPaginationMeta(1, pagination.limit, result.total);
-            res.json({
-              success: true,
-              data: result.items,
-              meta: paginationMeta,
-              timestamp: new Date().toISOString(),
-            });
-          } else {
-            res.json({
-              success: true,
-              data: result.items,
-              meta: { total: result.total },
-              timestamp: new Date().toISOString(),
-            });
-          }
-        } else {
-          const tokenResult = result as { items: typeof result.items; nextToken?: string };
+        if ("total" in result && result.total !== undefined) {
+          // Offset-based pagination (SQL/MongoDB backends)
+          const paginationMeta = createPaginationMeta(
+            page,
+            perPage,
+            result.total,
+          );
+          res.json({
+            success: true,
+            data: result.items,
+            meta: paginationMeta,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (isToken) {
+          // Token-based pagination (DynamoDB)
+          const tokenResult = result as {
+            items: typeof result.items;
+            nextToken?: string;
+          };
           res.json({
             success: true,
             data: result.items,
@@ -463,6 +619,14 @@ export class ConfigController {
               nextToken: tokenResult.nextToken,
               hasMore: !!tokenResult.nextToken,
             },
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          // No pagination requested - return all items
+          res.json({
+            success: true,
+            data: result.items,
+            meta: { total: result.items.length },
             timestamp: new Date().toISOString(),
           });
         }
@@ -481,7 +645,11 @@ export class ConfigController {
    *
    * @returns HTTP 200 with array of parameter versions
    */
-  listConfigParameterVersions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  listConfigParameterVersions = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, parameterKey } = req.params as {
         platform: string;
@@ -491,10 +659,19 @@ export class ConfigController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const versions = await this.db.config.listVersions(platform, environment, parameterKey);
+        const versions = await this.db.config.listVersions(
+          platform,
+          environment,
+          parameterKey,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('listVersions', 'config_parameters', duration, true);
+        logger.logDatabaseOperation(
+          "listVersions",
+          "config_parameters",
+          duration,
+          true,
+        );
 
         res.json({
           success: true,
@@ -520,7 +697,11 @@ export class ConfigController {
    *
    * @returns HTTP 200 with restored parameter, or 404 if version not found
    */
-  rollbackConfigParameter = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  rollbackConfigParameter = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform, environment, parameterKey } = req.params as {
         platform: string;
@@ -532,10 +713,20 @@ export class ConfigController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const param = await this.db.config.rollback(platform, environment, parameterKey, bodyData.version);
+        const param = await this.db.config.rollback(
+          platform,
+          environment,
+          parameterKey,
+          bodyData.version,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('rollback', 'config_parameters', duration, true);
+        logger.logDatabaseOperation(
+          "rollback",
+          "config_parameters",
+          duration,
+          true,
+        );
 
         if (!param) {
           res.status(404).json({
@@ -546,14 +737,20 @@ export class ConfigController {
           return;
         }
 
-        logger.info(`Rolled back config parameter ${parameterKey} to v${bodyData.version} for ${platform}/${environment}`);
+        logger.info(
+          `Rolled back config parameter ${parameterKey} to v${bodyData.version} for ${platform}/${environment}`,
+        );
 
         // Invalidate configs cache
         const cachePaths = [
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
-        this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+          // WARN level since stale cache affects data consistency
+          logger.warn("Cache invalidation failed - stale data may be served", {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.json({
@@ -566,9 +763,11 @@ export class ConfigController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
@@ -586,16 +785,28 @@ export class ConfigController {
    *
    * @returns HTTP 200 with count
    */
-  countConfigParameters = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  countConfigParameters = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { platform, environment } = req.params as { platform: string; environment: string };
+      const { platform, environment } = req.params as {
+        platform: string;
+        environment: string;
+      };
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
         const count = await this.db.config.count(platform, environment);
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('count', 'config_parameters', duration, true);
+        logger.logDatabaseOperation(
+          "count",
+          "config_parameters",
+          duration,
+          true,
+        );
 
         res.json({
           success: true,
@@ -615,10 +826,14 @@ export class ConfigController {
   /**
    * Creates a new platform.
    */
-  createPlatform = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  createPlatform = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const validatedData = CreatePlatformSchema.parse(req.body);
-      const user = (req as unknown as { user?: { id?: string } }).user;
+      const user = (req as AuthenticatedRequest).user;
       const createdBy = user?.id;
 
       await withDatabaseContext(req, async () => {
@@ -641,9 +856,11 @@ export class ConfigController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
@@ -655,7 +872,11 @@ export class ConfigController {
   /**
    * Retrieves a specific platform by name.
    */
-  getPlatform = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getPlatform = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { name } = req.params as { name: string };
 
@@ -665,7 +886,7 @@ export class ConfigController {
         if (!platform) {
           res.status(404).json({
             success: false,
-            error: 'Platform not found',
+            error: "Platform not found",
             timestamp: new Date().toISOString(),
           });
           return;
@@ -685,16 +906,20 @@ export class ConfigController {
   /**
    * Deletes a platform and all its associated data.
    */
-  deletePlatform = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  deletePlatform = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform } = req.params as { platform: string };
-      const user = (req as unknown as { user?: { role?: string } }).user;
+      const user = (req as AuthenticatedRequest).user;
 
-      if (user?.role !== 'admin') {
+      if (user?.role !== "admin") {
         res.status(403).json({
           success: false,
-          error: 'Forbidden: Only admins can delete platforms',
-          code: 'FORBIDDEN',
+          error: "Forbidden: Only admins can delete platforms",
+          code: "FORBIDDEN",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -705,12 +930,17 @@ export class ConfigController {
         const deleted = await this.db.platform.deletePlatform(platform);
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('deletePlatform', 'platforms', duration, true);
+        logger.logDatabaseOperation(
+          "deletePlatform",
+          "platforms",
+          duration,
+          true,
+        );
 
         if (!deleted) {
           res.status(404).json({
             success: false,
-            error: 'Platform not found',
+            error: "Platform not found",
             timestamp: new Date().toISOString(),
           });
           return;
@@ -719,8 +949,12 @@ export class ConfigController {
         logger.info(`Deleted platform ${platform} and all associated data`);
 
         const cachePaths = this.cacheProvider.generateCachePaths(platform);
-        this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+          // WARN level since stale cache affects data consistency
+          logger.warn("Cache invalidation failed - stale data may be served", {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.status(204).send();
@@ -733,36 +967,45 @@ export class ConfigController {
   /**
    * Lists all platforms in the system.
    */
-  listPlatforms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  listPlatforms = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const pagination = getTokenPaginationParams(req);
+      const { isToken, params, page, perPage } = getSmartPaginationParams(req);
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const result = await this.db.platform.listPlatforms(pagination);
+        const result = await this.db.platform.listPlatforms(params);
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('listPlatforms', 'platforms', duration, true);
+        logger.logDatabaseOperation(
+          "listPlatforms",
+          "platforms",
+          duration,
+          true,
+        );
 
-        if ('total' in result && result.total !== undefined) {
-          if (pagination) {
-            const paginationMeta = createPaginationMeta(1, pagination.limit, result.total);
-            res.json({
-              success: true,
-              data: result.items,
-              meta: paginationMeta,
-              timestamp: new Date().toISOString(),
-            });
-          } else {
-            res.json({
-              success: true,
-              data: result.items,
-              meta: { total: result.total },
-              timestamp: new Date().toISOString(),
-            });
-          }
-        } else {
-          const tokenResult = result as { items: typeof result.items; nextToken?: string };
+        if ("total" in result && result.total !== undefined) {
+          // Offset-based pagination (SQL/MongoDB backends)
+          const paginationMeta = createPaginationMeta(
+            page,
+            perPage,
+            result.total,
+          );
+          res.json({
+            success: true,
+            data: result.items,
+            meta: paginationMeta,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (isToken) {
+          // Token-based pagination (DynamoDB)
+          const tokenResult = result as {
+            items: typeof result.items;
+            nextToken?: string;
+          };
           res.json({
             success: true,
             data: result.items,
@@ -770,6 +1013,14 @@ export class ConfigController {
               nextToken: tokenResult.nextToken,
               hasMore: !!tokenResult.nextToken,
             },
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          // No pagination requested - return all items
+          res.json({
+            success: true,
+            data: result.items,
+            meta: { total: result.items.length },
             timestamp: new Date().toISOString(),
           });
         }
@@ -782,7 +1033,11 @@ export class ConfigController {
   /**
    * Updates a platform's editable fields.
    */
-  updatePlatform = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  updatePlatform = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform } = req.params as { platform: string };
       const validatedData = UpdatePlatformSchema.parse(req.body);
@@ -791,23 +1046,31 @@ export class ConfigController {
         if (!this.db.platform.updatePlatform) {
           res.status(501).json({
             success: false,
-            error: 'Update operation not supported by current database adapter',
-            code: 'NOT_IMPLEMENTED',
+            error: "Update operation not supported by current database adapter",
+            code: "NOT_IMPLEMENTED",
             timestamp: new Date().toISOString(),
           });
           return;
         }
 
         const startTime = Date.now();
-        const updated = await this.db.platform.updatePlatform(platform, validatedData);
+        const updated = await this.db.platform.updatePlatform(
+          platform,
+          validatedData,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('updatePlatform', 'platforms', duration, true);
+        logger.logDatabaseOperation(
+          "updatePlatform",
+          "platforms",
+          duration,
+          true,
+        );
 
         if (!updated) {
           res.status(404).json({
             success: false,
-            error: 'Platform not found',
+            error: "Platform not found",
             timestamp: new Date().toISOString(),
           });
           return;
@@ -825,9 +1088,11 @@ export class ConfigController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
@@ -843,22 +1108,30 @@ export class ConfigController {
   /**
    * Creates a new environment within a platform.
    */
-  createEnvironment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  createEnvironment = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform } = req.params as { platform: string };
-      const { environment, description } = req.body;
 
-      if (!environment || typeof environment !== 'string') {
+      // Validate request body with Zod schema
+      const parseResult = CreateEnvironmentSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        const errorMessages = parseResult.error.errors.map((e) => e.message);
         res.status(422).json({
           success: false,
-          error: 'Environment name is required',
-          code: 'VALIDATION_FAILED',
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: errorMessages,
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      const user = (req as unknown as { user?: { id?: string } }).user;
+      const { environment, description } = parseResult.data;
+      const user = (req as AuthenticatedRequest).user;
       const createdBy = user?.id;
 
       await withDatabaseContext(req, async () => {
@@ -879,7 +1152,9 @@ export class ConfigController {
           createdBy,
         });
 
-        logger.info(`Created environment ${environment} for platform ${platform}`);
+        logger.info(
+          `Created environment ${environment} for platform ${platform}`,
+        );
 
         res.status(201).json({
           success: true,
@@ -895,17 +1170,27 @@ export class ConfigController {
   /**
    * Retrieves a specific environment within a platform.
    */
-  getEnvironment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getEnvironment = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { platform, environment } = req.params as { platform: string; environment: string };
+      const { platform, environment } = req.params as {
+        platform: string;
+        environment: string;
+      };
 
       await withDatabaseContext(req, async () => {
-        const env = await this.db.environment.getEnvironment(platform, environment);
+        const env = await this.db.environment.getEnvironment(
+          platform,
+          environment,
+        );
 
         if (!env) {
           res.status(404).json({
             success: false,
-            error: 'Environment not found',
+            error: "Environment not found",
             timestamp: new Date().toISOString(),
           });
           return;
@@ -925,16 +1210,23 @@ export class ConfigController {
   /**
    * Deletes an environment and all its associated data.
    */
-  deleteEnvironment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  deleteEnvironment = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { platform, environment } = req.params as { platform: string; environment: string };
-      const user = (req as unknown as { user?: { role?: string } }).user;
+      const { platform, environment } = req.params as {
+        platform: string;
+        environment: string;
+      };
+      const user = (req as AuthenticatedRequest).user;
 
-      if (user?.role !== 'admin') {
+      if (user?.role !== "admin") {
         res.status(403).json({
           success: false,
-          error: 'Forbidden: Only admins can delete environments',
-          code: 'FORBIDDEN',
+          error: "Forbidden: Only admins can delete environments",
+          code: "FORBIDDEN",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -942,25 +1234,42 @@ export class ConfigController {
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const deleted = await this.db.environment.deleteEnvironment(platform, environment);
+        const deleted = await this.db.environment.deleteEnvironment(
+          platform,
+          environment,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('deleteEnvironment', 'environments', duration, true);
+        logger.logDatabaseOperation(
+          "deleteEnvironment",
+          "environments",
+          duration,
+          true,
+        );
 
         if (!deleted) {
           res.status(404).json({
             success: false,
-            error: 'Environment not found',
+            error: "Environment not found",
             timestamp: new Date().toISOString(),
           });
           return;
         }
 
-        logger.info(`Deleted environment ${environment} for platform ${platform} and all associated data`);
+        logger.info(
+          `Deleted environment ${environment} for platform ${platform} and all associated data`,
+        );
 
-        const cachePaths = this.cacheProvider.generateCachePaths(platform, environment);
-        this.cacheProvider.invalidateCache(cachePaths).catch(err => {
-          logger.error('Cache invalidation failed (non-blocking)', err);
+        const cachePaths = this.cacheProvider.generateCachePaths(
+          platform,
+          environment,
+        );
+        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+          // WARN level since stale cache affects data consistency
+          logger.warn("Cache invalidation failed - stale data may be served", {
+            paths: cachePaths,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
 
         res.status(204).send();
@@ -973,37 +1282,49 @@ export class ConfigController {
   /**
    * Lists all environments for a platform.
    */
-  listEnvironments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  listEnvironments = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const { platform } = req.params as { platform: string };
-      const pagination = getTokenPaginationParams(req);
+      const { isToken, params, page, perPage } = getSmartPaginationParams(req);
 
       await withDatabaseContext(req, async () => {
         const startTime = Date.now();
-        const result = await this.db.environment.listEnvironments(platform, pagination);
+        const result = await this.db.environment.listEnvironments(
+          platform,
+          params,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('listEnvironments', 'environments', duration, true);
+        logger.logDatabaseOperation(
+          "listEnvironments",
+          "environments",
+          duration,
+          true,
+        );
 
-        if ('total' in result && result.total !== undefined) {
-          if (pagination) {
-            const paginationMeta = createPaginationMeta(1, pagination.limit, result.total);
-            res.json({
-              success: true,
-              data: result.items,
-              meta: paginationMeta,
-              timestamp: new Date().toISOString(),
-            });
-          } else {
-            res.json({
-              success: true,
-              data: result.items,
-              meta: { total: result.total },
-              timestamp: new Date().toISOString(),
-            });
-          }
-        } else {
-          const tokenResult = result as { items: typeof result.items; nextToken?: string };
+        if ("total" in result && result.total !== undefined) {
+          // Offset-based pagination (SQL/MongoDB backends)
+          const paginationMeta = createPaginationMeta(
+            page,
+            perPage,
+            result.total,
+          );
+          res.json({
+            success: true,
+            data: result.items,
+            meta: paginationMeta,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (isToken) {
+          // Token-based pagination (DynamoDB)
+          const tokenResult = result as {
+            items: typeof result.items;
+            nextToken?: string;
+          };
           res.json({
             success: true,
             data: result.items,
@@ -1011,6 +1332,14 @@ export class ConfigController {
               nextToken: tokenResult.nextToken,
               hasMore: !!tokenResult.nextToken,
             },
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          // No pagination requested - return all items
+          res.json({
+            success: true,
+            data: result.items,
+            meta: { total: result.items.length },
             timestamp: new Date().toISOString(),
           });
         }
@@ -1023,38 +1352,56 @@ export class ConfigController {
   /**
    * Updates an environment's editable fields.
    */
-  updateEnvironment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  updateEnvironment = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      const { platform, environment } = req.params as { platform: string; environment: string };
+      const { platform, environment } = req.params as {
+        platform: string;
+        environment: string;
+      };
       const validatedData = UpdateEnvironmentSchema.parse(req.body);
 
       await withDatabaseContext(req, async () => {
         if (!this.db.environment.updateEnvironment) {
           res.status(501).json({
             success: false,
-            error: 'Update operation not supported by current database adapter',
-            code: 'NOT_IMPLEMENTED',
+            error: "Update operation not supported by current database adapter",
+            code: "NOT_IMPLEMENTED",
             timestamp: new Date().toISOString(),
           });
           return;
         }
 
         const startTime = Date.now();
-        const updated = await this.db.environment.updateEnvironment(platform, environment, validatedData);
+        const updated = await this.db.environment.updateEnvironment(
+          platform,
+          environment,
+          validatedData,
+        );
         const duration = Date.now() - startTime;
 
-        logger.logDatabaseOperation('updateEnvironment', 'environments', duration, true);
+        logger.logDatabaseOperation(
+          "updateEnvironment",
+          "environments",
+          duration,
+          true,
+        );
 
         if (!updated) {
           res.status(404).json({
             success: false,
-            error: 'Environment not found',
+            error: "Environment not found",
             timestamp: new Date().toISOString(),
           });
           return;
         }
 
-        logger.info(`Updated environment ${environment} for platform ${platform}`);
+        logger.info(
+          `Updated environment ${environment} for platform ${platform}`,
+        );
 
         res.json({
           success: true,
@@ -1066,9 +1413,11 @@ export class ConfigController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;
@@ -1084,19 +1433,25 @@ export class ConfigController {
   /**
    * Invalidates all CloudFront/CDN caches globally.
    */
-  invalidateAllCache = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  invalidateAllCache = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const invalidationId = await this.cacheProvider.invalidateGlobalCache();
 
       if (invalidationId) {
-        logger.logCloudFrontInvalidation(invalidationId, ['/*'], true);
+        logger.logCloudFrontInvalidation(invalidationId, ["/*"], true);
       }
-      logger.info(`Created global cache invalidation ${invalidationId || 'skipped'}`);
+      logger.info(
+        `Created global cache invalidation ${invalidationId || "skipped"}`,
+      );
 
       res.status(200).json({
         success: true,
-        message: 'Global cache invalidation initiated',
-        invalidatedPaths: ['/*'],
+        message: "Global cache invalidation initiated",
+        invalidatedPaths: ["/*"],
         invalidationId: invalidationId || null,
         timestamp: new Date().toISOString(),
       });
@@ -1108,14 +1463,18 @@ export class ConfigController {
   /**
    * Invalidates CloudFront cache for configuration paths.
    */
-  invalidateCache = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  invalidateCache = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       const validatedData = CacheInvalidationSchema.parse(req.body);
 
       const paths = this.cacheProvider.generateCachePaths(
         validatedData.platform,
         validatedData.environment,
-        validatedData.version
+        validatedData.version,
       );
 
       const startTime = Date.now();
@@ -1125,7 +1484,9 @@ export class ConfigController {
       if (invalidationId) {
         logger.logCloudFrontInvalidation(invalidationId, paths, true);
       }
-      logger.info(`Created cache invalidation ${invalidationId || 'skipped'} for paths: ${paths.join(', ')}`);
+      logger.info(
+        `Created cache invalidation ${invalidationId || "skipped"} for paths: ${paths.join(", ")}`,
+      );
 
       res.json({
         success: true,
@@ -1140,9 +1501,11 @@ export class ConfigController {
       if (error instanceof z.ZodError) {
         res.status(422).json({
           success: false,
-          error: 'Validation failed',
-          code: 'VALIDATION_FAILED',
-          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`),
+          error: "Validation failed",
+          code: "VALIDATION_FAILED",
+          details: error.errors.map(
+            (err) => `${err.path.join(".")}: ${err.message}`,
+          ),
           timestamp: new Date().toISOString(),
         });
         return;

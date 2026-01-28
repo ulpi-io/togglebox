@@ -5,9 +5,7 @@
     "rootDir": "./src",
     "jsx": "react-native"
   },
-  "include": [
-    "src/**/*"
-  ],
+  "include": ["src/**/*"],
   "references": [
     {
       "path": "../core"

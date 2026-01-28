@@ -30,29 +30,29 @@ The server starts at `http://localhost:3003`
 
 The seed script creates demo data for this app:
 
-| Type | Key | Description |
-|------|-----|-------------|
-| **Platform** | `ecommerce` | Platform identifier |
-| **Environment** | `development` | Environment for this app |
-| **Flag** | `new-checkout-flow` | Toggle new checkout flow |
-| **Experiment** | `checkout-button-test` | A/B test button text (`control`, `buy_now`, `add_to_cart`) |
-| **Experiment** | `pricing-display-test` | Test price display (`control`, `tax_included`, `tax_excluded`) |
-| **Config** | `theme`, `apiTimeout` | Remote configuration values |
+| Type            | Key                    | Description                                                    |
+| --------------- | ---------------------- | -------------------------------------------------------------- |
+| **Platform**    | `ecommerce`            | Platform identifier                                            |
+| **Environment** | `development`          | Environment for this app                                       |
+| **Flag**        | `new-checkout-flow`    | Toggle new checkout flow                                       |
+| **Experiment**  | `checkout-button-test` | A/B test button text (`control`, `buy_now`, `add_to_cart`)     |
+| **Experiment**  | `pricing-display-test` | Test price display (`control`, `tax_included`, `tax_excluded`) |
+| **Config**      | `theme`, `apiTimeout`  | Remote configuration values                                    |
 
 **Demo Admin:** `admin@togglebox.com` / `Parola123!`
 
 ## Features Demonstrated
 
-| Tier | Feature | Use Case |
-|------|---------|----------|
-| **Tier 1** | Remote Configs | Store settings, currency, tax rate |
-| **Tier 2** | `reviews-enabled` flag | Toggle product reviews visibility |
-| **Tier 2** | `express-shipping` flag | Enable/disable express shipping |
-| **Tier 2** | `new-checkout-flow` flag | Gradual rollout of new checkout |
-| **Tier 3** | `checkout-button-test` experiment | A/B test button text |
-| **Tier 3** | `pricing-display-test` experiment | Test price display formats |
-| **Analytics** | Event tracking | Track views, cart, checkout events |
-| **Analytics** | Conversion tracking | Track purchases for experiments |
+| Tier          | Feature                           | Use Case                           |
+| ------------- | --------------------------------- | ---------------------------------- |
+| **Tier 1**    | Remote Configs                    | Store settings, currency, tax rate |
+| **Tier 2**    | `reviews-enabled` flag            | Toggle product reviews visibility  |
+| **Tier 2**    | `express-shipping` flag           | Enable/disable express shipping    |
+| **Tier 2**    | `new-checkout-flow` flag          | Gradual rollout of new checkout    |
+| **Tier 3**    | `checkout-button-test` experiment | A/B test button text               |
+| **Tier 3**    | `pricing-display-test` experiment | Test price display formats         |
+| **Analytics** | Event tracking                    | Track views, cart, checkout events |
+| **Analytics** | Conversion tracking               | Track purchases for experiments    |
 
 ## API Endpoints
 
@@ -75,6 +75,7 @@ curl http://localhost:3003/api/store/config
 ```
 
 **Response:**
+
 ```json
 {
   "store": {
@@ -99,6 +100,7 @@ curl -H "X-User-Id: user-123" \
 ```
 
 **Response:**
+
 ```json
 {
   "products": [
@@ -136,6 +138,7 @@ curl -X POST \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -159,6 +162,7 @@ curl -H "X-User-Id: user-123" \
 ```
 
 **Response:**
+
 ```json
 {
   "checkoutVersion": "v2",
@@ -192,35 +196,35 @@ curl -X POST \
 ### Pattern 1: Initialize Client
 
 ```typescript
-import { ToggleBoxClient } from '@togglebox/sdk'
+import { ToggleBoxClient } from "@togglebox/sdk";
 
 const client = new ToggleBoxClient({
-  platform: 'your-platform',
-  environment: 'production',
-  apiUrl: 'https://your-api.togglebox.io',
+  platform: "your-platform",
+  environment: "production",
+  apiUrl: "https://your-api.togglebox.io",
   pollingInterval: 30000,
   cache: { enabled: true, ttl: 60000 },
-})
+});
 ```
 
 ### Pattern 2: Get Config Value (Tier 1)
 
 ```typescript
 // With default fallback
-const theme = await client.getConfigValue('theme', 'light')
-const maxItems = await client.getConfigValue<number>('maxItems', 100)
+const theme = await client.getConfigValue("theme", "light");
+const maxItems = await client.getConfigValue<number>("maxItems", 100);
 
 // Get entire config
-const config = await client.getConfig()
+const config = await client.getConfig();
 ```
 
 ### Pattern 3: Check Feature Flag (Tier 2)
 
 ```typescript
-const isEnabled = await client.isFlagEnabled('my-feature', {
-  userId: 'user-123',
-  country: 'US',
-})
+const isEnabled = await client.isFlagEnabled("my-feature", {
+  userId: "user-123",
+  country: "US",
+});
 
 if (isEnabled) {
   // Show new feature
@@ -230,59 +234,67 @@ if (isEnabled) {
 ### Pattern 4: Get Experiment Variant (Tier 3)
 
 ```typescript
-const variant = await client.getVariant('my-experiment', {
-  userId: 'user-123',
-})
+const variant = await client.getVariant("my-experiment", {
+  userId: "user-123",
+});
 
 switch (variant?.variationKey) {
-  case 'control':
+  case "control":
     // Show control version
-    break
-  case 'treatment':
+    break;
+  case "treatment":
     // Show treatment version
-    break
+    break;
 }
 ```
 
 ### Pattern 5: Track Event
 
 ```typescript
-client.trackEvent('add_to_cart', { userId: 'user-123' }, {
-  experimentKey: 'checkout-test',
-  variationKey: 'treatment',
-  properties: { itemCount: 3, cartValue: 150 },
-})
+client.trackEvent(
+  "add_to_cart",
+  { userId: "user-123" },
+  {
+    experimentKey: "checkout-test",
+    variationKey: "treatment",
+    properties: { itemCount: 3, cartValue: 150 },
+  },
+);
 ```
 
 ### Pattern 6: Track Conversion
 
 ```typescript
-await client.trackConversion('my-experiment', { userId: 'user-123' }, {
-  metricName: 'purchase',
-  value: 99.99,
-})
+await client.trackConversion(
+  "my-experiment",
+  { userId: "user-123" },
+  {
+    metricName: "purchase",
+    value: 99.99,
+  },
+);
 ```
 
 ### Pattern 7: Graceful Shutdown
 
 ```typescript
-process.on('SIGTERM', async () => {
-  await client.flushStats()
-  client.destroy()
-  process.exit(0)
-})
+process.on("SIGTERM", async () => {
+  await client.flushStats();
+  client.destroy();
+  process.exit(0);
+});
 ```
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `3003` |
-| `NODE_ENV` | Environment | `development` |
-| `TOGGLEBOX_PLATFORM` | Platform name | `ecommerce` |
-| `TOGGLEBOX_ENVIRONMENT` | Environment name | `development` |
-| `TOGGLEBOX_API_URL` | API base URL | `http://localhost:3000/api/v1` |
-| `TOGGLEBOX_API_KEY` | API key (optional) | - |
+| Variable                | Description        | Default                        |
+| ----------------------- | ------------------ | ------------------------------ |
+| `PORT`                  | Server port        | `3003`                         |
+| `NODE_ENV`              | Environment        | `development`                  |
+| `TOGGLEBOX_PLATFORM`    | Platform name      | `ecommerce`                    |
+| `TOGGLEBOX_ENVIRONMENT` | Environment name   | `development`                  |
+| `TOGGLEBOX_API_URL`     | API base URL       | `http://localhost:3000/api/v1` |
+| `TOGGLEBOX_API_KEY`     | API key (optional) | -                              |
 
 ## Project Structure
 
@@ -320,11 +332,11 @@ apps/example-nodejs/
 
 For personalized features (flags, experiments):
 
-| Header | Description | Required |
-|--------|-------------|----------|
-| `X-User-Id` | Unique user identifier | Yes |
-| `X-Country` | ISO-3166 country code | No |
-| `X-Language` | ISO-639 language code | No |
+| Header       | Description            | Required |
+| ------------ | ---------------------- | -------- |
+| `X-User-Id`  | Unique user identifier | Yes      |
+| `X-Country`  | ISO-3166 country code  | No       |
+| `X-Language` | ISO-639 language code  | No       |
 
 ## License
 

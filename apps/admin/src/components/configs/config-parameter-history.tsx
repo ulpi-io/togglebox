@@ -1,9 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { listConfigParameterVersionsApi, rollbackConfigParameterApi, deleteConfigParameterApi } from '@/lib/api/configs';
-import type { ConfigParameter } from '@/lib/api/types';
-import { Badge, Button, Spinner } from '@togglebox/ui';
+import { useState, useEffect, useCallback } from "react";
+import {
+  listConfigParameterVersionsApi,
+  rollbackConfigParameterApi,
+  deleteConfigParameterApi,
+} from "@/lib/api/configs";
+import type { ConfigParameter } from "@/lib/api/types";
+import { Badge, Button, Spinner } from "@togglebox/ui";
 
 interface ConfigParameterHistoryProps {
   platform: string;
@@ -38,12 +42,18 @@ export function ConfigParameterHistory({
     try {
       setIsLoading(true);
       setError(null);
-      const data = await listConfigParameterVersionsApi(platform, environment, parameterKey);
+      const data = await listConfigParameterVersionsApi(
+        platform,
+        environment,
+        parameterKey,
+      );
       // Sort by version descending (newest first)
-      const sorted = [...data].sort((a, b) => parseInt(b.version) - parseInt(a.version));
+      const sorted = [...data].sort(
+        (a, b) => parseInt(b.version) - parseInt(a.version),
+      );
       setVersions(sorted);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load versions');
+      setError(err instanceof Error ? err.message : "Failed to load versions");
     } finally {
       setIsLoading(false);
     }
@@ -61,11 +71,18 @@ export function ConfigParameterHistory({
     try {
       setIsRollingBack(targetVersion);
       setError(null);
-      await rollbackConfigParameterApi(platform, environment, parameterKey, targetVersion);
+      await rollbackConfigParameterApi(
+        platform,
+        environment,
+        parameterKey,
+        targetVersion,
+      );
       await loadVersions();
       onVersionChange?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to rollback to version');
+      setError(
+        err instanceof Error ? err.message : "Failed to rollback to version",
+      );
     } finally {
       setIsRollingBack(null);
     }
@@ -74,7 +91,11 @@ export function ConfigParameterHistory({
   const handleDelete = async () => {
     if (isRollingBack || isDeleting) return;
 
-    if (!confirm(`Are you sure you want to delete "${parameterKey}" and ALL its versions? This action cannot be undone.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${parameterKey}" and ALL its versions? This action cannot be undone.`,
+      )
+    ) {
       return;
     }
 
@@ -86,18 +107,20 @@ export function ConfigParameterHistory({
       setIsOpen(false);
       onVersionChange?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete parameter');
+      setError(
+        err instanceof Error ? err.message : "Failed to delete parameter",
+      );
       setIsDeleting(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -106,7 +129,7 @@ export function ConfigParameterHistory({
   };
 
   const formatValue = (param: ConfigParameter): string => {
-    if (param.valueType === 'json') {
+    if (param.valueType === "json") {
       try {
         const parsed = JSON.parse(param.defaultValue);
         return JSON.stringify(parsed, null, 2);
@@ -151,7 +174,9 @@ export function ConfigParameterHistory({
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Spinner className="h-8 w-8" />
-              <span className="ml-2 text-muted-foreground">Loading versions...</span>
+              <span className="ml-2 text-muted-foreground">
+                Loading versions...
+              </span>
             </div>
           ) : error ? (
             <div className="text-center py-8">
@@ -171,16 +196,22 @@ export function ConfigParameterHistory({
                   key={version.version}
                   className={`p-4 rounded-lg border ${
                     version.isActive
-                      ? 'border-black/20 bg-muted'
-                      : 'border-black/10 hover:border-black/20'
+                      ? "border-black/20 bg-muted"
+                      : "border-black/10 hover:border-black/20"
                   } transition-colors`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-black text-lg">v{version.version}</span>
+                        <span className="font-black text-lg">
+                          v{version.version}
+                        </span>
                         {version.isActive && (
-                          <Badge variant="default" size="sm" className="font-bold">
+                          <Badge
+                            variant="default"
+                            size="sm"
+                            className="font-bold"
+                          >
                             ACTIVE
                           </Badge>
                         )}
@@ -191,16 +222,16 @@ export function ConfigParameterHistory({
 
                       <div className="mt-2 text-xs text-muted-foreground space-y-1">
                         <div>
-                          <span className="font-medium">Created:</span>{' '}
+                          <span className="font-medium">Created:</span>{" "}
                           {formatDate(version.createdAt)}
                         </div>
                         <div>
-                          <span className="font-medium">By:</span>{' '}
+                          <span className="font-medium">By:</span>{" "}
                           {version.createdBy}
                         </div>
                         {version.description && (
                           <div>
-                            <span className="font-medium">Description:</span>{' '}
+                            <span className="font-medium">Description:</span>{" "}
                             {version.description}
                           </div>
                         )}
@@ -211,7 +242,8 @@ export function ConfigParameterHistory({
                         onClick={() => toggleValueExpand(version.version)}
                         className="mt-2 text-xs text-info hover:underline"
                       >
-                        {expandedValue === version.version ? 'Hide' : 'Show'} value
+                        {expandedValue === version.version ? "Hide" : "Show"}{" "}
+                        value
                       </button>
 
                       {expandedValue === version.version && (
@@ -236,7 +268,7 @@ export function ConfigParameterHistory({
                               Rolling back...
                             </>
                           ) : (
-                            'Rollback'
+                            "Rollback"
                           )}
                         </Button>
                       )}
@@ -251,7 +283,8 @@ export function ConfigParameterHistory({
         {/* Footer */}
         <div className="p-4 border-t border-black/10 bg-muted rounded-b-xl flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            Rolling back makes a previous version the active version. All versions are preserved.
+            Rolling back makes a previous version the active version. All
+            versions are preserved.
           </p>
           <Button
             variant="outline"
@@ -266,7 +299,7 @@ export function ConfigParameterHistory({
                 Deleting...
               </>
             ) : (
-              'Delete Parameter'
+              "Delete Parameter"
             )}
           </Button>
         </div>

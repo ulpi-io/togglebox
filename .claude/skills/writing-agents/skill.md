@@ -16,6 +16,7 @@ An **agent** is a specialized Claude instance with domain expertise, specific to
 ## What is an Agent?
 
 An **agent** is a specialized configuration of Claude with:
+
 - **Domain expertise**: Laravel, Next.js, Express.js, NestJS, etc.
 - **Specific tools**: Read, Write, Edit, Bash, Grep, Glob, Task, etc.
 - **Behavioral rules**: Always/Never guidelines
@@ -28,12 +29,14 @@ An **agent** is a specialized configuration of Claude with:
 ## When to Create an Agent
 
 **Create when:**
+
 - Framework/technology needs dedicated expert
 - Patterns are repeatable across projects
 - Complex multi-step workflows benefit from delegation
 - Domain knowledge is extensive
 
 **Don't create for:**
+
 - Technologies well-covered by existing agents
 - One-off project-specific patterns
 - Simple tasks that don't need delegation
@@ -42,7 +45,7 @@ An **agent** is a specialized configuration of Claude with:
 
 Agents exist in two formats that must stay synchronized:
 
-### ULPI Format (.ulpi/agents/engineering/*.yaml)
+### ULPI Format (.ulpi/agents/engineering/\*.yaml)
 
 ```yaml
 agent:
@@ -72,7 +75,7 @@ agent:
       language: language
 ```
 
-### Claude Code Format (.claude/agents/*.md)
+### Claude Code Format (.claude/agents/\*.md)
 
 ```markdown
 ---
@@ -109,6 +112,7 @@ description: Expert {Framework} developer specializing in...
 
 **Output**:
 Component 1 (path/to/file.ext):
+
 - Step 1: Action description
 - Step 2: Action description
 
@@ -130,12 +134,14 @@ Examples should describe **what to do** using bullet points, not show **code blo
 
 **Output**:
 Queue setup (queues/imageQueue.js):
+
 - Import Bull from 'bull' package
 - Create new Queue instance with name 'image-processing' and Redis connection config
 - Configure queue events: on('completed'), on('failed'), on('progress')
 - Export queue instance
 
 Processor (processors/imageProcessor.js):
+
 - Import imageQueue from queues
 - Call queue.process() with concurrency 5 and async handler function
 - Handler accepts job parameter with data property
@@ -144,6 +150,7 @@ Processor (processors/imageProcessor.js):
 - Return result data on success
 
 Job Producer (services/imageService.js):
+
 - Import imageQueue from queues
 - Method addImageProcessingJob(imageUrl, userId)
 - Call queue.add() with job data object
@@ -164,20 +171,23 @@ Job Producer (services/imageService.js):
 **Output**:
 \`\`\`javascript
 Queue setup (queues/imageQueue.js):
+
 - const Queue = require('bull')
 - const imageQueue = new Queue('image-processing', { redis: { host: 'localhost', port: 6379 } })
 - Configure queue events: on('completed'), on('failed'), on('progress')
 
 Processor (processors/imageProcessor.js):
-- imageQueue.process(5, async (job) => { /* processing logic */ })
+
+- imageQueue.process(5, async (job) => { /_ processing logic _/ })
 - Set concurrency to 5 concurrent jobs
 - Use job.progress() to report progress
 - Throw errors for retry logic
 - Return result data
 
 Job Producer (services/imageService.js):
+
 - await imageQueue.add({ imageUrl, userId }, { attempts: 3, timeout: 600000, backoff: { type: 'exponential', delay 2000 } })
-\`\`\`
+  \`\`\`
 ```
 
 **Why bad:** Contains code blocks that make examples verbose. Agents don't need to see code - they need to understand the implementation steps.
@@ -187,6 +197,7 @@ Job Producer (services/imageService.js):
 ### 1. Choose Framework/Technology
 
 Identify the framework or technology domain:
+
 - Web frameworks: Laravel, Next.js, Express.js, NestJS, Remix, etc.
 - Mobile: Expo React Native, Flutter
 - E-commerce: Magento
@@ -194,12 +205,14 @@ Identify the framework or technology domain:
 ### 2. Define Agent Metadata
 
 **Name**: `framework-senior-engineer` format
+
 - Use lowercase with hyphens
 - End with `-senior-engineer`
 
 **Version**: Semantic versioning (1.0.0)
 
 **Description**: One-sentence summary of expertise
+
 - Format: "Expert {Framework} developer specializing in {key features}"
 - Include main technologies and patterns
 - Keep under 200 characters
@@ -207,6 +220,7 @@ Identify the framework or technology domain:
 ### 3. List Expertise Areas
 
 3-6 bullet points covering:
+
 - Core framework features
 - State management/data patterns
 - API/routing patterns
@@ -216,23 +230,27 @@ Identify the framework or technology domain:
 ### 4. Define Always/Never Rules
 
 **Always rules:**
+
 - TodoWrite for task tracking (required for all agents)
 - Logging library specific to framework
 - Framework-specific best practices
 
 **Never rules:**
+
 - Anti-patterns to avoid
 - Practices that conflict with framework conventions
 
 ### 5. Create Examples (Concise Format)
 
 **Guidelines:**
+
 - **8-10 examples** covering different patterns
 - **No code blocks** - use descriptive bullet points
 - **Clear structure**: Component/file → steps → details
 - **Specify language** at the end
 
 **Example topics to cover:**
+
 1. Queue/background jobs
 2. Logging setup
 3. Validation
@@ -247,6 +265,7 @@ Identify the framework or technology domain:
 **CRITICAL:** Both ULPI (.yaml) and Claude Code (.md) must match.
 
 After creating/editing:
+
 1. Update ULPI YAML version
 2. Update Claude Code MD version
 3. Verify examples match in both files
@@ -268,6 +287,7 @@ Converts to:
 
 ```markdown
 # Claude Code Markdown
+
 ### Always
 
 - Use TodoWrite tool
@@ -276,6 +296,7 @@ Converts to:
 ### Example Conversion
 
 **ULPI YAML:**
+
 ```yaml
 examples:
   - task: Create queue job
@@ -288,6 +309,7 @@ examples:
 ```
 
 **Claude Code Markdown:**
+
 ```markdown
 ### Example 1: Create queue job
 
@@ -297,6 +319,7 @@ examples:
 
 **Output**:
 Queue setup:
+
 - Import Bull
 - Create Queue instance
 
@@ -308,6 +331,7 @@ Queue setup:
 Before deploying an agent configuration:
 
 **Structure:**
+
 - [ ] YAML frontmatter has name, version, description
 - [ ] Expertise section has 3-6 items
 - [ ] Always rules include TodoWrite
@@ -315,6 +339,7 @@ Before deploying an agent configuration:
 - [ ] Has 8-10 examples
 
 **Examples:**
+
 - [ ] No code blocks (only descriptive bullet points)
 - [ ] Each example has Task, Input, Output, Language
 - [ ] Output is organized by file/component
@@ -322,12 +347,14 @@ Before deploying an agent configuration:
 - [ ] Language tag matches technology
 
 **Synchronization:**
+
 - [ ] ULPI YAML and Claude Code MD versions match
 - [ ] Description is identical in both formats
 - [ ] All examples present in both formats
 - [ ] Always/Never rules match exactly
 
 **Quality:**
+
 - [ ] Examples are concise (no unnecessary verbosity)
 - [ ] Domain expertise is clear
 - [ ] Tools list is complete and accurate
@@ -338,6 +365,7 @@ Before deploying an agent configuration:
 ### ❌ Code Blocks in Examples
 
 **Bad:**
+
 ```markdown
 **Output**:
 \`\`\`javascript
@@ -347,9 +375,11 @@ queue.process(async (job) => { ... })
 ```
 
 **Good:**
+
 ```markdown
 **Output**:
 Queue setup:
+
 - Import Bull from 'bull' package
 - Create Queue instance with name 'jobs'
 - Call queue.process() with async handler
@@ -378,6 +408,7 @@ Minimum 8 examples to cover common patterns.
 ## Example Agent Structure Reference
 
 See these agents for reference:
+
 - **Express**: `.claude/agents/express-senior-engineer.md`
 - **NestJS**: `.claude/agents/nestjs-senior-engineer.md`
 - **Laravel**: `.claude/agents/laravel-senior-engineer.md`
@@ -403,6 +434,7 @@ All follow the concise, no-code-blocks example pattern.
 ## Resources
 
 For detailed guidance on agent structure patterns, refer to existing agents in:
+
 - `.claude/agents/` - Claude Code format examples
 - `.ulpi/agents/engineering/` - ULPI format examples
 

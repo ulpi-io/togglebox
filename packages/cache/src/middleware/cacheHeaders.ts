@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { CacheHeadersOptions } from '../types/CacheProvider';
+import { Request, Response, NextFunction, RequestHandler } from "express";
+import { CacheHeadersOptions } from "../types/CacheProvider";
 
 /**
  * Express middleware for setting Cache-Control headers on GET requests.
@@ -26,17 +26,19 @@ import { CacheHeadersOptions } from '../types/CacheProvider';
  * }));
  * ```
  */
-export function cacheHeaders(options: CacheHeadersOptions = {}): RequestHandler {
+export function cacheHeaders(
+  options: CacheHeadersOptions = {},
+): RequestHandler {
   const {
-    ttl = 3600,              // Default: 1 hour browser cache
-    maxAge = 86400,          // Default: 24 hours CDN/shared cache
-    cacheControl = 'public', // Default: public (cacheable by CDN)
-    pathPattern,             // Optional: only apply to matching paths
+    ttl = 3600, // Default: 1 hour browser cache
+    maxAge = 86400, // Default: 24 hours CDN/shared cache
+    cacheControl = "public", // Default: public (cacheable by CDN)
+    pathPattern, // Optional: only apply to matching paths
   } = options;
 
   return (req: Request, res: Response, next: NextFunction) => {
     // Only apply to GET requests (never cache mutations)
-    if (req.method !== 'GET') {
+    if (req.method !== "GET") {
       return next();
     }
 
@@ -51,8 +53,8 @@ export function cacheHeaders(options: CacheHeadersOptions = {}): RequestHandler 
     // - max-age: Browser cache TTL (seconds)
     // - s-maxage: Shared/CDN cache TTL (seconds)
     res.setHeader(
-      'Cache-Control',
-      `${cacheControl}, max-age=${ttl}, s-maxage=${maxAge}`
+      "Cache-Control",
+      `${cacheControl}, max-age=${ttl}, s-maxage=${maxAge}`,
     );
 
     next();
@@ -72,9 +74,9 @@ export function cacheHeaders(options: CacheHeadersOptions = {}): RequestHandler 
  */
 export function noCacheHeaders(): RequestHandler {
   return (_req: Request, res: Response, next: NextFunction) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     next();
   };
 }

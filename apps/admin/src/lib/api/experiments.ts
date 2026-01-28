@@ -1,5 +1,10 @@
-import { browserApiClient } from './browser-client';
-import type { Experiment, ExperimentResults, Platform, Environment } from './types';
+import { browserApiClient } from "./browser-client";
+import type {
+  Experiment,
+  ExperimentResults,
+  Platform,
+  Environment,
+} from "./types";
 
 /**
  * Get all experiments across all platforms and environments.
@@ -7,7 +12,7 @@ import type { Experiment, ExperimentResults, Platform, Environment } from './typ
  */
 export async function getAllExperimentsApi(): Promise<Experiment[]> {
   // First, get all platforms
-  const platforms = await browserApiClient<Platform[]>('/api/v1/platforms');
+  const platforms = await browserApiClient<Platform[]>("/api/v1/platforms");
 
   // For each platform, get environments and then experiments
   const allExperiments: Experiment[] = [];
@@ -16,25 +21,25 @@ export async function getAllExperimentsApi(): Promise<Experiment[]> {
     platforms.map(async (platform) => {
       try {
         const environments = await browserApiClient<Environment[]>(
-          `/api/v1/platforms/${platform.name}/environments`
+          `/api/v1/platforms/${platform.name}/environments`,
         );
 
         await Promise.all(
           environments.map(async (env) => {
             try {
               const experiments = await browserApiClient<Experiment[]>(
-                `/api/v1/platforms/${platform.name}/environments/${env.environment}/experiments`
+                `/api/v1/platforms/${platform.name}/environments/${env.environment}/experiments`,
               );
               allExperiments.push(...experiments);
             } catch {
               // Environment may have no experiments, skip it
             }
-          })
+          }),
         );
       } catch {
         // Platform may have no environments, skip it
       }
-    })
+    }),
   );
 
   return allExperiments;
@@ -47,11 +52,11 @@ export async function getAllExperimentsApi(): Promise<Experiment[]> {
 export async function getExperimentsApi(
   platform: string,
   environment: string,
-  status?: 'draft' | 'running' | 'paused' | 'completed' | 'archived'
+  status?: "draft" | "running" | "paused" | "completed" | "archived",
 ): Promise<Experiment[]> {
-  const queryParams = status ? `?status=${status}` : '';
+  const queryParams = status ? `?status=${status}` : "";
   return browserApiClient<Experiment[]>(
-    `/api/v1/platforms/${platform}/environments/${environment}/experiments${queryParams}`
+    `/api/v1/platforms/${platform}/environments/${environment}/experiments${queryParams}`,
   );
 }
 
@@ -61,10 +66,10 @@ export async function getExperimentsApi(
 export async function getExperimentApi(
   platform: string,
   environment: string,
-  experimentKey: string
+  experimentKey: string,
 ): Promise<Experiment> {
   return browserApiClient<Experiment>(
-    `/api/v1/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`
+    `/api/v1/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`,
   );
 }
 
@@ -103,16 +108,16 @@ export async function createExperimentApi(
       id: string;
       name: string;
       eventName: string;
-      metricType: 'conversion' | 'count' | 'sum' | 'average';
-      successDirection: 'increase' | 'decrease';
+      metricType: "conversion" | "count" | "sum" | "average";
+      successDirection: "increase" | "decrease";
       valueProperty?: string;
     };
     secondaryMetrics?: Array<{
       id: string;
       name: string;
       eventName: string;
-      metricType: 'conversion' | 'count' | 'sum' | 'average';
-      successDirection: 'increase' | 'decrease';
+      metricType: "conversion" | "count" | "sum" | "average";
+      successDirection: "increase" | "decrease";
       valueProperty?: string;
     }>;
     confidenceLevel?: number;
@@ -120,14 +125,14 @@ export async function createExperimentApi(
     minimumSampleSize?: number;
     scheduledStartAt?: string;
     scheduledEndAt?: string;
-  }
+  },
 ): Promise<Experiment> {
   return browserApiClient<Experiment>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments`,
     {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(data),
-    }
+    },
   );
 }
 
@@ -142,14 +147,14 @@ export async function updateExperimentTrafficApi(
   trafficAllocation: Array<{
     variationKey: string;
     percentage: number;
-  }>
+  }>,
 ): Promise<Experiment> {
   return browserApiClient<Experiment>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/traffic`,
     {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify({ trafficAllocation }),
-    }
+    },
   );
 }
 
@@ -187,16 +192,16 @@ export async function updateExperimentApi(
       id: string;
       name: string;
       eventName: string;
-      metricType: 'conversion' | 'count' | 'sum' | 'average';
-      successDirection: 'increase' | 'decrease';
+      metricType: "conversion" | "count" | "sum" | "average";
+      successDirection: "increase" | "decrease";
       valueProperty?: string;
     };
     secondaryMetrics?: Array<{
       id: string;
       name: string;
       eventName: string;
-      metricType: 'conversion' | 'count' | 'sum' | 'average';
-      successDirection: 'increase' | 'decrease';
+      metricType: "conversion" | "count" | "sum" | "average";
+      successDirection: "increase" | "decrease";
       valueProperty?: string;
     }>;
     confidenceLevel?: number;
@@ -204,14 +209,14 @@ export async function updateExperimentApi(
     minimumSampleSize?: number;
     scheduledStartAt?: string;
     scheduledEndAt?: string;
-  }
+  },
 ): Promise<Experiment> {
   return browserApiClient<Experiment>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`,
     {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
-    }
+    },
   );
 }
 
@@ -222,14 +227,14 @@ export async function startExperimentApi(
   platform: string,
   environment: string,
   experimentKey: string,
-  startedBy: string
+  startedBy: string,
 ): Promise<Experiment> {
   return browserApiClient<Experiment>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/start`,
     {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ startedBy }),
-    }
+    },
   );
 }
 
@@ -239,13 +244,13 @@ export async function startExperimentApi(
 export async function pauseExperimentApi(
   platform: string,
   environment: string,
-  experimentKey: string
+  experimentKey: string,
 ): Promise<Experiment> {
   return browserApiClient<Experiment>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/pause`,
     {
-      method: 'POST',
-    }
+      method: "POST",
+    },
   );
 }
 
@@ -255,13 +260,13 @@ export async function pauseExperimentApi(
 export async function resumeExperimentApi(
   platform: string,
   environment: string,
-  experimentKey: string
+  experimentKey: string,
 ): Promise<Experiment> {
   return browserApiClient<Experiment>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/resume`,
     {
-      method: 'POST',
-    }
+      method: "POST",
+    },
   );
 }
 
@@ -273,14 +278,14 @@ export async function completeExperimentApi(
   environment: string,
   experimentKey: string,
   winner: string | undefined,
-  completedBy: string
+  completedBy: string,
 ): Promise<Experiment> {
   return browserApiClient<Experiment>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/complete`,
     {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ winner, completedBy }),
-    }
+    },
   );
 }
 
@@ -290,13 +295,13 @@ export async function completeExperimentApi(
 export async function archiveExperimentApi(
   platform: string,
   environment: string,
-  experimentKey: string
+  experimentKey: string,
 ): Promise<Experiment> {
   return browserApiClient<Experiment>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/archive`,
     {
-      method: 'POST',
-    }
+      method: "POST",
+    },
   );
 }
 
@@ -306,13 +311,13 @@ export async function archiveExperimentApi(
 export async function deleteExperimentApi(
   platform: string,
   environment: string,
-  experimentKey: string
+  experimentKey: string,
 ): Promise<void> {
   await browserApiClient(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`,
     {
-      method: 'DELETE',
-    }
+      method: "DELETE",
+    },
   );
 }
 
@@ -322,9 +327,9 @@ export async function deleteExperimentApi(
 export async function getExperimentResultsApi(
   platform: string,
   environment: string,
-  experimentKey: string
+  experimentKey: string,
 ): Promise<ExperimentResults> {
   return browserApiClient<ExperimentResults>(
-    `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/results`
+    `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/results`,
   );
 }

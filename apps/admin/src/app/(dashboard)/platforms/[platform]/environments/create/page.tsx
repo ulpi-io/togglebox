@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { use } from 'react';
-import Link from 'next/link';
-import { createEnvironmentApi, getPlatformsApi } from '@/lib/api/platforms';
-import type { Platform } from '@/lib/api/types';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { use } from "react";
+import Link from "next/link";
+import { createEnvironmentApi, getPlatformsApi } from "@/lib/api/platforms";
+import type { Platform } from "@/lib/api/types";
 import {
   Button,
   Input,
@@ -16,7 +16,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
 interface CreateEnvironmentPageProps {
   params: Promise<{
@@ -24,18 +24,22 @@ interface CreateEnvironmentPageProps {
   }>;
 }
 
-export default function CreateEnvironmentPage({ params }: CreateEnvironmentPageProps) {
+export default function CreateEnvironmentPage({
+  params,
+}: CreateEnvironmentPageProps) {
   const { platform: initialPlatform } = use(params);
   const router = useRouter();
 
   // Platform selection
   const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [selectedPlatform, setSelectedPlatform] = useState(initialPlatform || '');
+  const [selectedPlatform, setSelectedPlatform] = useState(
+    initialPlatform || "",
+  );
   const [loadingPlatforms, setLoadingPlatforms] = useState(true);
 
   // Form fields
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,22 +60,26 @@ export default function CreateEnvironmentPage({ params }: CreateEnvironmentPageP
     setIsLoading(true);
 
     if (!platform) {
-      setError('Platform is required');
+      setError("Platform is required");
       setIsLoading(false);
       return;
     }
 
     if (!name?.trim()) {
-      setError('Environment name is required');
+      setError("Environment name is required");
       setIsLoading(false);
       return;
     }
 
     try {
-      await createEnvironmentApi(platform, name.trim(), description.trim() || undefined);
+      await createEnvironmentApi(
+        platform,
+        name.trim(),
+        description.trim() || undefined,
+      );
       router.push(`/platforms/${platform}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +94,7 @@ export default function CreateEnvironmentPage({ params }: CreateEnvironmentPageP
             <p className="text-muted-foreground">
               {platform
                 ? `Add a new environment to ${platform}`
-                : 'Add a new environment to a platform'}
+                : "Add a new environment to a platform"}
             </p>
           </div>
           <Link href={`/platforms/${initialPlatform}`}>
@@ -112,7 +120,7 @@ export default function CreateEnvironmentPage({ params }: CreateEnvironmentPageP
                 required
               >
                 <option value="">
-                  {loadingPlatforms ? 'Loading...' : 'Select platform'}
+                  {loadingPlatforms ? "Loading..." : "Select platform"}
                 </option>
                 {platforms.map((p) => (
                   <option key={p.name} value={p.name}>
@@ -158,11 +166,7 @@ export default function CreateEnvironmentPage({ params }: CreateEnvironmentPageP
           </CardContent>
         </Card>
 
-        {error && (
-          <Alert variant="destructive">
-            {error}
-          </Alert>
-        )}
+        {error && <Alert variant="destructive">{error}</Alert>}
 
         <div className="flex items-center justify-end gap-3 pt-4">
           <Link href={`/platforms/${initialPlatform}`}>
@@ -171,7 +175,7 @@ export default function CreateEnvironmentPage({ params }: CreateEnvironmentPageP
             </Button>
           </Link>
           <Button type="submit" disabled={isLoading || !platform}>
-            {isLoading ? 'Creating...' : 'Create Environment'}
+            {isLoading ? "Creating..." : "Create Environment"}
           </Button>
         </div>
       </form>

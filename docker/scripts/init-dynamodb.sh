@@ -28,9 +28,13 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 # ============================================================================
 # 1. USERS TABLE
 # ============================================================================
+# GSI1: Email lookup (GSI1PK=USER_EMAIL#<email>)
+# GSI2: List all users (GSI2PK=USER#ALL, GSI2SK=USER#<id>)
+# GSI3: Query by role (GSI3PK=USER_ROLE#<role>, GSI3SK=USER#<id>)
+# ============================================================================
 TABLE_NAME="togglebox-users"
 echo ""
-echo "[1/7] Creating '${TABLE_NAME}' table..."
+echo "[1/10] Creating '${TABLE_NAME}' table..."
 
 if aws dynamodb describe-table \
     --table-name "${TABLE_NAME}" \
@@ -46,11 +50,17 @@ else
             AttributeName=SK,AttributeType=S \
             AttributeName=GSI1PK,AttributeType=S \
             AttributeName=GSI1SK,AttributeType=S \
+            AttributeName=GSI2PK,AttributeType=S \
+            AttributeName=GSI2SK,AttributeType=S \
+            AttributeName=GSI3PK,AttributeType=S \
+            AttributeName=GSI3SK,AttributeType=S \
         --key-schema \
             AttributeName=PK,KeyType=HASH \
             AttributeName=SK,KeyType=RANGE \
         --global-secondary-indexes \
             "IndexName=GSI1,KeySchema=[{AttributeName=GSI1PK,KeyType=HASH},{AttributeName=GSI1SK,KeyType=RANGE}],Projection={ProjectionType=ALL}" \
+            "IndexName=GSI2,KeySchema=[{AttributeName=GSI2PK,KeyType=HASH},{AttributeName=GSI2SK,KeyType=RANGE}],Projection={ProjectionType=ALL}" \
+            "IndexName=GSI3,KeySchema=[{AttributeName=GSI3PK,KeyType=HASH},{AttributeName=GSI3SK,KeyType=RANGE}],Projection={ProjectionType=ALL}" \
         --billing-mode PAY_PER_REQUEST \
         --endpoint-url "${ENDPOINT}" \
         --region "${REGION}" \
@@ -63,7 +73,7 @@ fi
 # ============================================================================
 TABLE_NAME="togglebox-api-keys"
 echo ""
-echo "[2/7] Creating '${TABLE_NAME}' table..."
+echo "[2/10] Creating '${TABLE_NAME}' table..."
 
 if aws dynamodb describe-table \
     --table-name "${TABLE_NAME}" \
@@ -95,9 +105,14 @@ fi
 # ============================================================================
 # 3. PASSWORD RESETS TABLE
 # ============================================================================
+# GSI1: Token lookup (GSI1PK=RESET_TOKEN#<token>)
+# GSI2: User lookup (GSI2PK=USER#<userId>)
+# GSI3: Expired token cleanup (GSI3PK=RESET#ALL, GSI3SK=<expiresAt>)
+# TTL: Automatic cleanup of expired tokens via DynamoDB TTL
+# ============================================================================
 TABLE_NAME="togglebox-password-resets"
 echo ""
-echo "[3/7] Creating '${TABLE_NAME}' table..."
+echo "[3/10] Creating '${TABLE_NAME}' table..."
 
 if aws dynamodb describe-table \
     --table-name "${TABLE_NAME}" \
@@ -114,16 +129,29 @@ else
             AttributeName=GSI1SK,AttributeType=S \
             AttributeName=GSI2PK,AttributeType=S \
             AttributeName=GSI2SK,AttributeType=S \
+            AttributeName=GSI3PK,AttributeType=S \
+            AttributeName=GSI3SK,AttributeType=S \
         --key-schema \
             AttributeName=PK,KeyType=HASH \
         --global-secondary-indexes \
             "IndexName=GSI1,KeySchema=[{AttributeName=GSI1PK,KeyType=HASH},{AttributeName=GSI1SK,KeyType=RANGE}],Projection={ProjectionType=ALL}" \
             "IndexName=GSI2,KeySchema=[{AttributeName=GSI2PK,KeyType=HASH},{AttributeName=GSI2SK,KeyType=RANGE}],Projection={ProjectionType=ALL}" \
+            "IndexName=GSI3,KeySchema=[{AttributeName=GSI3PK,KeyType=HASH},{AttributeName=GSI3SK,KeyType=RANGE}],Projection={ProjectionType=ALL}" \
         --billing-mode PAY_PER_REQUEST \
         --endpoint-url "${ENDPOINT}" \
         --region "${REGION}" \
         --no-cli-pager > /dev/null
     echo "  Table created successfully!"
+
+    # Enable TTL for automatic cleanup of expired tokens
+    echo "  Enabling TTL on 'ttl' attribute..."
+    sleep 1
+    aws dynamodb update-time-to-live \
+        --table-name "${TABLE_NAME}" \
+        --time-to-live-specification "Enabled=true,AttributeName=ttl" \
+        --endpoint-url "${ENDPOINT}" \
+        --region "${REGION}" \
+        --no-cli-pager > /dev/null 2>&1 || echo "  (TTL may not be supported in DynamoDB Local)"
 fi
 
 # ============================================================================
@@ -131,7 +159,7 @@ fi
 # ============================================================================
 TABLE_NAME="togglebox-platforms"
 echo ""
-echo "[4/7] Creating '${TABLE_NAME}' table..."
+echo "[4/10] Creating '${TABLE_NAME}' table..."
 
 if aws dynamodb describe-table \
     --table-name "${TABLE_NAME}" \
@@ -158,7 +186,7 @@ fi
 # ============================================================================
 TABLE_NAME="togglebox-environments"
 echo ""
-echo "[5/7] Creating '${TABLE_NAME}' table..."
+echo "[5/10] Creating '${TABLE_NAME}' table..."
 
 if aws dynamodb describe-table \
     --table-name "${TABLE_NAME}" \
@@ -187,7 +215,7 @@ fi
 # ============================================================================
 TABLE_NAME="togglebox-configs"
 echo ""
-echo "[6/7] Creating '${TABLE_NAME}' table..."
+echo "[6/10] Creating '${TABLE_NAME}' table..."
 
 if aws dynamodb describe-table \
     --table-name "${TABLE_NAME}" \

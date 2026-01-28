@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-import Link from 'next/link';
-import { getExperimentsApi, getAllExperimentsApi } from '@/lib/api/experiments';
-import { getCurrentUserApi } from '@/lib/api/auth';
-import type { Experiment, ExperimentStatus, User } from '@/lib/api/types';
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import Link from "next/link";
+import { getExperimentsApi, getAllExperimentsApi } from "@/lib/api/experiments";
+import { getCurrentUserApi } from "@/lib/api/auth";
+import type { Experiment, ExperimentStatus, User } from "@/lib/api/types";
 import {
   Badge,
   Button,
@@ -19,14 +19,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@togglebox/ui';
-import { ExperimentStatusBadge } from '@/components/experiments/experiment-status-badge';
-import { ExperimentActions } from '@/components/experiments/experiment-actions';
-import { CreateEntityButton } from '@/components/common/create-entity-button';
-import { PlatformEnvFilter, usePlatformEnvFilter } from '@/components/filters/platform-env-filter';
-import { ChevronRight, FlaskConical } from 'lucide-react';
+} from "@togglebox/ui";
+import { ExperimentStatusBadge } from "@/components/experiments/experiment-status-badge";
+import { ExperimentActions } from "@/components/experiments/experiment-actions";
+import { CreateEntityButton } from "@/components/common/create-entity-button";
+import {
+  PlatformEnvFilter,
+  usePlatformEnvFilter,
+} from "@/components/filters/platform-env-filter";
+import { ChevronRight, FlaskConical } from "lucide-react";
 
-type ExperimentFilter = 'all' | ExperimentStatus;
+type ExperimentFilter = "all" | ExperimentStatus;
 
 function ExperimentsContent() {
   const { platform, environment } = usePlatformEnvFilter();
@@ -34,35 +37,87 @@ function ExperimentsContent() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<ExperimentFilter>('all');
+  const [filter, setFilter] = useState<ExperimentFilter>("all");
 
-  const statusCounts = useMemo(() => ({
-    draft: experiments.filter((e) => e.status === 'draft').length,
-    running: experiments.filter((e) => e.status === 'running').length,
-    paused: experiments.filter((e) => e.status === 'paused').length,
-    completed: experiments.filter((e) => e.status === 'completed').length,
-    archived: experiments.filter((e) => e.status === 'archived').length,
-  }), [experiments]);
+  const statusCounts = useMemo(
+    () => ({
+      draft: experiments.filter((e) => e.status === "draft").length,
+      running: experiments.filter((e) => e.status === "running").length,
+      paused: experiments.filter((e) => e.status === "paused").length,
+      completed: experiments.filter((e) => e.status === "completed").length,
+      archived: experiments.filter((e) => e.status === "archived").length,
+    }),
+    [experiments],
+  );
 
   const filteredExperiments = useMemo(() => {
-    if (filter === 'all') return experiments;
+    if (filter === "all") return experiments;
     return experiments.filter((e) => e.status === filter);
   }, [experiments, filter]);
 
   const filterOptions = [
-    { value: 'all' as const, label: 'All', count: experiments.length },
-    { value: 'draft' as const, label: 'Draft', count: statusCounts.draft },
-    { value: 'running' as const, label: 'Running', count: statusCounts.running },
-    { value: 'paused' as const, label: 'Paused', count: statusCounts.paused },
-    { value: 'completed' as const, label: 'Completed', count: statusCounts.completed },
-    { value: 'archived' as const, label: 'Archived', count: statusCounts.archived },
+    { value: "all" as const, label: "All", count: experiments.length },
+    { value: "draft" as const, label: "Draft", count: statusCounts.draft },
+    {
+      value: "running" as const,
+      label: "Running",
+      count: statusCounts.running,
+    },
+    { value: "paused" as const, label: "Paused", count: statusCounts.paused },
+    {
+      value: "completed" as const,
+      label: "Completed",
+      count: statusCounts.completed,
+    },
+    {
+      value: "archived" as const,
+      label: "Archived",
+      count: statusCounts.archived,
+    },
   ];
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [experimentsData, userData] = await Promise.all([
+          !platform || !environment
+            ? getAllExperimentsApi()
+            : getExperimentsApi(platform, environment),
+          getCurrentUserApi().catch(() => null),
+        ]);
+
+        if (isMounted) {
+          setExperiments(experimentsData);
+          setUser(userData);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load experiments",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [platform, environment]);
 
   const loadExperiments = useCallback(async () => {
     try {
       setIsLoading(true);
       if (!platform || !environment) {
-        // Load all experiments across all platforms/environments
         const data = await getAllExperimentsApi();
         setExperiments(data);
       } else {
@@ -71,25 +126,13 @@ function ExperimentsContent() {
       }
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load experiments');
+      setError(
+        err instanceof Error ? err.message : "Failed to load experiments",
+      );
     } finally {
       setIsLoading(false);
     }
   }, [platform, environment]);
-
-  const loadUser = useCallback(async () => {
-    try {
-      const userData = await getCurrentUserApi();
-      setUser(userData);
-    } catch (err) {
-      console.error('Failed to fetch user:', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadExperiments();
-    loadUser();
-  }, [loadExperiments, loadUser]);
 
   const hasSelection = platform && environment;
 
@@ -140,7 +183,9 @@ function ExperimentsContent() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-black">All Experiments</CardTitle>
+            <CardTitle className="text-xl font-black">
+              All Experiments
+            </CardTitle>
             <div className="flex items-center gap-4">
               <FilterTabs
                 options={filterOptions}
@@ -166,8 +211,12 @@ function ExperimentsContent() {
             </TableHeader>
             <TableBody>
               {filteredExperiments.map((experiment) => (
-                <TableRow key={`${experiment.platform}-${experiment.environment}-${experiment.experimentKey}`}>
-                  <TableCell className="font-semibold">{experiment.platform}</TableCell>
+                <TableRow
+                  key={`${experiment.platform}-${experiment.environment}-${experiment.experimentKey}`}
+                >
+                  <TableCell className="font-semibold">
+                    {experiment.platform}
+                  </TableCell>
                   <TableCell>{experiment.environment}</TableCell>
                   <TableCell>
                     <Link
@@ -176,9 +225,12 @@ function ExperimentsContent() {
                     >
                       {experiment.experimentKey}
                     </Link>
-                    {experiment.name && experiment.name !== experiment.experimentKey && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{experiment.name}</p>
-                    )}
+                    {experiment.name &&
+                      experiment.name !== experiment.experimentKey && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {experiment.name}
+                        </p>
+                      )}
                   </TableCell>
                   <TableCell>
                     <ExperimentStatusBadge status={experiment.status} />
@@ -190,8 +242,8 @@ function ExperimentsContent() {
                           key={v.key}
                           className={`px-2 py-0.5 text-xs rounded ${
                             v.isControl
-                              ? 'bg-info/10 text-info'
-                              : 'bg-muted text-muted-foreground'
+                              ? "bg-info/10 text-info"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {v.name}
@@ -205,7 +257,7 @@ function ExperimentsContent() {
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {experiment.createdBy || '-'}
+                    {experiment.createdBy || "-"}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
@@ -277,7 +329,9 @@ function ExperimentsContent() {
           <p className="text-muted-foreground mb-6">
             Create your first A/B experiment for {environment}
           </p>
-          <Link href={`/experiments/create?platform=${platform}&environment=${environment}`}>
+          <Link
+            href={`/experiments/create?platform=${platform}&environment=${environment}`}
+          >
             <Button>Create Experiment</Button>
           </Link>
         </CardContent>
@@ -293,7 +347,9 @@ function ExperimentsContent() {
           value={filter}
           onChange={setFilter}
         />
-        <Link href={`/experiments/create?platform=${platform}&environment=${environment}`}>
+        <Link
+          href={`/experiments/create?platform=${platform}&environment=${environment}`}
+        >
           <Button>Create Experiment</Button>
         </Link>
       </div>
@@ -324,13 +380,20 @@ function ExperimentsContent() {
                           {experiment.experimentKey}
                         </Link>
                         {experiment.version && (
-                          <Badge variant="secondary" size="sm" className="ml-2 font-mono text-xs">
+                          <Badge
+                            variant="secondary"
+                            size="sm"
+                            className="ml-2 font-mono text-xs"
+                          >
                             v{experiment.version}
                           </Badge>
                         )}
-                        {experiment.name && experiment.name !== experiment.experimentKey && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{experiment.name}</p>
-                        )}
+                        {experiment.name &&
+                          experiment.name !== experiment.experimentKey && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {experiment.name}
+                            </p>
+                          )}
                         {experiment.hypothesis && (
                           <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-sm">
                             {experiment.hypothesis}
@@ -349,8 +412,8 @@ function ExperimentsContent() {
                           key={v.key}
                           className={`px-2 py-0.5 text-xs rounded ${
                             v.isControl
-                              ? 'bg-info/10 text-info'
-                              : 'bg-muted text-muted-foreground'
+                              ? "bg-info/10 text-info"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {v.name}
@@ -368,22 +431,31 @@ function ExperimentsContent() {
                       <div className="text-xs">
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">
-                            {experiment.results.totalParticipants.toLocaleString()} participants
+                            {experiment.results.totalParticipants.toLocaleString()}{" "}
+                            participants
                           </span>
                           <Badge
-                            variant={experiment.results.isSignificant ? 'default' : 'secondary'}
+                            variant={
+                              experiment.results.isSignificant
+                                ? "default"
+                                : "secondary"
+                            }
                             size="sm"
                           >
-                            {experiment.results.isSignificant ? 'Significant' : 'Collecting'}
+                            {experiment.results.isSignificant
+                              ? "Significant"
+                              : "Collecting"}
                           </Badge>
                         </div>
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">No data yet</span>
+                      <span className="text-xs text-muted-foreground">
+                        No data yet
+                      </span>
                     )}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {experiment.createdBy || '-'}
+                    {experiment.createdBy || "-"}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
@@ -411,7 +483,9 @@ function ExperimentsContent() {
       {/* Quick stats */}
       <div className="text-sm text-muted-foreground px-1">
         <span>
-          {filteredExperiments.length} experiment{filteredExperiments.length !== 1 ? 's' : ''} shown · {statusCounts.running} running total
+          {filteredExperiments.length} experiment
+          {filteredExperiments.length !== 1 ? "s" : ""} shown ·{" "}
+          {statusCounts.running} running total
         </span>
       </div>
     </div>

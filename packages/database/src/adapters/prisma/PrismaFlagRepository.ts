@@ -6,14 +6,15 @@
  * This is the 2-value model with exactly 2 values (A/B).
  */
 
-import { PrismaClient } from '.prisma/client-database';
+import { PrismaClient } from ".prisma/client-database";
 import type {
   Flag,
   CreateFlag,
   UpdateFlag,
   UpdateRollout,
-} from '@togglebox/flags';
-import type { IFlagRepository, FlagPage } from '@togglebox/flags';
+} from "@togglebox/flags";
+import type { IFlagRepository, FlagPage } from "@togglebox/flags";
+import { parseCursor, encodeCursor } from "../../utils/cursor";
 
 /**
  * Prisma implementation of the Feature Flag repository.
@@ -32,7 +33,7 @@ export class PrismaFlagRepository implements IFlagRepository {
    */
   async create(data: CreateFlag): Promise<Flag> {
     const now = new Date().toISOString();
-    const version = '1.0.0';
+    const version = "1.0.0";
 
     const flag: Flag = {
       platform: data.platform,
@@ -41,7 +42,7 @@ export class PrismaFlagRepository implements IFlagRepository {
       name: data.name,
       description: data.description,
       enabled: data.enabled ?? false,
-      flagType: data.flagType ?? 'boolean',
+      flagType: data.flagType ?? "boolean",
       valueA: data.valueA ?? true,
       valueB: data.valueB ?? false,
       targeting: data.targeting ?? {
@@ -49,7 +50,7 @@ export class PrismaFlagRepository implements IFlagRepository {
         forceIncludeUsers: [],
         forceExcludeUsers: [],
       },
-      defaultValue: data.defaultValue ?? 'B',
+      defaultValue: data.defaultValue ?? "B",
       // Percentage rollout (disabled by default)
       rolloutEnabled: data.rolloutEnabled ?? false,
       rolloutPercentageA: data.rolloutPercentageA ?? 100,
@@ -95,7 +96,7 @@ export class PrismaFlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    data: UpdateFlag
+    data: UpdateFlag,
   ): Promise<Flag> {
     // Get current active version
     const current = await this.getActive(platform, environment, flagKey);
@@ -104,7 +105,7 @@ export class PrismaFlagRepository implements IFlagRepository {
     }
 
     // Parse current version and increment
-    const [major, minor, patch] = current.version.split('.').map(Number);
+    const [major, minor, patch] = current.version.split(".").map(Number);
     const newVersion = `${major}.${minor}.${(patch ?? 0) + 1}`;
     const now = new Date().toISOString();
 
@@ -176,7 +177,7 @@ export class PrismaFlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    enabled: boolean
+    enabled: boolean,
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
@@ -213,7 +214,7 @@ export class PrismaFlagRepository implements IFlagRepository {
   async getActive(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<Flag | null> {
     const flag = await this.prisma.flag.findFirst({
       where: {
@@ -222,7 +223,7 @@ export class PrismaFlagRepository implements IFlagRepository {
         flagKey,
         isActive: true,
       },
-      orderBy: { version: 'desc' },
+      orderBy: { version: "desc" },
     });
 
     if (!flag) {
@@ -239,7 +240,7 @@ export class PrismaFlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    version: string
+    version: string,
   ): Promise<Flag | null> {
     const flag = await this.prisma.flag.findUnique({
       where: {
@@ -266,10 +267,10 @@ export class PrismaFlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     limit: number = 100,
-    cursor?: string
+    cursor?: string,
   ): Promise<FlagPage> {
-    // Parse cursor as offset
-    const offset = cursor ? parseInt(cursor, 10) : 0;
+    // Parse cursor as offset (validates and throws on malformed cursors)
+    const offset = parseCursor(cursor);
 
     const flags = await this.prisma.flag.findMany({
       where: {
@@ -277,13 +278,14 @@ export class PrismaFlagRepository implements IFlagRepository {
         environment,
         isActive: true,
       },
-      orderBy: { flagKey: 'asc' },
+      orderBy: { flagKey: "asc" },
       skip: offset,
       take: limit,
     });
 
-    const items = flags.map(f => this.dbToFlag(f));
-    const nextCursor = flags.length === limit ? String(offset + limit) : undefined;
+    const items = flags.map((f) => this.dbToFlag(f));
+    const nextCursor =
+      flags.length === limit ? encodeCursor(offset + limit) : undefined;
 
     return {
       items,
@@ -298,7 +300,7 @@ export class PrismaFlagRepository implements IFlagRepository {
   async listVersions(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<Flag[]> {
     const flags = await this.prisma.flag.findMany({
       where: {
@@ -306,10 +308,10 @@ export class PrismaFlagRepository implements IFlagRepository {
         environment,
         flagKey,
       },
-      orderBy: { version: 'desc' },
+      orderBy: { version: "desc" },
     });
 
-    return flags.map(f => this.dbToFlag(f));
+    return flags.map((f) => this.dbToFlag(f));
   }
 
   /**
@@ -318,7 +320,7 @@ export class PrismaFlagRepository implements IFlagRepository {
   async delete(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<void> {
     const count = await this.prisma.flag.deleteMany({
       where: {
@@ -339,7 +341,7 @@ export class PrismaFlagRepository implements IFlagRepository {
   async exists(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<boolean> {
     const flag = await this.getActive(platform, environment, flagKey);
     return flag !== null;
@@ -353,7 +355,7 @@ export class PrismaFlagRepository implements IFlagRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    settings: UpdateRollout
+    settings: UpdateRollout,
   ): Promise<Flag> {
     const current = await this.getActive(platform, environment, flagKey);
     if (!current) {
@@ -373,8 +375,10 @@ export class PrismaFlagRepository implements IFlagRepository {
       },
       data: {
         rolloutEnabled: settings.rolloutEnabled ?? current.rolloutEnabled,
-        rolloutPercentageA: settings.rolloutPercentageA ?? current.rolloutPercentageA,
-        rolloutPercentageB: settings.rolloutPercentageB ?? current.rolloutPercentageB,
+        rolloutPercentageA:
+          settings.rolloutPercentageA ?? current.rolloutPercentageA,
+        rolloutPercentageB:
+          settings.rolloutPercentageB ?? current.rolloutPercentageB,
         updatedAt: now,
       },
     });
@@ -382,8 +386,10 @@ export class PrismaFlagRepository implements IFlagRepository {
     return {
       ...current,
       rolloutEnabled: settings.rolloutEnabled ?? current.rolloutEnabled,
-      rolloutPercentageA: settings.rolloutPercentageA ?? current.rolloutPercentageA,
-      rolloutPercentageB: settings.rolloutPercentageB ?? current.rolloutPercentageB,
+      rolloutPercentageA:
+        settings.rolloutPercentageA ?? current.rolloutPercentageA,
+      rolloutPercentageB:
+        settings.rolloutPercentageB ?? current.rolloutPercentageB,
       updatedAt: now,
     };
   }
@@ -432,11 +438,15 @@ export class PrismaFlagRepository implements IFlagRepository {
       name: row.name,
       description: row.description || undefined,
       enabled: row.enabled,
-      flagType: row.flagType as 'boolean' | 'string' | 'number',
-      valueA: this.safeParse(row.valueA, null),
-      valueB: this.safeParse(row.valueB, null),
-      targeting: this.safeParse(row.targeting, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
-      defaultValue: row.defaultValue as 'A' | 'B',
+      flagType: row.flagType as "boolean" | "string" | "number",
+      valueA: this.safeParse(row.valueA, false),
+      valueB: this.safeParse(row.valueB, false),
+      targeting: this.safeParse(row.targeting, {
+        countries: [],
+        forceIncludeUsers: [],
+        forceExcludeUsers: [],
+      }),
+      defaultValue: row.defaultValue as "A" | "B",
       // Percentage rollout (defaults for backward compatibility)
       rolloutEnabled: row.rolloutEnabled ?? false,
       rolloutPercentageA: row.rolloutPercentageA ?? 100,

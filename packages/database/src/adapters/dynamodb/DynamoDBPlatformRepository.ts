@@ -6,14 +6,14 @@
  * Uses DynamoDB single-table design with token-based pagination.
  */
 
-import { Platform } from '@togglebox/core';
+import { Platform } from "@togglebox/core";
 import {
   IPlatformRepository,
   OffsetPaginationParams,
   TokenPaginationParams,
   TokenPaginatedResult,
-} from '../../interfaces';
-import * as platformService from '../../platformService';
+} from "../../interfaces";
+import * as platformService from "../../platformService";
 
 /**
  * DynamoDB implementation of platform repository.
@@ -23,7 +23,7 @@ import * as platformService from '../../platformService';
  * Implements token-based pagination (DynamoDB native).
  */
 export class DynamoDBPlatformRepository implements IPlatformRepository {
-  async createPlatform(platform: Omit<Platform, 'id'>): Promise<Platform> {
+  async createPlatform(platform: Omit<Platform, "id">): Promise<Platform> {
     return platformService.createPlatform(platform);
   }
 
@@ -32,7 +32,7 @@ export class DynamoDBPlatformRepository implements IPlatformRepository {
   }
 
   async listPlatforms(
-    pagination?: OffsetPaginationParams | TokenPaginationParams
+    pagination?: OffsetPaginationParams | TokenPaginationParams,
   ): Promise<TokenPaginatedResult<Platform>> {
     // DynamoDB uses token-based pagination
     // If pagination is undefined, platformService will fetch ALL items
@@ -46,7 +46,7 @@ export class DynamoDBPlatformRepository implements IPlatformRepository {
 
   async updatePlatform(
     currentName: string,
-    updates: { name?: string; description?: string }
+    updates: { name?: string; description?: string },
   ): Promise<Platform | null> {
     return platformService.updatePlatform(currentName, updates);
   }

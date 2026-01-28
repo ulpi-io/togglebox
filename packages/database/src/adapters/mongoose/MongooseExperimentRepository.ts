@@ -12,9 +12,13 @@ import type {
   UpdateExperiment,
   ExperimentStatus,
   TrafficAllocation,
-} from '@togglebox/experiments';
-import type { IExperimentRepository, ExperimentPage } from '@togglebox/experiments';
-import { ExperimentModel, type IExperimentDocument } from './schemas';
+} from "@togglebox/experiments";
+import type {
+  IExperimentRepository,
+  ExperimentPage,
+} from "@togglebox/experiments";
+import { ExperimentModel, type IExperimentDocument } from "./schemas";
+import { parseCursor, encodeCursor } from "../../utils/cursor";
 
 /**
  * Safely parse JSON with fallback for malformed data.
@@ -34,8 +38,8 @@ function safeParse<T>(raw: string | null | undefined, fallback: T): T {
 export class MongooseExperimentRepository implements IExperimentRepository {
   async create(data: CreateExperiment): Promise<Experiment> {
     const now = new Date().toISOString();
-    const version = '1.0.0';
-    const status: ExperimentStatus = 'draft';
+    const version = "1.0.0";
+    const status: ExperimentStatus = "draft";
 
     const experiment: Experiment = {
       platform: data.platform,
@@ -85,14 +89,14 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    data: UpdateExperiment
+    data: UpdateExperiment,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'draft') {
+    if (current.status !== "draft") {
       throw new Error(`Cannot update experiment in ${current.status} status`);
     }
 
@@ -110,7 +114,8 @@ export class MongooseExperimentRepository implements IExperimentRepository {
       primaryMetric: data.primaryMetric ?? current.primaryMetric,
       secondaryMetrics: data.secondaryMetrics ?? current.secondaryMetrics,
       confidenceLevel: data.confidenceLevel ?? current.confidenceLevel,
-      minimumDetectableEffect: data.minimumDetectableEffect ?? current.minimumDetectableEffect,
+      minimumDetectableEffect:
+        data.minimumDetectableEffect ?? current.minimumDetectableEffect,
       minimumSampleSize: data.minimumSampleSize ?? current.minimumSampleSize,
       scheduledStartAt: data.scheduledStartAt ?? current.scheduledStartAt,
       scheduledEndAt: data.scheduledEndAt ?? current.scheduledEndAt,
@@ -132,7 +137,9 @@ export class MongooseExperimentRepository implements IExperimentRepository {
           hypothesis: updatedExperiment.hypothesis,
           variations: JSON.stringify(updatedExperiment.variations),
           controlVariation: updatedExperiment.controlVariation,
-          trafficAllocation: JSON.stringify(updatedExperiment.trafficAllocation),
+          trafficAllocation: JSON.stringify(
+            updatedExperiment.trafficAllocation,
+          ),
           targeting: JSON.stringify(updatedExperiment.targeting),
           primaryMetric: JSON.stringify(updatedExperiment.primaryMetric),
           secondaryMetrics: JSON.stringify(updatedExperiment.secondaryMetrics),
@@ -143,7 +150,7 @@ export class MongooseExperimentRepository implements IExperimentRepository {
           scheduledEndAt: updatedExperiment.scheduledEndAt,
           updatedAt: now,
         },
-      }
+      },
     );
 
     return updatedExperiment;
@@ -153,56 +160,75 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    startedBy: string
+    startedBy: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'draft') {
+    if (current.status !== "draft") {
       throw new Error(`Cannot start experiment in ${current.status} status`);
     }
 
     const now = new Date().toISOString();
-    return this.updateStatus(platform, environment, experimentKey, current.version, 'running', {
-      startedAt: now,
-      startedBy,
-    });
+    return this.updateStatus(
+      platform,
+      environment,
+      experimentKey,
+      current.version,
+      "running",
+      {
+        startedAt: now,
+        startedBy,
+      },
+    );
   }
 
   async pause(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'running') {
+    if (current.status !== "running") {
       throw new Error(`Cannot pause experiment in ${current.status} status`);
     }
 
-    return this.updateStatus(platform, environment, experimentKey, current.version, 'paused');
+    return this.updateStatus(
+      platform,
+      environment,
+      experimentKey,
+      current.version,
+      "paused",
+    );
   }
 
   async resume(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'paused') {
+    if (current.status !== "paused") {
       throw new Error(`Cannot resume experiment in ${current.status} status`);
     }
 
-    return this.updateStatus(platform, environment, experimentKey, current.version, 'running');
+    return this.updateStatus(
+      platform,
+      environment,
+      experimentKey,
+      current.version,
+      "running",
+    );
   }
 
   async complete(
@@ -210,46 +236,59 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     environment: string,
     experimentKey: string,
     winner: string | undefined,
-    completedBy: string
+    completedBy: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'running' && current.status !== 'paused') {
+    if (current.status !== "running" && current.status !== "paused") {
       throw new Error(`Cannot complete experiment in ${current.status} status`);
     }
 
     const now = new Date().toISOString();
-    return this.updateStatus(platform, environment, experimentKey, current.version, 'completed', {
-      winner,
-      completedAt: now,
-      completedBy,
-    });
+    return this.updateStatus(
+      platform,
+      environment,
+      experimentKey,
+      current.version,
+      "completed",
+      {
+        winner,
+        completedAt: now,
+        completedBy,
+      },
+    );
   }
 
   async archive(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status !== 'completed') {
+    if (current.status !== "completed") {
       throw new Error(`Cannot archive experiment in ${current.status} status`);
     }
 
-    return this.updateStatus(platform, environment, experimentKey, current.version, 'archived');
+    return this.updateStatus(
+      platform,
+      environment,
+      experimentKey,
+      current.version,
+      "archived",
+    );
   }
 
   async get(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<Experiment | null> {
     const doc = await ExperimentModel.findOne({
       platform,
@@ -270,10 +309,10 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     environment: string,
     status?: ExperimentStatus,
     limit?: number,
-    cursor?: string
+    cursor?: string,
   ): Promise<ExperimentPage> {
     const pageSize = limit || 100;
-    const skip = cursor ? parseInt(Buffer.from(cursor, 'base64').toString(), 10) : 0;
+    const skip = parseCursor(cursor);
 
     const filter: Record<string, unknown> = {
       platform,
@@ -282,7 +321,7 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     };
 
     if (status) {
-      filter['status'] = status;
+      filter["status"] = status;
     }
 
     const docs = await ExperimentModel.find(filter)
@@ -290,10 +329,10 @@ export class MongooseExperimentRepository implements IExperimentRepository {
       .limit(pageSize + 1);
 
     const hasMore = docs.length > pageSize;
-    const items = docs.slice(0, pageSize).map(doc => this.docToExperiment(doc));
-    const nextCursor = hasMore
-      ? Buffer.from(String(skip + pageSize)).toString('base64')
-      : undefined;
+    const items = docs
+      .slice(0, pageSize)
+      .map((doc) => this.docToExperiment(doc));
+    const nextCursor = hasMore ? encodeCursor(skip + pageSize) : undefined;
 
     return {
       items,
@@ -304,30 +343,30 @@ export class MongooseExperimentRepository implements IExperimentRepository {
 
   async listRunning(
     platform: string,
-    environment: string
+    environment: string,
   ): Promise<Experiment[]> {
     const docs = await ExperimentModel.find({
       platform,
       environment,
-      status: 'running',
+      status: "running",
       isActive: true,
     });
 
-    return docs.map(doc => this.docToExperiment(doc));
+    return docs.map((doc) => this.docToExperiment(doc));
   }
 
   async delete(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<void> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
       throw new Error(`Experiment not found: ${experimentKey}`);
     }
 
-    if (current.status === 'running') {
-      throw new Error('Cannot delete running experiment');
+    if (current.status === "running") {
+      throw new Error("Cannot delete running experiment");
     }
 
     await ExperimentModel.deleteMany({
@@ -340,7 +379,7 @@ export class MongooseExperimentRepository implements IExperimentRepository {
   async exists(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<boolean> {
     const experiment = await this.get(platform, environment, experimentKey);
     return experiment !== null;
@@ -350,7 +389,7 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    results: Experiment['results']
+    results: Experiment["results"],
   ): Promise<void> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
@@ -372,7 +411,7 @@ export class MongooseExperimentRepository implements IExperimentRepository {
           results: results ? JSON.stringify(results) : undefined,
           updatedAt: now,
         },
-      }
+      },
     );
   }
 
@@ -380,7 +419,7 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     platform: string,
     environment: string,
     experimentKey: string,
-    trafficAllocation: TrafficAllocation[]
+    trafficAllocation: TrafficAllocation[],
   ): Promise<Experiment> {
     const current = await this.get(platform, environment, experimentKey);
     if (!current) {
@@ -388,18 +427,29 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     }
 
     // Only allow updating traffic allocation for draft, running, or paused experiments
-    if (current.status !== 'running' && current.status !== 'paused' && current.status !== 'draft') {
-      throw new Error(`Cannot update traffic allocation for experiment in ${current.status} status`);
+    if (
+      current.status !== "running" &&
+      current.status !== "paused" &&
+      current.status !== "draft"
+    ) {
+      throw new Error(
+        `Cannot update traffic allocation for experiment in ${current.status} status`,
+      );
     }
 
     // Validate traffic allocation sums to 100%
-    const totalPercentage = trafficAllocation.reduce((sum, t) => sum + t.percentage, 0);
+    const totalPercentage = trafficAllocation.reduce(
+      (sum, t) => sum + t.percentage,
+      0,
+    );
     if (totalPercentage !== 100) {
-      throw new Error(`Traffic allocation must sum to 100%, got ${totalPercentage}%`);
+      throw new Error(
+        `Traffic allocation must sum to 100%, got ${totalPercentage}%`,
+      );
     }
 
     // Validate all variation keys exist
-    const variationKeys = new Set(current.variations.map(v => v.key));
+    const variationKeys = new Set(current.variations.map((v) => v.key));
     for (const allocation of trafficAllocation) {
       if (!variationKeys.has(allocation.variationKey)) {
         throw new Error(`Unknown variation key: ${allocation.variationKey}`);
@@ -421,7 +471,7 @@ export class MongooseExperimentRepository implements IExperimentRepository {
           trafficAllocation: JSON.stringify(trafficAllocation),
           updatedAt: now,
         },
-      }
+      },
     );
 
     return {
@@ -437,7 +487,7 @@ export class MongooseExperimentRepository implements IExperimentRepository {
     experimentKey: string,
     version: string,
     newStatus: ExperimentStatus,
-    additionalFields?: Record<string, unknown>
+    additionalFields?: Record<string, unknown>,
   ): Promise<Experiment> {
     const now = new Date().toISOString();
 
@@ -455,12 +505,12 @@ export class MongooseExperimentRepository implements IExperimentRepository {
         version,
         isActive: true,
       },
-      { $set: updateFields }
+      { $set: updateFields },
     );
 
     const updated = await this.get(platform, environment, experimentKey);
     if (!updated) {
-      throw new Error('Failed to retrieve updated experiment');
+      throw new Error("Failed to retrieve updated experiment");
     }
     return updated;
   }
@@ -481,8 +531,18 @@ export class MongooseExperimentRepository implements IExperimentRepository {
       variations: safeParse(doc.variations, []),
       controlVariation: doc.controlVariation,
       trafficAllocation: safeParse(doc.trafficAllocation, []),
-      targeting: safeParse(doc.targeting, { countries: [], forceIncludeUsers: [], forceExcludeUsers: [] }),
-      primaryMetric: safeParse(doc.primaryMetric, { id: '', name: '', eventName: '', metricType: 'conversion', successDirection: 'increase' }),
+      targeting: safeParse(doc.targeting, {
+        countries: [],
+        forceIncludeUsers: [],
+        forceExcludeUsers: [],
+      }),
+      primaryMetric: safeParse(doc.primaryMetric, {
+        id: "",
+        name: "",
+        eventName: "",
+        metricType: "conversion",
+        successDirection: "increase",
+      }),
       secondaryMetrics: safeParse(doc.secondaryMetrics, undefined),
       confidenceLevel: doc.confidenceLevel,
       minimumDetectableEffect: doc.minimumDetectableEffect,

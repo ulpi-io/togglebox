@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router'
+import { Stack } from "expo-router";
 
 export default function ExamplesLayout() {
   return (
@@ -6,11 +6,11 @@ export default function ExamplesLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#0ea5e9',
+          backgroundColor: "#0ea5e9",
         },
-        headerTintColor: '#fff',
+        headerTintColor: "#fff",
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: "bold",
         },
       }}
     >
@@ -30,5 +30,5 @@ export default function ExamplesLayout() {
         }}
       />
     </Stack>
-  )
+  );
 }

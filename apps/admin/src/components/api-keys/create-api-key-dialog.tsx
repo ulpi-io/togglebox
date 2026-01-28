@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Copy, Check } from 'lucide-react';
-import { createApiKeyApi } from '@/lib/api/api-keys';
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Copy, Check } from "lucide-react";
+import { createApiKeyApi } from "@/lib/api/api-keys";
 import {
   Button,
   Input,
@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogBody,
-} from '@togglebox/ui';
+} from "@togglebox/ui";
 
 interface ApiKeyResult {
   apiKey?: string;
@@ -51,7 +51,7 @@ export function CreateApiKeyDialog({ onSuccess }: CreateApiKeyDialogProps) {
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
+    const name = formData.get("name") as string;
 
     try {
       const apiKey = await createApiKeyApi(name);
@@ -62,7 +62,7 @@ export function CreateApiKeyDialog({ onSuccess }: CreateApiKeyDialogProps) {
         router.refresh();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +95,9 @@ export function CreateApiKeyDialog({ onSuccess }: CreateApiKeyDialogProps) {
       <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>Create API Key</DialogTitle>
-          <DialogDescription>Generate a new API key for programmatic access</DialogDescription>
+          <DialogDescription>
+            Generate a new API key for programmatic access
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <DialogBody className="space-y-4">
@@ -113,11 +115,7 @@ export function CreateApiKeyDialog({ onSuccess }: CreateApiKeyDialogProps) {
               </p>
             </div>
 
-            {error && (
-              <Alert variant="destructive">
-                {error}
-              </Alert>
-            )}
+            {error && <Alert variant="destructive">{error}</Alert>}
 
             {result?.apiKey && (
               <div className="glass-card p-4 space-y-3">
@@ -158,7 +156,7 @@ export function CreateApiKeyDialog({ onSuccess }: CreateApiKeyDialogProps) {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Creating...' : 'Create API Key'}
+                  {isLoading ? "Creating..." : "Create API Key"}
                 </Button>
               </>
             ) : (

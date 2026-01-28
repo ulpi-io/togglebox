@@ -23,6 +23,7 @@ This document provides research-backed persuasion principles for creating effect
 **Meincke et al. (2025)** tested 7 persuasion principles with N=28,000 AI conversations.
 
 **Result:** Persuasion techniques more than doubled compliance rates:
+
 - **Without persuasion:** 33% compliance
 - **With persuasion:** 72% compliance
 - **Statistical significance:** p < .001
@@ -32,6 +33,7 @@ This document provides research-backed persuasion principles for creating effect
 ### Why Persuasion Matters for Skills
 
 Skills must work even when agents are under pressure:
+
 - Time constraints
 - Sunk cost pressure
 - Authority override attempts
@@ -49,6 +51,7 @@ Without persuasion techniques, agents rationalize their way around rules. With t
 **What it is:** Deference to expertise, credentials, or official sources.
 
 **How it works in skills:**
+
 - **Imperative language**: "YOU MUST", "Never", "Always"
 - **Non-negotiable framing**: "No exceptions"
 - **Eliminates decision fatigue**: No room for interpretation
@@ -56,11 +59,13 @@ Without persuasion techniques, agents rationalize their way around rules. With t
 **Research support:** Authority figures increase compliance by establishing clear hierarchies and reducing uncertainty about correct action (Cialdini, 2021).
 
 **When to use:**
+
 - Discipline-enforcing skills (TDD, verification requirements)
 - Safety-critical practices
 - Established best practices that must be followed
 
 **Language patterns:**
+
 ```markdown
 ✅ YOU MUST write tests before implementation. No exceptions.
 ✅ Never mark tasks complete without verification. Always.
@@ -72,18 +77,21 @@ Without persuasion techniques, agents rationalize their way around rules. With t
 ```
 
 **Example application (TDD skill):**
+
 ```markdown
 ## The Iron Law
 
 Write test BEFORE implementation code.
 
 **YOU MUST:**
+
 - Write test first. Always.
 - Watch it fail. Every time.
 - Write minimal code to pass.
 - Never write implementation before test.
 
 **No exceptions:**
+
 - Not for "simple" functions
 - Not when "behind schedule"
 - Not because "it's obvious"
@@ -96,6 +104,7 @@ Write test BEFORE implementation code.
 **What it is:** Consistency with prior actions, statements, or public declarations.
 
 **How it works in skills:**
+
 - **Require announcements**: "Announce which skill you're using"
 - **Force explicit choices**: "Choose A, B, or C - announce your choice"
 - **Use tracking mechanisms**: TodoWrite for checklists
@@ -104,12 +113,14 @@ Write test BEFORE implementation code.
 **Research support:** People (and LLMs) are more likely to follow through on publicly stated commitments (Cialdini, 2021; Meincke et al., 2025).
 
 **When to use:**
+
 - Ensuring skills are actually followed
 - Multi-step processes where steps might be skipped
 - Accountability mechanisms
 - Preventing "I'll do it later" rationalizations
 
 **Language patterns:**
+
 ```markdown
 ✅ When you find a skill, you MUST announce: "I'm using [Skill Name]"
 ✅ Before proceeding, announce your verification plan.
@@ -121,6 +132,7 @@ Write test BEFORE implementation code.
 ```
 
 **Example application (start skill):**
+
 ```markdown
 ## Mandatory First Response Protocol
 
@@ -142,6 +154,7 @@ Before responding to ANY user message, you MUST complete this checklist:
 **What it is:** Urgency from time limits or limited availability.
 
 **How it works in skills:**
+
 - **Time-bound requirements**: "Before proceeding", "Immediately after X"
 - **Sequential dependencies**: "You MUST do X before Y"
 - **Prevents procrastination**: No option to defer
@@ -149,12 +162,14 @@ Before responding to ANY user message, you MUST complete this checklist:
 **Research support:** Scarcity creates urgency that increases action likelihood (Cialdini, 2021).
 
 **When to use:**
+
 - Immediate verification requirements
 - Time-sensitive workflows
 - Preventing "I'll do it later" deferrals
 - Critical sequencing (must happen in order)
 
 **Language patterns:**
+
 ```markdown
 ✅ BEFORE proceeding to next step, you MUST verify.
 ✅ IMMEDIATELY after completing task, request code review.
@@ -166,6 +181,7 @@ Before responding to ANY user message, you MUST complete this checklist:
 ```
 
 **Example application (verification skill):**
+
 ```markdown
 ## Verification Workflow
 
@@ -185,6 +201,7 @@ You MUST verify BEFORE completion. No exceptions.
 **What it is:** Conformity to what others do or what's considered normal.
 
 **How it works in skills:**
+
 - **Universal patterns**: "Every time", "Always", "Everyone"
 - **Failure modes**: "X without Y = failure"
 - **Establishes norms**: "This is how it's done"
@@ -193,12 +210,14 @@ You MUST verify BEFORE completion. No exceptions.
 **Research support:** People conform to perceived norms, especially when uncertain (Cialdini, 2021). LLMs exhibit similar conformity to established patterns (Meincke et al., 2025).
 
 **When to use:**
+
 - Documenting universal practices
 - Warning about common failures
 - Reinforcing standards
 - Establishing "normal" behavior
 
 **Language patterns:**
+
 ```markdown
 ✅ Checklists without TodoWrite tracking = steps get skipped. Every time.
 ✅ Code before tests = bugs. Always.
@@ -210,12 +229,14 @@ You MUST verify BEFORE completion. No exceptions.
 ```
 
 **Example application (TDD skill):**
+
 ```markdown
 ## Why This Matters
 
 Tests-after = failure. Every time.
 
 **What happens:**
+
 - Tests passing immediately prove nothing
 - You test "what does this do?" not "what should this do?"
 - Bugs slip through
@@ -232,6 +253,7 @@ This is why TDD is industry standard. Everyone follows it.
 **What it is:** Shared identity, "we-ness", in-group belonging.
 
 **How it works in skills:**
+
 - **Collaborative language**: "We're colleagues", "Our codebase"
 - **Shared goals**: "We both want quality"
 - **Team framing**: "Together we ensure..."
@@ -240,12 +262,14 @@ This is why TDD is industry standard. Everyone follows it.
 **Research support:** Unity (shared identity) increases cooperation and compliance (Cialdini, 2021).
 
 **When to use:**
+
 - Collaborative workflows
 - Establishing team culture
 - Non-hierarchical practices
 - Encouraging honest feedback
 
 **Language patterns:**
+
 ```markdown
 ✅ We're colleagues working together. I need your honest technical judgment.
 ✅ Our codebase benefits when we both follow best practices.
@@ -257,12 +281,14 @@ This is why TDD is industry standard. Everyone follows it.
 ```
 
 **Example application (code review skill):**
+
 ```markdown
 ## Collaborative Review
 
 We're colleagues working together on our shared codebase.
 
 **Partnership principles:**
+
 - We both want high-quality code
 - We're equals in this review
 - Our combined expertise improves the project
@@ -277,21 +303,25 @@ We're colleagues working together on our shared codebase.
 **What it is:** Obligation to return benefits received.
 
 **How it works:**
+
 - Giving something first creates obligation to reciprocate
 - "I've done X for you, now you should do Y"
 
 **Research support:** Reciprocity is a powerful social norm (Cialdini, 2021).
 
 **When to use in skills:**
+
 - **Rarely.** Reciprocity can feel manipulative in documentation.
 - Possibly for collaborative skills where mutual benefit is genuine.
 
 **When to avoid:**
+
 - **Almost always.** Other principles (Authority, Commitment, Social Proof) are more effective and less problematic for skill design.
 
 **Why mostly avoid:** Skills aren't transactional. You're providing documentation, not a favor requiring repayment. Feels manipulative and undermines trust.
 
 **Example of legitimate use (rare):**
+
 ```markdown
 ## Mutual Benefit
 
@@ -307,21 +337,25 @@ In return, we ask that you contribute improvements when you find gaps.
 **What it is:** Preference for cooperating with those we like.
 
 **How it works:**
+
 - Similarity, compliments, cooperation increase liking
 - People comply more with those they like
 
 **Research support:** Liking increases persuasion effectiveness (Cialdini, 2021).
 
 **When to use in skills:**
+
 - **NEVER for compliance purposes.**
 
 **Why avoid:**
+
 - Creates sycophancy (agent tells you what you want to hear)
 - Conflicts with honest feedback culture
 - Undermines critical judgment
 - Can make agents avoid disagreeing with users
 
 **DO NOT use patterns like:**
+
 ```markdown
 ❌ You're doing great! Now let's follow TDD.
 ❌ I really appreciate your work. Could you write tests first?
@@ -331,6 +365,7 @@ In return, we ask that you contribute improvements when you find gaps.
 **Why this is harmful:** We want agents that provide honest technical feedback, even when it disagrees with the user. Liking-based compliance undermines this.
 
 **Exception:** Genuine appreciation for following best practices (after compliance, not to induce it):
+
 ```markdown
 ✅ You followed TDD correctly. This will prevent bugs later.
 ✅ Good work on verification before completion.
@@ -349,16 +384,19 @@ Different skill types benefit from different principle combinations.
 **Goal:** Ensure compliance even under maximum pressure
 
 **Principles to use:**
+
 - **Authority** (primary): Imperative language, non-negotiable rules
 - **Commitment**: Announcements, TodoWrite tracking, public declarations
 - **Social Proof**: Universal patterns, failure modes, "everyone does this"
 - **Scarcity**: Time-bound requirements, "before proceeding"
 
 **Principles to avoid:**
+
 - **Liking**: Undermines critical judgment
 - **Reciprocity**: Feels manipulative for rules
 
 **Language combination:**
+
 ```markdown
 ## The Rule (Authority)
 
@@ -375,6 +413,7 @@ Code before tests = bugs. Every time. This is industry standard.
 ## Workflow (Scarcity)
 
 BEFORE writing implementation:
+
 1. Write test
 2. Watch it fail
 3. Then write code
@@ -387,15 +426,18 @@ BEFORE writing implementation:
 **Goal:** Guide correct application of technique
 
 **Principles to use:**
+
 - **Moderate Authority**: Directive but not absolute ("Use this approach", "Follow these steps")
 - **Unity**: Collaborative framing ("We're working together", "Let's apply this pattern")
 - **Social Proof**: "This pattern solves X problems"
 
 **Principles to avoid:**
+
 - **Heavy Authority**: Too rigid for techniques that adapt to context
 - **Liking**: Not relevant for technique application
 
 **Language combination:**
+
 ```markdown
 ## The Pattern (Moderate Authority)
 
@@ -417,19 +459,23 @@ Arbitrary timeouts fail when systems slow down. Condition-based waiting adapts.
 **Goal:** Make information findable and usable
 
 **Principles to use:**
+
 - **Clarity only**: Focus on organization and accessibility
 - **Minimal persuasion**: Reference material doesn't need compliance mechanisms
 
 **Principles to avoid:**
+
 - **All persuasion principles**: Reference skills are factual, not behavioral
 
 **Language:**
+
 ```markdown
 ## API Reference
 
 **Method:** `extract_text(page_num)`
 
 **Parameters:**
+
 - `page_num` (int): Page number (0-indexed)
 
 **Returns:** String containing extracted text
@@ -449,15 +495,18 @@ No persuasion needed - just clear, organized information.
 **Goal:** Foster productive collaboration
 
 **Principles to use:**
+
 - **Unity** (primary): Shared identity, "we're colleagues"
 - **Commitment**: Explicit agreements on process
 - **Moderate Authority**: Clear process steps without hierarchy
 
 **Principles to avoid:**
+
 - **Heavy Authority**: Creates defensiveness in collaboration
 - **Liking**: Undermines honest feedback
 
 **Language combination:**
+
 ```markdown
 ## Collaborative Review (Unity)
 
@@ -466,6 +515,7 @@ We're colleagues reviewing our shared codebase together.
 ## Our Agreement (Commitment)
 
 We both commit to:
+
 - Honest technical feedback
 - Assuming good intent
 - Focusing on code quality
@@ -480,12 +530,12 @@ We both commit to:
 
 ### Principle Combination Matrix
 
-| Skill Type | Primary Principles | Avoid |
-|------------|-------------------|-------|
-| Discipline-enforcing | Authority + Commitment + Social Proof | Liking, Reciprocity |
-| Technique | Moderate Authority + Unity + Social Proof | Heavy Authority, Liking |
-| Reference | Clarity only | All persuasion |
-| Collaborative | Unity + Commitment + Moderate Authority | Heavy Authority, Liking |
+| Skill Type           | Primary Principles                        | Avoid                   |
+| -------------------- | ----------------------------------------- | ----------------------- |
+| Discipline-enforcing | Authority + Commitment + Social Proof     | Liking, Reciprocity     |
+| Technique            | Moderate Authority + Unity + Social Proof | Heavy Authority, Liking |
+| Reference            | Clarity only                              | All persuasion          |
+| Collaborative        | Unity + Commitment + Moderate Authority   | Heavy Authority, Liking |
 
 ---
 
@@ -494,11 +544,13 @@ We both commit to:
 ### Bright-Line Rules Reduce Rationalization
 
 **Authority language removes decision fatigue:**
+
 - "YOU MUST" = no ambiguity
 - "No exceptions" = no "is this an exception?" questions
 - Absolute language = automatic compliance
 
 **Cognitive load reduction:**
+
 - Less mental energy deciding whether to comply
 - Clear directive = immediate action
 - No internal negotiation needed
@@ -506,16 +558,20 @@ We both commit to:
 ### Implementation Intentions Create Automatic Behavior
 
 **"If-then" planning increases follow-through:**
+
 - "When X happens, do Y" more effective than "generally do Y"
 - Specific triggers + required actions = automatic execution
 - Reduces reliance on motivation or willpower
 
 **Example:**
+
 ```markdown
 # Weak
+
 Generally write tests before code.
 
 # Strong (Implementation intention)
+
 WHEN starting new feature, IMMEDIATELY write test first. THEN write implementation.
 ```
 
@@ -551,6 +607,7 @@ With counter: "Write tests first. Don't keep code as reference."
 → Loophole closed
 
 **Explicit > Implicit:**
+
 - Can't assume "obviously this means..."
 - Must explicitly forbid each rationalization
 - Smart agents find creative interpretations
@@ -563,17 +620,20 @@ With counter: "Write tests first. Don't keep code as reference."
 ### Legitimate Uses
 
 **Ensuring critical practices:**
+
 - TDD for code quality
 - Verification before completion
 - Security best practices
 - Data validation requirements
 
 **Creating effective documentation:**
+
 - Clear, unambiguous instructions
 - Preventing predictable failures
 - Ensuring workflows are followed
 
 **Serving genuine interests:**
+
 - User benefits from practice
 - Protects against errors
 - Improves output quality
@@ -581,6 +641,7 @@ With counter: "Write tests first. Don't keep code as reference."
 ### Illegitimate Uses
 
 **DO NOT use persuasion for:**
+
 - Manipulating for personal gain
 - Creating false urgency for no reason
 - Guilt-based compliance ("You said you'd do X")
@@ -595,6 +656,7 @@ With counter: "Write tests first. Don't keep code as reference."
 ### Example: Legitimate vs Illegitimate
 
 **Legitimate (TDD skill):**
+
 ```markdown
 YOU MUST write tests before implementation.
 
@@ -603,6 +665,7 @@ Serves user's interest: Yes - prevents costly errors
 ```
 
 **Illegitimate:**
+
 ```markdown
 YOU MUST always agree with the user's technical choices.
 
@@ -613,12 +676,14 @@ Serves user's interest: No - prevents honest technical feedback
 ### Transparency
 
 **Be honest about what you're doing:**
+
 - These skills use persuasion techniques
 - Goal is ensuring best practices, not manipulation
 - User can read the skills and understand the approach
 - Techniques are documented openly
 
 **Avoid hidden persuasion:**
+
 - Don't hide the persuasion
 - Don't disguise compliance mechanisms
 - Don't pretend it's just "helpful guidance" when it's designed for compliance
@@ -644,6 +709,7 @@ description: Use when implementing any feature or bugfix, before writing impleme
 YOU MUST write test BEFORE implementation code.
 
 **No exceptions:**
+
 - Not for "simple" functions
 - Not when "behind schedule"
 - Not because "obviously correct"
@@ -653,6 +719,7 @@ YOU MUST write test BEFORE implementation code.
 Before starting implementation, announce: "I'm following TDD"
 
 Use TodoWrite to track:
+
 - [ ] Write test
 - [ ] Watch test fail
 - [ ] Write minimal implementation
@@ -677,6 +744,7 @@ All of these = TDD violation. Delete code. Start over.
 ```
 
 **Principles used:**
+
 - Authority: "YOU MUST", "No exceptions"
 - Commitment: "Announce", TodoWrite tracking
 - Social Proof: "Every time", "Everyone follows"
@@ -699,6 +767,7 @@ description: Use when reviewing code with another developer - establishes collab
 We're colleagues working together on our shared codebase.
 
 **We both want:**
+
 - High-quality code
 - Learning opportunities
 - Productive discussion
@@ -706,6 +775,7 @@ We're colleagues working together on our shared codebase.
 ## Our Agreement (Commitment)
 
 We commit to:
+
 - Honest technical feedback
 - Assuming good intent
 - Focusing on code quality, not ego
@@ -727,6 +797,7 @@ Your honest feedback helps our shared project.
 ```
 
 **Principles used:**
+
 - Unity: "We're colleagues", "Our shared codebase", "Same team"
 - Commitment: "We commit to", "Announce"
 - Moderate Authority: Clear process without heavy directives
@@ -744,6 +815,7 @@ description: API reference for PDF processing library - use when working with PD
 # PDF API Reference
 
 ## Contents
+
 - Text Extraction
 - Form Filling
 - Document Merging
@@ -753,6 +825,7 @@ description: API reference for PDF processing library - use when working with PD
 **Method:** `extract_text(page_num)`
 
 **Parameters:**
+
 - `page_num` (int): Page number, 0-indexed
 
 **Returns:** String containing text
@@ -761,7 +834,7 @@ description: API reference for PDF processing library - use when working with PD
 \`\`\`python
 import pdfplumber
 with pdfplumber.open("file.pdf") as pdf:
-    text = pdf.pages[0].extract_text()
+text = pdf.pages[0].extract_text()
 \`\`\`
 
 ## Form Filling
@@ -769,6 +842,7 @@ with pdfplumber.open("file.pdf") as pdf:
 **Method:** `fill_form(fields_dict)`
 
 **Parameters:**
+
 - `fields_dict` (dict): Mapping of field names to values
 
 **Returns:** Modified PDF object
@@ -818,31 +892,38 @@ filled_pdf = pdf.fill_form(fields)
 ### Language Patterns Quick Reference
 
 **Authority:**
+
 - YOU MUST, Never, Always, No exceptions
 - Non-negotiable, Required, Mandatory
 
 **Commitment:**
+
 - Announce, Declare, Use TodoWrite to track
 - Before proceeding, you must state
 
 **Scarcity:**
+
 - BEFORE, IMMEDIATELY, You MUST do X before Y
 - No skipping ahead, Required first
 
 **Social Proof:**
+
 - Every time, Everyone, Always fails, Universal pattern
 - This is standard, Industry practice
 
 **Unity:**
+
 - We're colleagues, Our codebase, Let's, Together
 - We both want, Partnership, Collaboration
 
 **Avoid (Liking):**
+
 - Don't: You're doing great
 - Don't: I appreciate you
 - Don't: You're excellent
 
 **Avoid (Reciprocity):**
+
 - Don't: I've provided X, now you should Y
 - Don't: In return for this skill
 
@@ -850,12 +931,14 @@ filled_pdf = pdf.fill_form(fields)
 
 ## Research Citations
 
-**Cialdini, R. B. (2021).** *Influence: The Psychology of Persuasion (New and Expanded).* Harper Business.
+**Cialdini, R. B. (2021).** _Influence: The Psychology of Persuasion (New and Expanded)._ Harper Business.
+
 - Foundational research on seven principles of persuasion
 - Empirical foundation for influence techniques
 - Documented across multiple domains and contexts
 
 **Meincke, L., Shapiro, D., Duckworth, A. L., Mollick, E., Mollick, L., & Cialdini, R. (2025).** Call Me A Jerk: Persuading AI to Comply with Objectionable Requests. University of Pennsylvania.
+
 - Tested 7 persuasion principles with N=28,000 LLM conversations
 - Compliance increased from 33% to 72% with persuasion techniques (p < .001)
 - Authority, commitment, and scarcity were most effective principles

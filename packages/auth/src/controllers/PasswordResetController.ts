@@ -22,8 +22,14 @@
  * All endpoints are public (password reset flow for locked-out users).
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { PasswordResetService } from '../services/PasswordResetService';
+import { Request, Response, NextFunction } from "express";
+import { z } from "zod";
+import { PasswordResetService } from "../services/PasswordResetService";
+import {
+  passwordResetRequestSchema,
+  passwordResetVerifySchema,
+  passwordResetCompleteSchema,
+} from "../validators/authSchemas";
 
 /**
  * Password reset controller class.
@@ -82,20 +88,33 @@ export class PasswordResetController {
   requestReset = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
-      const { email } = req.body;
+      // SECURITY: Validate input to ensure valid email format
+      const { email } = passwordResetRequestSchema.parse(req.body);
 
       await this.passwordResetService.requestPasswordReset({ email });
 
       // Always return success to prevent user enumeration
       res.status(200).json({
         success: true,
-        message: 'If the email exists, a password reset link has been sent',
+        message: "If the email exists, a password reset link has been sent",
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: "Validation failed",
+          details: error.errors.map((err) => ({
+            field: err.path.join("."),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       next(error);
     }
   };
@@ -143,10 +162,11 @@ export class PasswordResetController {
   verifyToken = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
-      const { token } = req.body;
+      // SECURITY: Validate token format
+      const { token } = passwordResetVerifySchema.parse(req.body);
 
       const isValid = await this.passwordResetService.verifyPasswordResetToken({
         token,
@@ -155,7 +175,7 @@ export class PasswordResetController {
       if (!isValid) {
         res.status(400).json({
           success: false,
-          error: 'Invalid or expired password reset token',
+          error: "Invalid or expired password reset token",
           timestamp: new Date().toISOString(),
         });
         return;
@@ -163,10 +183,22 @@ export class PasswordResetController {
 
       res.status(200).json({
         success: true,
-        message: 'Token is valid',
+        message: "Token is valid",
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: "Validation failed",
+          details: error.errors.map((err) => ({
+            field: err.path.join("."),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       next(error);
     }
   };
@@ -219,10 +251,13 @@ export class PasswordResetController {
   completeReset = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
-      const { token, newPassword } = req.body;
+      // SECURITY: Validate token format and password strength
+      const { token, newPassword } = passwordResetCompleteSchema.parse(
+        req.body,
+      );
 
       await this.passwordResetService.completePasswordReset({
         token,
@@ -231,14 +266,26 @@ export class PasswordResetController {
 
       res.status(200).json({
         success: true,
-        message: 'Password has been reset successfully',
+        message: "Password has been reset successfully",
         timestamp: new Date().toISOString(),
       });
     } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        res.status(422).json({
+          success: false,
+          error: "Validation failed",
+          details: error.errors.map((err) => ({
+            field: err.path.join("."),
+            message: err.message,
+          })),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
       const err = error as { message?: string };
       if (
-        err.message?.includes('Invalid') ||
-        err.message?.includes('expired')
+        err.message?.includes("Invalid") ||
+        err.message?.includes("expired")
       ) {
         res.status(400).json({
           success: false,

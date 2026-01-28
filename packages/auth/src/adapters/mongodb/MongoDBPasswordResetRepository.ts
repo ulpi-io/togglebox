@@ -1,9 +1,12 @@
-import { IPasswordResetRepository } from '../../interfaces/IPasswordResetRepository';
+import { IPasswordResetRepository } from "../../interfaces/IPasswordResetRepository";
 import {
   PasswordResetToken,
   CreatePasswordResetTokenData,
-} from '../../models/PasswordResetToken';
-import { PasswordResetTokenModel, IPasswordResetTokenDocument } from './schemas';
+} from "../../models/PasswordResetToken";
+import {
+  PasswordResetTokenModel,
+  IPasswordResetTokenDocument,
+} from "./schemas";
 
 /**
  * MongoDB implementation of password reset token repository using Mongoose.
@@ -33,8 +36,12 @@ import { PasswordResetTokenModel, IPasswordResetTokenDocument } from './schemas'
  * - Single-use (deleted after password reset)
  * - Cleanup via `deleteExpired()` cron job
  */
-export class MongoDBPasswordResetRepository implements IPasswordResetRepository {
-  async create(data: CreatePasswordResetTokenData): Promise<PasswordResetToken> {
+export class MongoDBPasswordResetRepository
+  implements IPasswordResetRepository
+{
+  async create(
+    data: CreatePasswordResetTokenData,
+  ): Promise<PasswordResetToken> {
     const token = await PasswordResetTokenModel.create({
       userId: data.userId,
       tokenHash: data.tokenHash,
@@ -92,7 +99,9 @@ export class MongoDBPasswordResetRepository implements IPasswordResetRepository 
    * **Date Objects:**
    * All date fields already Date objects from Mongoose (no parsing needed).
    */
-  private mapToPasswordResetToken(doc: IPasswordResetTokenDocument): PasswordResetToken {
+  private mapToPasswordResetToken(
+    doc: IPasswordResetTokenDocument,
+  ): PasswordResetToken {
     return {
       id: doc._id.toString(),
       userId: doc.userId,

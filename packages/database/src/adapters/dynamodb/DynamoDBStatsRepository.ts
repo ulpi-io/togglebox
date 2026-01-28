@@ -14,7 +14,14 @@
  * - Read operations: Aggregate across all shards for complete stats
  */
 
-import { UpdateCommand, GetCommand, QueryCommand, DeleteCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  UpdateCommand,
+  GetCommand,
+  QueryCommand,
+  DeleteCommand,
+  BatchWriteCommand,
+  PutCommand,
+} from "@aws-sdk/lib-dynamodb";
 import type {
   ConfigStats,
   FlagStats,
@@ -22,10 +29,11 @@ import type {
   FlagStatsDaily,
   ExperimentStats,
   ExperimentMetricStats,
+  CustomEventStats,
   StatsEvent,
-} from '@togglebox/stats';
-import type { IStatsRepository } from '@togglebox/stats';
-import { dynamoDBClient, getStatsTableName } from '../../database';
+} from "@togglebox/stats";
+import type { IStatsRepository } from "@togglebox/stats";
+import { dynamoDBClient, getStatsTableName } from "../../database";
 
 /**
  * Simple concurrency limiter for batch processing.
@@ -107,7 +115,11 @@ export class DynamoDBStatsRepository implements IStatsRepository {
    * Get a sharded partition key for write operations.
    * The shard is determined by hashing the item key (flag/config/experiment key).
    */
-  private getShardedPK(platform: string, environment: string, itemKey: string): string {
+  private getShardedPK(
+    platform: string,
+    environment: string,
+    itemKey: string,
+  ): string {
     const shard = hashString(itemKey) % STATS_SHARD_COUNT;
     return `STATS#${platform}#${environment}#SHARD#${shard}`;
   }
@@ -135,24 +147,27 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     platform: string,
     environment: string,
     configKey: string,
-    _clientId?: string
+    _clientId?: string,
   ): Promise<void> {
     const pk = this.getShardedPK(platform, environment, configKey);
     const sk = `STATS#CONFIG#${configKey}`;
     const now = new Date().toISOString();
 
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: sk },
-      UpdateExpression: 'ADD fetchCount :inc SET lastFetchedAt = :now, platform = :platform, environment = :env, configKey = :key',
-      ExpressionAttributeValues: {
-        ':inc': 1,
-        ':now': now,
-        ':platform': platform,
-        ':env': environment,
-        ':key': configKey,
-      },
-    }));
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: sk },
+        UpdateExpression:
+          "ADD fetchCount :inc SET lastFetchedAt = :now, platform = :platform, environment = :env, configKey = :key",
+        ExpressionAttributeValues: {
+          ":inc": 1,
+          ":now": now,
+          ":platform": platform,
+          ":env": environment,
+          ":key": configKey,
+        },
+      }),
+    );
   }
 
   /**
@@ -162,15 +177,17 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   async getConfigStats(
     platform: string,
     environment: string,
-    configKey: string
+    configKey: string,
   ): Promise<ConfigStats | null> {
     const pk = this.getShardedPK(platform, environment, configKey);
     const sk = `STATS#CONFIG#${configKey}`;
 
-    const result = await dynamoDBClient.send(new GetCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: sk },
-    }));
+    const result = await dynamoDBClient.send(
+      new GetCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: sk },
+      }),
+    );
 
     if (!result.Item) {
       return null;
@@ -179,13 +196,13 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     const item = result.Item as DynamoItem;
 
     return {
-      platform: item['platform'] as string,
-      environment: item['environment'] as string,
-      configKey: item['configKey'] as string,
-      fetchCount: (item['fetchCount'] as number) || 0,
-      lastFetchedAt: item['lastFetchedAt'] as string | undefined,
-      uniqueClients24h: (item['uniqueClients24h'] as number) || 0,
-      updatedAt: (item['lastFetchedAt'] as string) || new Date().toISOString(),
+      platform: item["platform"] as string,
+      environment: item["environment"] as string,
+      configKey: item["configKey"] as string,
+      fetchCount: (item["fetchCount"] as number) || 0,
+      lastFetchedAt: item["lastFetchedAt"] as string | undefined,
+      uniqueClients24h: (item["uniqueClients24h"] as number) || 0,
+      updatedAt: (item["lastFetchedAt"] as string) || new Date().toISOString(),
     };
   }
 
@@ -201,68 +218,81 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    value: 'A' | 'B',
+    value: "A" | "B",
     _userId: string,
-    country?: string
+    country?: string,
   ): Promise<void> {
     const pk = this.getShardedPK(platform, environment, flagKey);
     const sk = `STATS#FLAG#${flagKey}`;
     const now = new Date().toISOString();
-    const today = now.split('T')[0]; // YYYY-MM-DD
+    const today = now.split("T")[0]; // YYYY-MM-DD
 
     // Update main stats
-    const updateExpression = value === 'A'
-      ? 'ADD totalEvaluations :inc, valueACount :inc SET lastEvaluatedAt = :now, platform = :platform, environment = :env, flagKey = :key'
-      : 'ADD totalEvaluations :inc, valueBCount :inc SET lastEvaluatedAt = :now, platform = :platform, environment = :env, flagKey = :key';
+    const updateExpression =
+      value === "A"
+        ? "ADD totalEvaluations :inc, valueACount :inc SET lastEvaluatedAt = :now, platform = :platform, environment = :env, flagKey = :key"
+        : "ADD totalEvaluations :inc, valueBCount :inc SET lastEvaluatedAt = :now, platform = :platform, environment = :env, flagKey = :key";
 
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: sk },
-      UpdateExpression: updateExpression,
-      ExpressionAttributeValues: {
-        ':inc': 1,
-        ':now': now,
-        ':platform': platform,
-        ':env': environment,
-        ':key': flagKey,
-      },
-    }));
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: sk },
+        UpdateExpression: updateExpression,
+        ExpressionAttributeValues: {
+          ":inc": 1,
+          ":now": now,
+          ":platform": platform,
+          ":env": environment,
+          ":key": flagKey,
+        },
+      }),
+    );
 
     // Update daily stats
     const dailySK = `STATS#FLAG#${flagKey}#DATE#${today}`;
-    const dailyUpdateExpression = value === 'A'
-      ? 'ADD valueACount :inc SET #date = :date'
-      : 'ADD valueBCount :inc SET #date = :date';
+    const dailyUpdateExpression =
+      value === "A"
+        ? "ADD valueACount :inc SET #date = :date"
+        : "ADD valueBCount :inc SET #date = :date";
 
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: dailySK },
-      UpdateExpression: dailyUpdateExpression,
-      ExpressionAttributeNames: { '#date': 'date' },
-      ExpressionAttributeValues: {
-        ':inc': 1,
-        ':date': today,
-      },
-    }));
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: dailySK },
+        UpdateExpression: dailyUpdateExpression,
+        ExpressionAttributeNames: { "#date": "date" },
+        ExpressionAttributeValues: {
+          ":inc": 1,
+          ":date": today,
+        },
+      }),
+    );
 
     // Update country stats if provided (use country-specific shard key)
     if (country) {
       const countryShardKey = `${flagKey}#${country}`;
-      const countryPK = this.getShardedPK(platform, environment, countryShardKey);
+      const countryPK = this.getShardedPK(
+        platform,
+        environment,
+        countryShardKey,
+      );
       const countrySK = `STATS#FLAG#${flagKey}#COUNTRY#${country}`;
-      const countryUpdateExpression = value === 'A'
-        ? 'ADD valueACount :inc SET country = :country'
-        : 'ADD valueBCount :inc SET country = :country';
+      const countryUpdateExpression =
+        value === "A"
+          ? "ADD valueACount :inc SET country = :country"
+          : "ADD valueBCount :inc SET country = :country";
 
-      await dynamoDBClient.send(new UpdateCommand({
-        TableName: this.getTableName(),
-        Key: { PK: countryPK, SK: countrySK },
-        UpdateExpression: countryUpdateExpression,
-        ExpressionAttributeValues: {
-          ':inc': 1,
-          ':country': country,
-        },
-      }));
+      await dynamoDBClient.send(
+        new UpdateCommand({
+          TableName: this.getTableName(),
+          Key: { PK: countryPK, SK: countrySK },
+          UpdateExpression: countryUpdateExpression,
+          ExpressionAttributeValues: {
+            ":inc": 1,
+            ":country": country,
+          },
+        }),
+      );
     }
   }
 
@@ -273,15 +303,17 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   async getFlagStats(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<FlagStats | null> {
     const pk = this.getShardedPK(platform, environment, flagKey);
     const sk = `STATS#FLAG#${flagKey}`;
 
-    const result = await dynamoDBClient.send(new GetCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: sk },
-    }));
+    const result = await dynamoDBClient.send(
+      new GetCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: sk },
+      }),
+    );
 
     if (!result.Item) {
       return null;
@@ -290,16 +322,17 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     const item = result.Item as DynamoItem;
 
     return {
-      platform: item['platform'] as string,
-      environment: item['environment'] as string,
-      flagKey: item['flagKey'] as string,
-      totalEvaluations: (item['totalEvaluations'] as number) || 0,
-      valueACount: (item['valueACount'] as number) || 0,
-      valueBCount: (item['valueBCount'] as number) || 0,
-      uniqueUsersA24h: (item['uniqueUsersA24h'] as number) || 0,
-      uniqueUsersB24h: (item['uniqueUsersB24h'] as number) || 0,
-      lastEvaluatedAt: item['lastEvaluatedAt'] as string | undefined,
-      updatedAt: (item['lastEvaluatedAt'] as string) || new Date().toISOString(),
+      platform: item["platform"] as string,
+      environment: item["environment"] as string,
+      flagKey: item["flagKey"] as string,
+      totalEvaluations: (item["totalEvaluations"] as number) || 0,
+      valueACount: (item["valueACount"] as number) || 0,
+      valueBCount: (item["valueBCount"] as number) || 0,
+      uniqueUsersA24h: (item["uniqueUsersA24h"] as number) || 0,
+      uniqueUsersB24h: (item["uniqueUsersB24h"] as number) || 0,
+      lastEvaluatedAt: item["lastEvaluatedAt"] as string | undefined,
+      updatedAt:
+        (item["lastEvaluatedAt"] as string) || new Date().toISOString(),
     };
   }
 
@@ -310,21 +343,23 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   async getFlagStatsByCountry(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<FlagStatsByCountry[]> {
     const allShardPKs = this.getAllShardPKs(platform, environment);
     const countryStatsMap = new Map<string, FlagStatsByCountry>();
 
     // Query all shards in parallel
-    const queries = allShardPKs.map(pk =>
-      dynamoDBClient.send(new QueryCommand({
-        TableName: this.getTableName(),
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: {
-          ':pk': pk,
-          ':prefix': `STATS#FLAG#${flagKey}#COUNTRY#`,
-        },
-      }))
+    const queries = allShardPKs.map((pk) =>
+      dynamoDBClient.send(
+        new QueryCommand({
+          TableName: this.getTableName(),
+          KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+          ExpressionAttributeValues: {
+            ":pk": pk,
+            ":prefix": `STATS#FLAG#${flagKey}#COUNTRY#`,
+          },
+        }),
+      ),
     );
 
     const results = await Promise.all(queries);
@@ -333,17 +368,17 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     for (const result of results) {
       for (const item of result.Items || []) {
         const dynItem = item as DynamoItem;
-        const country = dynItem['country'] as string;
+        const country = dynItem["country"] as string;
         const existing = countryStatsMap.get(country);
 
         if (existing) {
-          existing.valueACount += (dynItem['valueACount'] as number) || 0;
-          existing.valueBCount += (dynItem['valueBCount'] as number) || 0;
+          existing.valueACount += (dynItem["valueACount"] as number) || 0;
+          existing.valueBCount += (dynItem["valueBCount"] as number) || 0;
         } else {
           countryStatsMap.set(country, {
             country,
-            valueACount: (dynItem['valueACount'] as number) || 0,
-            valueBCount: (dynItem['valueBCount'] as number) || 0,
+            valueACount: (dynItem["valueACount"] as number) || 0,
+            valueBCount: (dynItem["valueBCount"] as number) || 0,
           });
         }
       }
@@ -360,30 +395,32 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     platform: string,
     environment: string,
     flagKey: string,
-    days: number = 30
+    days: number = 30,
   ): Promise<FlagStatsDaily[]> {
     const pk = this.getShardedPK(platform, environment, flagKey);
     const today = new Date();
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - days);
-    const startDateStr = startDate.toISOString().split('T')[0];
+    const startDateStr = startDate.toISOString().split("T")[0];
 
-    const result = await dynamoDBClient.send(new QueryCommand({
-      TableName: this.getTableName(),
-      KeyConditionExpression: 'PK = :pk AND SK BETWEEN :start AND :end',
-      ExpressionAttributeValues: {
-        ':pk': pk,
-        ':start': `STATS#FLAG#${flagKey}#DATE#${startDateStr}`,
-        ':end': `STATS#FLAG#${flagKey}#DATE#${today.toISOString().split('T')[0]}`,
-      },
-    }));
+    const result = await dynamoDBClient.send(
+      new QueryCommand({
+        TableName: this.getTableName(),
+        KeyConditionExpression: "PK = :pk AND SK BETWEEN :start AND :end",
+        ExpressionAttributeValues: {
+          ":pk": pk,
+          ":start": `STATS#FLAG#${flagKey}#DATE#${startDateStr}`,
+          ":end": `STATS#FLAG#${flagKey}#DATE#${today.toISOString().split("T")[0]}`,
+        },
+      }),
+    );
 
-    return (result.Items || []).map(item => {
+    return (result.Items || []).map((item) => {
       const dynItem = item as DynamoItem;
       return {
-        date: dynItem['date'] as string,
-        valueACount: (dynItem['valueACount'] as number) || 0,
-        valueBCount: (dynItem['valueBCount'] as number) || 0,
+        date: dynItem["date"] as string,
+        valueACount: (dynItem["valueACount"] as number) || 0,
+        valueBCount: (dynItem["valueBCount"] as number) || 0,
       };
     });
   }
@@ -401,41 +438,47 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     environment: string,
     experimentKey: string,
     variationKey: string,
-    _userId: string
+    _userId: string,
   ): Promise<void> {
     // Shard by experiment+variation for even distribution
     const shardKey = `${experimentKey}#${variationKey}`;
     const pk = this.getShardedPK(platform, environment, shardKey);
     const sk = `STATS#EXP#${experimentKey}#VAR#${variationKey}`;
     const now = new Date().toISOString();
-    const today = now.split('T')[0];
+    const today = now.split("T")[0];
 
     // Update variation stats
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: sk },
-      UpdateExpression: 'ADD participants :inc, exposures :inc SET lastExposureAt = :now, experimentKey = :expKey, variationKey = :varKey',
-      ExpressionAttributeValues: {
-        ':inc': 1,
-        ':now': now,
-        ':expKey': experimentKey,
-        ':varKey': variationKey,
-      },
-    }));
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: sk },
+        UpdateExpression:
+          "ADD participants :inc, exposures :inc SET lastExposureAt = :now, experimentKey = :expKey, variationKey = :varKey",
+        ExpressionAttributeValues: {
+          ":inc": 1,
+          ":now": now,
+          ":expKey": experimentKey,
+          ":varKey": variationKey,
+        },
+      }),
+    );
 
     // Update daily variation stats
     const dailySK = `STATS#EXP#${experimentKey}#VAR#${variationKey}#DATE#${today}`;
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: dailySK },
-      UpdateExpression: 'ADD participants :inc SET #date = :date, variationKey = :varKey',
-      ExpressionAttributeNames: { '#date': 'date' },
-      ExpressionAttributeValues: {
-        ':inc': 1,
-        ':date': today,
-        ':varKey': variationKey,
-      },
-    }));
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: dailySK },
+        UpdateExpression:
+          "ADD participants :inc SET #date = :date, variationKey = :varKey",
+        ExpressionAttributeNames: { "#date": "date" },
+        ExpressionAttributeValues: {
+          ":inc": 1,
+          ":date": today,
+          ":varKey": variationKey,
+        },
+      }),
+    );
   }
 
   /**
@@ -449,57 +492,92 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     metricId: string,
     variationKey: string,
     _userId: string,
-    value?: number
+    value?: number,
   ): Promise<void> {
     // Shard by experiment+variation+metric for even distribution
     const shardKey = `${experimentKey}#${variationKey}#${metricId}`;
     const pk = this.getShardedPK(platform, environment, shardKey);
     const sk = `STATS#EXP#${experimentKey}#VAR#${variationKey}#METRIC#${metricId}`;
     const now = new Date().toISOString();
-    const today = now.split('T')[0];
+    const today = now.split("T")[0];
 
-    // Update metric stats
-    let updateExpression = 'ADD conversions :inc, sampleSize :inc SET lastConversionAt = :now, experimentKey = :expKey, variationKey = :varKey, metricId = :metricId';
+    // Build ADD section first (DynamoDB requires all ADD operations together before SET)
+    // Note: 'count' is a reserved word in DynamoDB, so we use ExpressionAttributeNames
+    let addExpression = "ADD conversions :inc, sampleSize :inc, #count :inc";
     const expressionAttributeValues: Record<string, unknown> = {
-      ':inc': 1,
-      ':now': now,
-      ':expKey': experimentKey,
-      ':varKey': variationKey,
-      ':metricId': metricId,
+      ":inc": 1,
+      ":now": now,
+      ":expKey": experimentKey,
+      ":varKey": variationKey,
+      ":metricId": metricId,
     };
 
     if (value !== undefined) {
-      updateExpression += ' ADD sumValue :value';
-      expressionAttributeValues[':value'] = value;
+      addExpression += ", sumValue :value";
+      expressionAttributeValues[":value"] = value;
     }
 
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: sk },
-      UpdateExpression: updateExpression,
-      ExpressionAttributeValues: expressionAttributeValues,
-    }));
+    // Then SET section
+    const updateExpression = `${addExpression} SET lastConversionAt = :now, experimentKey = :expKey, variationKey = :varKey, metricId = :metricId`;
+
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: sk },
+        UpdateExpression: updateExpression,
+        ExpressionAttributeNames: { "#count": "count" },
+        ExpressionAttributeValues: expressionAttributeValues,
+      }),
+    );
 
     // Update daily metric stats
     const dailySK = `STATS#EXP#${experimentKey}#VAR#${variationKey}#METRIC#${metricId}#DATE#${today}`;
-    let dailyUpdateExpression = 'ADD conversions :inc SET #date = :date';
+    // Build ADD section first (DynamoDB requires all ADD operations together before SET)
+    // Note: 'count' is a reserved word in DynamoDB, so we use ExpressionAttributeNames
+    let dailyAddExpression =
+      "ADD conversions :inc, sampleSize :inc, #count :inc";
     const dailyExpressionAttributeValues: Record<string, unknown> = {
-      ':inc': 1,
-      ':date': today,
+      ":inc": 1,
+      ":date": today,
     };
 
     if (value !== undefined) {
-      dailyUpdateExpression += ' ADD sumValue :value';
-      dailyExpressionAttributeValues[':value'] = value;
+      dailyAddExpression += ", sumValue :value";
+      dailyExpressionAttributeValues[":value"] = value;
     }
 
-    await dynamoDBClient.send(new UpdateCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: dailySK },
-      UpdateExpression: dailyUpdateExpression,
-      ExpressionAttributeNames: { '#date': 'date' },
-      ExpressionAttributeValues: dailyExpressionAttributeValues,
-    }));
+    // Then SET section
+    const dailyUpdateExpression = `${dailyAddExpression} SET #date = :date`;
+
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: dailySK },
+        UpdateExpression: dailyUpdateExpression,
+        ExpressionAttributeNames: { "#date": "date", "#count": "count" },
+        ExpressionAttributeValues: dailyExpressionAttributeValues,
+      }),
+    );
+
+    // Update daily experiment stats (aggregate conversions for all metrics)
+    // This populates the dailyData array in getExperimentStats()
+    const varShardKey = `${experimentKey}#${variationKey}`;
+    const varPK = this.getShardedPK(platform, environment, varShardKey);
+    const dailyExperimentSK = `STATS#EXP#${experimentKey}#VAR#${variationKey}#DATE#${today}`;
+    await dynamoDBClient.send(
+      new UpdateCommand({
+        TableName: this.getTableName(),
+        Key: { PK: varPK, SK: dailyExperimentSK },
+        UpdateExpression:
+          "ADD conversions :inc SET #date = :date, variationKey = :varKey",
+        ExpressionAttributeNames: { "#date": "date" },
+        ExpressionAttributeValues: {
+          ":inc": 1,
+          ":date": today,
+          ":varKey": variationKey,
+        },
+      }),
+    );
   }
 
   /**
@@ -509,23 +587,29 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   async getExperimentStats(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<ExperimentStats | null> {
     const allShardPKs = this.getAllShardPKs(platform, environment);
-    const variationStatsMap = new Map<string, { variationKey: string; participants: number; exposures: number }>();
+    const variationStatsMap = new Map<
+      string,
+      { variationKey: string; participants: number; exposures: number }
+    >();
 
     // Query all shards in parallel
-    const queries = allShardPKs.map(pk =>
-      dynamoDBClient.send(new QueryCommand({
-        TableName: this.getTableName(),
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        FilterExpression: 'attribute_exists(variationKey) AND attribute_not_exists(metricId) AND attribute_not_exists(#date)',
-        ExpressionAttributeNames: { '#date': 'date' },
-        ExpressionAttributeValues: {
-          ':pk': pk,
-          ':prefix': `STATS#EXP#${experimentKey}#VAR#`,
-        },
-      }))
+    const queries = allShardPKs.map((pk) =>
+      dynamoDBClient.send(
+        new QueryCommand({
+          TableName: this.getTableName(),
+          KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+          FilterExpression:
+            "attribute_exists(variationKey) AND attribute_not_exists(metricId) AND attribute_not_exists(#date)",
+          ExpressionAttributeNames: { "#date": "date" },
+          ExpressionAttributeValues: {
+            ":pk": pk,
+            ":prefix": `STATS#EXP#${experimentKey}#VAR#`,
+          },
+        }),
+      ),
     );
 
     const results = await Promise.all(queries);
@@ -534,17 +618,17 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     for (const result of results) {
       for (const item of result.Items || []) {
         const dynItem = item as DynamoItem;
-        const variationKey = dynItem['variationKey'] as string;
+        const variationKey = dynItem["variationKey"] as string;
         const existing = variationStatsMap.get(variationKey);
 
         if (existing) {
-          existing.participants += (dynItem['participants'] as number) || 0;
-          existing.exposures += (dynItem['exposures'] as number) || 0;
+          existing.participants += (dynItem["participants"] as number) || 0;
+          existing.exposures += (dynItem["exposures"] as number) || 0;
         } else {
           variationStatsMap.set(variationKey, {
             variationKey,
-            participants: (dynItem['participants'] as number) || 0,
-            exposures: (dynItem['exposures'] as number) || 0,
+            participants: (dynItem["participants"] as number) || 0,
+            exposures: (dynItem["exposures"] as number) || 0,
           });
         }
       }
@@ -556,13 +640,70 @@ export class DynamoDBStatsRepository implements IStatsRepository {
 
     const variations = Array.from(variationStatsMap.values());
 
+    // Query daily stats from all shards
+    const dailyStatsMap = new Map<
+      string,
+      {
+        date: string;
+        variationKey: string;
+        participants: number;
+        conversions: number;
+      }
+    >();
+    const dailyQueries = allShardPKs.map((pk) =>
+      dynamoDBClient.send(
+        new QueryCommand({
+          TableName: this.getTableName(),
+          KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+          FilterExpression:
+            "attribute_exists(#date) AND attribute_not_exists(metricId)",
+          ExpressionAttributeNames: { "#date": "date" },
+          ExpressionAttributeValues: {
+            ":pk": pk,
+            ":prefix": `STATS#EXP#${experimentKey}#VAR#`,
+          },
+        }),
+      ),
+    );
+
+    const dailyResults = await Promise.all(dailyQueries);
+
+    // Aggregate daily results from all shards
+    for (const result of dailyResults) {
+      for (const item of result.Items || []) {
+        const dynItem = item as DynamoItem;
+        const variationKey = dynItem["variationKey"] as string;
+        const date = dynItem["date"] as string;
+        const mapKey = `${date}#${variationKey}`;
+        const existing = dailyStatsMap.get(mapKey);
+
+        if (existing) {
+          existing.participants += (dynItem["participants"] as number) || 0;
+          existing.conversions += (dynItem["conversions"] as number) || 0;
+        } else {
+          dailyStatsMap.set(mapKey, {
+            date,
+            variationKey,
+            participants: (dynItem["participants"] as number) || 0,
+            conversions: (dynItem["conversions"] as number) || 0,
+          });
+        }
+      }
+    }
+
+    const dailyData = Array.from(dailyStatsMap.values()).sort(
+      (a, b) =>
+        a.date.localeCompare(b.date) ||
+        a.variationKey.localeCompare(b.variationKey),
+    );
+
     return {
       platform,
       environment,
       experimentKey,
       variations,
       metricResults: [], // Populated separately via getExperimentMetricStats
-      dailyData: [],     // Populated separately via time-series queries
+      dailyData,
       updatedAt: new Date().toISOString(),
     };
   }
@@ -576,23 +717,25 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     environment: string,
     experimentKey: string,
     variationKey: string,
-    metricId: string
+    metricId: string,
   ): Promise<ExperimentMetricStats[]> {
     // Use same shard key as recordConversion
     const shardKey = `${experimentKey}#${variationKey}#${metricId}`;
     const pk = this.getShardedPK(platform, environment, shardKey);
 
     // Query daily metric stats
-    const result = await dynamoDBClient.send(new QueryCommand({
-      TableName: this.getTableName(),
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-      ExpressionAttributeValues: {
-        ':pk': pk,
-        ':prefix': `STATS#EXP#${experimentKey}#VAR#${variationKey}#METRIC#${metricId}#DATE#`,
-      },
-    }));
+    const result = await dynamoDBClient.send(
+      new QueryCommand({
+        TableName: this.getTableName(),
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+        ExpressionAttributeValues: {
+          ":pk": pk,
+          ":prefix": `STATS#EXP#${experimentKey}#VAR#${variationKey}#METRIC#${metricId}#DATE#`,
+        },
+      }),
+    );
 
-    return (result.Items || []).map(item => {
+    return (result.Items || []).map((item) => {
       const dynItem = item as DynamoItem;
       return {
         platform,
@@ -600,11 +743,88 @@ export class DynamoDBStatsRepository implements IStatsRepository {
         experimentKey,
         variationKey,
         metricId,
-        date: dynItem['date'] as string,
-        sampleSize: (dynItem['sampleSize'] as number) || 0,
-        sum: (dynItem['sumValue'] as number) || 0,
-        count: (dynItem['count'] as number) || 0,
-        conversions: (dynItem['conversions'] as number) || 0,
+        date: dynItem["date"] as string,
+        sampleSize: (dynItem["sampleSize"] as number) || 0,
+        sum: (dynItem["sumValue"] as number) || 0,
+        count: (dynItem["count"] as number) || 0,
+        conversions: (dynItem["conversions"] as number) || 0,
+      };
+    });
+  }
+
+  // =========================================================================
+  // CUSTOM EVENT STATS
+  // =========================================================================
+
+  /**
+   * Record a custom event.
+   */
+  async recordCustomEvent(
+    platform: string,
+    environment: string,
+    eventName: string,
+    userId?: string,
+    properties?: Record<string, unknown>,
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    const eventId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    // Store custom events with time-based PK for efficient querying
+    const pk = `CUSTOM#${platform}#${environment}`;
+    const sk = `EVENT#${eventName}#${now}#${eventId}`;
+
+    await dynamoDBClient.send(
+      new PutCommand({
+        TableName: this.getTableName(),
+        Item: {
+          PK: pk,
+          SK: sk,
+          platform,
+          environment,
+          eventName,
+          userId: userId || null,
+          properties: properties || null,
+          timestamp: now,
+        },
+      }),
+    );
+  }
+
+  /**
+   * Get custom events for a platform/environment.
+   */
+  async getCustomEvents(
+    platform: string,
+    environment: string,
+    eventName?: string,
+    limit: number = 100,
+  ): Promise<CustomEventStats[]> {
+    const pk = `CUSTOM#${platform}#${environment}`;
+    const skPrefix = eventName ? `EVENT#${eventName}#` : "EVENT#";
+
+    const result = await dynamoDBClient.send(
+      new QueryCommand({
+        TableName: this.getTableName(),
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+        ExpressionAttributeValues: {
+          ":pk": pk,
+          ":prefix": skPrefix,
+        },
+        ScanIndexForward: false, // Most recent first
+        Limit: limit,
+      }),
+    );
+
+    return (result.Items || []).map((item) => {
+      const dynItem = item as DynamoItem;
+      return {
+        platform: dynItem["platform"] as string,
+        environment: dynItem["environment"] as string,
+        eventName: dynItem["eventName"] as string,
+        userId: (dynItem["userId"] as string) || undefined,
+        properties:
+          (dynItem["properties"] as Record<string, unknown>) || undefined,
+        timestamp: dynItem["timestamp"] as string,
       };
     });
   }
@@ -620,7 +840,7 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   async processBatch(
     platform: string,
     environment: string,
-    events: StatsEvent[]
+    events: StatsEvent[],
   ): Promise<void> {
     // Limit concurrency to avoid overwhelming the database
     const limit = pLimit(25);
@@ -628,47 +848,56 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     const processEvent = async (event: StatsEvent): Promise<void> => {
       try {
         switch (event.type) {
-          case 'config_fetch':
-            await this.incrementConfigFetch(platform, environment, event.key, event.clientId);
+          case "config_fetch":
+            await this.incrementConfigFetch(
+              platform,
+              environment,
+              event.key,
+              event.clientId,
+            );
             break;
 
-          case 'flag_evaluation':
+          case "flag_evaluation":
             await this.incrementFlagEvaluation(
               platform,
               environment,
               event.flagKey,
               event.value,
               event.userId,
-              event.country
+              event.country,
             );
             break;
 
-          case 'experiment_exposure':
+          case "experiment_exposure":
             await this.recordExperimentExposure(
               platform,
               environment,
               event.experimentKey,
               event.variationKey,
-              event.userId
+              event.userId,
             );
             break;
 
-          case 'conversion':
+          case "conversion":
             await this.recordConversion(
               platform,
               environment,
               event.experimentKey,
-              event.metricName, // metricName in the event maps to metricId in the repository
+              event.metricId,
               event.variationKey,
               event.userId,
-              event.value
+              event.value,
             );
             break;
 
-          case 'custom_event':
-            // Custom events are accepted but not persisted to database yet.
-            // Log for visibility instead of silently dropping.
-            console.log(`[stats] Custom event received: ${event.eventName} (userId: ${event.userId ?? 'anonymous'})`);
+          case "custom_event":
+            await this.recordCustomEvent(
+              platform,
+              environment,
+              event.eventName,
+              event.userId,
+              event.properties,
+            );
             break;
         }
       } catch (error) {
@@ -691,15 +920,17 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   async deleteConfigStats(
     platform: string,
     environment: string,
-    configKey: string
+    configKey: string,
   ): Promise<void> {
     const pk = this.getShardedPK(platform, environment, configKey);
     const sk = `STATS#CONFIG#${configKey}`;
 
-    await dynamoDBClient.send(new DeleteCommand({
-      TableName: this.getTableName(),
-      Key: { PK: pk, SK: sk },
-    }));
+    await dynamoDBClient.send(
+      new DeleteCommand({
+        TableName: this.getTableName(),
+        Key: { PK: pk, SK: sk },
+      }),
+    );
   }
 
   /**
@@ -710,22 +941,24 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   async deleteFlagStats(
     platform: string,
     environment: string,
-    flagKey: string
+    flagKey: string,
   ): Promise<void> {
     const allShardPKs = this.getAllShardPKs(platform, environment);
     const tableName = this.getTableName();
 
     // Query all shards in parallel with limit to prevent large result sets
-    const queries = allShardPKs.map(pk =>
-      dynamoDBClient.send(new QueryCommand({
-        TableName: tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: {
-          ':pk': pk,
-          ':prefix': `STATS#FLAG#${flagKey}`,
-        },
-        Limit: 1000, // Limit results per query
-      }))
+    const queries = allShardPKs.map((pk) =>
+      dynamoDBClient.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+          ExpressionAttributeValues: {
+            ":pk": pk,
+            ":prefix": `STATS#FLAG#${flagKey}`,
+          },
+          Limit: 1000, // Limit results per query
+        }),
+      ),
     );
 
     const results = await Promise.all(queries);
@@ -736,8 +969,8 @@ export class DynamoDBStatsRepository implements IStatsRepository {
       for (const item of result.Items || []) {
         const dynItem = item as DynamoItem;
         itemsToDelete.push({
-          PK: dynItem['PK'] as string,
-          SK: dynItem['SK'] as string,
+          PK: dynItem["PK"] as string,
+          SK: dynItem["SK"] as string,
         });
       }
     }
@@ -745,13 +978,15 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     // Delete in batches of 25 (DynamoDB BatchWriteItem limit)
     for (let i = 0; i < itemsToDelete.length; i += 25) {
       const batch = itemsToDelete.slice(i, i + 25);
-      await dynamoDBClient.send(new BatchWriteCommand({
-        RequestItems: {
-          [tableName]: batch.map(key => ({
-            DeleteRequest: { Key: key },
-          })),
-        },
-      }));
+      await dynamoDBClient.send(
+        new BatchWriteCommand({
+          RequestItems: {
+            [tableName]: batch.map((key) => ({
+              DeleteRequest: { Key: key },
+            })),
+          },
+        }),
+      );
     }
   }
 
@@ -763,22 +998,24 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   async deleteExperimentStats(
     platform: string,
     environment: string,
-    experimentKey: string
+    experimentKey: string,
   ): Promise<void> {
     const allShardPKs = this.getAllShardPKs(platform, environment);
     const tableName = this.getTableName();
 
     // Query all shards in parallel with limit to prevent large result sets
-    const queries = allShardPKs.map(pk =>
-      dynamoDBClient.send(new QueryCommand({
-        TableName: tableName,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-        ExpressionAttributeValues: {
-          ':pk': pk,
-          ':prefix': `STATS#EXP#${experimentKey}`,
-        },
-        Limit: 1000, // Limit results per query
-      }))
+    const queries = allShardPKs.map((pk) =>
+      dynamoDBClient.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
+          ExpressionAttributeValues: {
+            ":pk": pk,
+            ":prefix": `STATS#EXP#${experimentKey}`,
+          },
+          Limit: 1000, // Limit results per query
+        }),
+      ),
     );
 
     const results = await Promise.all(queries);
@@ -789,8 +1026,8 @@ export class DynamoDBStatsRepository implements IStatsRepository {
       for (const item of result.Items || []) {
         const dynItem = item as DynamoItem;
         itemsToDelete.push({
-          PK: dynItem['PK'] as string,
-          SK: dynItem['SK'] as string,
+          PK: dynItem["PK"] as string,
+          SK: dynItem["SK"] as string,
         });
       }
     }
@@ -798,13 +1035,15 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     // Delete in batches of 25 (DynamoDB BatchWriteItem limit)
     for (let i = 0; i < itemsToDelete.length; i += 25) {
       const batch = itemsToDelete.slice(i, i + 25);
-      await dynamoDBClient.send(new BatchWriteCommand({
-        RequestItems: {
-          [tableName]: batch.map(key => ({
-            DeleteRequest: { Key: key },
-          })),
-        },
-      }));
+      await dynamoDBClient.send(
+        new BatchWriteCommand({
+          RequestItems: {
+            [tableName]: batch.map((key) => ({
+              DeleteRequest: { Key: key },
+            })),
+          },
+        }),
+      );
     }
   }
 }
