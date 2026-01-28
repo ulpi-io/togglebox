@@ -39,6 +39,15 @@ pnpm dev
 
 Visit [http://localhost:3001](http://localhost:3001)
 
+## Demo Admin Credentials
+
+After running `pnpm seed` from the root directory, you can login with:
+
+| Field    | Value                 |
+| -------- | --------------------- |
+| Email    | `admin@togglebox.com` |
+| Password | `Parola123!`          |
+
 ## Environment Variables
 
 See `.env.example` for required configuration.

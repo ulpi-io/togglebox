@@ -81,11 +81,8 @@ The API runs at `http://localhost:3000` and the admin dashboard at `http://local
 To populate the database with demo data for all example apps:
 
 ```bash
-# Make sure the API is running first
-pnpm dev:api
-
-# In another terminal, run the seed script
-./scripts/seed-demo-data.sh
+# Run the seed script (no API required - seeds directly to database)
+pnpm seed
 ```
 
 The seed script creates:
