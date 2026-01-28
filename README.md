@@ -11,6 +11,12 @@ Self-host it anywhere or use our [hosted version](https://togglebox.dev) for a f
 
 ---
 
+## ToggleBox a visual overview of the platform
+
+![ToggleBox Overview](./togglebox-overview.png)
+
+---
+
 ## Core Features
 
 ### Remote Configs
@@ -110,32 +116,32 @@ npm install @togglebox/sdk
 ```
 
 ```typescript
-import { ToggleBoxClient } from "@togglebox/sdk";
+import { ToggleBoxClient } from '@togglebox/sdk'
 
 const client = new ToggleBoxClient({
-  platform: "web",
-  environment: "production",
-  apiUrl: "https://your-togglebox-api.com",
-});
+  platform: 'web',
+  environment: 'production',
+  apiUrl: 'https://your-togglebox-api.com',
+})
 
 // Remote config (Tier 1)
-const config = await client.getConfig();
-const theme = await client.getConfigValue("theme", "light");
+const config = await client.getConfig()
+const theme = await client.getConfigValue('theme', 'light')
 
 // Feature flag (Tier 2)
-const showNewUI = await client.isFlagEnabled("new-dashboard", {
-  userId: "user-123",
-});
+const showNewUI = await client.isFlagEnabled('new-dashboard', {
+  userId: 'user-123',
+})
 if (showNewUI) {
-  renderNewDashboard();
+  renderNewDashboard()
 }
 
 // Experiment (Tier 3)
-const assignment = await client.getVariant("checkout-experiment", {
-  userId: "user-123",
-});
-if (assignment?.variationKey === "one-click") {
-  renderOneClickCheckout();
+const assignment = await client.getVariant('checkout-experiment', {
+  userId: 'user-123',
+})
+if (assignment?.variationKey === 'one-click') {
+  renderOneClickCheckout()
 }
 ```
 
@@ -151,31 +157,31 @@ import {
   useFlag,
   useExperiment,
   useConfig,
-} from "@togglebox/sdk-nextjs";
+} from '@togglebox/sdk-nextjs'
 
 // Wrap your app
-<ToggleBoxProvider
+;<ToggleBoxProvider
   platform="web"
   environment="production"
   apiUrl={process.env.NEXT_PUBLIC_TOGGLEBOX_URL!}
 >
   <App />
-</ToggleBoxProvider>;
+</ToggleBoxProvider>
 
 // Use in components
 function PricingPage() {
-  const config = useConfig();
-  const { checkEnabled } = useFlag("new-pricing");
-  const { getVariant } = useExperiment("pricing-test", { userId: user.id });
-  const [showNewPricing, setShowNewPricing] = useState(false);
-  const [variant, setVariant] = useState<string | null>(null);
+  const config = useConfig()
+  const { checkEnabled } = useFlag('new-pricing')
+  const { getVariant } = useExperiment('pricing-test', { userId: user.id })
+  const [showNewPricing, setShowNewPricing] = useState(false)
+  const [variant, setVariant] = useState<string | null>(null)
 
   useEffect(() => {
-    checkEnabled().then(setShowNewPricing);
-    getVariant().then(setVariant);
-  }, [checkEnabled, getVariant]);
+    checkEnabled().then(setShowNewPricing)
+    getVariant().then(setVariant)
+  }, [checkEnabled, getVariant])
 
-  return showNewPricing ? <NewPricing variant={variant} /> : <OldPricing />;
+  return showNewPricing ? <NewPricing variant={variant} /> : <OldPricing />
 }
 ```
 
@@ -191,10 +197,10 @@ import {
   useConfig,
   useFlags,
   useToggleBox,
-} from "@togglebox/sdk-expo";
+} from '@togglebox/sdk-expo'
 
 // Wrap your app with offline persistence
-<ToggleBoxProvider
+;<ToggleBoxProvider
   platform="mobile"
   environment="production"
   apiUrl="https://your-togglebox-api.com"
@@ -202,16 +208,16 @@ import {
   storageTTL={86400000}
 >
   <App />
-</ToggleBoxProvider>;
+</ToggleBoxProvider>
 
 // Use in components
 function HomeScreen() {
-  const config = useConfig();
-  const flags = useFlags();
-  const { isLoading, isOnline, refresh } = useToggleBox();
+  const config = useConfig()
+  const flags = useFlags()
+  const { isLoading, isOnline, refresh } = useToggleBox()
 
   // Works offline with cached data
-  return <View>...</View>;
+  return <View>...</View>
 }
 ```
 
