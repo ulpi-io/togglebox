@@ -90,11 +90,22 @@ router.post(
       const { orderId, total } = req.body;
 
       if (!orderId || typeof orderId !== "string") {
-        res.status(400).json({ error: "orderId is required and must be a string" });
+        res
+          .status(400)
+          .json({ error: "orderId is required and must be a string" });
         return;
       }
-      if (total === undefined || total === null || typeof total !== "number" || total < 0) {
-        res.status(400).json({ error: "total is required and must be a non-negative number" });
+      if (
+        total === undefined ||
+        total === null ||
+        typeof total !== "number" ||
+        total < 0
+      ) {
+        res
+          .status(400)
+          .json({
+            error: "total is required and must be a non-negative number",
+          });
         return;
       }
 

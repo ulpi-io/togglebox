@@ -406,7 +406,11 @@ export class ConfigController {
         return;
       }
       // Handle "not found" errors from repository
-      if (error instanceof NotFoundError || (error instanceof Error && error.message.toLowerCase().includes("not found"))) {
+      if (
+        error instanceof NotFoundError ||
+        (error instanceof Error &&
+          error.message.toLowerCase().includes("not found"))
+      ) {
         res.status(404).json({
           success: false,
           error: error.message,

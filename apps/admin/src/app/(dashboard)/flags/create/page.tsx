@@ -542,9 +542,7 @@ export default function CreateFlagPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="valueA">
-                      Value A {flagType === "boolean" && "(when enabled)"}
-                    </Label>
+                    <Label htmlFor="valueA">Value A (default)</Label>
                     {flagType === "boolean" ? (
                       <Select
                         id="valueA"
@@ -564,13 +562,11 @@ export default function CreateFlagPage() {
                       />
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Served when flag is ON
+                      Default value, served when flag is disabled
                     </p>
                   </div>
                   <div>
-                    <Label htmlFor="valueB">
-                      Value B {flagType === "boolean" && "(when disabled)"}
-                    </Label>
+                    <Label htmlFor="valueB">Value B (variant)</Label>
                     {flagType === "boolean" ? (
                       <Select
                         id="valueB"
@@ -590,7 +586,7 @@ export default function CreateFlagPage() {
                       />
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Served when flag is OFF
+                      Alternative value for rollouts and targeting
                     </p>
                   </div>
                 </div>
@@ -610,7 +606,7 @@ export default function CreateFlagPage() {
                     </Label>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 ml-6">
-                    When enabled, matching users will receive Value A
+                    When disabled, all users receive Value A (the default)
                   </p>
                 </div>
               </div>

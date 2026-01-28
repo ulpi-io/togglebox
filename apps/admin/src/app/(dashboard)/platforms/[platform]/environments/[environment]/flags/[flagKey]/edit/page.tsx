@@ -663,9 +663,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="valueA">
-                      Value A (served when enabled)
-                    </Label>
+                    <Label htmlFor="valueA">Value A (default)</Label>
                     {flagType === "boolean" ? (
                       <Select
                         id="valueA"
@@ -687,7 +685,8 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                       />
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Served when flag conditions are not met
+                      Default value, served when flag is disabled or no rules
+                      match
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -810,9 +809,9 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
                 {!rolloutEnabled && (
                   <p className="text-sm text-muted-foreground">
-                    When disabled, users receive the configured default value
-                    (Value B by default). Enable rollout for gradual feature
-                    releases.
+                    Without rollout, all users receive Value A (the default).
+                    Enable rollout to gradually release Value B to a percentage
+                    of users.
                   </p>
                 )}
 
