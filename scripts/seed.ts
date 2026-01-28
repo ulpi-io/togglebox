@@ -105,10 +105,18 @@ async function seed(): Promise<void> {
 
   console.log("\n📋 Created Resources:");
   console.log("   - 3 Platforms: web, mobile, ecommerce");
-  console.log("   - 3 Environments: staging (web, mobile), development (ecommerce)");
-  console.log("   - 11 Config Parameters: theme, apiTimeout, storeName, currency, taxRate, etc.");
-  console.log("   - 7 Feature Flags: dark-mode, beta-features, reviews-enabled, express-shipping, etc.");
-  console.log("   - 4 Experiments: checkout-test, cta-test, checkout-button-test, pricing-display-test");
+  console.log(
+    "   - 3 Environments: staging (web, mobile), development (ecommerce)",
+  );
+  console.log(
+    "   - 11 Config Parameters: theme, apiTimeout, storeName, currency, taxRate, etc.",
+  );
+  console.log(
+    "   - 7 Feature Flags: dark-mode, beta-features, reviews-enabled, express-shipping, etc.",
+  );
+  console.log(
+    "   - 4 Experiments: checkout-test, cta-test, checkout-button-test, pricing-display-test",
+  );
 
   console.log("\n🚀 Ready to use! Start the API with: pnpm dev:api\n");
 }
@@ -173,7 +181,10 @@ async function seedPlatforms(db: DatabaseRepositories): Promise<void> {
 
       console.log(`   ✓ Platform '${platform.name}' created`);
     } catch (error) {
-      console.error(`   ✗ Failed to create platform '${platform.name}':`, error);
+      console.error(
+        `   ✗ Failed to create platform '${platform.name}':`,
+        error,
+      );
     }
   }
 }
@@ -367,7 +378,9 @@ async function seedConfigParameters(db: DatabaseRepositories): Promise<void> {
   }
 }
 
-async function seedFeatureFlags(threeTier: ThreeTierRepositories): Promise<void> {
+async function seedFeatureFlags(
+  threeTier: ThreeTierRepositories,
+): Promise<void> {
   console.log("\n📌 Step 5: Creating feature flags...");
 
   const flags = [
@@ -550,7 +563,9 @@ async function seedFeatureFlags(threeTier: ThreeTierRepositories): Promise<void>
   }
 }
 
-async function seedExperiments(threeTier: ThreeTierRepositories): Promise<void> {
+async function seedExperiments(
+  threeTier: ThreeTierRepositories,
+): Promise<void> {
   console.log("\n📌 Step 6: Creating experiments...");
 
   const experiments = [
@@ -560,8 +575,7 @@ async function seedExperiments(threeTier: ThreeTierRepositories): Promise<void> 
       experimentKey: "checkout-test",
       name: "Checkout Flow A/B Test",
       description: "Testing classic vs single-page checkout",
-      hypothesis:
-        "Single-page checkout will increase conversion rate by 10%",
+      hypothesis: "Single-page checkout will increase conversion rate by 10%",
       variations: [
         {
           key: "classic",
@@ -609,8 +623,7 @@ async function seedExperiments(threeTier: ThreeTierRepositories): Promise<void> 
       experimentKey: "cta-test",
       name: "CTA Button Text Test",
       description: "Testing different call-to-action button texts",
-      hypothesis:
-        "Action-oriented CTA text will increase tap rate by 15%",
+      hypothesis: "Action-oriented CTA text will increase tap rate by 15%",
       variations: [
         {
           key: "get-started",

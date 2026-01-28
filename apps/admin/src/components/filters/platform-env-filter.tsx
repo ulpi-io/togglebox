@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Select } from "@togglebox/ui";
 import { getPlatformsApi, getEnvironmentsApi } from "@/lib/api/platforms";
@@ -13,7 +19,7 @@ function useIsHydrated() {
   return useSyncExternalStore(
     () => () => {},
     () => true,
-    () => false
+    () => false,
   );
 }
 

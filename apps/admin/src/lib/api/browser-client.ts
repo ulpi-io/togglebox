@@ -44,7 +44,8 @@ function handleUnauthorized(): void {
   }
 
   // Clear the auth token cookie
-  document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  document.cookie =
+    "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
   // Redirect to login page (avoid redirect loop if already on login)
   if (!window.location.pathname.startsWith("/login")) {
