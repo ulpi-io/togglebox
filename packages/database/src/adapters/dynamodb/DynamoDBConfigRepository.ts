@@ -35,7 +35,11 @@ import {
   QueryCommandInput,
   BatchWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { NotFoundError, ConflictError, BadRequestError } from "@togglebox/shared";
+import {
+  NotFoundError,
+  ConflictError,
+  BadRequestError,
+} from "@togglebox/shared";
 
 /**
  * Type guard for DynamoDB errors with a name property.

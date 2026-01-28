@@ -142,7 +142,9 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     }
 
     if (current.status !== "draft") {
-      throw new BadRequestError(`Cannot update experiment in ${current.status} status`);
+      throw new BadRequestError(
+        `Cannot update experiment in ${current.status} status`,
+      );
     }
 
     const now = new Date().toISOString();
@@ -197,7 +199,9 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     }
 
     if (current.status !== "draft") {
-      throw new BadRequestError(`Cannot start experiment in ${current.status} status`);
+      throw new BadRequestError(
+        `Cannot start experiment in ${current.status} status`,
+      );
     }
 
     const now = new Date().toISOString();
@@ -225,7 +229,9 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     }
 
     if (current.status !== "running") {
-      throw new BadRequestError(`Cannot pause experiment in ${current.status} status`);
+      throw new BadRequestError(
+        `Cannot pause experiment in ${current.status} status`,
+      );
     }
 
     return this.updateStatus(
@@ -248,7 +254,9 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     }
 
     if (current.status !== "paused") {
-      throw new BadRequestError(`Cannot resume experiment in ${current.status} status`);
+      throw new BadRequestError(
+        `Cannot resume experiment in ${current.status} status`,
+      );
     }
 
     return this.updateStatus(
@@ -273,7 +281,9 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     }
 
     if (current.status !== "running" && current.status !== "paused") {
-      throw new BadRequestError(`Cannot complete experiment in ${current.status} status`);
+      throw new BadRequestError(
+        `Cannot complete experiment in ${current.status} status`,
+      );
     }
 
     const now = new Date().toISOString();
@@ -302,7 +312,9 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     }
 
     if (current.status !== "completed") {
-      throw new BadRequestError(`Cannot archive experiment in ${current.status} status`);
+      throw new BadRequestError(
+        `Cannot archive experiment in ${current.status} status`,
+      );
     }
 
     return this.updateStatus(
@@ -532,7 +544,9 @@ export class DynamoDBExperimentRepository implements IExperimentRepository {
     const variationKeys = new Set(current.variations.map((v) => v.key));
     for (const allocation of trafficAllocation) {
       if (!variationKeys.has(allocation.variationKey)) {
-        throw new BadRequestError(`Unknown variation key: ${allocation.variationKey}`);
+        throw new BadRequestError(
+          `Unknown variation key: ${allocation.variationKey}`,
+        );
       }
     }
 

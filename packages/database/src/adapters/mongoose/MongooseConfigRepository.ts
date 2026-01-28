@@ -176,7 +176,9 @@ export class MongooseConfigRepository implements IConfigRepository {
       });
 
       if (!created) {
-        throw new InternalServerError("Failed to create new config parameter version");
+        throw new InternalServerError(
+          "Failed to create new config parameter version",
+        );
       }
       return this.mapToConfigParameter(created);
     } catch (error: unknown) {

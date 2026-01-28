@@ -20,10 +20,7 @@ import type {
   UpdateRollout,
 } from "@togglebox/flags";
 import type { IFlagRepository, FlagPage } from "@togglebox/flags";
-import {
-  NotFoundError,
-  BadRequestError,
-} from "@togglebox/shared";
+import { NotFoundError, BadRequestError } from "@togglebox/shared";
 import { dynamoDBClient, getFlagsTableName } from "../../database";
 
 // Type for DynamoDB item
