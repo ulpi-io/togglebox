@@ -23,8 +23,11 @@ export default function UsersPage() {
         limit: PAGE_SIZE,
         offset: pageNum * PAGE_SIZE,
       });
-      setUsers(result.users);
-      setTotal(result.total);
+      // Handle different API response formats
+      const usersList = result?.users ?? (Array.isArray(result) ? result : []);
+      const totalCount = result?.total ?? usersList.length;
+      setUsers(usersList);
+      setTotal(totalCount);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load users");
@@ -44,8 +47,11 @@ export default function UsersPage() {
           offset: page * PAGE_SIZE,
         });
         if (isMounted) {
-          setUsers(result.users);
-          setTotal(result.total);
+          // Handle different API response formats
+          const usersList = result?.users ?? (Array.isArray(result) ? result : []);
+          const totalCount = result?.total ?? usersList.length;
+          setUsers(usersList);
+          setTotal(totalCount);
           setError(null);
         }
       } catch (err) {

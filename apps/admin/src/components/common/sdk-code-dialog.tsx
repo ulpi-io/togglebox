@@ -19,6 +19,281 @@ import {
 
 type SdkType = "javascript" | "nextjs" | "expo" | "php" | "laravel";
 type EntityType = "config" | "flag" | "experiment";
+type Language = "typescript" | "php";
+
+// Simple syntax highlighter - no external dependencies
+function highlightCode(code: string, language: Language): React.ReactNode[] {
+  const lines = code.split("\n");
+
+  return lines.map((line, lineIndex) => (
+    <span key={lineIndex}>
+      {highlightLine(line, language)}
+      {lineIndex < lines.length - 1 && "\n"}
+    </span>
+  ));
+}
+
+function highlightLine(line: string, language: Language): React.ReactNode[] {
+  if (language === "php") {
+    return highlightPhp(line);
+  }
+  return highlightTypeScript(line);
+}
+
+function highlightTypeScript(line: string): React.ReactNode[] {
+  const tokens: React.ReactNode[] = [];
+  let remaining = line;
+  let key = 0;
+
+  while (remaining.length > 0) {
+    let matched = false;
+
+    // Comments
+    const commentMatch = remaining.match(/^(\/\/.*)/);
+    if (commentMatch) {
+      tokens.push(
+        <span key={key++} className="text-gray-500 italic">
+          {commentMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(commentMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Strings (double quotes)
+    const doubleStringMatch = remaining.match(/^("[^"]*")/);
+    if (doubleStringMatch) {
+      tokens.push(
+        <span key={key++} className="text-emerald-400">
+          {doubleStringMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(doubleStringMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Strings (single quotes)
+    const singleStringMatch = remaining.match(/^('[^']*')/);
+    if (singleStringMatch) {
+      tokens.push(
+        <span key={key++} className="text-emerald-400">
+          {singleStringMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(singleStringMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Template literals
+    const templateMatch = remaining.match(/^(`[^`]*`)/);
+    if (templateMatch) {
+      tokens.push(
+        <span key={key++} className="text-emerald-400">
+          {templateMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(templateMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Keywords
+    const keywordMatch = remaining.match(
+      /^(import|from|export|const|let|var|function|async|await|return|if|else|new|true|false|null|undefined)\b/,
+    );
+    if (keywordMatch) {
+      tokens.push(
+        <span key={key++} className="text-purple-400 font-medium">
+          {keywordMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(keywordMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // JSX tags
+    const jsxMatch = remaining.match(/^(<\/?[A-Z][a-zA-Z]*\s*\/?>?)/);
+    if (jsxMatch) {
+      tokens.push(
+        <span key={key++} className="text-sky-400">
+          {jsxMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(jsxMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Function calls
+    const funcMatch = remaining.match(/^([a-zA-Z_][a-zA-Z0-9_]*)(\s*\()/);
+    if (funcMatch) {
+      tokens.push(
+        <span key={key++} className="text-sky-400">
+          {funcMatch[1]}
+        </span>,
+      );
+      tokens.push(<span key={key++}>{funcMatch[2]}</span>);
+      remaining = remaining.slice(funcMatch[0].length);
+      matched = true;
+      continue;
+    }
+
+    // Default: take one character
+    if (!matched) {
+      tokens.push(<span key={key++}>{remaining[0]}</span>);
+      remaining = remaining.slice(1);
+    }
+  }
+
+  return tokens;
+}
+
+function highlightPhp(line: string): React.ReactNode[] {
+  const tokens: React.ReactNode[] = [];
+  let remaining = line;
+  let key = 0;
+
+  while (remaining.length > 0) {
+    let matched = false;
+
+    // PHP opening tag
+    const phpTagMatch = remaining.match(/^(<\?php)/);
+    if (phpTagMatch) {
+      tokens.push(
+        <span key={key++} className="text-red-400">
+          {phpTagMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(phpTagMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Comments
+    const commentMatch = remaining.match(/^(\/\/.*)/);
+    if (commentMatch) {
+      tokens.push(
+        <span key={key++} className="text-gray-500 italic">
+          {commentMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(commentMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Strings (single quotes)
+    const singleStringMatch = remaining.match(/^('[^']*')/);
+    if (singleStringMatch) {
+      tokens.push(
+        <span key={key++} className="text-emerald-400">
+          {singleStringMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(singleStringMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Strings (double quotes)
+    const doubleStringMatch = remaining.match(/^("[^"]*")/);
+    if (doubleStringMatch) {
+      tokens.push(
+        <span key={key++} className="text-emerald-400">
+          {doubleStringMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(doubleStringMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Variables
+    const varMatch = remaining.match(/^(\$[a-zA-Z_][a-zA-Z0-9_]*)/);
+    if (varMatch) {
+      tokens.push(
+        <span key={key++} className="text-orange-400">
+          {varMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(varMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Keywords
+    const keywordMatch = remaining.match(
+      /^(use|new|if|else|return|true|false|null|echo|class|function|public|private|protected)\b/,
+    );
+    if (keywordMatch) {
+      tokens.push(
+        <span key={key++} className="text-purple-400 font-medium">
+          {keywordMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(keywordMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Namespace/class references
+    const namespaceMatch = remaining.match(/^([A-Z][a-zA-Z0-9_]*)(\\|::)/);
+    if (namespaceMatch) {
+      tokens.push(
+        <span key={key++} className="text-teal-400">
+          {namespaceMatch[1]}
+        </span>,
+      );
+      tokens.push(<span key={key++}>{namespaceMatch[2]}</span>);
+      remaining = remaining.slice(namespaceMatch[0].length);
+      matched = true;
+      continue;
+    }
+
+    // Function calls
+    const funcMatch = remaining.match(/^([a-zA-Z_][a-zA-Z0-9_]*)(\s*\()/);
+    if (funcMatch) {
+      tokens.push(
+        <span key={key++} className="text-sky-400">
+          {funcMatch[1]}
+        </span>,
+      );
+      tokens.push(<span key={key++}>{funcMatch[2]}</span>);
+      remaining = remaining.slice(funcMatch[0].length);
+      matched = true;
+      continue;
+    }
+
+    // Arrow (=>)
+    const arrowMatch = remaining.match(/^(=>)/);
+    if (arrowMatch) {
+      tokens.push(
+        <span key={key++} className="text-purple-400">
+          {arrowMatch[1]}
+        </span>,
+      );
+      remaining = remaining.slice(arrowMatch[1].length);
+      matched = true;
+      continue;
+    }
+
+    // Default: take one character
+    if (!matched) {
+      tokens.push(<span key={key++}>{remaining[0]}</span>);
+      remaining = remaining.slice(1);
+    }
+  }
+
+  return tokens;
+}
+
+function getLanguageForSdk(sdk: SdkType): Language {
+  return sdk === "php" || sdk === "laravel" ? "php" : "typescript";
+}
 
 interface SdkCodeDialogProps {
   type: EntityType;
@@ -454,8 +729,10 @@ export function SdkCodeDialog({
             {(Object.keys(SDK_LABELS) as SdkType[]).map((sdk) => (
               <TabsContent key={sdk} value={sdk}>
                 <div className="relative">
-                  <pre className="p-4 bg-gray-50 rounded-lg font-mono text-xs overflow-x-auto border border-black/10 max-h-96 overflow-y-auto">
-                    <code>{codeSnippet}</code>
+                  <pre className="p-4 bg-gray-950 rounded-lg font-mono text-xs overflow-x-auto border border-gray-800 max-h-96 overflow-y-auto text-gray-300">
+                    <code>
+                      {highlightCode(codeSnippet, getLanguageForSdk(selectedSdk))}
+                    </code>
                   </pre>
                   <Button
                     type="button"

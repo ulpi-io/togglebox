@@ -128,10 +128,10 @@ export default function CreateConfigParameterPage() {
       return;
     }
 
-    // Validate key format (alphanumeric, dashes, underscores, dots)
-    if (!/^[a-zA-Z][a-zA-Z0-9_.-]*$/.test(parameterKey.trim())) {
+    // Validate key format (alphanumeric, dashes, underscores - no dots)
+    if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(parameterKey.trim())) {
       setError(
-        "Parameter key must start with a letter and contain only letters, numbers, underscores, dashes, and dots",
+        "Parameter key must start with a letter and contain only letters, numbers, underscores, and hyphens",
       );
       setIsLoading(false);
       return;
@@ -270,14 +270,14 @@ export default function CreateConfigParameterPage() {
                   id="parameterKey"
                   value={parameterKey}
                   onChange={(e) => setParameterKey(e.target.value)}
-                  placeholder="e.g., app.feature.enabled"
+                  placeholder="e.g., app_feature_enabled"
                   required
                   disabled={isLoading}
                   className="font-mono"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Unique key for this parameter. Use dot notation for
-                  organization.
+                  Unique key for this parameter. Use underscores or hyphens for
+                  organization (e.g., algolia_api_key).
                 </p>
               </div>
               <div className="space-y-2">
