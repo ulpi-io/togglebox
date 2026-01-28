@@ -24,7 +24,7 @@ import {
   FilterTabs,
 } from "@togglebox/ui";
 import { DeleteEnvironmentButton } from "@/components/environments/delete-environment-button";
-import { Layers, Flag, FlaskConical, Pencil, Check, X } from "lucide-react";
+import { Layers, Flag, FlaskConical, Pencil, Check, X, Plus } from "lucide-react";
 
 interface EnvironmentWithPlatform extends Environment {
   platformName: string;
@@ -167,6 +167,27 @@ export default function EnvironmentsPage() {
           <p className="text-muted-foreground mt-1">
             All environments across all platforms ({environments.length} total)
           </p>
+        </div>
+        <div>
+          {selectedPlatform !== "all" ? (
+            <Button asChild>
+              <Link href={`/platforms/${selectedPlatform}/environments/create`}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Environment
+              </Link>
+            </Button>
+          ) : platforms.length > 0 ? (
+            <Button asChild>
+              <Link href={`/platforms/${platforms[0].name}/environments/create`}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Environment
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/platforms">Create Platform First</Link>
+            </Button>
+          )}
         </div>
       </div>
 
