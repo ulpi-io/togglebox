@@ -4,6 +4,8 @@ import type { Flag, FlagTargeting, Platform, Environment } from "./types";
 /**
  * Get all flags across all platforms and environments.
  * Used when no filter is applied.
+ *
+ * @throws Error if fetching platforms fails or if any non-404 errors occur
  */
 export async function getAllFlagsApi(): Promise<Flag[]> {
   // First, get all platforms
@@ -11,6 +13,7 @@ export async function getAllFlagsApi(): Promise<Flag[]> {
 
   // For each platform, get environments and then flags
   const allFlags: Flag[] = [];
+  const errors: Error[] = [];
 
   await Promise.all(
     platforms.map(async (platform) => {
@@ -27,29 +30,38 @@ export async function getAllFlagsApi(): Promise<Flag[]> {
               );
               allFlags.push(...flags);
             } catch (error) {
-              // Only skip 404 errors (no flags for environment)
-              // Log other errors for debugging
+              // Skip 404 errors (no flags for environment is valid)
+              // Collect other errors for reporting
               if (error instanceof Error && !error.message.includes("404")) {
-                console.warn(
-                  `Failed to fetch flags for ${platform.name}/${env.environment}:`,
-                  error.message,
+                errors.push(
+                  new Error(
+                    `Failed to fetch flags for ${platform.name}/${env.environment}: ${error.message}`,
+                  ),
                 );
               }
             }
           }),
         );
       } catch (error) {
-        // Only skip 404 errors (no environments for platform)
-        // Log other errors for debugging
+        // Skip 404 errors (no environments for platform is valid)
+        // Collect other errors for reporting
         if (error instanceof Error && !error.message.includes("404")) {
-          console.warn(
-            `Failed to fetch environments for ${platform.name}:`,
-            error.message,
+          errors.push(
+            new Error(
+              `Failed to fetch environments for ${platform.name}: ${error.message}`,
+            ),
           );
         }
       }
     }),
   );
+
+  // If we collected any errors, throw an aggregate error
+  if (errors.length > 0) {
+    throw new Error(
+      `Failed to fetch some flags: ${errors.map((e) => e.message).join("; ")}`,
+    );
+  }
 
   return allFlags;
 }

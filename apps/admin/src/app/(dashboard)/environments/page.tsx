@@ -133,7 +133,7 @@ export default function EnvironmentsPage() {
       );
       setEditState(null);
     } catch (err) {
-      alert(
+      setError(
         err instanceof Error ? err.message : "Failed to update environment",
       );
     } finally {

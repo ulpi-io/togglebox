@@ -345,6 +345,11 @@ export class ToggleBoxClient {
    * @param context - Experiment context
    * @param data - Conversion data (metricId, optional value)
    *
+   * @remarks
+   * This method retrieves the user's variation assignment without tracking
+   * an additional exposure event, preventing double-exposure when the user
+   * has already been exposed via getVariant().
+   *
    * @example
    * ```typescript
    * // Track a purchase conversion
@@ -359,8 +364,9 @@ export class ToggleBoxClient {
     context: ExperimentContext,
     data: ConversionData,
   ): Promise<void> {
-    // Get the user's assigned variation
-    const assignment = await this.getVariant(experimentKey, context);
+    // Get the user's assigned variation WITHOUT tracking exposure
+    // to avoid double-exposure (user was already exposed via getVariant)
+    const assignment = await this.getVariantInternal(experimentKey, context);
 
     if (assignment) {
       this.stats.trackConversion(
@@ -371,6 +377,35 @@ export class ToggleBoxClient {
         data.value,
       );
     }
+  }
+
+  /**
+   * Internal method to get variant assignment without tracking exposure.
+   * Used by trackConversion to avoid double-exposure.
+   */
+  private async getVariantInternal(
+    experimentKey: string,
+    context: ExperimentContext,
+  ): Promise<VariantAssignment | null> {
+    const cacheKey = `experiments:${this.platform}:${this.environment}`;
+
+    // Try cache first
+    let experiments = this.cache.get<Experiment[]>(cacheKey);
+    if (!experiments) {
+      const path = `/api/v1/platforms/${this.platform}/environments/${this.environment}/experiments`;
+      const response = await this.http.get<{ data: Experiment[] }>(path);
+      experiments = response.data;
+      this.cache.set(cacheKey, experiments);
+    }
+
+    const experiment = experiments.find(
+      (e) => e.experimentKey === experimentKey,
+    );
+    if (!experiment) {
+      throw new Error(`Experiment "${experimentKey}" not found`);
+    }
+
+    return assignVariation(experiment, context);
   }
 
   /**

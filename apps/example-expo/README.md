@@ -71,10 +71,10 @@ The seed script creates demo data for this app:
 Create a `.env` file in `apps/example-expo/`:
 
 ```bash
-EXPO_PUBLIC_API_URL=http://localhost:3000/api/v1
-EXPO_PUBLIC_PLATFORM=mobile
-EXPO_PUBLIC_ENVIRONMENT=staging  # Matches seed demo data
-EXPO_PUBLIC_API_KEY=your-api-key  # Required if API has auth enabled
+EXPO_PUBLIC_TOGGLEBOX_API_URL=http://localhost:3000/api/v1
+EXPO_PUBLIC_TOGGLEBOX_PLATFORM=mobile
+EXPO_PUBLIC_TOGGLEBOX_ENVIRONMENT=staging  # Matches seed demo data
+EXPO_PUBLIC_TOGGLEBOX_API_KEY=your-api-key  # Required if API has auth enabled
 ```
 
 ---

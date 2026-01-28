@@ -212,6 +212,8 @@ export class LoggerService {
   child(context: Record<string, unknown>): LoggerService {
     const childLogger = new LoggerService();
     childLogger.logger = this.logger.child(context);
+    // Copy httpLogger reference so child loggers can be used with getHttpLogger()
+    childLogger.httpLogger = this.httpLogger;
     return childLogger;
   }
 
