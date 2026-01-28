@@ -56,11 +56,8 @@ export function CreateApiKeyDialog({ onSuccess }: CreateApiKeyDialogProps) {
     try {
       const apiKey = await createApiKeyApi(name);
       setResult({ apiKey: apiKey.key });
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        router.refresh();
-      }
+      // Don't call onSuccess here - wait until user clicks "Done"
+      // so they have a chance to copy the key first
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -69,6 +66,14 @@ export function CreateApiKeyDialog({ onSuccess }: CreateApiKeyDialogProps) {
   }
 
   function handleOpenChange(newOpen: boolean) {
+    // If closing and we have a result, refresh the list
+    if (!newOpen && result?.apiKey) {
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.refresh();
+      }
+    }
     // Reset state when opening or closing
     setError(null);
     setResult(null);
