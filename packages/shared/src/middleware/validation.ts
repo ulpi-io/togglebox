@@ -232,12 +232,19 @@ export const sanitizeInput = (
     req.body = sanitizeValue(req.body);
   }
 
+  // req.query and req.params are read-only in Express 5, sanitize in place
   if (req.query && typeof req.query === "object") {
-    req.query = sanitizeValue(req.query) as typeof req.query;
+    const sanitized = sanitizeValue(req.query) as Record<string, unknown>;
+    for (const key of Object.keys(req.query)) {
+      (req.query as Record<string, unknown>)[key] = sanitized[key];
+    }
   }
 
   if (req.params && typeof req.params === "object") {
-    req.params = sanitizeValue(req.params) as typeof req.params;
+    const sanitized = sanitizeValue(req.params) as Record<string, unknown>;
+    for (const key of Object.keys(req.params)) {
+      (req.params as Record<string, unknown>)[key] = sanitized[key];
+    }
   }
 
   next();
