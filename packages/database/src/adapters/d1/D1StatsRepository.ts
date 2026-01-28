@@ -439,7 +439,7 @@ export class D1StatsRepository implements IStatsRepository {
     }
 
     // Update daily metric stats
-    let dailyUpdateQuery = `UPDATE experiment_metric_stats_daily SET conversions = conversions + 1`;
+    let dailyUpdateQuery = `UPDATE experiment_metric_stats_daily SET conversions = conversions + 1, sampleSize = sampleSize + 1`;
     const dailyUpdateParams: unknown[] = [];
 
     if (value !== undefined) {
@@ -458,8 +458,8 @@ export class D1StatsRepository implements IStatsRepository {
     if (dailyUpdateResult.meta.rows_written === 0) {
       await this.db
         .prepare(
-          `INSERT INTO experiment_metric_stats_daily (platform, environment, experimentKey, variationKey, metricId, date, conversions, sumValue)
-          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, ?7)`
+          `INSERT INTO experiment_metric_stats_daily (platform, environment, experimentKey, variationKey, metricId, date, conversions, sampleSize, sumValue)
+          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, 1, ?7)`
         )
         .bind(platform, environment, experimentKey, variationKey, metricId, today, value || 0)
         .run();

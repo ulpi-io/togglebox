@@ -482,7 +482,7 @@ export class DynamoDBStatsRepository implements IStatsRepository {
 
     // Update daily metric stats
     const dailySK = `STATS#EXP#${experimentKey}#VAR#${variationKey}#METRIC#${metricId}#DATE#${today}`;
-    let dailyUpdateExpression = 'ADD conversions :inc SET #date = :date';
+    let dailyUpdateExpression = 'ADD conversions :inc, sampleSize :inc SET #date = :date';
     const dailyExpressionAttributeValues: Record<string, unknown> = {
       ':inc': 1,
       ':date': today,

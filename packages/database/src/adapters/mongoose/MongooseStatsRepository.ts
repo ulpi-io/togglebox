@@ -399,6 +399,7 @@ export class MongooseStatsRepository implements IStatsRepository {
     // Update daily metric stats
     const dailyIncFields: Record<string, number> = {
       conversions: 1,
+      sampleSize: 1,
     };
 
     if (value !== undefined) {
