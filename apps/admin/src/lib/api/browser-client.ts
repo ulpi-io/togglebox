@@ -62,7 +62,7 @@ function getAuthToken(): string | null {
  */
 export async function browserApiClient<T>(
   endpoint: string,
-  options: RequestInit = {},
+  options: RequestInit & { signal?: AbortSignal } = {},
 ): Promise<T> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 

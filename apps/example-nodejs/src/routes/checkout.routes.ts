@@ -101,11 +101,9 @@ router.post(
         typeof total !== "number" ||
         total < 0
       ) {
-        res
-          .status(400)
-          .json({
-            error: "total is required and must be a non-negative number",
-          });
+        res.status(400).json({
+          error: "total is required and must be a non-negative number",
+        });
         return;
       }
 

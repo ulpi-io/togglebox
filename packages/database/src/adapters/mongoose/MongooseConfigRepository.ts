@@ -206,30 +206,44 @@ export class MongooseConfigRepository implements IConfigRepository {
 
         // Step 2: Atomically switch active flags using bulkWrite
         // This is more atomic than separate updateOne calls
-        await ConfigParameterModel.bulkWrite([
-          {
-            updateOne: {
-              filter: {
-                platform,
-                environment,
-                parameterKey,
-                version: current.version,
+        try {
+          await ConfigParameterModel.bulkWrite([
+            {
+              updateOne: {
+                filter: {
+                  platform,
+                  environment,
+                  parameterKey,
+                  version: current.version,
+                },
+                update: { $set: { isActive: false } },
               },
-              update: { $set: { isActive: false } },
             },
-          },
-          {
-            updateOne: {
-              filter: {
-                platform,
-                environment,
-                parameterKey,
-                version: nextVersion,
+            {
+              updateOne: {
+                filter: {
+                  platform,
+                  environment,
+                  parameterKey,
+                  version: nextVersion,
+                },
+                update: { $set: { isActive: true } },
               },
-              update: { $set: { isActive: true } },
             },
-          },
-        ]);
+          ]);
+        } catch (bulkError) {
+          // Cleanup: delete the inactive new version we created
+          await ConfigParameterModel.deleteOne({
+            platform,
+            environment,
+            parameterKey,
+            version: nextVersion,
+            isActive: false,
+          }).catch(() => {
+            // Ignore cleanup errors - orphaned inactive version is harmless
+          });
+          throw bulkError;
+        }
 
         // Re-fetch the updated document
         const updated = await ConfigParameterModel.findOne({
