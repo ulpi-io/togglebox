@@ -171,8 +171,7 @@ export const Steps = forwardRef<HTMLDivElement, StepsProps>(
 Steps.displayName = "Steps";
 
 // Simpler inline step indicator for compact layouts
-export interface StepIndicatorProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+export interface StepIndicatorProps extends React.HTMLAttributes<HTMLDivElement> {
   total: number;
   current: number;
   completed?: number[];

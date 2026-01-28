@@ -45,9 +45,7 @@ import * as passwordResetService from "./passwordResetService";
  * }
  * ```
  */
-export class DynamoDBPasswordResetRepository
-  implements IPasswordResetRepository
-{
+export class DynamoDBPasswordResetRepository implements IPasswordResetRepository {
   async create(
     data: CreatePasswordResetTokenData,
   ): Promise<PasswordResetToken> {

@@ -123,8 +123,10 @@ export interface ApiKey {
   createdAt: string;
 }
 
-export interface ApiKeyWithPlaintext
-  extends Omit<ApiKey, "keyPrefix" | "keyLast4"> {
+export interface ApiKeyWithPlaintext extends Omit<
+  ApiKey,
+  "keyPrefix" | "keyLast4"
+> {
   key: string; // Full plaintext key (shown once)
 }
 
