@@ -132,9 +132,9 @@ const enabled = await checkEnabled();
 ```tsx
 const { experiments, getVariant, isLoading, error, refresh } = useExperiments();
 
-// Get variant assignment
+// Get variant assignment (returns variationKey string or null)
 const variant = await getVariant("checkout-test", { userId: "user-123" });
-console.log(variant?.variationKey); // "control", "variant_1", etc.
+console.log(variant); // "control", "variant_1", etc.
 ```
 
 ### useExperiment
@@ -142,8 +142,9 @@ console.log(variant?.variationKey); // "control", "variant_1", etc.
 ```tsx
 const { experiment, exists, isLoading, getVariant } = useExperiment("checkout-test", { userId });
 
-// Get assigned variant
+// Get assigned variant (returns variationKey string or null)
 const variant = await getVariant();
+console.log(variant); // "control", "variant_1", etc.
 ```
 
 ### useAnalytics
@@ -336,7 +337,7 @@ function CheckoutPage({ userId }: { userId: string }) {
   const [variant, setVariant] = useState<string | null>(null);
 
   useEffect(() => {
-    getVariant().then((v) => setVariant(v?.variationKey || null));
+    getVariant().then(setVariant);
   }, [getVariant]);
 
   const handlePurchase = async (amount: number) => {
