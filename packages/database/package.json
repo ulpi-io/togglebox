@@ -27,7 +27,7 @@
     "@togglebox/experiments": "workspace:*",
     "@togglebox/stats": "workspace:*",
     "@togglebox/shared": "workspace:*",
-    "mongoose": "^8.0.3",
+    "mongoose": "^9.1.5",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
