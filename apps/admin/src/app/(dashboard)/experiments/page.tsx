@@ -77,31 +77,39 @@ function ExperimentsContent() {
   ];
 
   useEffect(() => {
-    let isMounted = true;
+    const abortController = new AbortController();
 
     const loadData = async () => {
       try {
         setIsLoading(true);
         const [experimentsData, userData] = await Promise.all([
           !platform || !environment
-            ? getAllExperimentsApi()
-            : getExperimentsApi(platform, environment),
-          getCurrentUserApi().catch(() => null),
+            ? getAllExperimentsApi({ signal: abortController.signal })
+            : getExperimentsApi(platform, environment, undefined, {
+                signal: abortController.signal,
+              }),
+          getCurrentUserApi({ signal: abortController.signal }).catch(
+            () => null,
+          ),
         ]);
 
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           setExperiments(experimentsData);
           setUser(userData);
           setError(null);
         }
       } catch (err) {
-        if (isMounted) {
+        // Ignore abort errors
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        if (!abortController.signal.aborted) {
           setError(
             err instanceof Error ? err.message : "Failed to load experiments",
           );
         }
       } finally {
-        if (isMounted) {
+        if (!abortController.signal.aborted) {
           setIsLoading(false);
         }
       }
@@ -110,7 +118,7 @@ function ExperimentsContent() {
     loadData();
 
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
   }, [platform, environment]);
 

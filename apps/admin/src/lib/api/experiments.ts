@@ -9,10 +9,16 @@ import type {
 /**
  * Get all experiments across all platforms and environments.
  * Used when no filter is applied.
+ *
+ * @param options - Optional fetch options including AbortSignal
  */
-export async function getAllExperimentsApi(): Promise<Experiment[]> {
+export async function getAllExperimentsApi(options?: {
+  signal?: AbortSignal;
+}): Promise<Experiment[]> {
   // First, get all platforms
-  const platforms = await browserApiClient<Platform[]>("/api/v1/platforms");
+  const platforms = await browserApiClient<Platform[]>("/api/v1/platforms", {
+    signal: options?.signal,
+  });
 
   // For each platform, get environments and then experiments
   const allExperiments: Experiment[] = [];
@@ -22,6 +28,7 @@ export async function getAllExperimentsApi(): Promise<Experiment[]> {
       try {
         const environments = await browserApiClient<Environment[]>(
           `/api/v1/platforms/${platform.name}/environments`,
+          { signal: options?.signal },
         );
 
         await Promise.all(
@@ -29,6 +36,7 @@ export async function getAllExperimentsApi(): Promise<Experiment[]> {
             try {
               const experiments = await browserApiClient<Experiment[]>(
                 `/api/v1/platforms/${platform.name}/environments/${env.environment}/experiments`,
+                { signal: options?.signal },
               );
               allExperiments.push(...experiments);
             } catch {
@@ -48,15 +56,22 @@ export async function getAllExperimentsApi(): Promise<Experiment[]> {
 /**
  * Get all experiments for an environment.
  * Three-Tier Architecture - Tier 3: Experiments (A/B testing)
+ *
+ * @param platform - Platform name
+ * @param environment - Environment name
+ * @param status - Optional status filter
+ * @param options - Optional fetch options including AbortSignal
  */
 export async function getExperimentsApi(
   platform: string,
   environment: string,
   status?: "draft" | "running" | "paused" | "completed" | "archived",
+  options?: { signal?: AbortSignal },
 ): Promise<Experiment[]> {
   const queryParams = status ? `?status=${status}` : "";
   return browserApiClient<Experiment[]>(
     `/api/v1/platforms/${platform}/environments/${environment}/experiments${queryParams}`,
+    { signal: options?.signal },
   );
 }
 

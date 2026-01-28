@@ -281,17 +281,20 @@ export class ConfigController {
           `Created config parameter ${param.parameterKey} (v${param.version}) for ${platform}/${environment}`,
         );
 
-        // Invalidate configs cache
+        // Invalidate configs cache (await to ensure client doesn't fetch stale data)
         const cachePaths = [
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
-        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+        try {
+          await this.cacheProvider.invalidateCache(cachePaths);
+        } catch (err) {
           // WARN level since stale cache affects data consistency
+          // Don't fail the request - mutation succeeded
           logger.warn("Cache invalidation failed - stale data may be served", {
             paths: cachePaths,
             error: err instanceof Error ? err.message : String(err),
           });
-        });
+        }
 
         res.status(201).json({
           success: true,
@@ -378,13 +381,16 @@ export class ConfigController {
         const cachePaths = [
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
-        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+        try {
+          await this.cacheProvider.invalidateCache(cachePaths);
+        } catch (err) {
           // WARN level since stale cache affects data consistency
+          // Don't fail the request - mutation succeeded
           logger.warn("Cache invalidation failed - stale data may be served", {
             paths: cachePaths,
             error: err instanceof Error ? err.message : String(err),
           });
-        });
+        }
 
         res.json({
           success: true,
@@ -479,13 +485,16 @@ export class ConfigController {
         const cachePaths = [
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
-        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+        try {
+          await this.cacheProvider.invalidateCache(cachePaths);
+        } catch (err) {
           // WARN level since stale cache affects data consistency
+          // Don't fail the request - mutation succeeded
           logger.warn("Cache invalidation failed - stale data may be served", {
             paths: cachePaths,
             error: err instanceof Error ? err.message : String(err),
           });
-        });
+        }
 
         res.status(204).send();
       });
@@ -745,13 +754,16 @@ export class ConfigController {
         const cachePaths = [
           `/api/v1/platforms/${platform}/environments/${environment}/configs`,
         ];
-        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+        try {
+          await this.cacheProvider.invalidateCache(cachePaths);
+        } catch (err) {
           // WARN level since stale cache affects data consistency
+          // Don't fail the request - mutation succeeded
           logger.warn("Cache invalidation failed - stale data may be served", {
             paths: cachePaths,
             error: err instanceof Error ? err.message : String(err),
           });
-        });
+        }
 
         res.json({
           success: true,
@@ -949,13 +961,16 @@ export class ConfigController {
         logger.info(`Deleted platform ${platform} and all associated data`);
 
         const cachePaths = this.cacheProvider.generateCachePaths(platform);
-        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+        try {
+          await this.cacheProvider.invalidateCache(cachePaths);
+        } catch (err) {
           // WARN level since stale cache affects data consistency
+          // Don't fail the request - mutation succeeded
           logger.warn("Cache invalidation failed - stale data may be served", {
             paths: cachePaths,
             error: err instanceof Error ? err.message : String(err),
           });
-        });
+        }
 
         res.status(204).send();
       });
@@ -1264,13 +1279,16 @@ export class ConfigController {
           platform,
           environment,
         );
-        this.cacheProvider.invalidateCache(cachePaths).catch((err) => {
+        try {
+          await this.cacheProvider.invalidateCache(cachePaths);
+        } catch (err) {
           // WARN level since stale cache affects data consistency
+          // Don't fail the request - mutation succeeded
           logger.warn("Cache invalidation failed - stale data may be served", {
             paths: cachePaths,
             error: err instanceof Error ? err.message : String(err),
           });
-        });
+        }
 
         res.status(204).send();
       });

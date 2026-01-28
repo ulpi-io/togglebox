@@ -55,8 +55,10 @@ export async function completePasswordResetApi(
   });
 }
 
-export async function getCurrentUserApi(): Promise<User> {
-  return browserApiClient("/api/v1/users/me");
+export async function getCurrentUserApi(options?: {
+  signal?: AbortSignal;
+}): Promise<User> {
+  return browserApiClient("/api/v1/users/me", { signal: options?.signal });
 }
 
 export async function updateProfileApi(data: { name?: string }): Promise<User> {

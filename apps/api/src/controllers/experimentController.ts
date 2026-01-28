@@ -320,7 +320,11 @@ export class ExperimentController {
           `Started experiment ${experimentKey} for ${platform}/${environment}`,
         );
 
-        this.invalidateExperimentCache(platform, environment, experimentKey);
+        await this.invalidateExperimentCache(
+          platform,
+          environment,
+          experimentKey,
+        );
 
         res.json({
           success: true,
@@ -381,7 +385,11 @@ export class ExperimentController {
           `Paused experiment ${experimentKey} for ${platform}/${environment}`,
         );
 
-        this.invalidateExperimentCache(platform, environment, experimentKey);
+        await this.invalidateExperimentCache(
+          platform,
+          environment,
+          experimentKey,
+        );
 
         res.json({
           success: true,
@@ -430,7 +438,11 @@ export class ExperimentController {
           `Resumed experiment ${experimentKey} for ${platform}/${environment}`,
         );
 
-        this.invalidateExperimentCache(platform, environment, experimentKey);
+        await this.invalidateExperimentCache(
+          platform,
+          environment,
+          experimentKey,
+        );
 
         res.json({
           success: true,
@@ -499,7 +511,11 @@ export class ExperimentController {
           `Completed experiment ${experimentKey} for ${platform}/${environment}, winner: ${winner || "none"}`,
         );
 
-        this.invalidateExperimentCache(platform, environment, experimentKey);
+        await this.invalidateExperimentCache(
+          platform,
+          environment,
+          experimentKey,
+        );
 
         res.json({
           success: true,
@@ -717,7 +733,11 @@ export class ExperimentController {
           `Deleted experiment ${experimentKey} for ${platform}/${environment}`,
         );
 
-        this.invalidateExperimentCache(platform, environment, experimentKey);
+        await this.invalidateExperimentCache(
+          platform,
+          environment,
+          experimentKey,
+        );
 
         res.status(204).send();
       });
@@ -1112,7 +1132,11 @@ export class ExperimentController {
           `Updated traffic allocation for experiment ${experimentKey} in ${platform}/${environment}`,
         );
 
-        this.invalidateExperimentCache(platform, environment, experimentKey);
+        await this.invalidateExperimentCache(
+          platform,
+          environment,
+          experimentKey,
+        );
 
         res.json({
           success: true,
@@ -1139,23 +1163,27 @@ export class ExperimentController {
 
   /**
    * Helper method to invalidate cache for an experiment.
+   * Awaits cache invalidation to ensure client doesn't fetch stale data.
    */
-  private invalidateExperimentCache(
+  private async invalidateExperimentCache(
     platform: string,
     environment: string,
     experimentKey: string,
-  ): void {
+  ): Promise<void> {
     const cachePaths = [
       `/api/v1/platforms/${platform}/environments/${environment}/experiments/${experimentKey}`,
       `/api/v1/platforms/${platform}/environments/${environment}/experiments`,
     ];
 
-    this.cacheProvider.invalidateCache(cachePaths).catch((err: unknown) => {
+    try {
+      await this.cacheProvider.invalidateCache(cachePaths);
+    } catch (err: unknown) {
       // WARN level since stale cache affects data consistency
+      // Don't fail the request - mutation succeeded
       logger.warn("Cache invalidation failed - stale data may be served", {
         paths: cachePaths,
         error: err instanceof Error ? err.message : String(err),
       });
-    });
+    }
   }
 }
