@@ -346,7 +346,9 @@ export async function listUsers(options?: {
       },
       Select: "COUNT" as const,
     };
-    const countResult = await dynamoDBClient.send(new QueryCommand(countParams));
+    const countResult = await dynamoDBClient.send(
+      new QueryCommand(countParams),
+    );
     const total = countResult.Count || 0;
 
     // Use GSI2 for listing all users (more efficient than scan)

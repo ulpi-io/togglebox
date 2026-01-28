@@ -663,7 +663,9 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="valueA">Value A (served when enabled)</Label>
+                    <Label htmlFor="valueA">
+                      Value A (served when enabled)
+                    </Label>
                     {flagType === "boolean" ? (
                       <Select
                         id="valueA"
