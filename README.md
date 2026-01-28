@@ -11,9 +11,9 @@ Self-host it anywhere or use our [hosted version](https://togglebox.dev) for a f
 
 ---
 
-## ToggleBox a visual overview of the platform
+## Visual Overview
 
-![ToggleBox Overview](./togglebox-overview.png)
+![ToggleBox Overview](./docs/images/togglebox-overview.png)
 
 ---
 
