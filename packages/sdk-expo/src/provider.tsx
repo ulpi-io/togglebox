@@ -78,9 +78,13 @@ export function ToggleBoxProvider({
 
     clientRef.current = client
 
+    // BUGFIX: Track mounted state to prevent state updates after unmount
+    let isMounted = true
+
     // Listen for updates from polling
     // SECURITY: Wrap in try-catch and use void to handle promises without blocking
     client.on('update', (data) => {
+      if (!isMounted) return
       try {
         const updateData = data as {
           config: Config
@@ -95,15 +99,17 @@ export function ToggleBoxProvider({
         if (persistToStorage && storageRef.current) {
           void storageRef.current
             .save(updateData.config, updateData.flags, updateData.experiments)
-            .catch((err) => setError(err as Error))
+            .catch((err) => {
+              if (isMounted) setError(err as Error)
+            })
         }
       } catch (err) {
-        setError(err as Error)
+        if (isMounted) setError(err as Error)
       }
     })
 
     client.on('error', (err) => {
-      setError(err as Error)
+      if (isMounted) setError(err as Error)
     })
 
     // Load initial data
@@ -113,16 +119,22 @@ export function ToggleBoxProvider({
         if (persistToStorage && storageRef.current) {
           const stored = await storageRef.current.load()
           if (stored) {
-            setConfig(stored.config)
-            setFlags(stored.flags)
-            setExperiments(stored.experiments)
-            setIsLoading(false)
+            if (isMounted) {
+              setConfig(stored.config)
+              setFlags(stored.flags)
+              setExperiments(stored.experiments)
+              setIsLoading(false)
+            }
 
             // Fetch fresh data in background
             client
               .refresh()
-              .then(() => setError(null))
-              .catch((err) => setError(err as Error))
+              .then(() => {
+                if (isMounted) setError(null)
+              })
+              .catch((err) => {
+                if (isMounted) setError(err as Error)
+              })
             return
           }
         }
@@ -134,25 +146,28 @@ export function ToggleBoxProvider({
           client.getExperiments(),
         ])
 
-        setConfig(configData)
-        setFlags(flagsData)
-        setExperiments(experimentsData)
-        setError(null)
+        if (isMounted) {
+          setConfig(configData)
+          setFlags(flagsData)
+          setExperiments(experimentsData)
+          setError(null)
+        }
 
         // Save to MMKV if enabled
         if (persistToStorage && storageRef.current) {
           await storageRef.current.save(configData, flagsData, experimentsData)
         }
       } catch (err) {
-        setError(err as Error)
+        if (isMounted) setError(err as Error)
       } finally {
-        setIsLoading(false)
+        if (isMounted) setIsLoading(false)
       }
     }
 
     loadData()
 
     return () => {
+      isMounted = false
       client.destroy()
     }
   }, [platform, environment, apiUrl, apiKey, tenantSubdomain, cache, pollingInterval, persistToStorage, storageTTL])

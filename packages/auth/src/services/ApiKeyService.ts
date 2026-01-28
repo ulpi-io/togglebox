@@ -178,6 +178,8 @@ export class ApiKeyService {
    *
    * @param id - API key unique identifier
    * @returns Public API key or null if not found
+   *
+   * @deprecated Use {@link getApiKeyForUser} instead for ownership verification
    */
   async getApiKeyById(id: string): Promise<PublicApiKey | null> {
     const apiKey = await this.apiKeyRepository.findById(id);
@@ -187,6 +189,33 @@ export class ApiKeyService {
 
     // Convert to PublicApiKey
     const { keyHash, userId, ...publicKey } = apiKey;
+    return publicKey;
+  }
+
+  /**
+   * Get API key by unique ID with ownership verification.
+   *
+   * @param id - API key unique identifier
+   * @param userId - User who must own the key
+   * @returns Public API key or null if not found or not owned by user
+   *
+   * @remarks
+   * **Security:** Returns null if the key exists but belongs to another user.
+   * This prevents information leakage about other users' API keys.
+   */
+  async getApiKeyForUser(id: string, userId: string): Promise<PublicApiKey | null> {
+    const apiKey = await this.apiKeyRepository.findById(id);
+    if (!apiKey) {
+      return null;
+    }
+
+    // Ownership verification - return null if key belongs to another user
+    if (apiKey.userId !== userId) {
+      return null;
+    }
+
+    // Convert to PublicApiKey (exclude sensitive fields)
+    const { keyHash, userId: _, ...publicKey } = apiKey;
     return publicKey;
   }
 

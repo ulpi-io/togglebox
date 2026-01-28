@@ -511,6 +511,23 @@ export class DynamoDBStatsRepository implements IStatsRepository {
       ExpressionAttributeNames: { '#date': 'date', '#count': 'count' },
       ExpressionAttributeValues: dailyExpressionAttributeValues,
     }));
+
+    // Update daily experiment stats (aggregate conversions for all metrics)
+    // This populates the dailyData array in getExperimentStats()
+    const varShardKey = `${experimentKey}#${variationKey}`;
+    const varPK = this.getShardedPK(platform, environment, varShardKey);
+    const dailyExperimentSK = `STATS#EXP#${experimentKey}#VAR#${variationKey}#DATE#${today}`;
+    await dynamoDBClient.send(new UpdateCommand({
+      TableName: this.getTableName(),
+      Key: { PK: varPK, SK: dailyExperimentSK },
+      UpdateExpression: 'ADD conversions :inc SET #date = :date, variationKey = :varKey',
+      ExpressionAttributeNames: { '#date': 'date' },
+      ExpressionAttributeValues: {
+        ':inc': 1,
+        ':date': today,
+        ':varKey': variationKey,
+      },
+    }));
   }
 
   /**
@@ -567,13 +584,57 @@ export class DynamoDBStatsRepository implements IStatsRepository {
 
     const variations = Array.from(variationStatsMap.values());
 
+    // Query daily stats from all shards
+    const dailyStatsMap = new Map<string, { date: string; variationKey: string; participants: number; conversions: number }>();
+    const dailyQueries = allShardPKs.map(pk =>
+      dynamoDBClient.send(new QueryCommand({
+        TableName: this.getTableName(),
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        FilterExpression: 'attribute_exists(#date) AND attribute_not_exists(metricId)',
+        ExpressionAttributeNames: { '#date': 'date' },
+        ExpressionAttributeValues: {
+          ':pk': pk,
+          ':prefix': `STATS#EXP#${experimentKey}#VAR#`,
+        },
+      }))
+    );
+
+    const dailyResults = await Promise.all(dailyQueries);
+
+    // Aggregate daily results from all shards
+    for (const result of dailyResults) {
+      for (const item of result.Items || []) {
+        const dynItem = item as DynamoItem;
+        const variationKey = dynItem['variationKey'] as string;
+        const date = dynItem['date'] as string;
+        const mapKey = `${date}#${variationKey}`;
+        const existing = dailyStatsMap.get(mapKey);
+
+        if (existing) {
+          existing.participants += (dynItem['participants'] as number) || 0;
+          existing.conversions += (dynItem['conversions'] as number) || 0;
+        } else {
+          dailyStatsMap.set(mapKey, {
+            date,
+            variationKey,
+            participants: (dynItem['participants'] as number) || 0,
+            conversions: (dynItem['conversions'] as number) || 0,
+          });
+        }
+      }
+    }
+
+    const dailyData = Array.from(dailyStatsMap.values()).sort((a, b) =>
+      a.date.localeCompare(b.date) || a.variationKey.localeCompare(b.variationKey)
+    );
+
     return {
       platform,
       environment,
       experimentKey,
       variations,
       metricResults: [], // Populated separately via getExperimentMetricStats
-      dailyData: [],     // Populated separately via time-series queries
+      dailyData,
       updatedAt: new Date().toISOString(),
     };
   }

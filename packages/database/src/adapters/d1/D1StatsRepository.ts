@@ -465,6 +465,27 @@ export class D1StatsRepository implements IStatsRepository {
         .bind(platform, environment, experimentKey, variationKey, metricId, today, value || 0)
         .run();
     }
+
+    // Update daily experiment stats (aggregate conversions for all metrics)
+    // This populates the dailyData array in getExperimentStats()
+    const dailyExpUpdateResult = await this.db
+      .prepare(
+        `UPDATE experiment_stats_daily SET conversions = conversions + 1
+        WHERE platform = ?1 AND environment = ?2 AND experimentKey = ?3 AND variationKey = ?4 AND date = ?5`
+      )
+      .bind(platform, environment, experimentKey, variationKey, today)
+      .run();
+
+    if (dailyExpUpdateResult.meta.rows_written === 0) {
+      // If no record exists yet (user wasn't exposed first), create it with just conversions
+      await this.db
+        .prepare(
+          `INSERT INTO experiment_stats_daily (platform, environment, experimentKey, variationKey, date, participants, conversions)
+          VALUES (?1, ?2, ?3, ?4, ?5, 0, 1)`
+        )
+        .bind(platform, environment, experimentKey, variationKey, today)
+        .run();
+    }
   }
 
   /**
@@ -493,13 +514,31 @@ export class D1StatsRepository implements IStatsRepository {
       return null;
     }
 
+    // Query daily stats for time series data
+    const dailyResult = await this.db
+      .prepare(
+        `SELECT date, variationKey, participants, conversions
+        FROM experiment_stats_daily
+        WHERE platform = ?1 AND environment = ?2 AND experimentKey = ?3
+        ORDER BY date ASC, variationKey ASC`
+      )
+      .bind(platform, environment, experimentKey)
+      .all<{
+        date: string;
+        variationKey: string;
+        participants: number;
+        conversions: number;
+      }>();
+
+    const dailyData = dailyResult.results || [];
+
     return {
       platform,
       environment,
       experimentKey,
       variations: result.results,
       metricResults: [], // Populated separately via getExperimentMetricStats
-      dailyData: [],     // Populated separately via time-series queries
+      dailyData,
       updatedAt: new Date().toISOString(),
     };
   }

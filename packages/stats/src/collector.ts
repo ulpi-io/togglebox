@@ -229,6 +229,14 @@ export class StatsCollector {
       } else {
         // Re-queue events for transient errors (may succeed on retry)
         this.queue.unshift(...events);
+
+        // Clamp queue size to prevent unbounded memory growth from repeated failures
+        if (this.queue.length > this.options.maxQueueSize) {
+          const overflow = this.queue.length - this.options.maxQueueSize;
+          this.queue.length = this.options.maxQueueSize; // Truncates from end (drops oldest re-queued events)
+          console.warn(`[ToggleBox Stats] Queue overflow, dropped ${overflow} oldest events`);
+        }
+
         console.error('[ToggleBox Stats] Failed to send events (will retry):', error);
       }
     } finally {

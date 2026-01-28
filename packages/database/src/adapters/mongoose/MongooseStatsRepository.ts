@@ -430,6 +430,27 @@ export class MongooseStatsRepository implements IStatsRepository {
       dailyUpdateFields,
       { upsert: true }
     );
+
+    // Update daily experiment stats (aggregate conversions for all metrics)
+    // This populates the dailyData array in getExperimentStats()
+    await StatsModel.updateOne(
+      {
+        platform,
+        environment,
+        statsType: 'exp_var',
+        key: experimentKey,
+        subKey: `${variationKey}#${today}`,
+      },
+      {
+        $inc: { conversions: 1 },
+        $set: {
+          variationKey,
+          date: today,
+          updatedAt: now,
+        },
+      },
+      { upsert: true }
+    );
   }
 
   /**
@@ -459,13 +480,49 @@ export class MongooseStatsRepository implements IStatsRepository {
       exposures: doc.exposures ?? 0,
     }));
 
+    // Query daily variation stats (subKey contains #date pattern)
+    const dailyDocs = await StatsModel.find({
+      platform,
+      environment,
+      statsType: 'exp_var',
+      key: experimentKey,
+      subKey: /#/, // Only daily stats (subKey contains #)
+    }).sort({ date: 1, variationKey: 1 });
+
+    // Aggregate conversions from daily metric stats for each variation+date
+    const conversionMap = new Map<string, number>();
+    const metricDocs = await StatsModel.find({
+      platform,
+      environment,
+      statsType: 'exp_metric',
+      key: experimentKey,
+      date: { $exists: true }, // Only daily metric stats
+    });
+
+    for (const doc of metricDocs) {
+      if (doc.date && doc.variationKey) {
+        const mapKey = `${doc.date}#${doc.variationKey}`;
+        conversionMap.set(mapKey, (conversionMap.get(mapKey) ?? 0) + (doc.conversions ?? 0));
+      }
+    }
+
+    const dailyData = dailyDocs.map(doc => {
+      const mapKey = `${doc.date}#${doc.variationKey}`;
+      return {
+        date: doc.date ?? '',
+        variationKey: doc.variationKey ?? '',
+        participants: doc.participants ?? 0,
+        conversions: conversionMap.get(mapKey) ?? 0,
+      };
+    });
+
     return {
       platform,
       environment,
       experimentKey,
       variations,
       metricResults: [], // Populated separately via getExperimentMetricStats
-      dailyData: [],     // Populated separately via time-series queries
+      dailyData,
       updatedAt: new Date().toISOString(),
     };
   }

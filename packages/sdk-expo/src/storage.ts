@@ -45,6 +45,9 @@ export class Storage {
           id: `togglebox-${this.platform}-${this.environment}`,
         })
       } catch (error) {
+        // BUGFIX: Reset initPromise so subsequent calls can retry initialization
+        // This allows recovery after hot reload or dependency fix
+        this.initPromise = null
         console.error(
           'Failed to initialize MMKV. Make sure react-native-mmkv is installed:',
           error

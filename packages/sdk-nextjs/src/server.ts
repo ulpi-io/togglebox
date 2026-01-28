@@ -147,7 +147,8 @@ export async function getFlags(options: ServerOptions): Promise<ServerFlagsResul
       isFlagEnabled: (flagKey: string, context?: FlagContext): boolean => {
         const flag = flags.find((f) => f.flagKey === flagKey)
         if (!flag) return false
-        const result = evaluateFlag(flag, context ?? { userId: '' })
+        // Use 'anonymous' as default userId to maintain consistent hashing behavior
+        const result = evaluateFlag(flag, context ?? { userId: 'anonymous' })
         return result.servedValue === 'A'
       },
     }
@@ -192,7 +193,11 @@ export async function getExperiment(
   try {
     const experiments = await client.getExperiments()
     const experiment = experiments.find((e) => e.experimentKey === experimentKey) || null
-    const variant = await client.getVariant(experimentKey, context)
+
+    // BUGFIX: Use local assignment to avoid double-counting exposures
+    // client.getVariant() tracks an exposure, but the client will also track
+    // on hydration, causing inflated exposure counts and distorted conversion rates
+    const variant = experiment ? assignVariation(experiment, context) : null
 
     return { experiment, variant }
   } catch (error) {

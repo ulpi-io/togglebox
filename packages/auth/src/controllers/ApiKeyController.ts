@@ -237,7 +237,7 @@ export class ApiKeyController {
    *
    * **Security:**
    * - Full key never exposed (only prefix and last4)
-   * - No ownership verification (any authenticated user can view)
+   * - Ownership verification: users can only view their own keys
    */
   getApiKey = async (
     req: AuthRequest,
@@ -264,7 +264,8 @@ export class ApiKeyController {
         return;
       }
 
-      const apiKey = await this.apiKeyService.getApiKeyById(id);
+      // SECURITY: Use getApiKeyForUser to verify ownership
+      const apiKey = await this.apiKeyService.getApiKeyForUser(id, req.user.userId);
 
       if (!apiKey) {
         res.status(404).json({

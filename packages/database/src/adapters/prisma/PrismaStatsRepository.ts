@@ -436,7 +436,7 @@ export class PrismaStatsRepository implements IStatsRepository {
       },
     });
 
-    // Update daily metric stats
+    // Update daily metric stats (per-metric breakdown)
     await this.prisma.experimentMetricStatsDaily.upsert({
       where: {
         platform_environment_experimentKey_variationKey_metricId_date: {
@@ -464,6 +464,32 @@ export class PrismaStatsRepository implements IStatsRepository {
         sampleSize: { increment: 1 },
         sumValue: value !== undefined ? { increment: value } : undefined,
         count: { increment: 1 },
+        conversions: { increment: 1 },
+      },
+    });
+
+    // Update daily experiment stats (aggregate conversions for all metrics)
+    // This populates the dailyData array in getExperimentStats()
+    await this.prisma.experimentStatsDaily.upsert({
+      where: {
+        platform_environment_experimentKey_variationKey_date: {
+          platform,
+          environment,
+          experimentKey,
+          variationKey,
+          date: today,
+        },
+      },
+      create: {
+        platform,
+        environment,
+        experimentKey,
+        variationKey,
+        date: today,
+        participants: 0, // Participants are set by recordExperimentExposure
+        conversions: 1,
+      },
+      update: {
         conversions: { increment: 1 },
       },
     });
@@ -496,13 +522,30 @@ export class PrismaStatsRepository implements IStatsRepository {
       exposures: v.exposures,
     }));
 
+    // Query daily stats for time series data
+    const dailyStats = await this.prisma.experimentStatsDaily.findMany({
+      where: {
+        platform,
+        environment,
+        experimentKey,
+      },
+      orderBy: [{ date: 'asc' }, { variationKey: 'asc' }],
+    });
+
+    const dailyData = dailyStats.map(d => ({
+      date: d.date,
+      variationKey: d.variationKey,
+      participants: d.participants,
+      conversions: d.conversions,
+    }));
+
     return {
       platform,
       environment,
       experimentKey,
       variations,
       metricResults: [], // Populated separately via getExperimentMetricStats
-      dailyData: [],     // Populated separately via time-series queries
+      dailyData,
       updatedAt: new Date().toISOString(),
     };
   }

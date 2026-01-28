@@ -764,8 +764,17 @@ export class ExperimentController {
         }
 
         // Check for Sample Ratio Mismatch
-        const expectedRatios = experiment.trafficAllocation.map((t) => t.percentage / 100);
-        const srmResult = checkSRM(variationData, expectedRatios);
+        // SECURITY: Wrap in try/catch to prevent 500 errors from invalid data
+        let srmResult = null;
+        try {
+          const expectedRatios = experiment.trafficAllocation.map((t) => t.percentage / 100);
+          srmResult = checkSRM(variationData, expectedRatios);
+        } catch (err) {
+          logger.warn('SRM calculation failed', {
+            experimentKey: experiment.experimentKey,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
 
         res.json({
           success: true,

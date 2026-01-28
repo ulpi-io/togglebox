@@ -148,11 +148,20 @@ export class CloudflareCacheProvider implements CacheProvider {
   }
 
   /**
-   * Purge Cloudflare cache for a specific version.
+   * Purge Cloudflare cache for configuration endpoints.
+   *
+   * @remarks
+   * The API doesn't have versioned config endpoints. Instead, invalidates
+   * the configs, flags, and experiments endpoints which are the actual
+   * cacheable resources.
+   *
+   * @param _version - Unused, kept for API compatibility
    */
-  async invalidateVersionCache(platform: string, environment: string, version: string): Promise<string | null> {
+  async invalidateVersionCache(platform: string, environment: string, _version: string): Promise<string | null> {
     return this.invalidateCache([
-      `/api/v1/platforms/${platform}/environments/${environment}/versions/${version}`,
+      `/api/v1/platforms/${platform}/environments/${environment}/configs`,
+      `/api/v1/platforms/${platform}/environments/${environment}/flags`,
+      `/api/v1/platforms/${platform}/environments/${environment}/experiments`,
     ]);
   }
 
@@ -185,41 +194,71 @@ export class CloudflareCacheProvider implements CacheProvider {
 
   /**
    * Purge Cloudflare cache for stats endpoints in an environment.
+   *
+   * @remarks
+   * Stats endpoints are served from /api/v1/internal/ which requires authentication
+   * and typically shouldn't be cached. This method is kept for API compatibility
+   * but returns null if no specific flag/experiment keys are known.
+   *
+   * For targeted stats cache invalidation, use invalidateFlagStatsCache() or
+   * invalidateExperimentStatsCache() with specific keys.
    */
   async invalidateStatsCache(platform: string, environment: string): Promise<string | null> {
-    // Cloudflare doesn't support wildcards in the middle of paths, so enumerate known stats endpoints
+    // Stats endpoints are under /internal and require specific keys
+    // Purge everything for this environment as a fallback
     return this.invalidateCache([
-      `/api/v1/platforms/${platform}/environments/${environment}/flags/stats`,
-      `/api/v1/platforms/${platform}/environments/${environment}/experiments/stats`,
-      `/api/v1/platforms/${platform}/environments/${environment}/configs/stats`,
-      `/api/v1/platforms/${platform}/environments/${environment}/stats`,
+      `/api/v1/platforms/${platform}/environments/${environment}/*`,
+    ]);
+  }
+
+  /**
+   * Purge Cloudflare cache for a specific flag's stats.
+   */
+  async invalidateFlagStatsCache(platform: string, environment: string, flagKey: string): Promise<string | null> {
+    return this.invalidateCache([
+      `/api/v1/internal/platforms/${platform}/environments/${environment}/flags/${flagKey}/stats`,
+    ]);
+  }
+
+  /**
+   * Purge Cloudflare cache for a specific experiment's stats.
+   */
+  async invalidateExperimentStatsCache(platform: string, environment: string, experimentKey: string): Promise<string | null> {
+    return this.invalidateCache([
+      `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/stats`,
     ]);
   }
 
   /**
    * Generate cache paths (same as CloudFront for consistency).
+   *
+   * @param platform - Optional platform name
+   * @param environment - Optional environment name
+   * @param _version - Optional version identifier (unused, kept for API compatibility)
    */
-  generateCachePaths(platform?: string, environment?: string, version?: string): string[] {
+  generateCachePaths(platform?: string, environment?: string, _version?: string): string[] {
     const paths: string[] = [];
 
-    if (!platform && !environment && !version) {
+    if (!platform && !environment && !_version) {
       paths.push('/*');
       return paths;
     }
 
-    if (platform && !environment && !version) {
+    if (platform && !environment && !_version) {
       paths.push(`/api/v1/platforms/${platform}/*`);
       return paths;
     }
 
-    if (platform && environment && !version) {
+    if (platform && environment && !_version) {
       paths.push(`/api/v1/platforms/${platform}/environments/${environment}/*`);
       return paths;
     }
 
-    if (platform && environment && version) {
-      paths.push(`/api/v1/platforms/${platform}/environments/${environment}/versions/${version}`);
-      paths.push(`/api/v1/platforms/${platform}/environments/${environment}/versions/${version}/*`);
+    if (platform && environment && _version) {
+      // The API doesn't have versioned endpoints - invalidate actual cacheable resources
+      paths.push(`/api/v1/platforms/${platform}/environments/${environment}/configs`);
+      paths.push(`/api/v1/platforms/${platform}/environments/${environment}/flags`);
+      paths.push(`/api/v1/platforms/${platform}/environments/${environment}/experiments`);
       return paths;
     }
 

@@ -98,6 +98,24 @@ export interface CacheProvider {
   invalidateStatsCache(platform: string, environment: string): Promise<string | null>;
 
   /**
+   * Invalidate cache for a specific flag's stats
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @param flagKey - Flag key
+   * @returns Invalidation ID or null if disabled
+   */
+  invalidateFlagStatsCache(platform: string, environment: string, flagKey: string): Promise<string | null>;
+
+  /**
+   * Invalidate cache for a specific experiment's stats
+   * @param platform - Platform name
+   * @param environment - Environment name
+   * @param experimentKey - Experiment key
+   * @returns Invalidation ID or null if disabled
+   */
+  invalidateExperimentStatsCache(platform: string, environment: string, experimentKey: string): Promise<string | null>;
+
+  /**
    * Generate cache paths based on platform, environment, and version
    * @param platform - Optional platform name
    * @param environment - Optional environment name
