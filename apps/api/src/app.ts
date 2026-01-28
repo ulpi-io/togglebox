@@ -39,9 +39,9 @@ const app: express.Application = express();
  */
 const isServerless = Boolean(
   process.env["AWS_LAMBDA_FUNCTION_NAME"] || // AWS Lambda
-  process.env["NETLIFY"] || // Netlify Functions
-  process.env["CF_PAGES"] || // Cloudflare Pages/Workers
-  process.env["VERCEL"], // Vercel Functions
+    process.env["NETLIFY"] || // Netlify Functions
+    process.env["CF_PAGES"] || // Cloudflare Pages/Workers
+    process.env["VERCEL"], // Vercel Functions
 );
 
 // Security middleware (skip on serverless - handled by edge/gateway)

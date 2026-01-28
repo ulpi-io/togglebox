@@ -36,7 +36,9 @@ import {
  * - Single-use (deleted after password reset)
  * - Cleanup via `deleteExpired()` cron job
  */
-export class MongoDBPasswordResetRepository implements IPasswordResetRepository {
+export class MongoDBPasswordResetRepository
+  implements IPasswordResetRepository
+{
   async create(
     data: CreatePasswordResetTokenData,
   ): Promise<PasswordResetToken> {
