@@ -184,10 +184,13 @@ export async function getPlatform(name: string): Promise<Platform | null> {
  * }
  * ```
  */
+// Safety limit to prevent unbounded iteration
+const MAX_ITEMS_TO_FETCH = 10000;
+
 export async function listPlatforms(
   pagination?: TokenPaginationParams
 ): Promise<TokenPaginatedResult<Platform>> {
-  // If no pagination requested, fetch ALL items
+  // If no pagination requested, fetch ALL items (with safety limit)
   if (!pagination) {
     const allItems: Platform[] = [];
     let nextToken: string | undefined;
@@ -196,6 +199,12 @@ export async function listPlatforms(
       const page = await listPlatforms({ limit: 100, nextToken });
       allItems.push(...page.items);
       nextToken = page.nextToken;
+
+      // Safety check to prevent unbounded iteration
+      if (allItems.length >= MAX_ITEMS_TO_FETCH) {
+        console.warn(`Reached MAX_ITEMS_TO_FETCH limit (${MAX_ITEMS_TO_FETCH}). Results may be truncated.`);
+        break;
+      }
     } while (nextToken);
 
     return {

@@ -92,14 +92,8 @@ export class D1PlatformRepository implements IPlatformRepository {
   async listPlatforms(
     pagination?: OffsetPaginationParams | TokenPaginationParams
   ): Promise<OffsetPaginatedResult<Platform>> {
-    // Get total count for metadata
-    const countResult = await this.db
-      .prepare('SELECT COUNT(*) as count FROM platforms')
-      .first<{ count: number }>();
-
-    const total = countResult?.count || 0;
-
     // SECURITY: If no pagination requested, apply hard limit to prevent unbounded queries
+    // Skip COUNT query since we're fetching all items anyway
     if (!pagination) {
       const HARD_LIMIT = 100;
       const result = await this.db
@@ -116,11 +110,17 @@ export class D1PlatformRepository implements IPlatformRepository {
           }))
         : [];
 
-      return { items, total };
+      // Total is derived from items.length - no extra COUNT query needed
+      return { items, total: items.length };
     }
 
-    // Explicit pagination: return single page
+    // Explicit pagination: get total count for UI
     const params = pagination as OffsetPaginationParams;
+
+    const countResult = await this.db
+      .prepare('SELECT COUNT(*) as count FROM platforms')
+      .first<{ count: number }>();
+    const total = countResult?.count || 0;
 
     const result = await this.db
       .prepare('SELECT id, name, description, createdAt FROM platforms ORDER BY createdAt DESC LIMIT ?1 OFFSET ?2')

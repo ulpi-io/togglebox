@@ -81,10 +81,8 @@ export class MongoosePlatformRepository implements IPlatformRepository {
   async listPlatforms(
     pagination?: OffsetPaginationParams | TokenPaginationParams
   ): Promise<OffsetPaginatedResult<Platform>> {
-    // Get total count for metadata
-    const total = await PlatformModel.countDocuments().exec();
-
     // SECURITY: If no pagination requested, apply hard limit to prevent unbounded queries
+    // Skip COUNT query since we're fetching all items anyway
     if (!pagination) {
       const HARD_LIMIT = 100;
       const docs = await PlatformModel.find()
@@ -99,17 +97,21 @@ export class MongoosePlatformRepository implements IPlatformRepository {
         createdAt: doc.createdAt,
       }));
 
-      return { items, total };
+      // Total is derived from items.length - no extra COUNT query needed
+      return { items, total: items.length };
     }
 
-    // Explicit pagination: return single page
+    // Explicit pagination: get total count for UI (run in parallel with query)
     const params = pagination as OffsetPaginationParams;
 
-    const docs = await PlatformModel.find()
-      .sort({ createdAt: -1 })
-      .skip(params.offset)
-      .limit(params.limit)
-      .exec();
+    const [docs, total] = await Promise.all([
+      PlatformModel.find()
+        .sort({ createdAt: -1 })
+        .skip(params.offset)
+        .limit(params.limit)
+        .exec(),
+      PlatformModel.countDocuments().exec(),
+    ]);
 
     const items = docs.map(doc => ({
       id: doc._id.toString(),

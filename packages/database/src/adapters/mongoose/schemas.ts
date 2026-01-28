@@ -139,12 +139,12 @@ const ConfigParameterSchema = new Schema<IConfigParameterDocument>({
 
 // Compound unique index for platform + environment + parameterKey + version (PRIMARY KEY)
 ConfigParameterSchema.index({ platform: 1, environment: 1, parameterKey: 1, version: 1 }, { unique: true });
-// Index for getConfigs/listActive queries (active parameters only)
-ConfigParameterSchema.index({ platform: 1, environment: 1, isActive: 1 });
-// Index for listVersions queries
-ConfigParameterSchema.index({ platform: 1, environment: 1, parameterKey: 1 });
-// Index for listByGroup queries
-ConfigParameterSchema.index({ platform: 1, environment: 1, parameterGroup: 1 });
+// Index for getConfigs/listActive queries (active parameters only) with sort field
+ConfigParameterSchema.index({ platform: 1, environment: 1, isActive: 1, parameterKey: 1 });
+// Index for listVersions queries with sort by version descending
+ConfigParameterSchema.index({ platform: 1, environment: 1, parameterKey: 1, version: -1 });
+// Index for listByGroup queries with sort field
+ConfigParameterSchema.index({ platform: 1, environment: 1, parameterGroup: 1, parameterKey: 1 });
 
 /**
  * Config parameter Mongoose model.
@@ -210,8 +210,10 @@ const FlagSchema = new Schema<IFlagDocument>({
 
 // Compound unique index for platform + environment + flagKey + version
 FlagSchema.index({ platform: 1, environment: 1, flagKey: 1, version: 1 }, { unique: true });
-// Index for finding active version
-FlagSchema.index({ platform: 1, environment: 1, flagKey: 1, isActive: 1 });
+// Index for finding active version with sort support
+FlagSchema.index({ platform: 1, environment: 1, flagKey: 1, isActive: 1, version: -1 });
+// Index for listing all active flags in an environment
+FlagSchema.index({ platform: 1, environment: 1, isActive: 1, flagKey: 1 });
 
 /**
  * Flag Mongoose model.
@@ -295,8 +297,10 @@ const ExperimentSchema = new Schema<IExperimentDocument>({
 
 // Compound unique index for platform + environment + experimentKey + version
 ExperimentSchema.index({ platform: 1, environment: 1, experimentKey: 1, version: 1 }, { unique: true });
-// Index for finding experiments by status
-ExperimentSchema.index({ platform: 1, environment: 1, status: 1, isActive: 1 });
+// Index for finding experiments by status with sort support
+ExperimentSchema.index({ platform: 1, environment: 1, status: 1, isActive: 1, createdAt: -1 });
+// Index for listing all active experiments
+ExperimentSchema.index({ platform: 1, environment: 1, isActive: 1, experimentKey: 1 });
 
 /**
  * Experiment Mongoose model.

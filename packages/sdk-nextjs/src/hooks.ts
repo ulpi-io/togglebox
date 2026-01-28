@@ -74,15 +74,15 @@ export function useFlags(): UseFlagsResult {
 export function useFlag(flagKey: string, context?: FlagContext) {
   const { flags, isLoading, isFlagEnabled } = useToggleBoxContext()
 
-  const result = useMemo(() => {
+  return useMemo(() => {
     const flag = flags.find((f: Flag) => f.flagKey === flagKey)
-    return { flag, exists: !!flag, isLoading }
-  }, [flags, flagKey, isLoading])
-
-  return {
-    ...result,
-    checkEnabled: async () => isFlagEnabled(flagKey, context),
-  }
+    return {
+      flag,
+      exists: !!flag,
+      isLoading,
+      checkEnabled: async () => isFlagEnabled(flagKey, context),
+    }
+  }, [flags, flagKey, isLoading, isFlagEnabled, context])
 }
 
 // ============================================================================
@@ -125,16 +125,15 @@ export function useExperiments(): UseExperimentsResult {
 export function useExperiment(experimentKey: string, context: ExperimentContext) {
   const { experiments, isLoading, getVariant } = useToggleBoxContext()
 
-  const experiment = useMemo(() => {
-    return experiments.find((e: Experiment) => e.experimentKey === experimentKey)
-  }, [experiments, experimentKey])
-
-  return {
-    experiment,
-    exists: !!experiment,
-    isLoading,
-    getVariant: async () => getVariant(experimentKey, context),
-  }
+  return useMemo(() => {
+    const experiment = experiments.find((e: Experiment) => e.experimentKey === experimentKey)
+    return {
+      experiment,
+      exists: !!experiment,
+      isLoading,
+      getVariant: async () => getVariant(experimentKey, context),
+    }
+  }, [experiments, experimentKey, isLoading, getVariant, context])
 }
 
 // ============================================================================

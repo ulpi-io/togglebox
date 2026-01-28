@@ -88,7 +88,8 @@ export default function PlatformsPage() {
       );
       setEditState(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update platform');
+      // Show error via error state - toast would be better but requires additional setup
+      setError(err instanceof Error ? err.message : 'Failed to update platform');
     } finally {
       setIsSaving(false);
     }

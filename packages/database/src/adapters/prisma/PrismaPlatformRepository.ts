@@ -87,10 +87,8 @@ export class PrismaPlatformRepository implements IPlatformRepository {
   async listPlatforms(
     pagination?: OffsetPaginationParams | TokenPaginationParams
   ): Promise<OffsetPaginatedResult<Platform>> {
-    // Get total count for metadata
-    const total = await this.prisma.platform.count();
-
     // SECURITY: If no pagination requested, apply hard limit to prevent unbounded queries
+    // Skip COUNT query since we're fetching all items anyway
     if (!pagination) {
       const HARD_LIMIT = 100;
       const platforms = await this.prisma.platform.findMany({
@@ -105,17 +103,21 @@ export class PrismaPlatformRepository implements IPlatformRepository {
         createdAt: p.createdAt,
       }));
 
-      return { items, total };
+      // Total is derived from items.length - no extra COUNT query needed
+      return { items, total: items.length };
     }
 
-    // Explicit pagination: return single page
+    // Explicit pagination: get total count for UI (run in parallel with query)
     const params = pagination as OffsetPaginationParams;
 
-    const platforms = await this.prisma.platform.findMany({
-      orderBy: { createdAt: 'desc' },
-      skip: params.offset,
-      take: params.limit,
-    });
+    const [platforms, total] = await Promise.all([
+      this.prisma.platform.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: params.offset,
+        take: params.limit,
+      }),
+      this.prisma.platform.count(),
+    ]);
 
     const items = platforms.map((p) => ({
       id: p.id,

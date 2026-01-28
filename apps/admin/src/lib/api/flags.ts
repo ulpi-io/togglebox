@@ -26,13 +26,21 @@ export async function getAllFlagsApi(): Promise<Flag[]> {
                 `/api/v1/platforms/${platform.name}/environments/${env.environment}/flags`
               );
               allFlags.push(...flags);
-            } catch {
-              // Environment may have no flags, skip it
+            } catch (error) {
+              // Only skip 404 errors (no flags for environment)
+              // Log other errors for debugging
+              if (error instanceof Error && !error.message.includes('404')) {
+                console.warn(`Failed to fetch flags for ${platform.name}/${env.environment}:`, error.message);
+              }
             }
           })
         );
-      } catch {
-        // Platform may have no environments, skip it
+      } catch (error) {
+        // Only skip 404 errors (no environments for platform)
+        // Log other errors for debugging
+        if (error instanceof Error && !error.message.includes('404')) {
+          console.warn(`Failed to fetch environments for ${platform.name}:`, error.message);
+        }
       }
     })
   );
