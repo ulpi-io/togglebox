@@ -63,11 +63,46 @@ function FlagsContent() {
     { value: "disabled" as const, label: "Disabled", count: disabledCount },
   ];
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [flagsData, userData] = await Promise.all([
+          !platform || !environment
+            ? getAllFlagsApi()
+            : getFlagsApi(platform, environment),
+          getCurrentUserApi().catch(() => null),
+        ]);
+
+        if (isMounted) {
+          setFlags(flagsData);
+          setUser(userData);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "Failed to load flags");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [platform, environment]);
+
   const loadFlags = useCallback(async () => {
     try {
       setIsLoading(true);
       if (!platform || !environment) {
-        // Load all flags across all platforms/environments
         const data = await getAllFlagsApi();
         setFlags(data);
       } else {
@@ -81,20 +116,6 @@ function FlagsContent() {
       setIsLoading(false);
     }
   }, [platform, environment]);
-
-  const loadUser = useCallback(async () => {
-    try {
-      const userData = await getCurrentUserApi();
-      setUser(userData);
-    } catch (err) {
-      console.error("Failed to fetch user:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadFlags();
-    loadUser();
-  }, [loadFlags, loadUser]);
 
   const hasSelection = platform && environment;
 

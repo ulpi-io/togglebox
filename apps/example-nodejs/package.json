@@ -13,10 +13,10 @@
   },
   "dependencies": {
     "@togglebox/sdk": "workspace:*",
-    "express": "^4.21.2",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
     "pino": "^9.6.0",
-    "pino-http": "^10.4.0",
-    "dotenv": "^16.4.5"
+    "pino-http": "^10.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.16.0",

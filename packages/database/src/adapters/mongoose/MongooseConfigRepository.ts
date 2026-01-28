@@ -179,54 +179,67 @@ export class MongooseConfigRepository implements IConfigRepository {
       const errorCode = (error as { code?: number }).code;
       if (errorCode === 263 || errorCode === 20) {
         // 263: CannotCreateSession (no replica set), 20: IllegalOperation
-        // Fall back to non-transactional update with recovery
-        // First deactivate old version
-        await ConfigParameterModel.updateOne(
+        // Fall back to non-transactional update with atomic-first approach:
+        // 1. Create new version as INACTIVE first (safe - doesn't affect current state)
+        // 2. Use bulkWrite to atomically switch active flags
+
+        // Step 1: Create new version as inactive (fail-safe: no impact if this fails)
+        const newDoc = await ConfigParameterModel.create({
+          platform,
+          environment,
+          parameterKey,
+          version: nextVersion,
+          valueType: updates.valueType ?? current.valueType,
+          defaultValue: updates.defaultValue ?? current.defaultValue,
+          description:
+            updates.description !== undefined
+              ? (updates.description ?? null)
+              : current.description,
+          parameterGroup:
+            updates.parameterGroup !== undefined
+              ? (updates.parameterGroup ?? null)
+              : current.parameterGroup,
+          isActive: false, // Created as inactive first
+          createdBy: updates.createdBy,
+          createdAt: timestamp,
+        });
+
+        // Step 2: Atomically switch active flags using bulkWrite
+        // This is more atomic than separate updateOne calls
+        await ConfigParameterModel.bulkWrite([
           {
-            platform,
-            environment,
-            parameterKey,
-            version: current.version,
-          },
-          { isActive: false },
-        ).exec();
-
-        try {
-          // Create new version
-          const created = await ConfigParameterModel.create({
-            platform,
-            environment,
-            parameterKey,
-            version: nextVersion,
-            valueType: updates.valueType ?? current.valueType,
-            defaultValue: updates.defaultValue ?? current.defaultValue,
-            description:
-              updates.description !== undefined
-                ? (updates.description ?? null)
-                : current.description,
-            parameterGroup:
-              updates.parameterGroup !== undefined
-                ? (updates.parameterGroup ?? null)
-                : current.parameterGroup,
-            isActive: true,
-            createdBy: updates.createdBy,
-            createdAt: timestamp,
-          });
-
-          return this.mapToConfigParameter(created);
-        } catch (createError) {
-          // Create failed - reactivate the old version to ensure we have an active one
-          await ConfigParameterModel.updateOne(
-            {
-              platform,
-              environment,
-              parameterKey,
-              version: current.version,
+            updateOne: {
+              filter: {
+                platform,
+                environment,
+                parameterKey,
+                version: current.version,
+              },
+              update: { $set: { isActive: false } },
             },
-            { isActive: true },
-          ).exec();
-          throw createError;
-        }
+          },
+          {
+            updateOne: {
+              filter: {
+                platform,
+                environment,
+                parameterKey,
+                version: nextVersion,
+              },
+              update: { $set: { isActive: true } },
+            },
+          },
+        ]);
+
+        // Re-fetch the updated document
+        const updated = await ConfigParameterModel.findOne({
+          platform,
+          environment,
+          parameterKey,
+          version: nextVersion,
+        }).exec();
+
+        return this.mapToConfigParameter(updated || newDoc);
       }
       throw error;
     } finally {

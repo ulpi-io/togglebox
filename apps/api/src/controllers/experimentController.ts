@@ -61,9 +61,10 @@ function handleControllerError(
   }
 
   // Fallback: Check error message for legacy errors from repositories
-  // TODO: Update repositories to throw custom error types
+  // These patterns handle errors thrown by repository methods that don't use custom error types yet
   if (error instanceof Error) {
-    if (error.message.includes("not found")) {
+    const lowerMessage = error.message.toLowerCase();
+    if (lowerMessage.includes("not found")) {
       res.status(404).json({
         success: false,
         error: error.message,
@@ -72,9 +73,9 @@ function handleControllerError(
       return;
     }
     if (
-      error.message.includes("Cannot") ||
-      error.message.includes("must sum") ||
-      error.message.includes("already")
+      lowerMessage.includes("cannot") ||
+      lowerMessage.includes("must sum") ||
+      lowerMessage.includes("already")
     ) {
       res.status(400).json({
         success: false,
