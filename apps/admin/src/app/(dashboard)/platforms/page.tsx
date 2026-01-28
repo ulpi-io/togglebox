@@ -56,7 +56,7 @@ export default function PlatformsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const startEditing = useCallback(
     (platform: Platform, field: "description") => {

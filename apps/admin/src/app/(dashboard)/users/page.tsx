@@ -6,6 +6,7 @@ import { getUsersApi } from "@/lib/api/users";
 import type { User } from "@/lib/api/types";
 import { Badge, Button, Card, CardContent } from "@togglebox/ui";
 import { DeleteUserButton } from "@/components/users/delete-user-button";
+import { EditUserRoleDialog } from "@/components/users/edit-user-role-dialog";
 
 const PAGE_SIZE = 20;
 
@@ -23,8 +24,11 @@ export default function UsersPage() {
         limit: PAGE_SIZE,
         offset: pageNum * PAGE_SIZE,
       });
-      setUsers(result.users);
-      setTotal(result.total);
+      // Handle different API response formats
+      const usersList = result?.users ?? (Array.isArray(result) ? result : []);
+      const totalCount = result?.total ?? usersList.length;
+      setUsers(usersList);
+      setTotal(totalCount);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load users");
@@ -44,8 +48,12 @@ export default function UsersPage() {
           offset: page * PAGE_SIZE,
         });
         if (isMounted) {
-          setUsers(result.users);
-          setTotal(result.total);
+          // Handle different API response formats
+          const usersList =
+            result?.users ?? (Array.isArray(result) ? result : []);
+          const totalCount = result?.total ?? usersList.length;
+          setUsers(usersList);
+          setTotal(totalCount);
           setError(null);
         }
       } catch (err) {
@@ -213,11 +221,17 @@ export default function UsersPage() {
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <DeleteUserButton
-                          userId={user.id}
-                          userEmail={user.email}
-                          onSuccess={handleRefresh}
-                        />
+                        <div className="flex items-center justify-end gap-2">
+                          <EditUserRoleDialog
+                            user={user}
+                            onSuccess={handleRefresh}
+                          />
+                          <DeleteUserButton
+                            userId={user.id}
+                            userEmail={user.email}
+                            onSuccess={handleRefresh}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

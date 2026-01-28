@@ -1,17 +1,26 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createFlagApi } from "@/lib/api/flags";
-import { getPlatformsApi, getEnvironmentsApi } from "@/lib/api/platforms";
-import type { Platform, Environment } from "@/lib/api/types";
+import { ApiError } from "@/lib/api/browser-client";
+import { usePlatformEnvironmentSelection } from "@/hooks/usePlatformEnvironmentSelection";
+import {
+  validateUserList,
+  validateCountryCode,
+  validateLanguages,
+  validateFlagKey,
+} from "@/lib/validation/targeting";
+import {
+  BasicInfoStep,
+  ValuesStep,
+  TargetingStep,
+  type FlagType,
+  type CountryLanguagePair,
+} from "@/components/flags/create";
 import {
   Button,
-  Checkbox,
-  Input,
-  Label,
-  Select,
   Alert,
   Card,
   CardContent,
@@ -20,102 +29,11 @@ import {
   Steps,
 } from "@togglebox/ui";
 
-type FlagType = "boolean" | "string" | "number";
-
-interface CountryLanguagePair {
-  id: string;
-  country: string;
-  languages: string;
-  serveValue: "A" | "B";
-}
-
-interface ValidationResult {
-  valid: string[];
-  duplicates: string[];
-  invalid: string[];
-}
-
 const STEPS = [
   { id: "basic", label: "Basic Info" },
   { id: "values", label: "Values" },
   { id: "targeting", label: "Targeting" },
 ];
-
-function validateUserList(input: string): ValidationResult {
-  if (!input.trim()) {
-    return { valid: [], duplicates: [], invalid: [] };
-  }
-
-  const entries = input
-    .split(/[,\n]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const seen = new Set<string>();
-  const valid: string[] = [];
-  const duplicates: string[] = [];
-  const invalid: string[] = [];
-
-  const validPattern = /^[\w\-\.@]+$/;
-
-  for (const entry of entries) {
-    if (!validPattern.test(entry)) {
-      invalid.push(entry);
-    } else if (seen.has(entry.toLowerCase())) {
-      duplicates.push(entry);
-    } else {
-      seen.add(entry.toLowerCase());
-      valid.push(entry);
-    }
-  }
-
-  return { valid, duplicates, invalid };
-}
-
-function validateCountryCode(code: string): {
-  valid: boolean;
-  formatted: string;
-} {
-  const trimmed = code.trim().toUpperCase();
-  const isValid = /^[A-Z]{2}$/.test(trimmed);
-  return { valid: isValid || trimmed === "", formatted: trimmed };
-}
-
-function validateLanguages(input: string): {
-  valid: string[];
-  invalid: string[];
-  duplicates: string[];
-} {
-  if (!input.trim()) {
-    return { valid: [], invalid: [], duplicates: [] };
-  }
-
-  const entries = input
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-
-  const seen = new Set<string>();
-  const valid: string[] = [];
-  const invalid: string[] = [];
-  const duplicates: string[] = [];
-
-  // Backend requires exactly 2 letters (ISO 639-1)
-  const validPattern = /^[a-z]{2}$/;
-
-  for (const entry of entries) {
-    if (!validPattern.test(entry)) {
-      invalid.push(entry);
-    } else if (seen.has(entry)) {
-      duplicates.push(entry);
-    } else {
-      seen.add(entry);
-      valid.push(entry);
-    }
-  }
-
-  return { valid, invalid, duplicates };
-}
 
 export default function CreateFlagPage() {
   const router = useRouter();
@@ -124,37 +42,17 @@ export default function CreateFlagPage() {
   const [currentStep, setCurrentStep] = useState("basic");
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
 
-  // Platform/Environment selection
-  const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [selectedPlatform, setSelectedPlatform] = useState("");
-  const [selectedEnvironment, setSelectedEnvironment] = useState("");
-  const [loadingPlatforms, setLoadingPlatforms] = useState(true);
-  const [loadingEnvironments, setLoadingEnvironments] = useState(false);
-
-  // Load platforms on mount
-  useEffect(() => {
-    setLoadingPlatforms(true);
-    getPlatformsApi()
-      .then(setPlatforms)
-      .catch(console.error)
-      .finally(() => setLoadingPlatforms(false));
-  }, []);
-
-  // Load environments when platform changes
-  useEffect(() => {
-    if (selectedPlatform) {
-      setLoadingEnvironments(true);
-      setSelectedEnvironment("");
-      getEnvironmentsApi(selectedPlatform)
-        .then(setEnvironments)
-        .catch(console.error)
-        .finally(() => setLoadingEnvironments(false));
-    }
-  }, [selectedPlatform]);
-
-  const platform = selectedPlatform;
-  const environment = selectedEnvironment;
+  // Platform/Environment selection (extracted hook)
+  const {
+    platforms,
+    environments,
+    selectedPlatform,
+    selectedEnvironment,
+    setSelectedPlatform,
+    setSelectedEnvironment,
+    loadingPlatforms,
+    loadingEnvironments,
+  } = usePlatformEnvironmentSelection();
 
   // Basic fields
   const [flagKey, setFlagKey] = useState("");
@@ -163,7 +61,7 @@ export default function CreateFlagPage() {
   const [flagType, setFlagType] = useState<FlagType>("boolean");
   const [enabled, setEnabled] = useState(false);
 
-  // 2-value model
+  // Values
   const [valueA, setValueA] = useState<string>("true");
   const [valueB, setValueB] = useState<string>("false");
 
@@ -177,7 +75,7 @@ export default function CreateFlagPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Validation results for targeting
+  // Validation results
   const includeUsersValidation = useMemo(
     () => validateUserList(forceIncludeUsers),
     [forceIncludeUsers],
@@ -189,11 +87,14 @@ export default function CreateFlagPage() {
 
   // Step validation
   const stepValidation = useMemo(() => {
+    const flagKeyValidation = validateFlagKey(flagKey);
+
     const basic = {
       isValid: !!(
         selectedPlatform &&
         selectedEnvironment &&
         flagKey.trim() &&
+        flagKeyValidation.valid &&
         name.trim()
       ),
       errors: [] as string[],
@@ -201,12 +102,12 @@ export default function CreateFlagPage() {
     if (!selectedPlatform) basic.errors.push("Platform is required");
     if (!selectedEnvironment) basic.errors.push("Environment is required");
     if (!flagKey.trim()) basic.errors.push("Flag key is required");
+    if (flagKey.trim() && !flagKeyValidation.valid && flagKeyValidation.error) {
+      basic.errors.push(flagKeyValidation.error);
+    }
     if (!name.trim()) basic.errors.push("Display name is required");
 
-    const values = {
-      isValid: true,
-      errors: [] as string[],
-    };
+    const values = { isValid: true, errors: [] as string[] };
 
     const targeting = {
       isValid:
@@ -247,6 +148,7 @@ export default function CreateFlagPage() {
     stepValidation.values.isValid &&
     stepValidation.targeting.isValid;
 
+  // Navigation handlers
   const handleStepClick = (stepId: string) => {
     const stepIndex = STEPS.findIndex((s) => s.id === stepId);
     const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
@@ -274,21 +176,22 @@ export default function CreateFlagPage() {
     }
   };
 
-  const parseValue = (
-    val: string,
-    type: FlagType,
-  ): string | number | boolean | null => {
-    if (type === "boolean") return val === "true";
-    if (type === "number") {
-      const parsed = Number(val);
-      if (val.trim() === "" || Number.isNaN(parsed)) {
-        return null; // Signal invalid number
-      }
-      return parsed;
+  // Flag type change handler (resets values)
+  const handleFlagTypeChange = (newType: FlagType) => {
+    setFlagType(newType);
+    if (newType === "boolean") {
+      setValueA("true");
+      setValueB("false");
+    } else if (newType === "number") {
+      setValueA("1");
+      setValueB("0");
+    } else {
+      setValueA("variant-a");
+      setValueB("variant-b");
     }
-    return val;
   };
 
+  // Country/language pair handlers
   const handleCountryChange = (id: string, country: string) => {
     const { formatted } = validateCountryCode(country);
     setCountryLanguagePairs((prev) =>
@@ -313,12 +216,7 @@ export default function CreateFlagPage() {
   const addCountryLanguagePair = () => {
     setCountryLanguagePairs((prev) => [
       ...prev,
-      {
-        id: crypto.randomUUID(),
-        country: "",
-        languages: "",
-        serveValue: "A",
-      },
+      { id: crypto.randomUUID(), country: "", languages: "", serveValue: "A" },
     ]);
   };
 
@@ -326,11 +224,23 @@ export default function CreateFlagPage() {
     setCountryLanguagePairs((prev) => prev.filter((pair) => pair.id !== id));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!allStepsValid || !platform || !environment) return;
+  // Submit handler
+  const handleSubmit = async () => {
+    if (!allStepsValid || !selectedPlatform || !selectedEnvironment) return;
 
-    // Validate number values
+    // Parse values
+    const parseValue = (
+      val: string,
+      type: FlagType,
+    ): string | number | boolean | null => {
+      if (type === "boolean") return val === "true";
+      if (type === "number") {
+        const parsed = Number(val);
+        return val.trim() === "" || Number.isNaN(parsed) ? null : parsed;
+      }
+      return val;
+    };
+
     const parsedValueA = parseValue(valueA, flagType);
     const parsedValueB = parseValue(valueB, flagType);
     if (parsedValueA === null) {
@@ -366,7 +276,7 @@ export default function CreateFlagPage() {
       });
 
     try {
-      await createFlagApi(platform, environment, {
+      await createFlagApi(selectedPlatform, selectedEnvironment, {
         flagKey: flagKey.trim(),
         name: name.trim(),
         description: description.trim() || undefined,
@@ -386,9 +296,15 @@ export default function CreateFlagPage() {
               : undefined,
         },
       });
-      router.push(`/flags?platform=${platform}&environment=${environment}`);
+      router.push(
+        `/flags?platform=${selectedPlatform}&environment=${selectedEnvironment}`,
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create flag");
+      if (err instanceof ApiError && err.details?.length) {
+        setError(err.details.join(". "));
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to create flag");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -427,344 +343,57 @@ export default function CreateFlagPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
             {error && <Alert variant="destructive">{error}</Alert>}
 
             {currentStep === "basic" && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="platform">Platform *</Label>
-                    <Select
-                      id="platform"
-                      value={selectedPlatform}
-                      onChange={(e) => setSelectedPlatform(e.target.value)}
-                      disabled={loadingPlatforms}
-                    >
-                      <option value="">
-                        {loadingPlatforms ? "Loading..." : "Select platform"}
-                      </option>
-                      {platforms.map((p) => (
-                        <option key={p.name} value={p.name}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="environment">Environment *</Label>
-                    <Select
-                      id="environment"
-                      value={selectedEnvironment}
-                      onChange={(e) => setSelectedEnvironment(e.target.value)}
-                      disabled={!selectedPlatform || loadingEnvironments}
-                    >
-                      <option value="">
-                        {loadingEnvironments
-                          ? "Loading..."
-                          : "Select environment"}
-                      </option>
-                      {environments.map((e) => (
-                        <option key={e.environment} value={e.environment}>
-                          {e.environment}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="flagKey">Flag Key *</Label>
-                  <Input
-                    id="flagKey"
-                    value={flagKey}
-                    onChange={(e) =>
-                      setFlagKey(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))
-                    }
-                    placeholder="e.g., new-checkout-flow"
-                    className="font-mono"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Unique identifier. Only letters, numbers, hyphens,
-                    underscores.
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="name">Display Name *</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., New Checkout Flow"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Input
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="What does this flag control?"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="flagType">Value Type</Label>
-                  <Select
-                    id="flagType"
-                    value={flagType}
-                    onChange={(e) => {
-                      const newType = e.target.value as FlagType;
-                      setFlagType(newType);
-                      if (newType === "boolean") {
-                        setValueA("true");
-                        setValueB("false");
-                      } else if (newType === "number") {
-                        setValueA("1");
-                        setValueB("0");
-                      } else {
-                        setValueA("variant-a");
-                        setValueB("variant-b");
-                      }
-                    }}
-                  >
-                    <option value="boolean">Boolean (true/false)</option>
-                    <option value="string">String</option>
-                    <option value="number">Number</option>
-                  </Select>
-                </div>
-              </div>
+              <BasicInfoStep
+                platforms={platforms}
+                environments={environments}
+                selectedPlatform={selectedPlatform}
+                selectedEnvironment={selectedEnvironment}
+                onPlatformChange={setSelectedPlatform}
+                onEnvironmentChange={setSelectedEnvironment}
+                loadingPlatforms={loadingPlatforms}
+                loadingEnvironments={loadingEnvironments}
+                flagKey={flagKey}
+                name={name}
+                description={description}
+                flagType={flagType}
+                onFlagKeyChange={setFlagKey}
+                onNameChange={setName}
+                onDescriptionChange={setDescription}
+                onFlagTypeChange={handleFlagTypeChange}
+              />
             )}
 
             {currentStep === "values" && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="valueA">Value A</Label>
-                    {flagType === "boolean" ? (
-                      <Select
-                        id="valueA"
-                        value={valueA}
-                        onChange={(e) => setValueA(e.target.value)}
-                      >
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                      </Select>
-                    ) : (
-                      <Input
-                        id="valueA"
-                        type={flagType === "number" ? "number" : "text"}
-                        value={valueA}
-                        onChange={(e) => setValueA(e.target.value)}
-                        className="font-mono"
-                      />
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Served to force-included users, matching targeting rules,
-                      or by rollout percentage
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="valueB">Value B</Label>
-                    {flagType === "boolean" ? (
-                      <Select
-                        id="valueB"
-                        value={valueB}
-                        onChange={(e) => setValueB(e.target.value)}
-                      >
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                      </Select>
-                    ) : (
-                      <Input
-                        id="valueB"
-                        type={flagType === "number" ? "number" : "text"}
-                        value={valueB}
-                        onChange={(e) => setValueB(e.target.value)}
-                        className="font-mono"
-                      />
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Served to force-excluded users, matching targeting rules,
-                      or by rollout percentage
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="enabled"
-                      checked={enabled}
-                      onChange={(e) => setEnabled(e.target.checked)}
-                    />
-                    <Label
-                      htmlFor="enabled"
-                      className="font-normal cursor-pointer"
-                    >
-                      Enable flag immediately after creation
-                    </Label>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1 ml-6">
-                    When disabled, the flag serves Value B (the default)
-                  </p>
-                </div>
-              </div>
+              <ValuesStep
+                flagType={flagType}
+                valueA={valueA}
+                valueB={valueB}
+                enabled={enabled}
+                onValueAChange={setValueA}
+                onValueBChange={setValueB}
+                onEnabledChange={setEnabled}
+              />
             )}
 
             {currentStep === "targeting" && (
-              <div className="space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Country + Language Targeting</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={addCountryLanguagePair}
-                    >
-                      Add Country
-                    </Button>
-                  </div>
-                  {countryLanguagePairs.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center border-2 border-dashed rounded-lg">
-                      No country targeting. Flag will apply to all countries.
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {countryLanguagePairs.map((pair) => {
-                        const countryValidation = validateCountryCode(
-                          pair.country,
-                        );
-                        const langValidation = validateLanguages(
-                          pair.languages,
-                        );
-                        return (
-                          <div key={pair.id} className="flex gap-2 items-start">
-                            <div className="w-20">
-                              <Input
-                                value={pair.country}
-                                onChange={(e) =>
-                                  handleCountryChange(pair.id, e.target.value)
-                                }
-                                placeholder="US"
-                                maxLength={2}
-                                className={`font-mono uppercase ${
-                                  pair.country && !countryValidation.valid
-                                    ? "border-destructive"
-                                    : ""
-                                }`}
-                              />
-                              {pair.country && !countryValidation.valid && (
-                                <p className="text-xs text-destructive mt-1">
-                                  Invalid
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <Input
-                                value={pair.languages}
-                                onChange={(e) =>
-                                  handleLanguagesChange(pair.id, e.target.value)
-                                }
-                                placeholder="en, es, fr (optional)"
-                                className={
-                                  langValidation.invalid.length > 0
-                                    ? "border-destructive"
-                                    : ""
-                                }
-                              />
-                              {langValidation.invalid.length > 0 && (
-                                <p className="text-xs text-destructive mt-1">
-                                  Invalid: {langValidation.invalid.join(", ")}
-                                </p>
-                              )}
-                            </div>
-                            <div className="w-24">
-                              <Select
-                                value={pair.serveValue}
-                                onChange={(e) =>
-                                  handleServeValueChange(
-                                    pair.id,
-                                    e.target.value as "A" | "B",
-                                  )
-                                }
-                              >
-                                <option value="A">Serve A</option>
-                                <option value="B">Serve B</option>
-                              </Select>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeCountryLanguagePair(pair.id)}
-                            >
-                              ×
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="forceIncludeUsers">Force Include Users</Label>
-                  <textarea
-                    id="forceIncludeUsers"
-                    value={forceIncludeUsers}
-                    onChange={(e) => setForceIncludeUsers(e.target.value)}
-                    placeholder="user-id-1, user-id-2 (comma or newline separated)"
-                    className="w-full p-3 border-2 border-black/10 rounded-lg font-mono text-sm min-h-[80px] focus:outline-none focus:border-black/30"
-                  />
-                  {includeUsersValidation.valid.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {includeUsersValidation.valid.length} valid user(s)
-                    </p>
-                  )}
-                  {includeUsersValidation.duplicates.length > 0 && (
-                    <p className="text-xs text-warning mt-1">
-                      Duplicates ignored:{" "}
-                      {includeUsersValidation.duplicates.join(", ")}
-                    </p>
-                  )}
-                  {includeUsersValidation.invalid.length > 0 && (
-                    <p className="text-xs text-destructive mt-1">
-                      Invalid: {includeUsersValidation.invalid.join(", ")}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="forceExcludeUsers">Force Exclude Users</Label>
-                  <textarea
-                    id="forceExcludeUsers"
-                    value={forceExcludeUsers}
-                    onChange={(e) => setForceExcludeUsers(e.target.value)}
-                    placeholder="user-id-1, user-id-2 (comma or newline separated)"
-                    className="w-full p-3 border-2 border-black/10 rounded-lg font-mono text-sm min-h-[80px] focus:outline-none focus:border-black/30"
-                  />
-                  {excludeUsersValidation.valid.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {excludeUsersValidation.valid.length} valid user(s)
-                    </p>
-                  )}
-                  {excludeUsersValidation.duplicates.length > 0 && (
-                    <p className="text-xs text-warning mt-1">
-                      Duplicates ignored:{" "}
-                      {excludeUsersValidation.duplicates.join(", ")}
-                    </p>
-                  )}
-                  {excludeUsersValidation.invalid.length > 0 && (
-                    <p className="text-xs text-destructive mt-1">
-                      Invalid: {excludeUsersValidation.invalid.join(", ")}
-                    </p>
-                  )}
-                </div>
-              </div>
+              <TargetingStep
+                countryLanguagePairs={countryLanguagePairs}
+                forceIncludeUsers={forceIncludeUsers}
+                forceExcludeUsers={forceExcludeUsers}
+                includeUsersValidation={includeUsersValidation}
+                excludeUsersValidation={excludeUsersValidation}
+                onCountryChange={handleCountryChange}
+                onLanguagesChange={handleLanguagesChange}
+                onServeValueChange={handleServeValueChange}
+                onAddCountryLanguagePair={addCountryLanguagePair}
+                onRemoveCountryLanguagePair={removeCountryLanguagePair}
+                onForceIncludeUsersChange={setForceIncludeUsers}
+                onForceExcludeUsersChange={setForceExcludeUsers}
+              />
             )}
 
             <div className="flex justify-between pt-6 border-t">
@@ -786,13 +415,17 @@ export default function CreateFlagPage() {
                     Next
                   </Button>
                 ) : (
-                  <Button type="submit" disabled={isLoading || !allStepsValid}>
+                  <Button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={isLoading || !allStepsValid}
+                  >
                     {isLoading ? "Creating..." : "Create Flag"}
                   </Button>
                 )}
               </div>
             </div>
-          </form>
+          </div>
         </CardContent>
       </Card>
     </div>

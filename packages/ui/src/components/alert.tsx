@@ -12,7 +12,7 @@ import {
 import { cn } from "../utils/cn";
 
 const alertVariants = cva(
-  "relative w-full rounded-xl border p-4 [&>svg~*]:pl-7 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
+  "relative w-full rounded-xl border p-4 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
   {
     variants: {
       variant: {
@@ -58,7 +58,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
         {...props}
       >
         <Icon className="h-4 w-4" />
-        {children}
+        <div className="pl-7">{children}</div>
         {onClose && (
           <button
             type="button"

@@ -213,6 +213,9 @@ export default function CreateExperimentPage() {
   const [metricType, setMetricType] = useState<
     "conversion" | "count" | "sum" | "average"
   >("conversion");
+  const [selectedSdk, setSelectedSdk] = useState<
+    "javascript" | "nextjs" | "expo" | "php" | "laravel"
+  >("javascript");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -865,17 +868,83 @@ export default function CreateExperimentPage() {
                       required
                       disabled={isLoading}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Track this event from your app using the SDK:
-                    </p>
-                    <pre className="text-xs bg-muted p-2 rounded font-mono overflow-x-auto">
-                      {`// JavaScript/TypeScript
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Track this event from your app using the SDK:
+                  </p>
+                  <div className="flex gap-1 mb-2">
+                    {(
+                      [
+                        { id: "javascript", label: "JavaScript" },
+                        { id: "nextjs", label: "Next.js" },
+                        { id: "expo", label: "Expo" },
+                        { id: "php", label: "PHP" },
+                        { id: "laravel", label: "Laravel" },
+                      ] as const
+                    ).map((sdk) => (
+                      <button
+                        key={sdk.id}
+                        type="button"
+                        onClick={() => setSelectedSdk(sdk.id)}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors ${
+                          selectedSdk === sdk.id
+                            ? "bg-black text-white"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        {sdk.label}
+                      </button>
+                    ))}
+                  </div>
+                  <pre className="text-xs bg-muted p-3 rounded-lg rounded-tl-none font-mono overflow-x-auto">
+                    {selectedSdk === "javascript" &&
+                      `// JavaScript/TypeScript (@togglebox/sdk)
 await client.trackConversion('${experimentKey || "experiment-key"}', context, {
   metricName: '${metricEventName || "purchase"}',
   value: 99.99  // optional
 });`}
-                    </pre>
-                  </div>
+                    {selectedSdk === "nextjs" &&
+                      `// Next.js (@togglebox/sdk-nextjs)
+import { useAnalytics } from '@togglebox/sdk-nextjs';
+
+const { trackConversion } = useAnalytics();
+
+await trackConversion('${experimentKey || "experiment-key"}', context, {
+  metricName: '${metricEventName || "purchase"}',
+  value: 99.99  // optional
+});`}
+                    {selectedSdk === "expo" &&
+                      `// Expo/React Native (@togglebox/sdk-expo)
+import { useAnalytics } from '@togglebox/sdk-expo';
+
+const { trackConversion } = useAnalytics();
+
+await trackConversion('${experimentKey || "experiment-key"}', context, {
+  metricName: '${metricEventName || "purchase"}',
+  value: 99.99  // optional
+});`}
+                    {selectedSdk === "php" &&
+                      `// PHP (togglebox/sdk)
+use ToggleBox\\Client;
+
+$client = new Client($apiUrl, $apiKey);
+
+$client->trackConversion('${experimentKey || "experiment-key"}', $context, [
+    'metricName' => '${metricEventName || "purchase"}',
+    'value' => 99.99  // optional
+]);`}
+                    {selectedSdk === "laravel" &&
+                      `// Laravel (togglebox/laravel)
+use ToggleBox\\Laravel\\Facades\\ToggleBox;
+
+ToggleBox::trackConversion('${experimentKey || "experiment-key"}', $context, [
+    'metricName' => '${metricEventName || "purchase"}',
+    'value' => 99.99  // optional
+]);`}
+                  </pre>
                 </div>
 
                 <div className="space-y-2">

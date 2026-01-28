@@ -9,6 +9,7 @@ import {
   updateFlagApi,
   updateFlagRolloutApi,
 } from "@/lib/api/flags";
+import { ApiError } from "@/lib/api/browser-client";
 import type { Flag } from "@/lib/api/types";
 import {
   Button,
@@ -383,8 +384,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
     stepValidation.values.isValid &&
     stepValidation.targeting.isValid;
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleSubmit() {
     setError(null);
 
     if (!canSubmit) {
@@ -464,7 +464,11 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
 
       router.push(`/flags?platform=${platform}&environment=${environment}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      if (err instanceof ApiError && err.details?.length) {
+        setError(err.details.join(". "));
+      } else {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -577,7 +581,7 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
         />
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <div>
         {/* Step 1: Basic Info */}
         {currentStep === "basic" && (
           <div className="space-y-6">
@@ -1080,13 +1084,17 @@ export default function EditFlagPage({ params }: EditFlagPageProps) {
                 Next
               </Button>
             ) : (
-              <Button type="submit" disabled={isLoading || !canSubmit}>
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isLoading || !canSubmit}
+              >
                 {isLoading ? "Saving..." : "Save Changes"}
               </Button>
             )}
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
