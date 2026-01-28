@@ -1,6 +1,6 @@
 # ToggleBox Laravel SDK
 
-Official Laravel SDK for [ToggleBox](https://togglebox.io) - Remote Config, Feature Flags, and A/B Experiments.
+Official Laravel SDK for [ToggleBox](https://github.com/ulpi-io/togglebox) - Remote Config, Feature Flags, and A/B Experiments.
 
 ## Installation
 
