@@ -32,11 +32,20 @@
     "lint": "pnpm -r lint",
     "lint:fix": "pnpm -r lint:fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "clean": "pnpm -r clean && rm -rf node_modules"
+    "clean": "pnpm -r clean && rm -rf node_modules",
+    "seed": "DB_TYPE=dynamodb DYNAMODB_TABLE=togglebox DYNAMODB_ENDPOINT=http://localhost:8000 AWS_REGION=us-east-1 AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local JWT_SECRET=seed-script-secret-key-32-chars-min tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "@togglebox/auth": "workspace:*",
+    "@togglebox/configs": "workspace:*",
+    "@togglebox/database": "workspace:*"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/node": "^22.10.1",
+    "bcrypt": "^5.1.1",
     "prettier": "^3.1.0",
+    "tsx": "^4.1.4",
     "typescript": "^5.7.2"
   },
   "engines": {
