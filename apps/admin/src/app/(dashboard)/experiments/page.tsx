@@ -76,11 +76,48 @@ function ExperimentsContent() {
     },
   ];
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [experimentsData, userData] = await Promise.all([
+          !platform || !environment
+            ? getAllExperimentsApi()
+            : getExperimentsApi(platform, environment),
+          getCurrentUserApi().catch(() => null),
+        ]);
+
+        if (isMounted) {
+          setExperiments(experimentsData);
+          setUser(userData);
+          setError(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load experiments",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [platform, environment]);
+
   const loadExperiments = useCallback(async () => {
     try {
       setIsLoading(true);
       if (!platform || !environment) {
-        // Load all experiments across all platforms/environments
         const data = await getAllExperimentsApi();
         setExperiments(data);
       } else {
@@ -96,20 +133,6 @@ function ExperimentsContent() {
       setIsLoading(false);
     }
   }, [platform, environment]);
-
-  const loadUser = useCallback(async () => {
-    try {
-      const userData = await getCurrentUserApi();
-      setUser(userData);
-    } catch (err) {
-      console.error("Failed to fetch user:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadExperiments();
-    loadUser();
-  }, [loadExperiments, loadUser]);
 
   const hasSelection = platform && environment;
 
