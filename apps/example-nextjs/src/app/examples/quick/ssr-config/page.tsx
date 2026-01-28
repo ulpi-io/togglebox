@@ -94,9 +94,7 @@ export default async function Page() {
             checkout-test (from getExperiment)
           </p>
           <p className="text-lg font-semibold text-orange-700">
-            {ctaExists
-              ? ctaVariant?.variationKey || "No variant"
-              : "Not Found"}
+            {ctaExists ? ctaVariant?.variationKey || "No variant" : "Not Found"}
           </p>
         </div>
 

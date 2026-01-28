@@ -8,12 +8,12 @@ A comprehensive "kitchen sink" demo showing how to integrate the ToggleBox SDK i
 
 This example app demonstrates all three tiers of ToggleBox:
 
-| Tier       | Feature        | Client Hook                     | Server Function               |
-| ---------- | -------------- | ------------------------------- | ----------------------------- |
-| **Tier 1** | Remote Configs | `useConfig()`                   | `getConfig()`                 |
-| **Tier 2** | Feature Flags  | `useFlags()`, `useFlag()`       | `getFlags()`, `getFlag()`     |
+| Tier       | Feature        | Client Hook                           | Server Function                       |
+| ---------- | -------------- | ------------------------------------- | ------------------------------------- |
+| **Tier 1** | Remote Configs | `useConfig()`                         | `getConfig()`                         |
+| **Tier 2** | Feature Flags  | `useFlags()`, `useFlag()`             | `getFlags()`, `getFlag()`             |
 | **Tier 3** | Experiments    | `useExperiments()`, `useExperiment()` | `getExperiments()`, `getExperiment()` |
-| **-**      | Analytics      | `useAnalytics()`                | `getAnalytics()`              |
+| **-**      | Analytics      | `useAnalytics()`                      | `getAnalytics()`                      |
 
 ---
 
@@ -240,7 +240,11 @@ export default function TrackingExample() {
 Fetch config, flags, and experiments on the server for SSR:
 
 ```tsx
-import { getConfig, getFlag, getExperiment } from "@togglebox/sdk-nextjs/server";
+import {
+  getConfig,
+  getFlag,
+  getExperiment,
+} from "@togglebox/sdk-nextjs/server";
 
 const serverOptions = {
   platform: "web",
@@ -317,7 +321,11 @@ Server-side rendering with client hydration:
 
 ```tsx
 // Server Component (app/layout.tsx)
-import { getConfig, getFlags, getExperiments } from "@togglebox/sdk-nextjs/server";
+import {
+  getConfig,
+  getFlags,
+  getExperiments,
+} from "@togglebox/sdk-nextjs/server";
 import { Providers } from "./providers";
 
 const serverOptions = {
@@ -349,10 +357,15 @@ export default async function RootLayout({ children }) {
 }
 
 // Client Provider (app/providers.tsx)
-"use client";
+("use client");
 import { ToggleBoxProvider } from "@togglebox/sdk-nextjs";
 
-export function Providers({ children, initialConfig, initialFlags, initialExperiments }) {
+export function Providers({
+  children,
+  initialConfig,
+  initialFlags,
+  initialExperiments,
+}) {
   return (
     <ToggleBoxProvider
       platform="web"
@@ -524,7 +537,11 @@ const { flags, isFlagEnabled } = await getFlags(serverOptions);
 const enabled = isFlagEnabled("new-checkout", { userId: "user-123" });
 
 // Single
-const { flag, exists, enabled } = await getFlag("dark-mode", { userId: "user-123" }, serverOptions);
+const { flag, exists, enabled } = await getFlag(
+  "dark-mode",
+  { userId: "user-123" },
+  serverOptions,
+);
 ```
 
 ### getExperiments() / getExperiment()
@@ -535,15 +552,26 @@ const { experiments, getVariant } = await getExperiments(serverOptions);
 const variant = getVariant("checkout-test", { userId: "user-123" });
 
 // Single
-const { experiment, exists, variant } = await getExperiment("checkout-test", { userId: "user-123" }, serverOptions);
-if (variant?.variationKey === "new-checkout") { /* ... */ }
+const { experiment, exists, variant } = await getExperiment(
+  "checkout-test",
+  { userId: "user-123" },
+  serverOptions,
+);
+if (variant?.variationKey === "new-checkout") {
+  /* ... */
+}
 ```
 
 ### getAnalytics()
 
 ```tsx
-const { trackEvent, trackConversion, flushStats } = await getAnalytics(serverOptions);
-await trackConversion("checkout-test", { userId: "user-123" }, { metricName: "purchase", value: 99.99 });
+const { trackEvent, trackConversion, flushStats } =
+  await getAnalytics(serverOptions);
+await trackConversion(
+  "checkout-test",
+  { userId: "user-123" },
+  { metricName: "purchase", value: 99.99 },
+);
 await flushStats(); // Always call to send events and cleanup
 ```
 
