@@ -44,7 +44,7 @@ Track flag evaluations, experiment exposures, and configuration fetches. Know wh
 | **Self-Hostable**  | Deploy on your infrastructure with full control               |
 | **Multi-Database** | DynamoDB, PostgreSQL, MySQL, MongoDB, SQLite, Cloudflare D1   |
 | **Multi-Platform** | AWS Lambda, Cloudflare Workers, Docker, Netlify               |
-| **Type-Safe SDKs** | JavaScript, Next.js, Expo/React Native                        |
+| **Type-Safe SDKs** | JavaScript, Next.js, Expo/React Native, PHP, Laravel          |
 | **Open Source**    | Inspect the code, contribute, customize                       |
 | **Hosted Option**  | [ToggleBox Cloud](https://togglebox.dev) for zero maintenance |
 
@@ -109,7 +109,19 @@ All experiments are automatically started and in "running" status.
 
 ## SDKs
 
+ToggleBox provides official SDKs for multiple platforms:
+
+| SDK | Package | Description |
+|-----|---------|-------------|
+| **JavaScript** | [![npm](https://img.shields.io/npm/v/@togglebox/sdk)](https://www.npmjs.com/package/@togglebox/sdk) | Core JavaScript SDK for browser and Node.js |
+| **Next.js** | [![npm](https://img.shields.io/npm/v/@togglebox/sdk-nextjs)](https://www.npmjs.com/package/@togglebox/sdk-nextjs) | Next.js SDK with React hooks and SSR support |
+| **Expo** | [![npm](https://img.shields.io/npm/v/@togglebox/sdk-expo)](https://www.npmjs.com/package/@togglebox/sdk-expo) | React Native/Expo SDK with offline support |
+| **PHP** | [![Packagist](https://img.shields.io/packagist/v/togglebox/sdk)](https://packagist.org/packages/togglebox/sdk) | Core PHP SDK (PHP 8.1+) |
+| **Laravel** | [![Packagist](https://img.shields.io/packagist/v/togglebox/laravel)](https://packagist.org/packages/togglebox/laravel) | Laravel SDK with service provider and facade |
+
 ### JavaScript SDK
+
+[![npm version](https://badge.fury.io/js/%40togglebox%2Fsdk.svg)](https://www.npmjs.com/package/@togglebox/sdk)
 
 ```bash
 npm install @togglebox/sdk
