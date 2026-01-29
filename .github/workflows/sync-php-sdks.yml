@@ -1,0 +1,49 @@
+name: Sync PHP SDKs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync-php-sdks:
+    name: Sync PHP SDKs to Split Repositories
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Split and push sdk-php
+        run: |
+          echo "Splitting packages/sdk-php..."
+          git subtree split --prefix=packages/sdk-php -b sdk-php-split
+
+          echo "Pushing to togglebox-php repository..."
+          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/ulpi-io/togglebox-php.git sdk-php-split:main --force
+
+          git branch -D sdk-php-split
+          echo "✓ PHP SDK synced successfully"
+
+      - name: Split and push sdk-laravel
+        run: |
+          echo "Splitting packages/sdk-laravel..."
+          git subtree split --prefix=packages/sdk-laravel -b sdk-laravel-split
+
+          echo "Pushing to togglebox-laravel repository..."
+          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/ulpi-io/togglebox-laravel.git sdk-laravel-split:main --force
+
+          git branch -D sdk-laravel-split
+          echo "✓ Laravel SDK synced successfully"
+
+      - name: Summary
+        run: |
+          echo "✓ Both PHP SDKs synced to split repositories"
+          echo "- togglebox-php: https://github.com/ulpi-io/togglebox-php"
+          echo "- togglebox-laravel: https://github.com/ulpi-io/togglebox-laravel"
