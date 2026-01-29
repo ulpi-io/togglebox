@@ -655,6 +655,13 @@ importers:
 
   packages/sdk-expo:
     dependencies:
+      react:
+        specifier: ^18.0.0
+        version: 18.3.1
+      react-native:
+        specifier: '*'
+        version: 0.82.1(@babel/core@7.28.6)(@types/react@18.3.27)(react@18.3.1)
+    devDependencies:
       '@togglebox/configs':
         specifier: workspace:*
         version: link:../configs
@@ -670,13 +677,6 @@ importers:
       '@togglebox/sdk':
         specifier: workspace:*
         version: link:../sdk-js
-      react:
-        specifier: ^18.0.0
-        version: 18.3.1
-      react-native:
-        specifier: '*'
-        version: 0.82.1(@babel/core@7.28.6)(@types/react@18.3.27)(react@18.3.1)
-    devDependencies:
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.27
@@ -694,7 +694,7 @@ importers:
         version: 5.9.3
 
   packages/sdk-js:
-    dependencies:
+    devDependencies:
       '@togglebox/configs':
         specifier: workspace:*
         version: link:../configs
@@ -710,7 +710,6 @@ importers:
       '@togglebox/stats':
         specifier: workspace:*
         version: link:../stats
-    devDependencies:
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(tsx@4.20.6)(typescript@5.9.3)
@@ -720,6 +719,10 @@ importers:
 
   packages/sdk-nextjs:
     dependencies:
+      react:
+        specifier: ^18.0.0 || ^19.0.0
+        version: 19.0.0
+    devDependencies:
       '@togglebox/configs':
         specifier: workspace:*
         version: link:../configs
@@ -735,10 +738,6 @@ importers:
       '@togglebox/sdk':
         specifier: workspace:*
         version: link:../sdk-js
-      react:
-        specifier: ^18.0.0 || ^19.0.0
-        version: 19.0.0
-    devDependencies:
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.27
