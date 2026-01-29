@@ -33,31 +33,35 @@ jobs:
 
       - name: Split and push sdk-php
         env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           echo "Splitting packages/sdk-php..."
           git subtree split --prefix=packages/sdk-php -b sdk-php-split
 
-          echo "Configuring git credentials..."
-          git config --global credential.helper store
-          echo "https://x-access-token:${PAT_TOKEN}@github.com" > ~/.git-credentials
+          echo "Adding remote with token..."
+          git remote add php-repo https://${{ secrets.PAT_TOKEN }}@github.com/ulpi-io/togglebox-php.git
 
           echo "Pushing to togglebox-php repository..."
-          git push https://github.com/ulpi-io/togglebox-php.git sdk-php-split:main --force
+          git push php-repo sdk-php-split:main --force
 
+          git remote remove php-repo
           git branch -D sdk-php-split
           echo "✓ PHP SDK synced successfully"
 
       - name: Split and push sdk-laravel
         env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           echo "Splitting packages/sdk-laravel..."
           git subtree split --prefix=packages/sdk-laravel -b sdk-laravel-split
 
-          echo "Pushing to togglebox-laravel repository..."
-          git push https://github.com/ulpi-io/togglebox-laravel.git sdk-laravel-split:main --force
+          echo "Adding remote with token..."
+          git remote add laravel-repo https://${{ secrets.PAT_TOKEN }}@github.com/ulpi-io/togglebox-laravel.git
 
+          echo "Pushing to togglebox-laravel repository..."
+          git push laravel-repo sdk-laravel-split:main --force
+
+          git remote remove laravel-repo
           git branch -D sdk-laravel-split
           echo "✓ Laravel SDK synced successfully"
 
