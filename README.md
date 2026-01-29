@@ -113,24 +113,25 @@ make rebuild
 
 **Available Make Commands:**
 
-| Command | Description |
-|---------|-------------|
-| `make dev` | Start development environment with hot reload |
-| `make prod` | Start production environment |
-| `make down` | Stop all services |
-| `make restart` | Restart all services |
-| `make build` | Rebuild containers (no cache) |
-| `make rebuild` | Clean volumes and rebuild from scratch |
-| `make logs` | View logs for all services |
-| `make logs-api` | View API logs only |
-| `make logs-admin` | View Admin logs only |
-| `make status` | Show service status and access points |
-| `make shell-api` | Open shell in API container |
-| `make shell-admin` | Open shell in Admin container |
-| `make test` | Run tests in API container |
-| `make help` | Show all available commands |
+| Command            | Description                                   |
+| ------------------ | --------------------------------------------- |
+| `make dev`         | Start development environment with hot reload |
+| `make prod`        | Start production environment                  |
+| `make down`        | Stop all services                             |
+| `make restart`     | Restart all services                          |
+| `make build`       | Rebuild containers (no cache)                 |
+| `make rebuild`     | Clean volumes and rebuild from scratch        |
+| `make logs`        | View logs for all services                    |
+| `make logs-api`    | View API logs only                            |
+| `make logs-admin`  | View Admin logs only                          |
+| `make status`      | Show service status and access points         |
+| `make shell-api`   | Open shell in API container                   |
+| `make shell-admin` | Open shell in Admin container                 |
+| `make test`        | Run tests in API container                    |
+| `make help`        | Show all available commands                   |
 
 **Access Points (Docker):**
+
 - API: http://localhost:3000
 - Admin: http://localhost:3001
 - DynamoDB: http://localhost:8000
@@ -165,13 +166,13 @@ All experiments are automatically started and in "running" status.
 
 ToggleBox provides official SDKs for multiple platforms:
 
-| SDK | Package | Description |
-|-----|---------|-------------|
-| **JavaScript** | [![npm](https://img.shields.io/npm/v/@togglebox/sdk)](https://www.npmjs.com/package/@togglebox/sdk) | Core JavaScript SDK for browser and Node.js |
-| **Next.js** | [![npm](https://img.shields.io/npm/v/@togglebox/sdk-nextjs)](https://www.npmjs.com/package/@togglebox/sdk-nextjs) | Next.js SDK with React hooks and SSR support |
-| **Expo** | [![npm](https://img.shields.io/npm/v/@togglebox/sdk-expo)](https://www.npmjs.com/package/@togglebox/sdk-expo) | React Native/Expo SDK with offline support |
-| **PHP** | [![Packagist](https://img.shields.io/packagist/v/togglebox/sdk)](https://packagist.org/packages/togglebox/sdk) | Core PHP SDK (PHP 8.1+) |
-| **Laravel** | [![Packagist](https://img.shields.io/packagist/v/togglebox/laravel)](https://packagist.org/packages/togglebox/laravel) | Laravel SDK with service provider and facade |
+| SDK            | Package                                                                                                                | Description                                  |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| **JavaScript** | [![npm](https://img.shields.io/npm/v/@togglebox/sdk)](https://www.npmjs.com/package/@togglebox/sdk)                    | Core JavaScript SDK for browser and Node.js  |
+| **Next.js**    | [![npm](https://img.shields.io/npm/v/@togglebox/sdk-nextjs)](https://www.npmjs.com/package/@togglebox/sdk-nextjs)      | Next.js SDK with React hooks and SSR support |
+| **Expo**       | [![npm](https://img.shields.io/npm/v/@togglebox/sdk-expo)](https://www.npmjs.com/package/@togglebox/sdk-expo)          | React Native/Expo SDK with offline support   |
+| **PHP**        | [![Packagist](https://img.shields.io/packagist/v/togglebox/sdk)](https://packagist.org/packages/togglebox/sdk)         | Core PHP SDK (PHP 8.1+)                      |
+| **Laravel**    | [![Packagist](https://img.shields.io/packagist/v/togglebox/laravel)](https://packagist.org/packages/togglebox/laravel) | Laravel SDK with service provider and facade |
 
 ### JavaScript SDK
 
@@ -443,22 +444,26 @@ This repository is a **monorepo** containing all ToggleBox packages and SDKs. SD
 ### Published SDKs
 
 **JavaScript (npm):**
+
 - [`@togglebox/sdk`](https://www.npmjs.com/package/@togglebox/sdk) - Core JavaScript SDK
 - [`@togglebox/sdk-nextjs`](https://www.npmjs.com/package/@togglebox/sdk-nextjs) - Next.js SDK with React hooks
 - [`@togglebox/sdk-expo`](https://www.npmjs.com/package/@togglebox/sdk-expo) - Expo/React Native SDK
 
 **PHP (Packagist):**
+
 - [`togglebox/sdk`](https://packagist.org/packages/togglebox/sdk) - Core PHP SDK
 - [`togglebox/laravel`](https://packagist.org/packages/togglebox/laravel) - Laravel SDK
 
 ### Automated Publishing
 
 **JavaScript SDKs (npm):**
+
 - Managed in the monorepo at `packages/sdk-js/`, `packages/sdk-nextjs/`, `packages/sdk-expo/`
 - Published directly from monorepo to npm
 - See [PUBLISHING.md](./PUBLISHING.md) for details
 
 **PHP SDKs (Packagist):**
+
 - Managed in the monorepo at `packages/sdk-php/`, `packages/sdk-laravel/`
 - **Automatically synced** to separate repositories via GitHub Actions on every push to `main`:
   - `packages/sdk-php/` → [`togglebox-php`](https://github.com/ulpi-io/togglebox-php)
@@ -467,6 +472,7 @@ This repository is a **monorepo** containing all ToggleBox packages and SDKs. SD
 - See [PUBLISHING.md](./PUBLISHING.md) for details
 
 **How it works:**
+
 1. Developers work in the monorepo (`packages/sdk-php/`, `packages/sdk-laravel/`)
 2. On push to `main`, GitHub Actions automatically splits and syncs to separate repos
 3. Packagist detects changes via GitHub webhooks and updates packages
