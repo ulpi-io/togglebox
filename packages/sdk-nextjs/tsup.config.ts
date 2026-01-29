@@ -19,6 +19,6 @@ export default defineConfig({
     "@togglebox/experiments",
     "@togglebox/sdk",
   ],
-  // Don't bundle React/Next.js (peer dependencies)
-  external: ["react", "react-dom", "next"],
+  // Don't bundle React/Next.js (peer dependencies) and zod (type bundling issues)
+  external: ["react", "react-dom", "next", "zod"],
 });

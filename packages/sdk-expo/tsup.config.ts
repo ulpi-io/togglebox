@@ -19,6 +19,6 @@ export default defineConfig({
     "@togglebox/experiments",
     "@togglebox/sdk",
   ],
-  // Don't bundle React/React Native (peer dependencies)
-  external: ["react", "react-native", "react-native-mmkv"],
+  // Don't bundle React/React Native (peer dependencies) and zod (type bundling issues)
+  external: ["react", "react-native", "react-native-mmkv", "zod"],
 });

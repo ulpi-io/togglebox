@@ -19,4 +19,6 @@ export default defineConfig({
     "@togglebox/experiments",
     "@togglebox/stats",
   ],
+  // Don't bundle zod (type bundling issues)
+  external: ["zod"],
 });
