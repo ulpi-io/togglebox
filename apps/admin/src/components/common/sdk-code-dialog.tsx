@@ -88,7 +88,7 @@ function highlightTypeScript(line: string): React.ReactNode[] {
     }
 
     // Template literals
-    const templateMatch = remaining.match(/^(`[^`]*`)/);
+    const templateMatch = remaining.match(/^(\`[^\`]*\`)/);
     if (templateMatch) {
       tokens.push(
         <span key={key++} className="text-emerald-400">
@@ -321,41 +321,46 @@ function generateCodeSnippet(
     metricEventName?: string;
   },
 ): string {
-  const { itemKey, metricEventName } = params;
+  const { platform, environment, itemKey, metricEventName } = params;
 
   switch (type) {
     case "config":
-      return generateConfigSnippet(sdk, itemKey);
+      return generateConfigSnippet(sdk, platform, environment, itemKey);
     case "flag":
-      return generateFlagSnippet(sdk, itemKey);
+      return generateFlagSnippet(sdk, platform, environment, itemKey);
     case "experiment":
-      return generateExperimentSnippet(sdk, itemKey, metricEventName);
+      return generateExperimentSnippet(
+        sdk,
+        platform,
+        environment,
+        itemKey,
+        metricEventName,
+      );
   }
 }
 
-function generateConfigSnippet(sdk: SdkType, key: string): string {
+function generateConfigSnippet(
+  sdk: SdkType,
+  platform: string,
+  environment: string,
+  key: string,
+): string {
   switch (sdk) {
     case "javascript":
       return `import { ToggleBoxClient } from "@togglebox/sdk";
 
 const client = new ToggleBoxClient({
-  platform: "your-platform",
-  environment: "production",
-  apiUrl: "https://api.example.com",
+  platform: "${platform}",
+  environment: "${environment}",
+  apiUrl: process.env.TOGGLEBOX_API_URL,
 });
 
-// Your config key
-const configKey = "${key}";
-
 // Get config value with default fallback
-const value = await client.getConfigValue(configKey, "default-value");
+const value = await client.getConfigValue("${key}", "default-value");
 console.log(value);`;
 
     case "nextjs":
       return `import { useConfig } from "@togglebox/sdk-nextjs";
-
-// Your config key
-const CONFIG_KEY = "${key}";
 
 function MyComponent() {
   const { getConfigValue, isLoading } = useConfig();
@@ -363,7 +368,7 @@ function MyComponent() {
   if (isLoading) return <div>Loading...</div>;
 
   // Get config value with default fallback
-  const value = getConfigValue(CONFIG_KEY, "default-value");
+  const value = getConfigValue("${key}", "default-value");
 
   return <div>Config value: {value}</div>;
 }`;
@@ -371,16 +376,13 @@ function MyComponent() {
     case "expo":
       return `import { useToggleBox } from "@togglebox/sdk-expo";
 
-// Your config key
-const CONFIG_KEY = "${key}";
-
 function MyComponent() {
   const { getConfigValue, isLoading } = useToggleBox();
 
   if (isLoading) return <Text>Loading...</Text>;
 
   // Get config value with default fallback
-  const value = getConfigValue(CONFIG_KEY, "default-value");
+  const value = getConfigValue("${key}", "default-value");
 
   return <Text>Config value: {value}</Text>;
 }`;
@@ -390,54 +392,50 @@ function MyComponent() {
 
 use ToggleBox\\Client;
 
-$client = new Client([
-    'platform' => 'your-platform',
-    'environment' => 'production',
-    'apiUrl' => 'https://api.example.com',
+\$client = new Client([
+    'platform' => '${platform}',
+    'environment' => '${environment}',
+    'apiUrl' => env('TOGGLEBOX_API_URL'),
 ]);
 
-// Your config key
-$configKey = '${key}';
-
 // Get config value with default fallback
-$value = $client->getConfigValue($configKey, 'default-value');
-echo $value;`;
+\$value = \$client->getConfigValue('${key}', 'default-value');
+echo \$value;`;
 
     case "laravel":
       return `<?php
 
 use ToggleBox\\Facades\\ToggleBox;
 
-// Your config key
-$configKey = '${key}';
-
 // Get config value with default fallback
-$value = ToggleBox::getConfigValue($configKey, 'default-value');
+\$value = ToggleBox::getConfigValue('${key}', 'default-value');
 
 // Or use the helper function
-$value = togglebox_config($configKey, 'default-value');`;
+\$value = togglebox_config('${key}', 'default-value');`;
   }
 }
 
-function generateFlagSnippet(sdk: SdkType, key: string): string {
+function generateFlagSnippet(
+  sdk: SdkType,
+  platform: string,
+  environment: string,
+  key: string,
+): string {
   switch (sdk) {
     case "javascript":
       return `import { ToggleBoxClient } from "@togglebox/sdk";
 
 const client = new ToggleBoxClient({
-  platform: "your-platform",
-  environment: "production",
-  apiUrl: "https://api.example.com",
+  platform: "${platform}",
+  environment: "${environment}",
+  apiUrl: process.env.TOGGLEBOX_API_URL,
 });
-
-// Your flag key
-const flagKey = "${key}";
 
 // Get userId from your auth system
 const userId = getCurrentUserId();
 
 // Check if flag is enabled with user context
-const enabled = await client.isFlagEnabled(flagKey, {
+const enabled = await client.isFlagEnabled("${key}", {
   userId,
   country: "US",    // optional, 2-letter ISO code
   language: "en",   // optional, 2-letter ISO code
@@ -451,11 +449,8 @@ if (enabled) {
       return `import { useFlag } from "@togglebox/sdk-nextjs";
 import { useState, useEffect } from "react";
 
-// Your flag key
-const FLAG_KEY = "${key}";
-
 function MyComponent({ userId }: { userId: string }) {
-  const { isEnabled, isLoading } = useFlag(FLAG_KEY);
+  const { isEnabled, isLoading } = useFlag("${key}");
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
@@ -471,11 +466,8 @@ function MyComponent({ userId }: { userId: string }) {
       return `import { useFlag } from "@togglebox/sdk-expo";
 import { useState, useEffect } from "react";
 
-// Your flag key
-const FLAG_KEY = "${key}";
-
 function MyComponent({ userId }: { userId: string }) {
-  const { isEnabled, isLoading } = useFlag(FLAG_KEY);
+  const { isEnabled, isLoading } = useFlag("${key}");
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
@@ -492,26 +484,23 @@ function MyComponent({ userId }: { userId: string }) {
 
 use ToggleBox\\Client;
 
-$client = new Client([
-    'platform' => 'your-platform',
-    'environment' => 'production',
-    'apiUrl' => 'https://api.example.com',
+\$client = new Client([
+    'platform' => '${platform}',
+    'environment' => '${environment}',
+    'apiUrl' => env('TOGGLEBOX_API_URL'),
 ]);
 
-// Your flag key
-$flagKey = '${key}';
-
 // Get userId from your auth system
-$userId = $this->getAuthenticatedUserId();
+\$userId = \$this->getAuthenticatedUserId();
 
 // Check if flag is enabled with user context
-$enabled = $client->isFlagEnabled($flagKey, [
-    'userId' => $userId,
+\$enabled = \$client->isFlagEnabled('${key}', [
+    'userId' => \$userId,
     'country' => 'US',   // optional
     'language' => 'en',  // optional
 ]);
 
-if ($enabled) {
+if (\$enabled) {
     // Feature is enabled for this user
 }`;
 
@@ -520,25 +509,22 @@ if ($enabled) {
 
 use ToggleBox\\Facades\\ToggleBox;
 
-// Your flag key
-$flagKey = '${key}';
-
 // Get userId from your auth system
-$userId = auth()->id();
+\$userId = auth()->id();
 
 // Check if flag is enabled with user context
-$enabled = ToggleBox::isFlagEnabled($flagKey, [
-    'userId' => $userId,
+\$enabled = ToggleBox::isFlagEnabled('${key}', [
+    'userId' => \$userId,
     'country' => 'US',   // optional
     'language' => 'en',  // optional
 ]);
 
-if ($enabled) {
+if (\$enabled) {
     // Feature is enabled for this user
 }
 
 // Or use the helper function
-if (togglebox_flag($flagKey)) {
+if (togglebox_flag('${key}')) {
     // Feature is enabled
 }`;
   }
@@ -546,6 +532,8 @@ if (togglebox_flag($flagKey)) {
 
 function generateExperimentSnippet(
   sdk: SdkType,
+  platform: string,
+  environment: string,
   key: string,
   metricEventName?: string,
 ): string {
@@ -556,20 +544,16 @@ function generateExperimentSnippet(
       return `import { ToggleBoxClient } from "@togglebox/sdk";
 
 const client = new ToggleBoxClient({
-  platform: "your-platform",
-  environment: "production",
-  apiUrl: "https://api.example.com",
+  platform: "${platform}",
+  environment: "${environment}",
+  apiUrl: process.env.TOGGLEBOX_API_URL,
 });
-
-// Your experiment key and metric event
-const experimentKey = "${key}";
-const eventName = "${eventName}";
 
 // Get userId from your auth system
 const userId = getCurrentUserId();
 
 // Get variant assignment for user
-const variant = await client.getVariant(experimentKey, {
+const variant = await client.getVariant("${key}", {
   userId,
   country: "US",    // optional, 2-letter ISO code
   language: "en",   // optional, 2-letter ISO code
@@ -583,17 +567,13 @@ if (variant === "control") {
 }
 
 // Track conversion when user completes action
-await client.trackConversion(experimentKey, eventName, { userId });`;
+await client.trackConversion("${key}", "${eventName}", { userId });`;
 
     case "nextjs":
       return `import { useExperiment, useAnalytics } from "@togglebox/sdk-nextjs";
 
-// Your experiment key and metric event
-const EXPERIMENT_KEY = "${key}";
-const EVENT_NAME = "${eventName}";
-
 function MyComponent({ userId }: { userId: string }) {
-  const { getVariant, isLoading } = useExperiment(EXPERIMENT_KEY, { userId });
+  const { getVariant, isLoading } = useExperiment("${key}", { userId });
   const { trackConversion } = useAnalytics();
 
   if (isLoading) return <div>Loading...</div>;
@@ -602,7 +582,7 @@ function MyComponent({ userId }: { userId: string }) {
 
   const handleConversion = () => {
     // Track conversion when user completes action
-    trackConversion(EXPERIMENT_KEY, EVENT_NAME, { userId });
+    trackConversion("${key}", "${eventName}", { userId });
   };
 
   if (variant === "control") {
@@ -615,20 +595,16 @@ function MyComponent({ userId }: { userId: string }) {
     case "expo":
       return `import { useToggleBox } from "@togglebox/sdk-expo";
 
-// Your experiment key and metric event
-const EXPERIMENT_KEY = "${key}";
-const EVENT_NAME = "${eventName}";
-
 function MyComponent({ userId }: { userId: string }) {
   const { getVariant, trackConversion, isLoading } = useToggleBox();
 
   if (isLoading) return <Text>Loading...</Text>;
 
-  const variant = getVariant(EXPERIMENT_KEY, { userId });
+  const variant = getVariant("${key}", { userId });
 
   const handleConversion = () => {
     // Track conversion when user completes action
-    trackConversion(EXPERIMENT_KEY, EVENT_NAME, { userId });
+    trackConversion("${key}", "${eventName}", { userId });
   };
 
   if (variant === "control") {
@@ -643,36 +619,32 @@ function MyComponent({ userId }: { userId: string }) {
 
 use ToggleBox\\Client;
 
-$client = new Client([
-    'platform' => 'your-platform',
-    'environment' => 'production',
-    'apiUrl' => 'https://api.example.com',
+\$client = new Client([
+    'platform' => '${platform}',
+    'environment' => '${environment}',
+    'apiUrl' => env('TOGGLEBOX_API_URL'),
 ]);
 
-// Your experiment key and metric event
-$experimentKey = '${key}';
-$eventName = '${eventName}';
-
 // Get userId from your auth system
-$userId = $this->getAuthenticatedUserId();
+\$userId = \$this->getAuthenticatedUserId();
 
 // Get variant assignment for user
-$variant = $client->getVariant($experimentKey, [
-    'userId' => $userId,
+\$variant = \$client->getVariant('${key}', [
+    'userId' => \$userId,
     'country' => 'US',   // optional
     'language' => 'en',  // optional
 ]);
 
 // Render based on variant
-if ($variant === 'control') {
+if (\$variant === 'control') {
     // Show control experience
 } else {
     // Show treatment experience
 }
 
 // Track conversion when user completes action
-$client->trackConversion($experimentKey, $eventName, [
-    'userId' => $userId,
+\$client->trackConversion('${key}', '${eventName}', [
+    'userId' => \$userId,
 ]);`;
 
     case "laravel":
@@ -680,30 +652,26 @@ $client->trackConversion($experimentKey, $eventName, [
 
 use ToggleBox\\Facades\\ToggleBox;
 
-// Your experiment key and metric event
-$experimentKey = '${key}';
-$eventName = '${eventName}';
-
 // Get userId from your auth system
-$userId = auth()->id();
+\$userId = auth()->id();
 
 // Get variant assignment for user
-$variant = ToggleBox::getVariant($experimentKey, [
-    'userId' => $userId,
+\$variant = ToggleBox::getVariant('${key}', [
+    'userId' => \$userId,
     'country' => 'US',   // optional
     'language' => 'en',  // optional
 ]);
 
 // Render based on variant in Blade template
-// @if(togglebox_variant($experimentKey) === 'treatment')
+// @if(togglebox_variant('${key}') === 'treatment')
 //     @include('experiment.treatment')
 // @else
 //     @include('experiment.control')
 // @endif
 
 // Track conversion when user completes action
-ToggleBox::trackConversion($experimentKey, $eventName, [
-    'userId' => $userId,
+ToggleBox::trackConversion('${key}', '${eventName}', [
+    'userId' => \$userId,
 ]);`;
   }
 }
