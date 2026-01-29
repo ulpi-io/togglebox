@@ -167,8 +167,8 @@ const { config, getConfigValue, isLoading } = useConfig();
 const apiUrl = await getConfigValue("api_url", "https://default.api.com");
 
 // Tier 2: Feature flags
-const { flag, exists, checkEnabled } = useFlag("dark-mode");
-const enabled = await checkEnabled();
+const { flag, exists, isEnabled } = useFlag("dark-mode");
+const enabled = await isEnabled();
 
 // Tier 3: Experiments
 const { experiment, getVariant } = useExperiment("checkout-test", { userId });

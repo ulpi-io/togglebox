@@ -1,43 +1,65 @@
 {
   "name": "@togglebox/sdk-nextjs",
   "version": "0.1.0",
-  "description": "Next.js SDK for remote config service",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "Next.js SDK for ToggleBox - remote configs, feature flags, and A/B experiments with React hooks",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
     "./server": {
       "types": "./dist/server.d.ts",
-      "import": "./dist/server.js",
+      "import": "./dist/server.mjs",
       "require": "./dist/server.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm build"
   },
-  "dependencies": {
-    "@togglebox/configs": "workspace:*",
-    "@togglebox/core": "workspace:*",
-    "@togglebox/flags": "workspace:*",
-    "@togglebox/experiments": "workspace:*",
-    "@togglebox/sdk": "workspace:*"
+  "keywords": [
+    "togglebox",
+    "nextjs",
+    "react",
+    "remote-config",
+    "feature-flags",
+    "ab-testing",
+    "experiments",
+    "hooks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ulpi-io/togglebox.git",
+    "directory": "packages/sdk-nextjs"
   },
+  "homepage": "https://github.com/ulpi-io/togglebox#readme",
+  "bugs": {
+    "url": "https://github.com/ulpi-io/togglebox/issues"
+  },
+  "license": "Elastic-2.0",
   "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "next": "^14.2.35 || ^15.0.0 || ^16.0.0"
+    "next": "^14.2.35 || ^15.0.0 || ^16.0.0",
+    "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@togglebox/configs": "workspace:*",
+    "@togglebox/core": "workspace:*",
+    "@togglebox/experiments": "workspace:*",
+    "@togglebox/flags": "workspace:*",
+    "@togglebox/sdk": "workspace:*",
     "@types/react": "^18.2.0",
     "next": "^15.5.10",
+    "tsup": "^8.5.1",
     "typescript": "^5.7.2"
   },
   "publishConfig": {

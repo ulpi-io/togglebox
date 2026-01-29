@@ -427,17 +427,20 @@ if (enabled) {
 
     case "nextjs":
       return `import { useFlag } from "@togglebox/sdk-nextjs";
+import { useState, useEffect } from "react";
 
 function MyComponent() {
-  const { checkEnabled, isLoading } = useFlag("${key}");
+  const { isEnabled, isLoading } = useFlag("${key}");
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    isEnabled({
+      userId: "user-123",
+      email: "user@example.com",
+    }).then(setEnabled);
+  }, [isEnabled]);
 
   if (isLoading) return <div>Loading...</div>;
-
-  // Check if flag is enabled with user context
-  const enabled = checkEnabled({
-    userId: "user-123",
-    email: "user@example.com",
-  });
 
   if (enabled) {
     return <NewFeature />;

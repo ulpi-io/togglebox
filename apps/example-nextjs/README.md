@@ -466,7 +466,7 @@ const {
   flag, // Flag | undefined
   exists, // boolean
   isLoading, // boolean
-  checkEnabled, // () => Promise<boolean>
+  isEnabled, // () => Promise<boolean>
 } = useFlag("dark-mode", { userId: "user-123" });
 ```
 
