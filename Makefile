@@ -23,10 +23,13 @@ install: ## Install dependencies (pnpm install)
 	@pnpm install
 	@echo "✅ Dependencies installed!"
 
-prisma-generate: ## Generate Prisma client (SQLite for build, runtime uses .env DB_TYPE)
-	@echo "🔧 Generating Prisma schema and client..."
+prisma-generate: ## Generate Prisma clients for database and auth packages
+	@echo "🔧 Generating Prisma schema and clients..."
+	@echo "  → Generating database Prisma client (SQLite)..."
 	@cd packages/database && DB_TYPE=sqlite npm run prisma:generate
-	@echo "✅ Prisma client generated!"
+	@echo "  → Generating auth Prisma client..."
+	@cd packages/auth && npm run prisma:generate
+	@echo "✅ Prisma clients generated!"
 	@echo "ℹ️  Note: Runtime database is controlled by DB_TYPE in .env"
 
 build-packages: prisma-generate ## Build packages in 3 stages

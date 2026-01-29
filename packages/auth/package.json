@@ -8,9 +8,11 @@
     "dist"
   ],
   "scripts": {
+    "prebuild": "prisma generate",
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.705.0",
