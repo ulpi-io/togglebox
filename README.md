@@ -9,6 +9,12 @@ Self-host it anywhere or use our [hosted version](https://togglebox.dev) for a f
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-8.x-orange.svg)](https://pnpm.io/)
 
+[![npm](https://img.shields.io/npm/v/@togglebox/sdk?label=npm%20%40togglebox%2Fsdk)](https://www.npmjs.com/package/@togglebox/sdk)
+[![npm](https://img.shields.io/npm/v/@togglebox/sdk-nextjs?label=npm%20%40togglebox%2Fsdk-nextjs)](https://www.npmjs.com/package/@togglebox/sdk-nextjs)
+[![npm](https://img.shields.io/npm/v/@togglebox/sdk-expo?label=npm%20%40togglebox%2Fsdk-expo)](https://www.npmjs.com/package/@togglebox/sdk-expo)
+[![Packagist](https://img.shields.io/packagist/v/togglebox/sdk?label=packagist%20togglebox%2Fsdk)](https://packagist.org/packages/togglebox/sdk)
+[![Packagist](https://img.shields.io/packagist/v/togglebox/laravel?label=packagist%20togglebox%2Flaravel)](https://packagist.org/packages/togglebox/laravel)
+
 ---
 
 ## Visual Overview
