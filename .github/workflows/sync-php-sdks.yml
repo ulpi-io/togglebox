@@ -20,24 +20,43 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
 
+      - name: Debug - Check if PAT_TOKEN exists
+        run: |
+          if [ -z "${{ secrets.PAT_TOKEN }}" ]; then
+            echo "ERROR: PAT_TOKEN is empty or not set!"
+            exit 1
+          else
+            echo "PAT_TOKEN is set (length: ${#PAT_TOKEN})"
+          fi
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+
       - name: Split and push sdk-php
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           echo "Splitting packages/sdk-php..."
           git subtree split --prefix=packages/sdk-php -b sdk-php-split
 
+          echo "Configuring git credentials..."
+          git config --global credential.helper store
+          echo "https://x-access-token:${PAT_TOKEN}@github.com" > ~/.git-credentials
+
           echo "Pushing to togglebox-php repository..."
-          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/ulpi-io/togglebox-php.git sdk-php-split:main --force
+          git push https://github.com/ulpi-io/togglebox-php.git sdk-php-split:main --force
 
           git branch -D sdk-php-split
           echo "✓ PHP SDK synced successfully"
 
       - name: Split and push sdk-laravel
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           echo "Splitting packages/sdk-laravel..."
           git subtree split --prefix=packages/sdk-laravel -b sdk-laravel-split
 
           echo "Pushing to togglebox-laravel repository..."
-          git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/ulpi-io/togglebox-laravel.git sdk-laravel-split:main --force
+          git push https://github.com/ulpi-io/togglebox-laravel.git sdk-laravel-split:main --force
 
           git branch -D sdk-laravel-split
           echo "✓ Laravel SDK synced successfully"
