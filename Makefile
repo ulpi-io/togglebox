@@ -6,7 +6,7 @@
 
 .PHONY: dev prod down restart build clean rebuild logs logs-api logs-admin logs-db \
         status reset-db init-db shell-api shell-admin help setup install build-packages \
-        rebuild-packages seed
+        rebuild-packages seed prisma-generate
 
 .DEFAULT_GOAL := help
 
@@ -23,7 +23,12 @@ install: ## Install dependencies (pnpm install)
 	@pnpm install
 	@echo "✅ Dependencies installed!"
 
-build-packages: ## Build packages in 3 stages
+prisma-generate: ## Generate Prisma client (for local DynamoDB development)
+	@echo "🔧 Generating Prisma schema and client..."
+	@cd packages/database && DB_TYPE=dynamodb npm run prisma:generate
+	@echo "✅ Prisma client generated!"
+
+build-packages: prisma-generate ## Build packages in 3 stages
 	@echo "🔨 Building packages (3 stages)..."
 	@pnpm build:packages
 	@echo "✅ Packages built!"
@@ -33,7 +38,7 @@ setup: install build-packages ## Complete setup: install + build packages
 	@echo "✅ Setup complete! Ready to start development."
 	@echo "   Run 'make dev' to start the development environment."
 
-rebuild-packages: ## Rebuild packages only
+rebuild-packages: prisma-generate ## Rebuild packages only
 	@echo "🔨 Rebuilding packages..."
 	@pnpm build:packages
 	@echo "✅ Packages rebuilt!"
