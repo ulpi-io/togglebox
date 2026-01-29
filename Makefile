@@ -23,10 +23,11 @@ install: ## Install dependencies (pnpm install)
 	@pnpm install
 	@echo "✅ Dependencies installed!"
 
-prisma-generate: ## Generate Prisma client (for local DynamoDB development)
+prisma-generate: ## Generate Prisma client (SQLite for build, runtime uses .env DB_TYPE)
 	@echo "🔧 Generating Prisma schema and client..."
-	@cd packages/database && DB_TYPE=dynamodb npm run prisma:generate
+	@cd packages/database && DB_TYPE=sqlite npm run prisma:generate
 	@echo "✅ Prisma client generated!"
+	@echo "ℹ️  Note: Runtime database is controlled by DB_TYPE in .env"
 
 build-packages: prisma-generate ## Build packages in 3 stages
 	@echo "🔨 Building packages (3 stages)..."
