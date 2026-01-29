@@ -370,6 +370,44 @@ Don't want to manage infrastructure? [ToggleBox Cloud](https://togglebox.dev) gi
 
 ---
 
+## SDK Publishing & Monorepo
+
+This repository is a **monorepo** containing all ToggleBox packages and SDKs. SDKs are automatically published to npm and Packagist via GitHub Actions workflows.
+
+### Published SDKs
+
+**JavaScript (npm):**
+- [`@togglebox/sdk`](https://www.npmjs.com/package/@togglebox/sdk) - Core JavaScript SDK
+- [`@togglebox/sdk-nextjs`](https://www.npmjs.com/package/@togglebox/sdk-nextjs) - Next.js SDK with React hooks
+- [`@togglebox/sdk-expo`](https://www.npmjs.com/package/@togglebox/sdk-expo) - Expo/React Native SDK
+
+**PHP (Packagist):**
+- [`togglebox/sdk`](https://packagist.org/packages/togglebox/sdk) - Core PHP SDK
+- [`togglebox/laravel`](https://packagist.org/packages/togglebox/laravel) - Laravel SDK
+
+### Automated Publishing
+
+**JavaScript SDKs (npm):**
+- Managed in the monorepo at `packages/sdk-js/`, `packages/sdk-nextjs/`, `packages/sdk-expo/`
+- Published directly from monorepo to npm
+- See [PUBLISHING.md](./PUBLISHING.md) for details
+
+**PHP SDKs (Packagist):**
+- Managed in the monorepo at `packages/sdk-php/`, `packages/sdk-laravel/`
+- **Automatically synced** to separate repositories via GitHub Actions on every push to `main`:
+  - `packages/sdk-php/` → [`togglebox-php`](https://github.com/ulpi-io/togglebox-php)
+  - `packages/sdk-laravel/` → [`togglebox-laravel`](https://github.com/ulpi-io/togglebox-laravel)
+- Packagist auto-detects updates from the split repositories
+- See [PUBLISHING.md](./PUBLISHING.md) for details
+
+**How it works:**
+1. Developers work in the monorepo (`packages/sdk-php/`, `packages/sdk-laravel/`)
+2. On push to `main`, GitHub Actions automatically splits and syncs to separate repos
+3. Packagist detects changes via GitHub webhooks and updates packages
+4. No manual splitting or syncing required!
+
+---
+
 ## Contributing
 
 Contributions welcome! See our [contributing guide](./CONTRIBUTING.md).

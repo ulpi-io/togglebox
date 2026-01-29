@@ -243,6 +243,22 @@ pnpm build:packages
 
 This section covers publishing the ToggleBox PHP SDKs to Packagist.
 
+## Automated Sync (Recommended)
+
+**PHP SDKs are automatically synced from the monorepo to separate repositories on every push to `main`.**
+
+The GitHub Actions workflow (`.github/workflows/sync-php-sdks.yml`) automatically:
+1. Splits `packages/sdk-php/` → pushes to `https://github.com/ulpi-io/togglebox-php`
+2. Splits `packages/sdk-laravel/` → pushes to `https://github.com/ulpi-io/togglebox-laravel`
+3. Packagist detects updates via webhooks and publishes new versions
+
+**You don't need to manually split or sync!** Just:
+1. Work in the monorepo (`packages/sdk-php/`, `packages/sdk-laravel/`)
+2. Push to `main`
+3. GitHub Actions handles the rest
+
+---
+
 ## Prerequisites
 
 1. **Packagist Account**: Create an account at [packagist.org](https://packagist.org/)
