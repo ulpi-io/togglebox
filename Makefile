@@ -5,7 +5,8 @@
 # ============================================================================
 
 .PHONY: dev prod down restart build clean rebuild logs logs-api logs-admin logs-db \
-        status reset-db init-db shell-api shell-admin help
+        status reset-db init-db shell-api shell-admin help setup install build-packages \
+        rebuild-packages seed
 
 .DEFAULT_GOAL := help
 
@@ -14,10 +15,34 @@ COMPOSE_DEV := -f docker-compose.dev.yml
 COMPOSE_PROD := -f docker-compose.prod.yml
 
 # ---------------------------------------------------------------------------
+# Setup and Dependencies
+# ---------------------------------------------------------------------------
+
+install: ## Install dependencies (pnpm install)
+	@echo "📦 Installing dependencies..."
+	@pnpm install
+	@echo "✅ Dependencies installed!"
+
+build-packages: ## Build packages in 3 stages
+	@echo "🔨 Building packages (3 stages)..."
+	@pnpm build:packages
+	@echo "✅ Packages built!"
+
+setup: install build-packages ## Complete setup: install + build packages
+	@echo ""
+	@echo "✅ Setup complete! Ready to start development."
+	@echo "   Run 'make dev' to start the development environment."
+
+rebuild-packages: ## Rebuild packages only
+	@echo "🔨 Rebuilding packages..."
+	@pnpm build:packages
+	@echo "✅ Packages rebuilt!"
+
+# ---------------------------------------------------------------------------
 # Service Management
 # ---------------------------------------------------------------------------
 
-dev: ## Start development environment with hot reload
+dev: setup ## Start development environment with hot reload
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "  Starting ToggleBox Development Environment"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -159,6 +184,13 @@ status-prod: ## Show production service status
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------
+
+seed: ## Seed demo data (admin@togglebox.com / Parola123!)
+	@echo "🌱 Seeding demo data..."
+	@pnpm seed
+	@echo ""
+	@echo "✅ Demo data seeded!"
+	@echo "📧 Demo login: admin@togglebox.com / Parola123!"
 
 reset-db: ## Reset DynamoDB database (delete all data)
 	@echo "⚠️  WARNING: This will delete all data!"
