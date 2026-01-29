@@ -252,10 +252,10 @@ This section covers publishing the ToggleBox PHP SDKs to Packagist.
 
 ## SDKs to Publish
 
-| Package              | Description                                      |
-| -------------------- | ------------------------------------------------ |
-| `togglebox/sdk`      | Core PHP SDK (PHP 8.1+)                          |
-| `togglebox/laravel`  | Laravel SDK with service provider and facade     |
+| Package             | Description                                  |
+| ------------------- | -------------------------------------------- |
+| `togglebox/sdk`     | Core PHP SDK (PHP 8.1+)                      |
+| `togglebox/laravel` | Laravel SDK with service provider and facade |
 
 ## Manual Publishing
 
