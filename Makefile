@@ -21,6 +21,15 @@ dev: ## Start development environment with hot reload
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "  Starting ToggleBox Development Environment"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@if [ ! -f apps/api/.env ]; then \
+		echo "Creating apps/api/.env from .env.example..."; \
+		cp apps/api/.env.example apps/api/.env; \
+	fi
+
+	@if [ ! -f apps/admin/.env.local ]; then \
+		echo "Creating apps/admin/.env.local from .env.example..."; \
+		cp apps/admin/.env.example apps/admin/.env.local; \
+	fi
 	docker compose $(COMPOSE_DEV) up -d
 	@echo ""
 	@$(MAKE) -s status-dev
