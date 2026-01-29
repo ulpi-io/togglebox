@@ -82,6 +82,54 @@ pnpm dev:admin
 
 The API runs at `http://localhost:3000` and the admin dashboard at `http://localhost:3001`.
 
+### Docker Development (Alternative)
+
+For a containerized development environment with hot reload:
+
+```bash
+# Start development environment
+make dev
+
+# View all services
+make status
+
+# View logs
+make logs          # All services
+make logs-api      # API only
+make logs-admin    # Admin only
+
+# Stop services
+make down
+
+# Rebuild from scratch
+make rebuild
+```
+
+**Available Make Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `make dev` | Start development environment with hot reload |
+| `make prod` | Start production environment |
+| `make down` | Stop all services |
+| `make restart` | Restart all services |
+| `make build` | Rebuild containers (no cache) |
+| `make rebuild` | Clean volumes and rebuild from scratch |
+| `make logs` | View logs for all services |
+| `make logs-api` | View API logs only |
+| `make logs-admin` | View Admin logs only |
+| `make status` | Show service status and access points |
+| `make shell-api` | Open shell in API container |
+| `make shell-admin` | Open shell in Admin container |
+| `make test` | Run tests in API container |
+| `make help` | Show all available commands |
+
+**Access Points (Docker):**
+- API: http://localhost:3000
+- Admin: http://localhost:3001
+- DynamoDB: http://localhost:8000
+- DynamoDB Admin: http://localhost:8001
+
 ### Seed Demo Data
 
 To populate the database with demo data for all example apps:
