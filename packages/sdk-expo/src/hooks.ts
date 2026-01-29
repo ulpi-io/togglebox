@@ -80,7 +80,8 @@ export function useFlag(flagKey: string, context?: FlagContext) {
       flag,
       exists: !!flag,
       isLoading,
-      isEnabled: async (ctx?: FlagContext) => isFlagEnabled(flagKey, ctx ?? context),
+      isEnabled: async (ctx?: FlagContext) =>
+        isFlagEnabled(flagKey, ctx ?? context),
     };
   }, [flags, flagKey, isLoading, isFlagEnabled, context]);
 }

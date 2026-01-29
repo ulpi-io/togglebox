@@ -418,7 +418,8 @@ const client = new ToggleBoxClient({
 // Check if flag is enabled with user context
 const enabled = await client.isFlagEnabled("${key}", {
   userId: "user-123",
-  email: "user@example.com",
+  country: "US",    // optional, 2-letter ISO code
+  language: "en",   // optional, 2-letter ISO code
 });
 
 if (enabled) {
@@ -434,40 +435,29 @@ function MyComponent() {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    isEnabled({
-      userId: "user-123",
-      email: "user@example.com",
-    }).then(setEnabled);
+    isEnabled({ userId: "user-123" }).then(setEnabled);
   }, [isEnabled]);
 
   if (isLoading) return <div>Loading...</div>;
 
-  if (enabled) {
-    return <NewFeature />;
-  }
-
-  return <OldFeature />;
+  return enabled ? <NewFeature /> : <OldFeature />;
 }`;
 
     case "expo":
-      return `import { useToggleBox } from "@togglebox/sdk-expo";
+      return `import { useFlag } from "@togglebox/sdk-expo";
+import { useState, useEffect } from "react";
 
 function MyComponent() {
-  const { isFlagEnabled, isLoading } = useToggleBox();
+  const { isEnabled, isLoading } = useFlag("${key}");
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    isEnabled({ userId: "user-123" }).then(setEnabled);
+  }, [isEnabled]);
 
   if (isLoading) return <Text>Loading...</Text>;
 
-  // Check if flag is enabled with user context
-  const enabled = isFlagEnabled("${key}", {
-    userId: "user-123",
-    email: "user@example.com",
-  });
-
-  if (enabled) {
-    return <NewFeature />;
-  }
-
-  return <OldFeature />;
+  return enabled ? <NewFeature /> : <OldFeature />;
 }`;
 
     case "php":
@@ -484,7 +474,8 @@ $client = new Client([
 // Check if flag is enabled with user context
 $enabled = $client->isFlagEnabled('${key}', [
     'userId' => 'user-123',
-    'email' => 'user@example.com',
+    'country' => 'US',   // optional
+    'language' => 'en',  // optional
 ]);
 
 if ($enabled) {
@@ -499,7 +490,8 @@ use ToggleBox\\Facades\\ToggleBox;
 // Check if flag is enabled with user context
 $enabled = ToggleBox::isFlagEnabled('${key}', [
     'userId' => auth()->id(),
-    'email' => auth()->user()->email,
+    'country' => 'US',   // optional
+    'language' => 'en',  // optional
 ]);
 
 if ($enabled) {
@@ -533,7 +525,8 @@ const client = new ToggleBoxClient({
 // Get variant assignment for user
 const variant = await client.getVariant("${key}", {
   userId: "user-123",
-  email: "user@example.com",
+  country: "US",    // optional, 2-letter ISO code
+  language: "en",   // optional, 2-letter ISO code
 });
 
 // Render based on variant
@@ -611,7 +604,8 @@ $client = new Client([
 // Get variant assignment for user
 $variant = $client->getVariant('${key}', [
     'userId' => 'user-123',
-    'email' => 'user@example.com',
+    'country' => 'US',   // optional
+    'language' => 'en',  // optional
 ]);
 
 // Render based on variant
@@ -634,7 +628,8 @@ use ToggleBox\\Facades\\ToggleBox;
 // Get variant assignment for user
 $variant = ToggleBox::getVariant('${key}', [
     'userId' => auth()->id(),
-    'email' => auth()->user()->email,
+    'country' => 'US',   // optional
+    'language' => 'en',  // optional
 ]);
 
 // Render based on variant in Blade template
