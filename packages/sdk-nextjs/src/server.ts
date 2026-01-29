@@ -170,10 +170,10 @@ export async function getFlags(
     const flags = await client.getFlags();
 
     return {
-      flags,
+      flags: flags as unknown as Flag[],
       // Use local evaluation with already-fetched flags (no N+1 API calls)
       isFlagEnabled: (flagKey: string, context?: FlagContext): boolean => {
-        const flag = flags.find((f) => f.flagKey === flagKey);
+        const flag = (flags as any[]).find((f: any) => f.flagKey === flagKey);
         if (!flag) return false;
         // Use 'anonymous' as default userId to maintain consistent hashing behavior
         const result = evaluateFlag(flag, context ?? { userId: "anonymous" });
@@ -221,7 +221,8 @@ export async function getFlag(
 
   try {
     const flags = await client.getFlags();
-    const flag = flags.find((f) => f.flagKey === flagKey) || null;
+    const flag =
+      (flags as any[]).find((f: any) => f.flagKey === flagKey) || null;
 
     let enabled = false;
     if (flag) {
@@ -277,7 +278,9 @@ export async function getExperiment(
   try {
     const experiments = await client.getExperiments();
     const experiment =
-      experiments.find((e) => e.experimentKey === experimentKey) || null;
+      (experiments as any[]).find(
+        (e: any) => e.experimentKey === experimentKey,
+      ) || null;
 
     // BUGFIX: Use local assignment to avoid double-counting exposures
     // client.getVariant() tracks an exposure, but the client will also track
@@ -323,14 +326,14 @@ export async function getExperiments(
     const experiments = await client.getExperiments();
 
     return {
-      experiments,
+      experiments: experiments as unknown as Experiment[],
       // Use local assignment with already-fetched experiments (no N+1 API calls)
       getVariant: (
         experimentKey: string,
         context: ExperimentContext,
       ): VariantAssignment | null => {
-        const experiment = experiments.find(
-          (e) => e.experimentKey === experimentKey,
+        const experiment = (experiments as any[]).find(
+          (e: any) => e.experimentKey === experimentKey,
         );
         if (!experiment) return null;
         return assignVariation(experiment, context);
@@ -380,14 +383,14 @@ export async function getAnalytics(
       context: ExperimentContext,
       data?: EventData,
     ) => {
-      client.trackEvent(eventName, context, data);
+      (client as any).trackEvent(eventName, context, data);
     },
     trackConversion: async (
       experimentKey: string,
       context: ExperimentContext,
       data: ConversionData,
     ) => {
-      await client.trackConversion(experimentKey, context, data);
+      await (client as any).trackConversion(experimentKey, context, data);
     },
     flushStats: async () => {
       try {

@@ -38,6 +38,13 @@ export interface User {
   /** User's role for permission checking */
   role: UserRole;
 
+  /**
+   * Platform super admin flag (cloud-only).
+   * Super admins can access /api/v1/admin/* routes to manage all tenants.
+   * This is separate from the 'admin' role which grants tenant-level admin access.
+   */
+  isSuperAdmin?: boolean;
+
   /** Timestamp when user was created */
   createdAt: Date;
 

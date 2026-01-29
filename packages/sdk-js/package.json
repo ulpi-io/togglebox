@@ -1,25 +1,52 @@
 {
   "name": "@togglebox/sdk",
   "version": "0.1.0",
-  "description": "JavaScript SDK for remote config service",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "JavaScript SDK for ToggleBox - remote configs, feature flags, and A/B experiments",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm build"
   },
-  "dependencies": {
+  "keywords": [
+    "togglebox",
+    "remote-config",
+    "feature-flags",
+    "ab-testing",
+    "experiments",
+    "config-management"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ulpi-io/togglebox.git",
+    "directory": "packages/sdk-js"
+  },
+  "homepage": "https://github.com/ulpi-io/togglebox#readme",
+  "bugs": {
+    "url": "https://github.com/ulpi-io/togglebox/issues"
+  },
+  "license": "Elastic-2.0",
+  "devDependencies": {
     "@togglebox/configs": "workspace:*",
     "@togglebox/core": "workspace:*",
     "@togglebox/experiments": "workspace:*",
     "@togglebox/flags": "workspace:*",
-    "@togglebox/stats": "workspace:*"
-  },
-  "devDependencies": {
+    "@togglebox/stats": "workspace:*",
+    "tsup": "^8.5.1",
     "typescript": "^5.7.2"
   },
   "publishConfig": {

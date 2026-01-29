@@ -129,12 +129,12 @@ const enabled = await isFlagEnabled("new-checkout", { userId: "user-123" });
 ### useFlag
 
 ```tsx
-const { flag, exists, isLoading, checkEnabled } = useFlag("dark-mode", {
+const { flag, exists, isLoading, isEnabled } = useFlag("dark-mode", {
   userId,
 });
 
 // Check if enabled
-const enabled = await checkEnabled();
+const enabled = await isEnabled();
 ```
 
 ### useExperiments
@@ -339,12 +339,12 @@ import { useFlag } from "@togglebox/sdk-nextjs";
 import { useEffect, useState } from "react";
 
 function Dashboard() {
-  const { isLoading, checkEnabled } = useFlag("new-dashboard");
+  const { isLoading, isEnabled } = useFlag("new-dashboard");
   const [showNewUI, setShowNewUI] = useState(false);
 
   useEffect(() => {
-    checkEnabled().then(setShowNewUI);
-  }, [checkEnabled]);
+    isEnabled().then(setShowNewUI);
+  }, [isEnabled]);
 
   if (isLoading) return <Spinner />;
 

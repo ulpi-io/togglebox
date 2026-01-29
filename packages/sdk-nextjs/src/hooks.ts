@@ -63,14 +63,14 @@ export function useFlags(): UseFlagsResult {
  *
  * @param flagKey - The flag key to check
  * @param context - Optional evaluation context for targeting
- * @returns Object with flag, exists, loading state, and checkEnabled function
+ * @returns Object with flag, exists, loading state, and isEnabled function
  *
  * @example
  * ```tsx
- * const { flag, exists, isLoading, checkEnabled } = useFlag('dark-mode')
+ * const { flag, exists, isLoading, isEnabled } = useFlag('dark-mode')
  *
  * // Check if enabled for current user
- * const enabled = await checkEnabled()
+ * const enabled = await isEnabled({ userId: 'user-123' })
  * ```
  */
 export function useFlag(flagKey: string, context?: FlagContext) {
@@ -82,7 +82,8 @@ export function useFlag(flagKey: string, context?: FlagContext) {
       flag,
       exists: !!flag,
       isLoading,
-      checkEnabled: async () => isFlagEnabled(flagKey, context),
+      isEnabled: async (ctx?: FlagContext) =>
+        isFlagEnabled(flagKey, ctx ?? context),
     };
   }, [flags, flagKey, isLoading, isFlagEnabled, context]);
 }

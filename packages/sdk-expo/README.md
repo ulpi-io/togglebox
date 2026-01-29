@@ -161,12 +161,12 @@ import { useFlag, useFlags } from "@togglebox/sdk-expo";
 import { View } from "react-native";
 
 function HomeScreen() {
-  const { checkEnabled, isLoading } = useFlag("new-home-ui");
+  const { isEnabled, isLoading } = useFlag("new-home-ui");
   const [showNewUI, setShowNewUI] = useState(false);
 
   useEffect(() => {
-    checkEnabled().then(setShowNewUI);
-  }, [checkEnabled]);
+    isEnabled().then(setShowNewUI);
+  }, [isEnabled]);
 
   if (isLoading) return <LoadingSpinner />;
 
@@ -547,11 +547,11 @@ const {
 Access a specific feature flag:
 
 ```tsx
-const { flag, exists, isLoading, checkEnabled } = useFlag("my-flag");
+const { flag, exists, isLoading, isEnabled } = useFlag("my-flag");
 // flag: Flag | undefined
 // exists: boolean
 // isLoading: boolean
-// checkEnabled: () => Promise<boolean>
+// isEnabled: () => Promise<boolean>
 ```
 
 ### useExperiments
@@ -735,12 +735,12 @@ import { View, Text } from "react-native";
 
 function FeatureCard({ featureName }: { featureName: string }) {
   const config = useConfig();
-  const { checkEnabled, isLoading } = useFlag(featureName);
+  const { isEnabled, isLoading } = useFlag(featureName);
   const [isEnabled, setIsEnabled] = useState(false);
 
   useEffect(() => {
-    checkEnabled().then(setIsEnabled);
-  }, [checkEnabled]);
+    isEnabled().then(setIsEnabled);
+  }, [isEnabled]);
 
   // Use config for static settings, flags for dynamic on/off
   const featureConfig = config?.features?.[featureName] || {};
@@ -839,7 +839,7 @@ import * as Application from "expo-application";
 function HomeScreen() {
   const { user } = useAuth();
   const { config } = useConfig();
-  const { checkEnabled: checkNewUI } = useFlag("new-home-ui");
+  const { isEnabled: checkNewUI } = useFlag("new-home-ui");
   const { getVariant } = useExperiment("home-layout-experiment", {
     userId: user?.id || "anonymous",
   });

@@ -171,15 +171,15 @@ import {
 // Use in components
 function PricingPage() {
   const config = useConfig();
-  const { checkEnabled } = useFlag("new-pricing");
+  const { isEnabled } = useFlag("new-pricing");
   const { getVariant } = useExperiment("pricing-test", { userId: user.id });
   const [showNewPricing, setShowNewPricing] = useState(false);
   const [variant, setVariant] = useState<string | null>(null);
 
   useEffect(() => {
-    checkEnabled().then(setShowNewPricing);
+    isEnabled().then(setShowNewPricing);
     getVariant().then(setVariant);
-  }, [checkEnabled, getVariant]);
+  }, [isEnabled, getVariant]);
 
   return showNewPricing ? <NewPricing variant={variant} /> : <OldPricing />;
 }
