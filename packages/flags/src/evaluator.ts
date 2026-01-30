@@ -55,12 +55,12 @@ export function evaluateFlag(
     return which === "A" ? flag.valueA : flag.valueB;
   };
 
-  // 1. Check if flag is disabled
+  // 1. Check if flag is disabled — always serve "B" (off)
   if (!flag.enabled) {
     return {
       flagKey: flag.flagKey,
-      value: getValue(defaultValue),
-      servedValue: defaultValue,
+      value: getValue("B"),
+      servedValue: "B",
       reason: EvaluationReason.FLAG_DISABLED,
     };
   }
