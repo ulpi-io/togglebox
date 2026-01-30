@@ -12,39 +12,43 @@ export default function Page() {
     USER_CONTEXT,
   );
   const { trackConversion, flushStats } = useAnalytics();
-  const [variant, setVariant] = useState<string | null>(null);
+  const [variant, setVariant] = useState<string | undefined>(undefined);
   const [converted, setConverted] = useState(false);
-  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     if (!experiment || isLoading) return;
+    if (experiment.status !== "running") return;
 
-    if (experiment.status === "running") {
-      setAssigning(true);
-      getVariant()
-        .then(async (v) => {
-          setVariant(v);
-          await flushStats();
-        })
-        .catch((err) => {
-          console.error("[use-experiment] getVariant error:", err);
-        })
-        .finally(() => setAssigning(false));
-    }
-  }, [experiment, isLoading, getVariant]);
+    let cancelled = false;
+    getVariant()
+      .then(async (v) => {
+        if (cancelled) return;
+        setVariant(v);
+        await flushStats();
+      })
+      .catch((err) => {
+        console.error("[use-experiment] getVariant error:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [experiment, isLoading, getVariant, flushStats]);
 
   const handleConversion = async () => {
     if (!variant) return;
-    await trackConversion(
-      "checkout-test",
-      USER_CONTEXT,
-      { metricId: "purchase", value: 99.99 },
-    );
+    await trackConversion("checkout-test", USER_CONTEXT, {
+      metricId: "purchase",
+      value: 99.99,
+    });
     await flushStats();
     setConverted(true);
   };
 
-  if (isLoading || assigning) {
+  const awaitingVariant =
+    !isLoading && experiment?.status === "running" && variant === undefined;
+
+  if (isLoading || awaitingVariant) {
     return (
       <div className="min-h-screen p-8">
         <div className="h-8 bg-gray-200 rounded w-44 mb-6 animate-pulse" />
@@ -64,7 +68,7 @@ export default function Page() {
   }
 
   const assignedVariation = experiment?.variations?.find(
-    (v: { key: string }) => v.key === variant,
+    (v: { key: string }) => v.key === (variant ?? ""),
   );
 
   return (
@@ -104,7 +108,8 @@ export default function Page() {
             {converted && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-sm text-green-800">
-                  Conversion tracked for variant &quot;{assignedVariation.key}&quot;
+                  Conversion tracked for variant &quot;{assignedVariation.key}
+                  &quot;
                 </p>
               </div>
             )}
