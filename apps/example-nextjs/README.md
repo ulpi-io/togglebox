@@ -66,6 +66,7 @@ The seed script creates demo data for this app:
 | **Config**      | `theme`, `apiTimeout` | Remote configuration values             |
 
 **Demo Admin:** `admin@togglebox.com` / `Parola123!`
+**Demo API Key:** `tbx_live_49aee29619e6ba6640957f169273ea17`
 
 ### Environment Variables
 
@@ -74,7 +75,7 @@ The seed script creates demo data for this app:
 NEXT_PUBLIC_TOGGLEBOX_API_URL=http://localhost:3000/api/v1
 NEXT_PUBLIC_TOGGLEBOX_PLATFORM=web
 NEXT_PUBLIC_TOGGLEBOX_ENVIRONMENT=development
-NEXT_PUBLIC_TOGGLEBOX_API_KEY=your-api-key  # Required if API has auth enabled
+NEXT_PUBLIC_TOGGLEBOX_API_KEY=tbx_live_49aee29619e6ba6640957f169273ea17  # Demo key (seed data)
 ```
 
 ---

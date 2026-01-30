@@ -30,6 +30,11 @@ dev: ## Start development environment with hot reload
 		echo "Creating apps/admin/.env.local from .env.example..."; \
 		cp apps/admin/.env.example apps/admin/.env.local; \
 	fi
+
+	@if [ ! -f apps/example-nextjs/.env.local ]; then \
+		echo "Creating apps/example-nextjs/.env.local from .env.local.example..."; \
+		cp apps/example-nextjs/.env.local.example apps/example-nextjs/.env.local; \
+	fi
 	docker compose $(COMPOSE_DEV) up -d
 	@echo ""
 	@$(MAKE) -s status-dev
