@@ -4,11 +4,11 @@ import { useState } from "react";
 import { useAnalytics } from "@togglebox/sdk-nextjs";
 
 export default function Page() {
-  const { trackEvent, trackConversion, flushStats } = useAnalytics();
+  const { trackEvent, flushStats } = useAnalytics();
   const [clicks, setClicks] = useState(0);
   const [lastAction, setLastAction] = useState<string | null>(null);
 
-  const handleClick = () => {
+  const handleClick = async () => {
     trackEvent(
       "button_click",
       { userId: "user-123" },
@@ -20,17 +20,9 @@ export default function Page() {
     setLastAction("Tracked: button_click");
   };
 
-  const handleConversion = async () => {
-    await trackConversion(
-      "checkout-test",
-      { userId: "user-123" },
-      {
-        metricId: "purchase",
-        value: 99.99,
-      },
-    );
+  const handleFlush = async () => {
     await flushStats();
-    setLastAction("Tracked: purchase conversion ($99.99)");
+    setLastAction("Flushed all queued events");
   };
 
   return (
@@ -46,10 +38,10 @@ export default function Page() {
             Track Click ({clicks})
           </button>
           <button
-            onClick={handleConversion}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            onClick={handleFlush}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >
-            Track Conversion
+            Flush Events
           </button>
         </div>
 

@@ -477,6 +477,8 @@ export class MongooseStatsRepository implements IStatsRepository {
     const variations = docs.map((doc) => ({
       variationKey: doc.variationKey ?? "",
       participants: doc.participants ?? 0,
+      views: doc.participants ?? 0,
+      users: 0, // Mongoose adapter does not track unique users yet
       exposures: doc.exposures ?? 0,
     }));
 

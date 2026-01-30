@@ -529,6 +529,8 @@ export class PrismaStatsRepository implements IStatsRepository {
     const variations = variationStats.map((v) => ({
       variationKey: v.variationKey,
       participants: v.participants,
+      views: v.participants,
+      users: 0, // Prisma adapter does not track unique users yet
       exposures: v.exposures,
     }));
 

@@ -10,7 +10,7 @@ export default function Page() {
 
   useEffect(() => {
     if (isLoading) return;
-    isFlagEnabled("new-dashboard", { userId: "user-123" }).then((enabled) => {
+    isFlagEnabled("dark-mode", { userId: "user-123" }).then((enabled) => {
       setShowFeature(enabled);
       setChecked(true);
     });
@@ -55,25 +55,25 @@ export default function Page() {
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
             <div className="flex items-center gap-2 mb-2">
               <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded">
-                NEW
+                ENABLED
               </span>
               <h2 className="text-xl font-bold text-green-800">
-                New Dashboard
+                Dark Mode
               </h2>
             </div>
             <p className="text-green-700">
               The{" "}
-              <code className="px-1 bg-green-100 rounded">new-dashboard</code>{" "}
+              <code className="px-1 bg-green-100 rounded">dark-mode</code>{" "}
               flag is enabled.
             </p>
           </div>
         ) : (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-bold text-gray-800">Dashboard</h2>
+            <h2 className="text-xl font-bold text-gray-800">Dark Mode</h2>
             <p className="text-gray-600 mt-2">
-              Enable the{" "}
-              <code className="px-1 bg-gray-200 rounded">new-dashboard</code>{" "}
-              flag to see the new version.
+              The{" "}
+              <code className="px-1 bg-gray-200 rounded">dark-mode</code>{" "}
+              flag is disabled.
             </p>
           </div>
         )}

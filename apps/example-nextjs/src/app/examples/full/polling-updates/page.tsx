@@ -4,14 +4,44 @@ import { useState } from "react";
 import { useConfig, useFlags } from "@togglebox/sdk-nextjs";
 
 export default function Page() {
-  const { config, refresh, isLoading } = useConfig();
-  const { flags } = useFlags();
+  const { config, refresh, isLoading: configLoading } = useConfig();
+  const { flags, isLoading: flagsLoading } = useFlags();
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
+  const isLoading = configLoading || flagsLoading;
 
   const handleRefresh = async () => {
     await refresh();
     setLastUpdate(new Date());
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen p-8">
+        <div className="h-8 bg-gray-200 rounded w-44 mb-6 animate-pulse" />
+        <div className="max-w-md space-y-4">
+          <div className="flex items-center gap-2 animate-pulse">
+            <div className="w-3 h-3 bg-gray-200 rounded-full" />
+            <div className="h-4 bg-gray-200 rounded w-56" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-gray-50 rounded-lg text-center animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-8 mx-auto mb-1" />
+              <div className="h-4 bg-gray-200 rounded w-20 mx-auto" />
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg text-center animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-10 mx-auto mb-1" />
+              <div className="h-4 bg-gray-200 rounded w-24 mx-auto" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-36" />
+            <div className="h-10 bg-gray-200 rounded-lg w-32" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const configKeys = Object.keys(config || {}).length;
   const enabledFlags = flags.filter((f) => f.enabled).length;

@@ -98,6 +98,7 @@ export {
   hashToken,
   verifyToken as verifyTokenHash,
   generateApiKey,
+  hashApiKey,
   getApiKeyPrefix,
   getApiKeyLast4,
   generateToken,

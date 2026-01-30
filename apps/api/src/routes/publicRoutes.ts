@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { asyncHandler, conditionalAuth } from "@togglebox/shared";
+import { asyncHandler } from "@togglebox/shared";
+import { authMiddleware } from "../authMiddleware";
 import { Container } from "../container";
 
 /**
@@ -59,7 +60,7 @@ publicRouter.get("/health", (_req, res) => {
  * When ENABLE_AUTHENTICATION=false:
  *   - No authentication required (relies on network-level security)
  */
-publicRouter.use(conditionalAuth());
+publicRouter.use(authMiddleware.conditionalAuth());
 
 // ============================================================================
 // PLATFORM READ ENDPOINTS

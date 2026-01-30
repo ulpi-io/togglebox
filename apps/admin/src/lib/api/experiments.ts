@@ -338,13 +338,108 @@ export async function deleteExperimentApi(
 
 /**
  * Get experiment results with statistical analysis.
+ *
+ * The API returns { experiment, stats, analysis } which must be
+ * transformed into the ExperimentResults shape the admin UI expects.
  */
 export async function getExperimentResultsApi(
   platform: string,
   environment: string,
   experimentKey: string,
 ): Promise<ExperimentResults> {
-  return browserApiClient<ExperimentResults>(
+  const raw = await browserApiClient<{
+    experiment: Experiment;
+    stats: {
+      variations: { variationKey: string; participants: number; exposures: number }[];
+      dailyData: { date: string; variationKey: string; participants: number; conversions: number }[];
+      updatedAt: string;
+    } | null;
+    analysis: {
+      variationData: { variationKey: string; participants: number; conversions: number }[];
+      significance: {
+        pValue: number;
+        isSignificant: boolean;
+        controlRate: number;
+        treatmentRate: number;
+        relativeLift: number;
+        confidenceInterval: [number, number];
+      } | null;
+      perVariation: Record<string, {
+        pValue: number;
+        isSignificant: boolean;
+        relativeLift: number;
+        confidenceInterval: [number, number];
+      }> | null;
+      srm: { hasMismatch: boolean } | null;
+    } | null;
+    message?: string;
+  }>(
     `/api/v1/internal/platforms/${platform}/environments/${environment}/experiments/${experimentKey}/results`,
   );
+
+  // No stats yet
+  if (!raw.stats || !raw.analysis) {
+    return {
+      status: "collecting",
+      lastUpdatedAt: new Date().toISOString(),
+      totalViews: 0,
+      totalUsers: 0,
+      totalConversions: 0,
+      variations: [],
+      isSignificant: false,
+    };
+  }
+
+  const { stats, analysis } = raw;
+  const controlKey = raw.experiment.controlVariation;
+
+  // Build a lookup from stats.variations for views/users data
+  const statsLookup = new Map(
+    stats.variations.map((v) => [v.variationKey, v]),
+  );
+
+  const variations = analysis.variationData.map((v) => {
+    const sv = statsLookup.get(v.variationKey);
+    const views = (sv as Record<string, number>)?.views ?? (sv as Record<string, number>)?.participants ?? 0;
+    const users = (sv as Record<string, number>)?.users ?? 0;
+    const rate = views > 0 ? v.conversions / views : 0;
+    const result: import("./types").VariationResult = {
+      variationKey: v.variationKey,
+      views,
+      users,
+      conversions: v.conversions,
+      conversionRate: rate,
+    };
+
+    // Add lift and CI for non-control variations (per-variation data preferred)
+    if (v.variationKey !== controlKey) {
+      const perVar = analysis.perVariation?.[v.variationKey];
+      if (perVar) {
+        result.relativeLift = perVar.relativeLift;
+        result.confidenceInterval = perVar.confidenceInterval;
+      } else if (analysis.significance) {
+        // Fallback: legacy single-treatment significance
+        result.relativeLift = analysis.significance.relativeLift;
+        result.confidenceInterval = analysis.significance.confidenceInterval;
+      }
+    }
+
+    return result;
+  });
+
+  const totalViews = variations.reduce((sum, v) => sum + v.views, 0);
+  const totalUsers = variations.reduce((sum, v) => sum + v.users, 0);
+  const totalConversions = variations.reduce((sum, v) => sum + v.conversions, 0);
+
+  return {
+    status: analysis.significance?.isSignificant ? "significant" : "collecting",
+    lastUpdatedAt: stats.updatedAt,
+    totalViews,
+    totalUsers,
+    totalConversions,
+    variations,
+    pValue: analysis.significance?.pValue,
+    isSignificant: analysis.significance?.isSignificant ?? false,
+    sampleRatioMismatch: analysis.srm?.hasMismatch,
+  };
 }

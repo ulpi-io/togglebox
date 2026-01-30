@@ -2,37 +2,31 @@ import Link from "next/link";
 
 const quickStartItems = [
   {
-    href: "/quick/provider-setup",
-    title: "Provider Setup",
-    icon: "⚙️",
-    description: "Configure the SDK",
-  },
-  {
-    href: "/quick/use-config",
+    href: "/examples/quick/use-config",
     title: "Config Access",
     icon: "📋",
     description: "Read remote config",
   },
   {
-    href: "/quick/use-flag",
+    href: "/examples/quick/use-flag",
     title: "Feature Flags",
     icon: "🚩",
     description: "Check flags",
   },
   {
-    href: "/quick/use-experiment",
+    href: "/examples/quick/use-experiment",
     title: "Experiments",
     icon: "🧪",
     description: "A/B test variants",
   },
   {
-    href: "/quick/track-event",
+    href: "/examples/quick/track-event",
     title: "Event Tracking",
     icon: "📊",
     description: "Track events",
   },
   {
-    href: "/quick/ssr-config",
+    href: "/examples/quick/ssr-config",
     title: "SSR Config",
     icon: "🖥️",
     description: "Server-side fetch",
@@ -41,31 +35,31 @@ const quickStartItems = [
 
 const exampleItems = [
   {
-    href: "/examples/feature-toggle",
+    href: "/examples/full/feature-toggle",
     title: "Feature Toggle",
     icon: "🚩",
     description: "With loading & errors",
   },
   {
-    href: "/examples/ab-test-cta",
+    href: "/examples/full/ab-test-cta",
     title: "A/B Test CTA",
     icon: "🧪",
     description: "Conversion tracking",
   },
   {
-    href: "/examples/config-theme",
+    href: "/examples/full/config-theme",
     title: "Config Theme",
     icon: "🎨",
     description: "Dynamic theming",
   },
   {
-    href: "/examples/ssr-hydration",
+    href: "/examples/full/ssr-hydration",
     title: "SSR + Hydration",
     icon: "🖥️",
     description: "No loading flash",
   },
   {
-    href: "/examples/polling-updates",
+    href: "/examples/full/polling-updates",
     title: "Polling Updates",
     icon: "🔄",
     description: "Real-time updates",
@@ -106,12 +100,21 @@ export default function HomePage() {
             </svg>
           </div>
           <div>
-            <h3 className="font-semibold text-blue-900">Two Auth Modes</h3>
+            <h3 className="font-semibold text-blue-900">Authentication</h3>
             <p className="text-sm text-blue-700 mt-1">
-              Every example includes code for both <strong>self-hosted</strong>{" "}
-              (no auth) and <strong>cloud</strong> (with API key) deployments.
-              The hook code is identical - only the provider configuration
-              differs.
+              The provider is configured with an API key via{" "}
+              <code className="px-1 bg-blue-100 rounded text-xs">
+                NEXT_PUBLIC_TOGGLEBOX_API_KEY
+              </code>{" "}
+              for client-side requests and{" "}
+              <code className="px-1 bg-blue-100 rounded text-xs">
+                TOGGLEBOX_API_KEY
+              </code>{" "}
+              for server-side SSR fetches. Run{" "}
+              <code className="px-1 bg-blue-100 rounded text-xs">
+                pnpm seed
+              </code>{" "}
+              to generate both automatically.
             </p>
           </div>
         </div>
@@ -127,7 +130,7 @@ export default function HomePage() {
             </p>
           </div>
           <Link
-            href="/quick"
+            href="/examples"
             className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1"
           >
             View all
@@ -248,7 +251,7 @@ export default function HomePage() {
         </div>
         <div className="mt-4 pt-4 border-t border-gray-200">
           <Link
-            href="/quick/provider-setup"
+            href="/examples"
             className="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
           >
             See full setup guide

@@ -89,6 +89,8 @@ export type FlagStatsDaily = z.infer<typeof FlagStatsDailySchema>;
 export const ExperimentVariationStatsSchema = z.object({
   variationKey: z.string(),
   participants: z.number().int().nonnegative().default(0),
+  views: z.number().int().nonnegative().default(0),
+  users: z.number().int().nonnegative().default(0),
   exposures: z.number().int().nonnegative().default(0),
 });
 

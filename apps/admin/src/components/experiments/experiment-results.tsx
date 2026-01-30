@@ -28,7 +28,8 @@ export function ExperimentResultsDisplay({
       ? results.variations
       : experiment.variations.map((v) => ({
           variationKey: v.key,
-          participants: 0,
+          views: 0,
+          users: 0,
           conversions: 0,
           conversionRate: 0,
         }));
@@ -52,10 +53,18 @@ export function ExperimentResultsDisplay({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted border border-black/10 rounded-lg">
           <div>
             <div className="text-sm text-muted-foreground">
-              Total Participants
+              Total Views
             </div>
             <div className="text-2xl font-black">
-              {(results.totalParticipants || 0).toLocaleString()}
+              {(results.totalViews || 0).toLocaleString()}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">
+              Total Users
+            </div>
+            <div className="text-2xl font-black">
+              {(results.totalUsers || 0).toLocaleString()}
             </div>
           </div>
           <div>
@@ -152,13 +161,21 @@ export function ExperimentResultsDisplay({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div>
                       <div className="text-xs text-muted-foreground">
-                        Participants
+                        Views
                       </div>
                       <div className="text-xl font-black">
-                        {(varResult.participants || 0).toLocaleString()}
+                        {(varResult.views || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">
+                        Users
+                      </div>
+                      <div className="text-xl font-black">
+                        {(varResult.users || 0).toLocaleString()}
                       </div>
                     </div>
                     <div>
@@ -216,6 +233,63 @@ export function ExperimentResultsDisplay({
           </div>
         </div>
 
+        {/* How it's calculated */}
+        <details className="border border-black/10 rounded-lg">
+          <summary className="p-4 cursor-pointer text-sm font-bold select-none">
+            How metrics are calculated
+          </summary>
+          <div className="px-4 pb-4 space-y-3 text-sm text-muted-foreground">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-muted/50 rounded p-3">
+                <div className="font-semibold text-foreground mb-1">Conversion Rate</div>
+                <code className="text-xs bg-black/5 px-1.5 py-0.5 rounded">
+                  conversions / views
+                </code>
+                <p className="mt-1 text-xs">
+                  Ratio of conversion events to total exposure views for each variation.
+                </p>
+              </div>
+              <div className="bg-muted/50 rounded p-3">
+                <div className="font-semibold text-foreground mb-1">Relative Lift</div>
+                <code className="text-xs bg-black/5 px-1.5 py-0.5 rounded">
+                  (treatment_rate - control_rate) / control_rate
+                </code>
+                <p className="mt-1 text-xs">
+                  Percentage improvement of each treatment variation over the control.
+                  Positive = better, negative = worse.
+                </p>
+              </div>
+              <div className="bg-muted/50 rounded p-3">
+                <div className="font-semibold text-foreground mb-1">P-Value</div>
+                <code className="text-xs bg-black/5 px-1.5 py-0.5 rounded">
+                  Two-proportion z-test (two-tailed)
+                </code>
+                <p className="mt-1 text-xs">
+                  Probability of observing this difference by chance. Lower is
+                  better. Significance threshold:{" "}
+                  p &lt; {(1 - experiment.confidenceLevel).toFixed(2)}.
+                </p>
+              </div>
+              <div className="bg-muted/50 rounded p-3">
+                <div className="font-semibold text-foreground mb-1">Confidence Interval</div>
+                <code className="text-xs bg-black/5 px-1.5 py-0.5 rounded">
+                  treatment_rate ± z × SE
+                </code>
+                <p className="mt-1 text-xs">
+                  Range where the true conversion rate likely falls at the{" "}
+                  {(experiment.confidenceLevel * 100).toFixed(0)}% confidence level.
+                  SE = √(p(1-p)/n).
+                </p>
+              </div>
+            </div>
+            <div className="text-xs border-t border-black/10 pt-2">
+              <strong className="text-foreground">Views</strong> = total exposure count (every page view).{" "}
+              <strong className="text-foreground">Users</strong> = unique user IDs (deduplicated).{" "}
+              Conversion rate and statistical tests use <strong className="text-foreground">views</strong> as the sample size.
+            </div>
+          </div>
+        </details>
+
         {/* Winner */}
         {experiment.winner && (
           <div className="border border-success/50 bg-success/10 rounded-lg p-4">
@@ -252,13 +326,13 @@ export function ExperimentResultsDisplay({
           </div>
         )}
 
-        {!results.isSignificant && (results.totalParticipants || 0) < 100 && (
+        {!results.isSignificant && (results.totalUsers || 0) < 100 && (
           <div className="border border-warning/50 bg-warning/10 rounded-lg p-4">
             <div className="font-bold text-sm mb-2">⏳ Early Stage</div>
             <p className="text-sm">
               The experiment is in early stages. Continue collecting data before
               making conclusions. Current sample size:{" "}
-              {(results.totalParticipants || 0).toLocaleString()} participants.
+              {(results.totalUsers || 0).toLocaleString()} users.
             </p>
           </div>
         )}

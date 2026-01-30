@@ -16,6 +16,7 @@ export {
   hashToken,
   verifyToken,
   generateApiKey,
+  hashApiKey,
   getApiKeyPrefix,
   getApiKeyLast4,
 } from "./token";

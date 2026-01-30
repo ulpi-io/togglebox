@@ -587,7 +587,11 @@ export class D1StatsRepository implements IStatsRepository {
       platform,
       environment,
       experimentKey,
-      variations: result.results,
+      variations: result.results.map((v) => ({
+        ...v,
+        views: v.participants,
+        users: 0, // D1 adapter does not track unique users yet
+      })),
       metricResults: [], // Populated separately via getExperimentMetricStats
       dailyData,
       updatedAt: new Date().toISOString(),

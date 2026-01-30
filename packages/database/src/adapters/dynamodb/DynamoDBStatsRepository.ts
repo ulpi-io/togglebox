@@ -438,7 +438,7 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     environment: string,
     experimentKey: string,
     variationKey: string,
-    _userId: string,
+    userId: string,
   ): Promise<void> {
     // Shard by experiment+variation for even distribution
     const shardKey = `${experimentKey}#${variationKey}`;
@@ -447,18 +447,22 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     const now = new Date().toISOString();
     const today = now.split("T")[0];
 
-    // Update variation stats
+    // Update variation stats:
+    // - views: total exposure count (increments every call)
+    // - uniqueUserIds: DynamoDB String Set for unique user tracking
     await dynamoDBClient.send(
       new UpdateCommand({
         TableName: this.getTableName(),
         Key: { PK: pk, SK: sk },
         UpdateExpression:
-          "ADD participants :inc, exposures :inc SET lastExposureAt = :now, experimentKey = :expKey, variationKey = :varKey",
+          "ADD #views :inc, exposures :inc, uniqueUserIds :userSet SET lastExposureAt = :now, experimentKey = :expKey, variationKey = :varKey",
+        ExpressionAttributeNames: { "#views": "views" },
         ExpressionAttributeValues: {
           ":inc": 1,
           ":now": now,
           ":expKey": experimentKey,
           ":varKey": variationKey,
+          ":userSet": new Set([userId]),
         },
       }),
     );
@@ -470,12 +474,13 @@ export class DynamoDBStatsRepository implements IStatsRepository {
         TableName: this.getTableName(),
         Key: { PK: pk, SK: dailySK },
         UpdateExpression:
-          "ADD participants :inc SET #date = :date, variationKey = :varKey",
-        ExpressionAttributeNames: { "#date": "date" },
+          "ADD #views :inc, uniqueUserIds :userSet SET #date = :date, variationKey = :varKey",
+        ExpressionAttributeNames: { "#date": "date", "#views": "views" },
         ExpressionAttributeValues: {
           ":inc": 1,
           ":date": today,
           ":varKey": variationKey,
+          ":userSet": new Set([userId]),
         },
       }),
     );
@@ -592,7 +597,7 @@ export class DynamoDBStatsRepository implements IStatsRepository {
     const allShardPKs = this.getAllShardPKs(platform, environment);
     const variationStatsMap = new Map<
       string,
-      { variationKey: string; participants: number; exposures: number }
+      { variationKey: string; views: number; users: number; exposures: number }
     >();
 
     // Query all shards in parallel
@@ -619,15 +624,31 @@ export class DynamoDBStatsRepository implements IStatsRepository {
       for (const item of result.Items || []) {
         const dynItem = item as DynamoItem;
         const variationKey = dynItem["variationKey"] as string;
+        // uniqueUserIds is a DynamoDB String Set — document client may return
+        // native Set or { values: [...] } depending on marshalling options
+        const rawUserIds = dynItem["uniqueUserIds"];
+        let userCount = 0;
+        if (rawUserIds instanceof Set) {
+          userCount = rawUserIds.size;
+        } else if (rawUserIds && typeof rawUserIds === "object" && "values" in rawUserIds) {
+          userCount = (rawUserIds as { values: string[] }).values.length;
+        } else if (Array.isArray(rawUserIds)) {
+          userCount = rawUserIds.length;
+        }
+        const views = (dynItem["views"] as number) || (dynItem["participants"] as number) || 0;
         const existing = variationStatsMap.get(variationKey);
 
         if (existing) {
-          existing.participants += (dynItem["participants"] as number) || 0;
+          existing.views += views;
           existing.exposures += (dynItem["exposures"] as number) || 0;
+          // For users across shards, we'd ideally merge sets,
+          // but each variation lives on one shard, so this is correct
+          existing.users += userCount;
         } else {
           variationStatsMap.set(variationKey, {
             variationKey,
-            participants: (dynItem["participants"] as number) || 0,
+            views,
+            users: userCount,
             exposures: (dynItem["exposures"] as number) || 0,
           });
         }
@@ -638,7 +659,13 @@ export class DynamoDBStatsRepository implements IStatsRepository {
       return null;
     }
 
-    const variations = Array.from(variationStatsMap.values());
+    const variations = Array.from(variationStatsMap.values()).map((v) => ({
+      variationKey: v.variationKey,
+      participants: v.users, // unique users = participants
+      views: v.views,
+      users: v.users,
+      exposures: v.exposures,
+    }));
 
     // Query daily stats from all shards
     const dailyStatsMap = new Map<
@@ -693,8 +720,8 @@ export class DynamoDBStatsRepository implements IStatsRepository {
 
     const dailyData = Array.from(dailyStatsMap.values()).sort(
       (a, b) =>
-        a.date.localeCompare(b.date) ||
-        a.variationKey.localeCompare(b.variationKey),
+        (a.date || "").localeCompare(b.date || "") ||
+        (a.variationKey || "").localeCompare(b.variationKey || ""),
     );
 
     return {

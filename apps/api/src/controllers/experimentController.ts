@@ -17,7 +17,7 @@ import {
   ExperimentContextSchema,
 } from "@togglebox/experiments";
 import { assignVariation } from "@togglebox/experiments";
-import { calculateSignificance, checkSRM } from "@togglebox/stats";
+import { calculateMultipleSignificance, checkSRM } from "@togglebox/stats";
 import { CacheProvider } from "@togglebox/cache";
 import { z } from "zod";
 
@@ -981,7 +981,7 @@ export class ExperimentController {
 
             return {
               variationKey: v.variationKey,
-              participants: v.participants,
+              participants: v.views || v.participants,
               conversions: totalConversions,
             };
           }),
@@ -996,12 +996,17 @@ export class ExperimentController {
         );
 
         let significance = null;
-        if (controlData && treatmentData.length > 0 && treatmentData[0]) {
-          significance = calculateSignificance(
+        let perVariationSignificance: Map<string, { pValue: number; isSignificant: boolean; zScore: number; confidenceInterval: [number, number]; relativeLift: number; controlConversionRate: number; treatmentConversionRate: number }> | null = null;
+        if (controlData && treatmentData.length > 0) {
+          // Calculate significance for each treatment vs control
+          perVariationSignificance = calculateMultipleSignificance(
             controlData,
-            treatmentData[0],
+            treatmentData,
             experiment.confidenceLevel,
           );
+          // Use first treatment for backward-compatible top-level significance
+          const firstResult = treatmentData[0] ? perVariationSignificance.get(treatmentData[0].variationKey) : null;
+          significance = firstResult ?? null;
         }
 
         // Check for Sample Ratio Mismatch
@@ -1027,6 +1032,9 @@ export class ExperimentController {
             analysis: {
               variationData,
               significance,
+              perVariation: perVariationSignificance
+                ? Object.fromEntries(perVariationSignificance)
+                : null,
               srm: srmResult,
             },
           },
