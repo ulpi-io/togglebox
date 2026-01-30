@@ -321,7 +321,7 @@ export class ToggleBoxClient {
       (e) => e.experimentKey === experimentKey,
     );
     if (!experiment) {
-      throw new Error(`Experiment "${experimentKey}" not found`);
+      return null;
     }
 
     const assignment = assignVariation(experiment, context);
@@ -402,7 +402,7 @@ export class ToggleBoxClient {
       (e) => e.experimentKey === experimentKey,
     );
     if (!experiment) {
-      throw new Error(`Experiment "${experimentKey}" not found`);
+      return null;
     }
 
     return assignVariation(experiment, context);

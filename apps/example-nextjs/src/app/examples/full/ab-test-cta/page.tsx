@@ -3,51 +3,59 @@
 import { useState, useEffect } from "react";
 import { useExperiment, useAnalytics } from "@togglebox/sdk-nextjs";
 
+const USER_CONTEXT = { userId: "user-123" };
+
 export default function Page() {
   const { experiment, getVariant, isLoading } = useExperiment(
-    "cta-experiment",
-    { userId: "user-123" },
+    "cta-test",
+    USER_CONTEXT,
   );
   const { trackEvent, trackConversion, flushStats } = useAnalytics();
-  const [variant, setVariant] = useState<string | null>(null);
+  const [variant, setVariant] = useState<string | undefined>(undefined);
   const [impressionTracked, setImpressionTracked] = useState(false);
   const [conversionTracked, setConversionTracked] = useState(false);
 
   useEffect(() => {
-    if (isLoading || !experiment || experiment.status !== "running") return;
+    if (!experiment || isLoading) return;
+    if (experiment.status !== "running") return;
 
-    getVariant().then((v) => {
-      setVariant(v);
-      if (v && !impressionTracked) {
-        trackEvent(
-          "impression",
-          { userId: "user-123" },
-          {
-            experimentKey: "cta-experiment",
+    let cancelled = false;
+    getVariant()
+      .then((v) => {
+        if (cancelled) return;
+        setVariant(v ?? undefined);
+        if (v && !impressionTracked) {
+          trackEvent("impression", USER_CONTEXT, {
+            experimentKey: "cta-test",
             variationKey: v,
-          },
-        );
-        setImpressionTracked(true);
-      }
-    });
-  }, [isLoading, experiment, getVariant, trackEvent, impressionTracked]);
+          });
+          setImpressionTracked(true);
+        }
+      })
+      .catch((err) => {
+        console.error("[ab-test-cta] getVariant error:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [experiment, isLoading, getVariant, trackEvent, impressionTracked]);
 
   const handleClick = async () => {
     if (!variant) return;
 
-    await trackConversion(
-      "cta-experiment",
-      { userId: "user-123" },
-      {
-        metricId: "cta_click",
-        value: 1,
-      },
-    );
+    await trackConversion("cta-test", USER_CONTEXT, {
+      metricId: "cta_click",
+      value: 1,
+    });
     await flushStats();
     setConversionTracked(true);
   };
 
-  if (isLoading || !variant) {
+  const awaitingVariant =
+    !isLoading && experiment?.status === "running" && variant === undefined;
+
+  if (isLoading || awaitingVariant) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8">
         <div className="h-9 bg-gray-200 rounded w-72 mb-8 animate-pulse" />
@@ -60,28 +68,44 @@ export default function Page() {
     );
   }
 
+  if (!variant) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8">
+        <h1 className="text-3xl font-bold mb-4">A/B Test CTA</h1>
+        <div className="bg-gray-100 rounded-lg p-6 text-center text-gray-500 max-w-md">
+          <p className="font-medium mb-1">No variant assigned</p>
+          <p className="text-sm">
+            {!experiment
+              ? 'The "cta-test" experiment was not found.'
+              : `Experiment status: ${experiment.status}`}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const variants: Record<
     string,
     { text: string; bg: string; description: string }
   > = {
-    control: {
+    "get-started": {
       text: "Get Started",
       bg: "bg-gray-600 hover:bg-gray-700",
       description: "Control: Neutral gray",
     },
-    "variant-a": {
+    "free-trial": {
       text: "Start Free Trial",
       bg: "bg-blue-600 hover:bg-blue-700",
-      description: "Variant A: Free trial messaging",
+      description: "Variant: Free trial messaging",
     },
-    "variant-b": {
+    "try-now": {
       text: "Try It Now!",
       bg: "bg-green-600 hover:bg-green-700",
-      description: "Variant B: Urgency messaging",
+      description: "Variant: Urgency messaging",
     },
   };
 
-  const config = variants[variant] || variants.control;
+  const config = variants[variant] || variants["get-started"];
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
