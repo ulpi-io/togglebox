@@ -127,7 +127,7 @@ async function seed(): Promise<void> {
     "   - 7 Feature Flags: dark-mode, beta-features, reviews-enabled, express-shipping, etc.",
   );
   console.log(
-    "   - 4 Experiments: checkout-test, cta-test, checkout-button-test, pricing-display-test",
+    "   - 5 Experiments: checkout-test, cta-test (web), cta-test-mobile, checkout-button-test, pricing-display-test",
   );
   console.log("   - 1 API Key: Seed API Key (admin)");
 
@@ -690,9 +690,59 @@ async function seedExperiments(
       createdBy: ADMIN_EMAIL,
     },
     {
-      platform: "mobile",
+      platform: "web",
       environment: "staging",
       experimentKey: "cta-test",
+      name: "CTA Button A/B Test",
+      description:
+        "Testing different call-to-action button texts on the landing page",
+      hypothesis:
+        "Action-oriented CTA copy will increase click-through rate by 15%",
+      variations: [
+        {
+          key: "get-started",
+          name: "Get Started",
+          value: { buttonText: "Get Started" },
+          isControl: true,
+        },
+        {
+          key: "free-trial",
+          name: "Start Free Trial",
+          value: { buttonText: "Start Free Trial" },
+          isControl: false,
+        },
+        {
+          key: "try-now",
+          name: "Try It Now!",
+          value: { buttonText: "Try It Now!" },
+          isControl: false,
+        },
+      ],
+      controlVariation: "get-started",
+      trafficAllocation: [
+        { variationKey: "get-started", percentage: 34 },
+        { variationKey: "free-trial", percentage: 33 },
+        { variationKey: "try-now", percentage: 33 },
+      ],
+      targeting: {
+        countries: [],
+        forceIncludeUsers: [],
+        forceExcludeUsers: [],
+      },
+      primaryMetric: {
+        id: "cta_click",
+        name: "CTA Click Rate",
+        eventName: "cta_clicked",
+        metricType: "conversion" as const,
+        successDirection: "increase" as const,
+      },
+      confidenceLevel: 0.95,
+      createdBy: ADMIN_EMAIL,
+    },
+    {
+      platform: "mobile",
+      environment: "staging",
+      experimentKey: "cta-test-mobile",
       name: "CTA Button Text Test",
       description: "Testing different call-to-action button texts",
       hypothesis: "Action-oriented CTA text will increase tap rate by 15%",
