@@ -14,7 +14,6 @@ import type {
   ToggleBoxProviderProps,
   ToggleBoxContextValue,
   ConversionData,
-  EventData,
   Config,
 } from "./types";
 
@@ -247,14 +246,6 @@ export function ToggleBoxProvider({
     [],
   );
 
-  const trackEvent = useCallback(
-    (eventName: string, context: ExperimentContext, data?: EventData) => {
-      if (!clientRef.current) return;
-      clientRef.current.trackEvent(eventName, context, data);
-    },
-    [],
-  );
-
   const getConfigValue = useCallback(
     async <T,>(key: string, defaultValue: T): Promise<T> => {
       if (!clientRef.current) return defaultValue;
@@ -280,7 +271,6 @@ export function ToggleBoxProvider({
     isFlagEnabled,
     getVariant,
     trackConversion,
-    trackEvent,
     getConfigValue,
     flushStats,
     getClient,

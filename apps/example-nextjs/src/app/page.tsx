@@ -20,12 +20,6 @@ const quickStartItems = [
     description: "A/B test variants",
   },
   {
-    href: "/examples/quick/track-event",
-    title: "Event Tracking",
-    icon: "📊",
-    description: "Track events",
-  },
-  {
     href: "/examples/quick/ssr-config",
     title: "SSR Config",
     icon: "🖥️",

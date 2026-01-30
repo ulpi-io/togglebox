@@ -10,7 +10,7 @@ import { useExperiments, useAnalytics } from "@togglebox/sdk-expo";
 
 export default function ABTestCTAScreen() {
   const { getVariant, isLoading } = useExperiments();
-  const { trackEvent, trackConversion, flushStats } = useAnalytics();
+  const { trackConversion, flushStats } = useAnalytics();
   const [variant, setVariant] = useState<string | null>(null);
   const [clicks, setClicks] = useState(0);
   const [lastAction, setLastAction] = useState<string | null>(null);
@@ -22,16 +22,9 @@ export default function ABTestCTAScreen() {
       setVariant(v);
       if (!impressionSentRef.current) {
         impressionSentRef.current = true;
-        trackEvent(
-          "impression",
-          { userId: "user-123" },
-          {
-            properties: { experimentKey: "pricing-cta", variationKey: v },
-          },
-        );
       }
     });
-  }, [isLoading, getVariant, trackEvent]);
+  }, [isLoading, getVariant]);
 
   const handleCTAClick = async () => {
     if (!variant) return;

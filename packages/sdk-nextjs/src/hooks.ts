@@ -152,16 +152,11 @@ export function useExperiment(
 /**
  * Hook to access analytics methods
  *
- * @returns Object with trackEvent, trackConversion, and flushStats
+ * @returns Object with trackConversion and flushStats
  *
  * @example
  * ```tsx
- * const { trackEvent, trackConversion, flushStats } = useAnalytics()
- *
- * // Track a custom event
- * trackEvent('button_clicked', { userId: 'user-123' }, {
- *   properties: { button: 'checkout' }
- * })
+ * const { trackConversion, flushStats } = useAnalytics()
  *
  * // Track a conversion
  * await trackConversion('checkout-test', { userId: 'user-123' }, {
@@ -174,6 +169,6 @@ export function useExperiment(
  * ```
  */
 export function useAnalytics(): UseAnalyticsResult {
-  const { trackEvent, trackConversion, flushStats } = useToggleBoxContext();
-  return { trackEvent, trackConversion, flushStats };
+  const { trackConversion, flushStats } = useToggleBoxContext();
+  return { trackConversion, flushStats };
 }

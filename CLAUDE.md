@@ -175,18 +175,18 @@ const { experiment, getVariant } = useExperiment("checkout-test", { userId });
 const variant = await getVariant();
 
 // Analytics
-const { trackEvent, trackConversion } = useAnalytics();
-trackEvent(
-  "button_clicked",
+const { trackConversion, flushStats } = useAnalytics();
+await trackConversion(
+  "checkout-test",
   { userId },
-  { properties: { button: "checkout" } },
+  { metricId: "purchase", value: 99.99 },
 );
 ```
 
 ### Expo
 
 ```tsx
-import { ToggleBoxProvider, useToggleBox } from "@togglebox/sdk-expo";
+import { ToggleBoxProvider, useConfig, useFlag, useAnalytics } from "@togglebox/sdk-expo";
 
 // Provider with offline support
 <ToggleBoxProvider

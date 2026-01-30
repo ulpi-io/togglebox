@@ -591,7 +591,6 @@ Access analytics and event tracking:
 
 ```tsx
 const {
-  trackEvent, // (eventName: string, context: ExperimentContext, data?: EventData) => void
   trackConversion, // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
   flushStats, // () => Promise<void>
 } = useAnalytics();

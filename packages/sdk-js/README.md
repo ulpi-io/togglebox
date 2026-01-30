@@ -533,7 +533,6 @@ interface ClientOptions {
 | `getExperiments()`                              | Get all experiments                        |
 | `getVariant(experimentKey, context)`            | Get assigned variant for a user            |
 | `trackConversion(experimentKey, context, data)` | Track a conversion event                   |
-| `trackEvent(eventName, context, data?)`         | Track a custom event                       |
 | `getExperimentInfo(experimentKey)`              | Get experiment metadata without assignment |
 
 ### Context & Lifecycle

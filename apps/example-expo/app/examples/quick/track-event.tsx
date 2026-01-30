@@ -8,23 +8,10 @@ import {
 } from "react-native";
 import { useAnalytics } from "@togglebox/sdk-expo";
 
-export default function TrackEventScreen() {
-  const { trackEvent, trackConversion, flushStats } = useAnalytics();
-  const [clicks, setClicks] = useState(0);
+export default function TrackConversionScreen() {
+  const { trackConversion, flushStats } = useAnalytics();
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const handleClick = () => {
-    trackEvent(
-      "button_click",
-      { userId: "user-123" },
-      {
-        properties: { buttonId: "demo-cta", clickNumber: clicks + 1 },
-      },
-    );
-    setClicks((c) => c + 1);
-    setLastAction("Event: button_click");
-  };
 
   const handlePurchase = async () => {
     setLoading(true);
@@ -43,14 +30,7 @@ export default function TrackEventScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Event Tracking</Text>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Track Custom Event</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleClick}>
-          <Text style={styles.buttonText}>Click Me ({clicks})</Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.title}>Conversion Tracking</Text>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Track Conversion</Text>
@@ -93,12 +73,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 12,
     color: "#111827",
-  },
-  primaryButton: {
-    backgroundColor: "#3b82f6",
-    padding: 14,
-    borderRadius: 8,
-    alignItems: "center",
   },
   successButton: {
     backgroundColor: "#10b981",

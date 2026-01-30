@@ -216,18 +216,15 @@ Track analytics events:
 import { useAnalytics } from "@togglebox/sdk-nextjs";
 
 export default function TrackingExample() {
-  const { trackEvent } = useAnalytics();
+  const { trackConversion, flushStats } = useAnalytics();
 
-  const handlePurchase = () => {
-    trackEvent(
-      "purchase_completed",
-      {
-        userId: "user-123",
-      },
-      {
-        properties: { value: 99.99, currency: "USD" },
-      },
+  const handlePurchase = async () => {
+    await trackConversion(
+      "checkout-test",
+      { userId: "user-123" },
+      { metricId: "purchase", value: 99.99 },
     );
+    await flushStats();
   };
 
   return <button onClick={handlePurchase}>Complete Purchase</button>;
@@ -502,7 +499,6 @@ const {
 
 ```tsx
 const {
-  trackEvent, // (eventName: string, context: ExperimentContext, data?: EventData) => void
   trackConversion, // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
   flushStats, // () => Promise<void>
 } = useAnalytics();
@@ -566,8 +562,7 @@ if (variant?.variationKey === "new-checkout") {
 ### getAnalytics()
 
 ```tsx
-const { trackEvent, trackConversion, flushStats } =
-  await getAnalytics(serverOptions);
+const { trackConversion, flushStats } = await getAnalytics(serverOptions);
 await trackConversion(
   "checkout-test",
   { userId: "user-123" },

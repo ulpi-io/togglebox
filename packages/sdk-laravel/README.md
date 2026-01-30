@@ -82,12 +82,6 @@ if (ToggleBox::inVariation('checkout-redesign', 'variant_1')) {
 // Track conversions
 ToggleBox::trackConversion('checkout-redesign', 'purchase', value: 99.99);
 
-// Track custom events
-ToggleBox::trackEvent('page_view', userId: 'user-123', data: [
-    'experimentKey' => 'checkout-redesign',
-    'properties' => ['page' => '/checkout'],
-]);
-
 // Get experiment metadata without assignment
 $expInfo = ToggleBox::experimentInfo('checkout-redesign');
 if ($expInfo) {
@@ -112,11 +106,6 @@ $maxRetries = remote_config('max_retries', 3);
 
 // Experiments
 $variant = experiment('checkout-redesign');
-
-// Track custom events
-track_event('button_click', userId: 'user-123', data: [
-    'properties' => ['buttonId' => 'cta-buy-now'],
-]);
 
 // Check API health
 $health = check_togglebox();

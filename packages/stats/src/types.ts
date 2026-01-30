@@ -158,24 +158,6 @@ export const ExperimentStatsSchema = z.object({
 export type ExperimentStats = z.infer<typeof ExperimentStatsSchema>;
 
 // ============================================================================
-// CUSTOM EVENT STATS
-// ============================================================================
-
-/**
- * Stored custom event record.
- */
-export const CustomEventStatsSchema = z.object({
-  platform: z.string(),
-  environment: z.string(),
-  eventName: z.string(),
-  userId: z.string().optional(),
-  properties: z.record(z.unknown()).optional(),
-  timestamp: z.string().datetime(),
-});
-
-export type CustomEventStats = z.infer<typeof CustomEventStatsSchema>;
-
-// ============================================================================
 // SDK EVENTS
 // ============================================================================
 
@@ -187,7 +169,6 @@ export const StatsEventTypeEnum = z.enum([
   "flag_evaluation",
   "experiment_exposure",
   "conversion",
-  "custom_event",
 ]);
 
 export type StatsEventType = z.infer<typeof StatsEventTypeEnum>;
@@ -259,18 +240,6 @@ export const ConversionEventSchema = BaseEventSchema.extend({
 export type ConversionEvent = z.infer<typeof ConversionEventSchema>;
 
 /**
- * Custom event.
- */
-export const CustomEventSchema = BaseEventSchema.extend({
-  type: z.literal("custom_event"),
-  eventName: z.string(),
-  userId: z.string().optional(),
-  properties: z.record(z.unknown()).optional(),
-});
-
-export type CustomEvent = z.infer<typeof CustomEventSchema>;
-
-/**
  * Union of all event types.
  */
 export const StatsEventSchema = z.discriminatedUnion("type", [
@@ -278,7 +247,6 @@ export const StatsEventSchema = z.discriminatedUnion("type", [
   FlagEvaluationEventSchema,
   ExperimentExposureEventSchema,
   ConversionEventSchema,
-  CustomEventSchema,
 ]);
 
 export type StatsEvent = z.infer<typeof StatsEventSchema>;

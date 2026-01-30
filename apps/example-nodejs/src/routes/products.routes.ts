@@ -25,11 +25,6 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
       togglebox.isFlagEnabled("express-shipping", context),
     ]);
 
-    // Track product list view
-    togglebox.trackEvent("products_viewed", context, {
-      properties: { count: products.length },
-    });
-
     logger.info(
       { userId: context.userId, showReviews, expressShipping },
       "Products fetched",
@@ -62,11 +57,6 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
       res.status(404).json({ error: "Product not found" });
       return;
     }
-
-    // Track product view event
-    togglebox.trackEvent("product_viewed", context, {
-      properties: { productId: product.id, productName: product.name },
-    });
 
     const showReviews = await togglebox.isFlagEnabled(
       "reviews-enabled",

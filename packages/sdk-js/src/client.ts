@@ -20,7 +20,6 @@ import type {
   ClientEvent,
   EventListener,
   ConversionData,
-  EventData,
   HealthCheckResponse,
 } from "./types";
 
@@ -406,41 +405,6 @@ export class ToggleBoxClient {
     }
 
     return assignVariation(experiment, context);
-  }
-
-  /**
-   * Track a custom event.
-   *
-   * @param eventName - Name of the event
-   * @param context - User context
-   * @param data - Optional event data
-   *
-   * @example
-   * ```typescript
-   * await client.trackEvent('add_to_cart', { userId: 'user-123' }, {
-   *   experimentKey: 'checkout-test',
-   *   properties: { itemCount: 3, cartValue: 150 }
-   * })
-   * ```
-   */
-  trackEvent(
-    eventName: string,
-    context: ExperimentContext,
-    data?: EventData,
-  ): void {
-    // Always track the custom event for general analytics
-    this.stats.trackCustomEvent(eventName, context.userId, data?.properties);
-
-    // Additionally, track as conversion if experiment context is provided
-    if (data?.experimentKey && data?.variationKey) {
-      this.stats.trackConversion(
-        data.experimentKey,
-        eventName,
-        data.variationKey,
-        context.userId,
-        undefined,
-      );
-    }
   }
 
   /**

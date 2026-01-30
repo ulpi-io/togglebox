@@ -19,15 +19,6 @@ export interface ConversionData {
 }
 
 /**
- * Event data for custom event tracking
- */
-export interface EventData {
-  experimentKey?: string;
-  variationKey?: string;
-  properties?: Record<string, unknown>;
-}
-
-/**
  * Provider configuration options
  */
 export interface ToggleBoxProviderProps {
@@ -147,27 +138,6 @@ export interface ToggleBoxContextValue {
   ) => Promise<void>;
 
   /**
-   * Track a custom event.
-   *
-   * @param eventName - Name of the event
-   * @param context - User context (userId required)
-   * @param data - Optional event data
-   *
-   * @example
-   * ```typescript
-   * trackEvent('add_to_cart', { userId: 'user-123' }, {
-   *   experimentKey: 'checkout-test',
-   *   properties: { itemCount: 3 }
-   * })
-   * ```
-   */
-  trackEvent: (
-    eventName: string,
-    context: ExperimentContext,
-    data?: EventData,
-  ) => void;
-
-  /**
    * Get a typed config value with a default fallback.
    *
    * @param key - Config key
@@ -274,19 +244,6 @@ export interface UseExperimentsResult {
  * Result type for useAnalytics() hook
  */
 export interface UseAnalyticsResult {
-  /**
-   * Track a custom event.
-   *
-   * @param eventName - Name of the event
-   * @param context - User context (userId required)
-   * @param data - Optional event data
-   */
-  trackEvent: (
-    eventName: string,
-    context: ExperimentContext,
-    data?: EventData,
-  ) => void;
-
   /**
    * Track a conversion event for an experiment.
    *

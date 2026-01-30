@@ -19,7 +19,6 @@ export type {
   ToggleBoxProviderProps,
   ToggleBoxContextValue,
   ConversionData,
-  EventData,
   UseConfigResult,
   UseFlagsResult,
   UseExperimentsResult,

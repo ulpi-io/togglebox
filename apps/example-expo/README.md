@@ -262,20 +262,7 @@ const client = new ToggleBoxClient({
   apiUrl: "https://your-api.example.com/api/v1",
 });
 
-export default function TrackEventScreen() {
-  const [clicks, setClicks] = useState(0);
-
-  const handleClick = () => {
-    client.trackEvent(
-      "button_click",
-      { userId: "user-123" },
-      {
-        properties: { buttonId: "cta-main" },
-      },
-    );
-    setClicks((c) => c + 1);
-  };
-
+export default function TrackConversionScreen() {
   const handlePurchase = async () => {
     await client.trackConversion(
       "pricing-page",
@@ -482,7 +469,6 @@ const {
 
 ```tsx
 const {
-  trackEvent, // (eventName: string, context: ExperimentContext, data?: EventData) => void
   trackConversion, // (experimentKey: string, context: ExperimentContext, data: ConversionData) => Promise<void>
   flushStats, // () => Promise<void>
 } = useAnalytics();

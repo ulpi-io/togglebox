@@ -13,11 +13,10 @@ import type {
   FlagStatsDaily,
   ExperimentStats,
   ExperimentMetricStats,
-  CustomEventStats,
   StatsEvent,
 } from "@togglebox/stats";
 import type { IStatsRepository } from "@togglebox/stats";
-import { StatsModel, CustomEventModel } from "./schemas";
+import { StatsModel } from "./schemas";
 
 /**
  * Simple concurrency limiter for batch processing.
@@ -566,60 +565,6 @@ export class MongooseStatsRepository implements IStatsRepository {
   }
 
   // =========================================================================
-  // CUSTOM EVENT STATS
-  // =========================================================================
-
-  /**
-   * Record a custom event.
-   */
-  async recordCustomEvent(
-    platform: string,
-    environment: string,
-    eventName: string,
-    userId?: string,
-    properties?: Record<string, unknown>,
-  ): Promise<void> {
-    const now = new Date().toISOString();
-
-    await CustomEventModel.create({
-      platform,
-      environment,
-      eventName,
-      userId,
-      properties,
-      timestamp: now,
-    });
-  }
-
-  /**
-   * Get custom events for a platform/environment.
-   */
-  async getCustomEvents(
-    platform: string,
-    environment: string,
-    eventName?: string,
-    limit: number = 100,
-  ): Promise<CustomEventStats[]> {
-    const query: Record<string, unknown> = { platform, environment };
-    if (eventName) {
-      query["eventName"] = eventName;
-    }
-
-    const docs = await CustomEventModel.find(query)
-      .sort({ timestamp: -1 })
-      .limit(limit);
-
-    return docs.map((doc) => ({
-      platform: doc.platform,
-      environment: doc.environment,
-      eventName: doc.eventName,
-      userId: doc.userId,
-      properties: doc.properties,
-      timestamp: doc.timestamp,
-    }));
-  }
-
-  // =========================================================================
   // BATCH PROCESSING
   // =========================================================================
 
@@ -677,16 +622,6 @@ export class MongooseStatsRepository implements IStatsRepository {
               event.variationKey,
               event.userId,
               event.value,
-            );
-            break;
-
-          case "custom_event":
-            await this.recordCustomEvent(
-              platform,
-              environment,
-              event.eventName,
-              event.userId,
-              event.properties,
             );
             break;
         }

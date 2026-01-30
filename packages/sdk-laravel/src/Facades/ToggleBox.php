@@ -22,7 +22,6 @@ use ToggleBox\Types\VariantAssignment;
  * @method static VariantAssignment|null variant(string $experimentKey, ?string $userId = null, ?string $country = null, ?string $language = null)
  * @method static bool inVariation(string $experimentKey, string $variationKey, ?string $userId = null, ?string $country = null, ?string $language = null)
  * @method static void trackConversion(string $experimentKey, string $metricName, ?float $value = null, ?string $userId = null, ?string $country = null, ?string $language = null)
- * @method static void trackEvent(string $eventName, ?string $userId = null, ?string $country = null, ?string $language = null, ?array $data = null)
  * @method static array allExperiments()
  * @method static Experiment|null experimentInfo(string $experimentKey)
  * @method static void refresh()
