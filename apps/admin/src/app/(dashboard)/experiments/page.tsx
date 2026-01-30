@@ -447,7 +447,9 @@ function ExperimentsContent() {
                       <div className="text-xs">
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">
-                            {(experiment.results.totalUsers || 0).toLocaleString()}{" "}
+                            {(
+                              experiment.results.totalUsers || 0
+                            ).toLocaleString()}{" "}
                             users
                           </span>
                           <Badge

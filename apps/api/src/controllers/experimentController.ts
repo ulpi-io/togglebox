@@ -996,7 +996,18 @@ export class ExperimentController {
         );
 
         let significance = null;
-        let perVariationSignificance: Map<string, { pValue: number; isSignificant: boolean; zScore: number; confidenceInterval: [number, number]; relativeLift: number; controlConversionRate: number; treatmentConversionRate: number }> | null = null;
+        let perVariationSignificance: Map<
+          string,
+          {
+            pValue: number;
+            isSignificant: boolean;
+            zScore: number;
+            confidenceInterval: [number, number];
+            relativeLift: number;
+            controlConversionRate: number;
+            treatmentConversionRate: number;
+          }
+        > | null = null;
         if (controlData && treatmentData.length > 0) {
           // Calculate significance for each treatment vs control
           perVariationSignificance = calculateMultipleSignificance(
@@ -1005,7 +1016,9 @@ export class ExperimentController {
             experiment.confidenceLevel,
           );
           // Use first treatment for backward-compatible top-level significance
-          const firstResult = treatmentData[0] ? perVariationSignificance.get(treatmentData[0].variationKey) : null;
+          const firstResult = treatmentData[0]
+            ? perVariationSignificance.get(treatmentData[0].variationKey)
+            : null;
           significance = firstResult ?? null;
         }
 

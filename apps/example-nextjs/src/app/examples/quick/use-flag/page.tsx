@@ -50,9 +50,7 @@ export default function Page() {
           className={`p-4 rounded-lg ${darkMode ? "bg-green-900" : "bg-green-50"} border border-green-500`}
         >
           <p className="text-sm mb-1">dark-mode flag</p>
-          <p className="text-lg font-semibold">
-            {darkMode +'-' }
-          </p>
+          <p className="text-lg font-semibold">{darkMode + "-"}</p>
         </div>
 
         <div className="space-y-2">

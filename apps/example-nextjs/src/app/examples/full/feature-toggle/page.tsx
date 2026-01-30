@@ -57,13 +57,10 @@ export default function Page() {
               <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded">
                 ENABLED
               </span>
-              <h2 className="text-xl font-bold text-green-800">
-                Dark Mode
-              </h2>
+              <h2 className="text-xl font-bold text-green-800">Dark Mode</h2>
             </div>
             <p className="text-green-700">
-              The{" "}
-              <code className="px-1 bg-green-100 rounded">dark-mode</code>{" "}
+              The <code className="px-1 bg-green-100 rounded">dark-mode</code>{" "}
               flag is enabled.
             </p>
           </div>
@@ -71,8 +68,7 @@ export default function Page() {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
             <h2 className="text-xl font-bold text-gray-800">Dark Mode</h2>
             <p className="text-gray-600 mt-2">
-              The{" "}
-              <code className="px-1 bg-gray-200 rounded">dark-mode</code>{" "}
+              The <code className="px-1 bg-gray-200 rounded">dark-mode</code>{" "}
               flag is disabled.
             </p>
           </div>

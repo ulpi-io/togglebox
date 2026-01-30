@@ -350,12 +350,27 @@ export async function getExperimentResultsApi(
   const raw = await browserApiClient<{
     experiment: Experiment;
     stats: {
-      variations: { variationKey: string; participants: number; exposures: number }[];
-      dailyData: { date: string; variationKey: string; participants: number; conversions: number }[];
+      variations: {
+        variationKey: string;
+        participants: number;
+        exposures: number;
+        views?: number;
+        users?: number;
+      }[];
+      dailyData: {
+        date: string;
+        variationKey: string;
+        participants: number;
+        conversions: number;
+      }[];
       updatedAt: string;
     } | null;
     analysis: {
-      variationData: { variationKey: string; participants: number; conversions: number }[];
+      variationData: {
+        variationKey: string;
+        participants: number;
+        conversions: number;
+      }[];
       significance: {
         pValue: number;
         isSignificant: boolean;
@@ -364,12 +379,15 @@ export async function getExperimentResultsApi(
         relativeLift: number;
         confidenceInterval: [number, number];
       } | null;
-      perVariation: Record<string, {
-        pValue: number;
-        isSignificant: boolean;
-        relativeLift: number;
-        confidenceInterval: [number, number];
-      }> | null;
+      perVariation: Record<
+        string,
+        {
+          pValue: number;
+          isSignificant: boolean;
+          relativeLift: number;
+          confidenceInterval: [number, number];
+        }
+      > | null;
       srm: { hasMismatch: boolean } | null;
     } | null;
     message?: string;
@@ -394,14 +412,12 @@ export async function getExperimentResultsApi(
   const controlKey = raw.experiment.controlVariation;
 
   // Build a lookup from stats.variations for views/users data
-  const statsLookup = new Map(
-    stats.variations.map((v) => [v.variationKey, v]),
-  );
+  const statsLookup = new Map(stats.variations.map((v) => [v.variationKey, v]));
 
   const variations = analysis.variationData.map((v) => {
     const sv = statsLookup.get(v.variationKey);
-    const views = (sv as Record<string, number>)?.views ?? (sv as Record<string, number>)?.participants ?? 0;
-    const users = (sv as Record<string, number>)?.users ?? 0;
+    const views = sv?.views ?? sv?.participants ?? 0;
+    const users = sv?.users ?? 0;
     const rate = views > 0 ? v.conversions / views : 0;
     const result: import("./types").VariationResult = {
       variationKey: v.variationKey,
@@ -429,7 +445,10 @@ export async function getExperimentResultsApi(
 
   const totalViews = variations.reduce((sum, v) => sum + v.views, 0);
   const totalUsers = variations.reduce((sum, v) => sum + v.users, 0);
-  const totalConversions = variations.reduce((sum, v) => sum + v.conversions, 0);
+  const totalConversions = variations.reduce(
+    (sum, v) => sum + v.conversions,
+    0,
+  );
 
   return {
     status: analysis.significance?.isSignificant ? "significant" : "collecting",

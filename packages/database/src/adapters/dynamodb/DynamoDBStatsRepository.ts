@@ -630,12 +630,19 @@ export class DynamoDBStatsRepository implements IStatsRepository {
         let userCount = 0;
         if (rawUserIds instanceof Set) {
           userCount = rawUserIds.size;
-        } else if (rawUserIds && typeof rawUserIds === "object" && "values" in rawUserIds) {
+        } else if (
+          rawUserIds &&
+          typeof rawUserIds === "object" &&
+          "values" in rawUserIds
+        ) {
           userCount = (rawUserIds as { values: string[] }).values.length;
         } else if (Array.isArray(rawUserIds)) {
           userCount = rawUserIds.length;
         }
-        const views = (dynItem["views"] as number) || (dynItem["participants"] as number) || 0;
+        const views =
+          (dynItem["views"] as number) ||
+          (dynItem["participants"] as number) ||
+          0;
         const existing = variationStatsMap.get(variationKey);
 
         if (existing) {

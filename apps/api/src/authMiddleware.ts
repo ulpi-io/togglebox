@@ -1,7 +1,4 @@
-import {
-  createAuthMiddlewareForApp,
-  DatabaseType,
-} from "@togglebox/auth";
+import { createAuthMiddlewareForApp, DatabaseType } from "@togglebox/auth";
 
 /**
  * Database-backed auth middleware instance.

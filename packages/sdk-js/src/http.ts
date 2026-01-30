@@ -24,7 +24,9 @@ export class HttpClient {
     this.baseUrl = baseUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, ""); // Strip /api/v1 suffix and trailing slash
     this.fetchImpl =
       fetchImpl ||
-      (typeof fetch !== "undefined" ? fetch.bind(globalThis) : this.throwFetchError);
+      (typeof fetch !== "undefined"
+        ? fetch.bind(globalThis)
+        : this.throwFetchError);
     this.apiKey = apiKey;
     this.requestTimeoutMs = requestTimeoutMs;
   }
