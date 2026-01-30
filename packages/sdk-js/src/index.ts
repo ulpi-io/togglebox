@@ -25,7 +25,6 @@ export type {
   EventListener,
   RetryOptions,
   ConversionData,
-  EventData,
   HealthCheckResponse,
 } from "./types";
 

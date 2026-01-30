@@ -117,23 +117,6 @@ export class StatsReporter {
   }
 
   /**
-   * Track a custom event (general analytics, not tied to experiments).
-   */
-  trackCustomEvent(
-    eventName: string,
-    userId: string,
-    properties?: Record<string, unknown>,
-  ): void {
-    this.queueEvent({
-      type: "custom_event",
-      eventName,
-      userId,
-      properties,
-      timestamp: new Date().toISOString(),
-    } as StatsEvent);
-  }
-
-  /**
    * Queue an event for sending.
    */
   private queueEvent(event: StatsEvent): void {

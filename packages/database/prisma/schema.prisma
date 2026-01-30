@@ -431,17 +431,3 @@ model ExperimentMetricStatsDaily {
   @@map("experiment_metric_stats_daily")
 }
 
-/// Custom event records
-model CustomEventStats {
-  id          String   @id @default(uuid())
-  platform    String
-  environment String
-  eventName   String
-  userId      String?
-  properties  String?  // JSON string
-  timestamp   DateTime @default(now())
-
-  @@index([platform, environment, eventName])
-  @@index([platform, environment, timestamp])
-  @@map("custom_event_stats")
-}

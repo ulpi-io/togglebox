@@ -248,21 +248,7 @@ switch (variant?.variationKey) {
 }
 ```
 
-### Pattern 5: Track Event
-
-```typescript
-client.trackEvent(
-  "add_to_cart",
-  { userId: "user-123" },
-  {
-    experimentKey: "checkout-test",
-    variationKey: "treatment",
-    properties: { itemCount: 3, cartValue: 150 },
-  },
-);
-```
-
-### Pattern 6: Track Conversion
+### Pattern 5: Track Conversion
 
 ```typescript
 await client.trackConversion(

@@ -14,7 +14,6 @@ import type {
   FlagStatsDaily,
   ExperimentStats,
   ExperimentMetricStats,
-  CustomEventStats,
   StatsEvent,
 } from "@togglebox/stats";
 import type { IStatsRepository } from "@togglebox/stats";
@@ -599,61 +598,6 @@ export class PrismaStatsRepository implements IStatsRepository {
   }
 
   // =========================================================================
-  // CUSTOM EVENT STATS
-  // =========================================================================
-
-  /**
-   * Record a custom event.
-   */
-  async recordCustomEvent(
-    platform: string,
-    environment: string,
-    eventName: string,
-    userId?: string,
-    properties?: Record<string, unknown>,
-  ): Promise<void> {
-    await this.prisma.customEventStats.create({
-      data: {
-        platform,
-        environment,
-        eventName,
-        userId,
-        properties: properties ? JSON.stringify(properties) : null,
-        timestamp: new Date(),
-      },
-    });
-  }
-
-  /**
-   * Get custom events for a platform/environment.
-   */
-  async getCustomEvents(
-    platform: string,
-    environment: string,
-    eventName?: string,
-    limit: number = 100,
-  ): Promise<CustomEventStats[]> {
-    const events = await this.prisma.customEventStats.findMany({
-      where: {
-        platform,
-        environment,
-        ...(eventName && { eventName }),
-      },
-      orderBy: { timestamp: "desc" },
-      take: limit,
-    });
-
-    return events.map((e) => ({
-      platform: e.platform,
-      environment: e.environment,
-      eventName: e.eventName,
-      userId: e.userId ?? undefined,
-      properties: e.properties ? JSON.parse(e.properties) : undefined,
-      timestamp: e.timestamp.toISOString(),
-    }));
-  }
-
-  // =========================================================================
   // BATCH PROCESSING
   // =========================================================================
 
@@ -714,16 +658,6 @@ export class PrismaStatsRepository implements IStatsRepository {
               event.variationKey,
               event.userId,
               event.value,
-            );
-            break;
-
-          case "custom_event":
-            await this.recordCustomEvent(
-              platform,
-              environment,
-              event.eventName,
-              event.userId,
-              event.properties,
             );
             break;
         }

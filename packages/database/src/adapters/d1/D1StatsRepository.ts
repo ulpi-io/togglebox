@@ -13,7 +13,6 @@ import type {
   FlagStatsDaily,
   ExperimentStats,
   ExperimentMetricStats,
-  CustomEventStats,
   StatsEvent,
 } from "@togglebox/stats";
 import type { IStatsRepository } from "@togglebox/stats";
@@ -639,85 +638,6 @@ export class D1StatsRepository implements IStatsRepository {
   }
 
   // =========================================================================
-  // CUSTOM EVENT STATS
-  // =========================================================================
-
-  /**
-   * Record a custom event.
-   */
-  async recordCustomEvent(
-    platform: string,
-    environment: string,
-    eventName: string,
-    userId?: string,
-    properties?: Record<string, unknown>,
-  ): Promise<void> {
-    const now = new Date().toISOString();
-    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-    await this.db
-      .prepare(
-        `INSERT INTO custom_event_stats (id, platform, environment, eventName, userId, properties, timestamp)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
-      )
-      .bind(
-        id,
-        platform,
-        environment,
-        eventName,
-        userId || null,
-        properties ? JSON.stringify(properties) : null,
-        now,
-      )
-      .run();
-  }
-
-  /**
-   * Get custom events for a platform/environment.
-   */
-  async getCustomEvents(
-    platform: string,
-    environment: string,
-    eventName?: string,
-    limit: number = 100,
-  ): Promise<CustomEventStats[]> {
-    let query = `SELECT platform, environment, eventName, userId, properties, timestamp
-      FROM custom_event_stats
-      WHERE platform = ?1 AND environment = ?2`;
-
-    const params: unknown[] = [platform, environment];
-
-    if (eventName) {
-      query += ` AND eventName = ?3`;
-      params.push(eventName);
-    }
-
-    query += ` ORDER BY timestamp DESC LIMIT ?${params.length + 1}`;
-    params.push(limit);
-
-    const result = await this.db
-      .prepare(query)
-      .bind(...params)
-      .all<{
-        platform: string;
-        environment: string;
-        eventName: string;
-        userId: string | null;
-        properties: string | null;
-        timestamp: string;
-      }>();
-
-    return (result.results || []).map((row) => ({
-      platform: row.platform,
-      environment: row.environment,
-      eventName: row.eventName,
-      userId: row.userId ?? undefined,
-      properties: row.properties ? JSON.parse(row.properties) : undefined,
-      timestamp: row.timestamp,
-    }));
-  }
-
-  // =========================================================================
   // BATCH PROCESSING
   // =========================================================================
 
@@ -775,16 +695,6 @@ export class D1StatsRepository implements IStatsRepository {
               event.variationKey,
               event.userId,
               event.value,
-            );
-            break;
-
-          case "custom_event":
-            await this.recordCustomEvent(
-              platform,
-              environment,
-              event.eventName,
-              event.userId,
-              event.properties,
             );
             break;
         }

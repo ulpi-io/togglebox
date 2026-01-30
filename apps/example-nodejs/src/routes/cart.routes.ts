@@ -1,5 +1,4 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { togglebox } from "../config/togglebox";
 import { products } from "../data/products";
 import { userContextMiddleware } from "../middleware/user-context";
 import { logger } from "../config/logger";
@@ -22,17 +21,6 @@ router.post("/add", async (req: Request, res: Response, next: NextFunction) => {
       res.status(404).json({ error: "Product not found" });
       return;
     }
-
-    // Track add to cart event
-    togglebox.trackEvent("add_to_cart", context, {
-      properties: {
-        productId: product.id,
-        productName: product.name,
-        quantity,
-        price: product.price,
-        total: product.price * quantity,
-      },
-    });
 
     logger.info(
       { userId: context.userId, productId, quantity },

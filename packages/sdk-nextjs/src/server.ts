@@ -7,7 +7,7 @@ import type {
   VariantAssignment,
 } from "@togglebox/experiments";
 import { assignVariation } from "@togglebox/experiments";
-import type { ConversionData, EventData, Config } from "./types";
+import type { ConversionData, Config } from "./types";
 
 // ============================================================================
 // Server Options
@@ -61,11 +61,6 @@ export interface ServerExperimentResult {
 }
 
 export interface ServerAnalyticsResult {
-  trackEvent: (
-    eventName: string,
-    context: ExperimentContext,
-    data?: EventData,
-  ) => void;
   trackConversion: (
     experimentKey: string,
     context: ExperimentContext,
@@ -378,13 +373,6 @@ export async function getAnalytics(
   const client = createServerClient(options);
 
   return {
-    trackEvent: (
-      eventName: string,
-      context: ExperimentContext,
-      data?: EventData,
-    ) => {
-      (client as any).trackEvent(eventName, context, data);
-    },
     trackConversion: async (
       experimentKey: string,
       context: ExperimentContext,

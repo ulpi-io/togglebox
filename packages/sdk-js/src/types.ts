@@ -163,20 +163,6 @@ export interface ConversionData {
 }
 
 /**
- * Event data for custom event tracking
- */
-export interface EventData {
-  /** Associated experiment key (optional) */
-  experimentKey?: string;
-
-  /** Variation key for conversion attribution (required if experimentKey provided) */
-  variationKey?: string;
-
-  /** Custom properties */
-  properties?: Record<string, unknown>;
-}
-
-/**
  * Health check response from API
  */
 export interface HealthCheckResponse {

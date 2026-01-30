@@ -351,23 +351,6 @@ CREATE TABLE IF NOT EXISTS experiment_metric_stats_daily (
 );
 
 -- ============================================================================
--- CUSTOM EVENT STATS
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS custom_event_stats (
-  id TEXT PRIMARY KEY,
-  platform TEXT NOT NULL,
-  environment TEXT NOT NULL,
-  eventName TEXT NOT NULL,
-  userId TEXT,
-  properties TEXT, -- JSON string
-  timestamp TEXT NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_custom_event_stats_lookup ON custom_event_stats (platform, environment, eventName);
-CREATE INDEX IF NOT EXISTS idx_custom_event_stats_time ON custom_event_stats (platform, environment, timestamp);
-
--- ============================================================================
 -- INITIALIZATION NOTES
 -- ============================================================================
 

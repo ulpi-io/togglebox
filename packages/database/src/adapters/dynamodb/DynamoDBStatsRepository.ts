@@ -20,7 +20,6 @@ import {
   QueryCommand,
   DeleteCommand,
   BatchWriteCommand,
-  PutCommand,
 } from "@aws-sdk/lib-dynamodb";
 import type {
   ConfigStats,
@@ -29,7 +28,6 @@ import type {
   FlagStatsDaily,
   ExperimentStats,
   ExperimentMetricStats,
-  CustomEventStats,
   StatsEvent,
 } from "@togglebox/stats";
 import type { IStatsRepository } from "@togglebox/stats";
@@ -787,83 +785,6 @@ export class DynamoDBStatsRepository implements IStatsRepository {
   }
 
   // =========================================================================
-  // CUSTOM EVENT STATS
-  // =========================================================================
-
-  /**
-   * Record a custom event.
-   */
-  async recordCustomEvent(
-    platform: string,
-    environment: string,
-    eventName: string,
-    userId?: string,
-    properties?: Record<string, unknown>,
-  ): Promise<void> {
-    const now = new Date().toISOString();
-    const eventId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-    // Store custom events with time-based PK for efficient querying
-    const pk = `CUSTOM#${platform}#${environment}`;
-    const sk = `EVENT#${eventName}#${now}#${eventId}`;
-
-    await dynamoDBClient.send(
-      new PutCommand({
-        TableName: this.getTableName(),
-        Item: {
-          PK: pk,
-          SK: sk,
-          platform,
-          environment,
-          eventName,
-          userId: userId || null,
-          properties: properties || null,
-          timestamp: now,
-        },
-      }),
-    );
-  }
-
-  /**
-   * Get custom events for a platform/environment.
-   */
-  async getCustomEvents(
-    platform: string,
-    environment: string,
-    eventName?: string,
-    limit: number = 100,
-  ): Promise<CustomEventStats[]> {
-    const pk = `CUSTOM#${platform}#${environment}`;
-    const skPrefix = eventName ? `EVENT#${eventName}#` : "EVENT#";
-
-    const result = await dynamoDBClient.send(
-      new QueryCommand({
-        TableName: this.getTableName(),
-        KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
-        ExpressionAttributeValues: {
-          ":pk": pk,
-          ":prefix": skPrefix,
-        },
-        ScanIndexForward: false, // Most recent first
-        Limit: limit,
-      }),
-    );
-
-    return (result.Items || []).map((item) => {
-      const dynItem = item as DynamoItem;
-      return {
-        platform: dynItem["platform"] as string,
-        environment: dynItem["environment"] as string,
-        eventName: dynItem["eventName"] as string,
-        userId: (dynItem["userId"] as string) || undefined,
-        properties:
-          (dynItem["properties"] as Record<string, unknown>) || undefined,
-        timestamp: dynItem["timestamp"] as string,
-      };
-    });
-  }
-
-  // =========================================================================
   // BATCH PROCESSING
   // =========================================================================
 
@@ -921,16 +842,6 @@ export class DynamoDBStatsRepository implements IStatsRepository {
               event.variationKey,
               event.userId,
               event.value,
-            );
-            break;
-
-          case "custom_event":
-            await this.recordCustomEvent(
-              platform,
-              environment,
-              event.eventName,
-              event.userId,
-              event.properties,
             );
             break;
         }

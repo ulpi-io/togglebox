@@ -10,7 +10,7 @@ export default function Page() {
     "cta-test",
     USER_CONTEXT,
   );
-  const { trackEvent, trackConversion, flushStats } = useAnalytics();
+  const { trackConversion, flushStats } = useAnalytics();
   const [variant, setVariant] = useState<string | undefined>(undefined);
   const [impressionTracked, setImpressionTracked] = useState(false);
   const [conversionTracked, setConversionTracked] = useState(false);
@@ -25,10 +25,6 @@ export default function Page() {
         if (cancelled) return;
         setVariant(v ?? undefined);
         if (v && !impressionTracked) {
-          trackEvent("impression", USER_CONTEXT, {
-            experimentKey: "cta-test",
-            variationKey: v,
-          });
           setImpressionTracked(true);
         }
       })
@@ -39,7 +35,7 @@ export default function Page() {
     return () => {
       cancelled = true;
     };
-  }, [experiment, isLoading, getVariant, trackEvent, impressionTracked]);
+  }, [experiment, isLoading, getVariant, impressionTracked]);
 
   const handleClick = async () => {
     if (!variant) return;

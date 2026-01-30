@@ -34,17 +34,6 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
       context,
     );
 
-    // Track checkout started
-    togglebox.trackEvent("checkout_started", context, {
-      experimentKey: "checkout-button-test",
-      variationKey: buttonVariant?.variationKey,
-      properties: {
-        checkoutVersion: useNewCheckout ? "v2" : "v1",
-        buttonVariant: buttonVariant?.variationKey,
-        pricingVariant: pricingVariant?.variationKey,
-      },
-    });
-
     // Map variant to actual button text
     const buttonTextMap: Record<string, string> = {
       "buy-now": "Buy Now",
@@ -117,11 +106,6 @@ router.post(
       await togglebox.trackConversion("pricing-display-test", context, {
         metricId: "purchase",
         value: total,
-      });
-
-      // Track general purchase event
-      togglebox.trackEvent("purchase_completed", context, {
-        properties: { orderId, total },
       });
 
       // Flush stats immediately for important conversions

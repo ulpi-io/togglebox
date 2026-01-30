@@ -163,10 +163,7 @@ console.log(variant); // "control", "variant_1", etc.
 ### useAnalytics
 
 ```tsx
-const { trackEvent, trackConversion, flushStats } = useAnalytics();
-
-// Track custom event
-trackEvent("button_click", { userId }, { properties: { button: "checkout" } });
+const { trackConversion, flushStats } = useAnalytics();
 
 // Track conversion for experiment
 await trackConversion(
@@ -241,8 +238,7 @@ if (variant?.variationKey === "new-checkout") {
 ### getAnalytics
 
 ```tsx
-const { trackEvent, trackConversion, flushStats } =
-  await getAnalytics(serverOptions);
+const { trackConversion, flushStats } = await getAnalytics(serverOptions);
 
 await trackConversion(
   "checkout-test",
@@ -449,7 +445,6 @@ import type {
   ExperimentContext,
   VariantAssignment,
   ConversionData,
-  EventData,
 } from "@togglebox/sdk-nextjs";
 
 import type {
