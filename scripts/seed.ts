@@ -27,11 +27,16 @@ import {
 } from "@togglebox/database";
 import {
   createAuthRepositories,
+  hashApiKey,
+  getApiKeyPrefix,
+  getApiKeyLast4,
   type DatabaseType,
   type UserRole,
   type AuthRepositories,
 } from "@togglebox/auth";
 import type { CreateConfigParameter } from "@togglebox/configs";
+import fs from "fs";
+import path from "path";
 
 // ============================================================================
 // CONFIGURATION
@@ -40,6 +45,7 @@ import type { CreateConfigParameter } from "@togglebox/configs";
 const ADMIN_EMAIL = "admin@togglebox.com";
 const ADMIN_PASSWORD = "Parola123!";
 const ADMIN_NAME = "ToggleBox Admin";
+const SEED_API_KEY = "tbx_live_49aee29619e6ba6640957f169273ea17";
 
 // ============================================================================
 // MAIN SEED FUNCTION
@@ -77,19 +83,24 @@ async function seed(): Promise<void> {
     await seedAdminUser(authRepos);
   }
 
-  // Step 2: Create platforms
+  // Step 2: Create API key for admin user
+  if (authRepos) {
+    await seedApiKey(authRepos);
+  }
+
+  // Step 3: Create platforms
   await seedPlatforms(db);
 
-  // Step 3: Create environments
+  // Step 4: Create environments
   await seedEnvironments(db);
 
-  // Step 4: Create config parameters
+  // Step 5: Create config parameters
   await seedConfigParameters(db);
 
-  // Step 5: Create feature flags
+  // Step 6: Create feature flags
   await seedFeatureFlags(threeTier);
 
-  // Step 6: Create experiments
+  // Step 7: Create experiments
   await seedExperiments(threeTier);
 
   // Summary
@@ -101,6 +112,7 @@ async function seed(): Promise<void> {
     console.log("\n📋 Demo Admin Account:");
     console.log(`   Email:    ${ADMIN_EMAIL}`);
     console.log(`   Password: ${ADMIN_PASSWORD}`);
+    console.log(`   API Key:  ${SEED_API_KEY}`);
   }
 
   console.log("\n📋 Created Resources:");
@@ -117,6 +129,7 @@ async function seed(): Promise<void> {
   console.log(
     "   - 4 Experiments: checkout-test, cta-test, checkout-button-test, pricing-display-test",
   );
+  console.log("   - 1 API Key: Seed API Key (admin)");
 
   console.log("\n🚀 Ready to use! Start the API with: pnpm dev:api\n");
 }
@@ -151,8 +164,67 @@ async function seedAdminUser(authRepos: AuthRepositories): Promise<void> {
   }
 }
 
+async function seedApiKey(authRepos: AuthRepositories): Promise<void> {
+  console.log("\n📌 Step 2: Creating API key...");
+
+  try {
+    const keyHash = hashApiKey(SEED_API_KEY);
+
+    // Check if the key already exists
+    const existing = await authRepos.apiKey.findByKeyHash(keyHash);
+    if (existing) {
+      console.log("   ⚠ Seed API key already exists");
+      return;
+    }
+
+    // Look up admin user to get userId
+    const adminUser = await authRepos.user.findByEmail(ADMIN_EMAIL);
+    if (!adminUser) {
+      console.log("   ⚠ Admin user not found, skipping API key creation");
+      return;
+    }
+
+    const keyPrefix = getApiKeyPrefix(SEED_API_KEY);
+    const keyLast4 = getApiKeyLast4(SEED_API_KEY);
+
+    await authRepos.apiKey.create({
+      userId: adminUser.id,
+      name: "Seed API Key",
+      keyHash,
+      keyPrefix,
+      keyLast4,
+      permissions: ["*"],
+      expiresAt: null,
+    });
+
+    console.log(`   ✓ API key created: ${keyPrefix}****${keyLast4}`);
+
+    // Write API key to example-nextjs .env.local
+    const envPath = path.resolve(
+      __dirname,
+      "../apps/example-nextjs/.env.local",
+    );
+
+    if (fs.existsSync(envPath)) {
+      let envContent = fs.readFileSync(envPath, "utf-8");
+      envContent = envContent.replace(
+        /^NEXT_PUBLIC_API_KEY=.*$/m,
+        `NEXT_PUBLIC_API_KEY=${SEED_API_KEY}`,
+      );
+      fs.writeFileSync(envPath, envContent, "utf-8");
+      console.log(`   ✓ API key written to apps/example-nextjs/.env.local`);
+    } else {
+      console.log(
+        `   ⚠ apps/example-nextjs/.env.local not found, skipping env update`,
+      );
+    }
+  } catch (error) {
+    console.error("   ✗ Failed to create API key:", error);
+  }
+}
+
 async function seedPlatforms(db: DatabaseRepositories): Promise<void> {
-  console.log("\n📌 Step 2: Creating platforms...");
+  console.log("\n📌 Step 3: Creating platforms...");
 
   const platforms = [
     { name: "web", description: "Web platform for Next.js SDK example" },
@@ -190,7 +262,7 @@ async function seedPlatforms(db: DatabaseRepositories): Promise<void> {
 }
 
 async function seedEnvironments(db: DatabaseRepositories): Promise<void> {
-  console.log("\n📌 Step 3: Creating environments...");
+  console.log("\n📌 Step 4: Creating environments...");
 
   const environments = [
     {
@@ -244,7 +316,7 @@ async function seedEnvironments(db: DatabaseRepositories): Promise<void> {
 }
 
 async function seedConfigParameters(db: DatabaseRepositories): Promise<void> {
-  console.log("\n📌 Step 4: Creating config parameters...");
+  console.log("\n📌 Step 5: Creating config parameters...");
 
   const configs: CreateConfigParameter[] = [
     {
@@ -381,7 +453,7 @@ async function seedConfigParameters(db: DatabaseRepositories): Promise<void> {
 async function seedFeatureFlags(
   threeTier: ThreeTierRepositories,
 ): Promise<void> {
-  console.log("\n📌 Step 5: Creating feature flags...");
+  console.log("\n📌 Step 6: Creating feature flags...");
 
   const flags = [
     {
@@ -566,7 +638,7 @@ async function seedFeatureFlags(
 async function seedExperiments(
   threeTier: ThreeTierRepositories,
 ): Promise<void> {
-  console.log("\n📌 Step 6: Creating experiments...");
+  console.log("\n📌 Step 7: Creating experiments...");
 
   const experiments = [
     {
