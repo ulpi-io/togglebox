@@ -36,8 +36,27 @@ export default function Page() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      <div className="min-h-screen p-8">
+        <div className="h-9 bg-gray-200 rounded w-56 mb-6 animate-pulse" />
+        <div className="max-w-md space-y-6">
+          <div className="h-5 bg-gray-200 rounded w-72 animate-pulse" />
+          <div className="flex gap-3">
+            <div className="h-10 bg-gray-200 rounded w-36 animate-pulse" />
+            <div className="h-10 bg-gray-200 rounded w-36 animate-pulse" />
+          </div>
+          <div className="p-4 bg-gray-50 rounded-lg animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-32 mb-3" />
+            <div className="grid grid-cols-2 gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="h-4 bg-gray-200 rounded w-20" />
+                  <div className="h-4 bg-gray-200 rounded w-16" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="h-10 bg-gray-200 rounded-lg w-36 animate-pulse" />
+        </div>
       </div>
     );
   }

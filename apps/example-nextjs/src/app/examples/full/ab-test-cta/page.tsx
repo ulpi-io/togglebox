@@ -49,13 +49,13 @@ export default function Page() {
 
   if (isLoading || !variant) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <button
-          disabled
-          className="px-6 py-3 bg-gray-300 text-gray-500 rounded-lg"
-        >
-          Loading...
-        </button>
+      <div className="min-h-screen flex flex-col items-center justify-center p-8">
+        <div className="h-9 bg-gray-200 rounded w-72 mb-8 animate-pulse" />
+        <div className="h-14 bg-gray-200 rounded-lg w-48 animate-pulse" />
+        <div className="mt-8 space-y-2 flex flex-col items-center">
+          <div className="h-4 bg-gray-200 rounded w-36 animate-pulse" />
+          <div className="h-4 bg-gray-200 rounded w-48 animate-pulse" />
+        </div>
       </div>
     );
   }

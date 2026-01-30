@@ -592,12 +592,14 @@ export default function ExperimentDetailPage({
             results ||
             ({
               status: "collecting",
-              totalParticipants: 0,
+              totalViews: 0,
+              totalUsers: 0,
               totalConversions: 0,
               isSignificant: false,
               variations: experiment.variations.map((v) => ({
                 variationKey: v.key,
-                participants: 0,
+                views: 0,
+                users: 0,
                 conversions: 0,
                 conversionRate: 0,
                 relativeLift: undefined,

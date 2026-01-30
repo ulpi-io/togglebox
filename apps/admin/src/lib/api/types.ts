@@ -199,7 +199,8 @@ export interface ExperimentMetric {
 
 export interface VariationResult {
   variationKey: string;
-  participants: number;
+  views: number;
+  users: number;
   conversions: number;
   conversionRate: number;
   relativeLift?: number;
@@ -209,7 +210,8 @@ export interface VariationResult {
 export interface ExperimentResults {
   status: ResultStatus;
   lastUpdatedAt: string;
-  totalParticipants: number;
+  totalViews: number;
+  totalUsers: number;
   totalConversions: number;
   variations: VariationResult[];
   pValue?: number;

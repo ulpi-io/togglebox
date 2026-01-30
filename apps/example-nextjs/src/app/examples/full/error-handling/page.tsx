@@ -42,8 +42,26 @@ export default function Page() {
 
   if (isLoading && flags.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      <div className="min-h-screen p-8">
+        <div className="h-8 bg-gray-200 rounded w-40 mb-6 animate-pulse" />
+        <div className="max-w-md space-y-6">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-8 mx-auto mb-2" />
+            <div className="h-6 bg-gray-200 rounded w-28 mx-auto mb-1" />
+            <div className="h-4 bg-gray-200 rounded w-32 mx-auto" />
+          </div>
+          <div className="p-4 bg-gray-50 rounded-lg animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-40 mb-3" />
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="py-2 border-b border-gray-200">
+                  <div className="h-4 bg-gray-200 rounded w-28 mb-1" />
+                  <div className="h-3 bg-gray-200 rounded w-48" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

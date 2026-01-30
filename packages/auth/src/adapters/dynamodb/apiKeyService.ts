@@ -121,7 +121,6 @@ export async function findApiKeyById(id: string): Promise<ApiKey | null> {
     TableName: getApiKeysTableName(),
     Key: {
       PK: `APIKEY#${id}`,
-      SK: `APIKEY#${id}`,
     },
   };
 
@@ -278,7 +277,6 @@ export async function deleteApiKey(id: string): Promise<void> {
     TableName: getApiKeysTableName(),
     Key: {
       PK: `APIKEY#${id}`,
-      SK: `APIKEY#${id}`,
     },
   };
 

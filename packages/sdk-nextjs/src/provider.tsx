@@ -57,11 +57,12 @@ export function ToggleBoxProvider({
   const [isLoading, setIsLoading] = useState(initialNeedsFetch);
   const [error, setError] = useState<Error | null>(null);
 
+  // Create client eagerly so it's available from the first render.
+  // This ensures hooks like isFlagEnabled never return wrong defaults
+  // because the client wasn't ready yet.
   const clientRef = useRef<ToggleBoxClient | null>(null);
-
-  // Initialize client
-  useEffect(() => {
-    const client = new ToggleBoxClient({
+  if (!clientRef.current) {
+    clientRef.current = new ToggleBoxClient({
       platform,
       environment,
       apiUrl,
@@ -70,8 +71,11 @@ export function ToggleBoxProvider({
       cache,
       pollingInterval,
     });
+  }
 
-    clientRef.current = client;
+  // Side effects: event listeners, initial fetch, cleanup
+  useEffect(() => {
+    const client = clientRef.current!;
 
     // Event handlers (extracted for proper cleanup)
     const handleUpdate = (data: unknown) => {
@@ -125,10 +129,10 @@ export function ToggleBoxProvider({
     }
 
     return () => {
-      // Explicitly remove event listeners before destroying
       client.off("update", handleUpdate);
       client.off("error", handleError);
       client.destroy();
+      clientRef.current = null;
     };
   }, [
     platform,
@@ -145,7 +149,6 @@ export function ToggleBoxProvider({
 
   const refresh = useCallback(async () => {
     if (!clientRef.current) return;
-
     setIsLoading(true);
     try {
       await clientRef.current.refresh();
@@ -159,8 +162,7 @@ export function ToggleBoxProvider({
 
   const isFlagEnabled = useCallback(
     async (flagKey: string, context?: FlagContext) => {
-      if (!clientRef.current) return false;
-      return clientRef.current.isFlagEnabled(
+      return clientRef.current!.isFlagEnabled(
         flagKey,
         context ?? { userId: "anonymous" },
       );
@@ -170,8 +172,10 @@ export function ToggleBoxProvider({
 
   const getVariant = useCallback(
     async (experimentKey: string, context: ExperimentContext) => {
-      if (!clientRef.current) return null;
-      const result = await clientRef.current.getVariant(experimentKey, context);
+      const result = await clientRef.current!.getVariant(
+        experimentKey,
+        context,
+      );
       return result?.variationKey ?? null;
     },
     [],
@@ -183,34 +187,30 @@ export function ToggleBoxProvider({
       context: ExperimentContext,
       data: ConversionData,
     ) => {
-      if (!clientRef.current) return;
-      await clientRef.current.trackConversion(experimentKey, context, data);
+      await clientRef.current!.trackConversion(experimentKey, context, data);
     },
     [],
   );
 
   const trackEvent = useCallback(
     (eventName: string, context: ExperimentContext, data?: EventData) => {
-      if (!clientRef.current) return;
-      clientRef.current.trackEvent(eventName, context, data);
+      clientRef.current!.trackEvent(eventName, context, data);
     },
     [],
   );
 
   const getConfigValue = useCallback(
     async <T,>(key: string, defaultValue: T): Promise<T> => {
-      if (!clientRef.current) return defaultValue;
-      return clientRef.current.getConfigValue(key, defaultValue);
+      return clientRef.current!.getConfigValue(key, defaultValue);
     },
     [],
   );
 
   const flushStats = useCallback(async () => {
-    if (!clientRef.current) return;
-    await clientRef.current.flushStats();
+    await clientRef.current!.flushStats();
   }, []);
 
-  const getClient = useCallback(() => clientRef.current, []);
+  const getClient = useCallback(() => clientRef.current!, []);
 
   const value: ToggleBoxContextValue = {
     config,
