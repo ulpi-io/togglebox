@@ -186,7 +186,12 @@ await trackConversion(
 ### Expo
 
 ```tsx
-import { ToggleBoxProvider, useConfig, useFlag, useAnalytics } from "@togglebox/sdk-expo";
+import {
+  ToggleBoxProvider,
+  useConfig,
+  useFlag,
+  useAnalytics,
+} from "@togglebox/sdk-expo";
 
 // Provider with offline support
 <ToggleBoxProvider
