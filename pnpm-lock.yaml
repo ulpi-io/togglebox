@@ -242,7 +242,7 @@ importers:
         version: 29.7.0(@types/node@22.19.1)
       ts-jest:
         specifier: ^29.1.1
-        version: 29.4.5(@babel/core@7.28.6)(jest@29.7.0)(typescript@5.9.3)
+        version: 29.4.5(@babel/core@7.28.6)(esbuild@0.27.2)(jest@29.7.0)(typescript@5.9.3)
       tsx:
         specifier: ^4.1.4
         version: 4.20.6
@@ -533,7 +533,10 @@ importers:
         version: 29.7.0(@types/node@22.19.1)
       ts-jest:
         specifier: ^29.1.1
-        version: 29.4.5(@babel/core@7.28.6)(jest@29.7.0)(typescript@5.9.3)
+        version: 29.4.5(@babel/core@7.28.6)(esbuild@0.27.2)(jest@29.7.0)(typescript@5.9.3)
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(tsx@4.20.6)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -552,7 +555,10 @@ importers:
         version: 29.7.0(@types/node@22.19.1)
       ts-jest:
         specifier: ^29.1.1
-        version: 29.4.5(@babel/core@7.28.6)(jest@29.7.0)(typescript@5.9.3)
+        version: 29.4.5(@babel/core@7.28.6)(esbuild@0.27.2)(jest@29.7.0)(typescript@5.9.3)
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(tsx@4.20.6)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -626,7 +632,10 @@ importers:
         version: 29.7.0(@types/node@22.19.1)
       ts-jest:
         specifier: ^29.1.1
-        version: 29.4.5(@babel/core@7.28.6)(jest@29.7.0)(typescript@5.9.3)
+        version: 29.4.5(@babel/core@7.28.6)(esbuild@0.27.2)(jest@29.7.0)(typescript@5.9.3)
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(tsx@4.20.6)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -648,7 +657,10 @@ importers:
         version: 29.7.0(@types/node@22.19.1)
       ts-jest:
         specifier: ^29.1.1
-        version: 29.4.5(@babel/core@7.28.6)(jest@29.7.0)(typescript@5.9.3)
+        version: 29.4.5(@babel/core@7.28.6)(esbuild@0.27.2)(jest@29.7.0)(typescript@5.9.3)
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(tsx@4.20.6)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -661,6 +673,9 @@ importers:
       react-native:
         specifier: '*'
         version: 0.82.1(@babel/core@7.28.6)(@types/react@18.3.27)(react@18.3.1)
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
     devDependencies:
       '@togglebox/configs':
         specifier: workspace:*
@@ -694,6 +709,10 @@ importers:
         version: 5.9.3
 
   packages/sdk-js:
+    dependencies:
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
     devDependencies:
       '@togglebox/configs':
         specifier: workspace:*
@@ -722,6 +741,9 @@ importers:
       react:
         specifier: ^18.0.0 || ^19.0.0
         version: 19.0.0
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
     devDependencies:
       '@togglebox/configs':
         specifier: workspace:*
@@ -808,7 +830,10 @@ importers:
         version: 29.7.0(@types/node@22.19.1)
       ts-jest:
         specifier: ^29.1.1
-        version: 29.4.5(@babel/core@7.28.6)(jest@29.7.0)(typescript@5.9.3)
+        version: 29.4.5(@babel/core@7.28.6)(esbuild@0.27.2)(jest@29.7.0)(typescript@5.9.3)
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(tsx@4.20.6)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -16355,7 +16380,7 @@ packages:
   /ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
 
-  /ts-jest@29.4.5(@babel/core@7.28.6)(jest@29.7.0)(typescript@5.9.3):
+  /ts-jest@29.4.5(@babel/core@7.28.6)(esbuild@0.27.2)(jest@29.7.0)(typescript@5.9.3):
     resolution: {integrity: sha512-HO3GyiWn2qvTQA4kTgjDcXiMwYQt68a1Y8+JuLRVpdIzm+UOLSHgl/XqR4c6nzJkq5rOkjc02O2I7P7l/Yof0Q==}
     engines: {node: ^14.15.0 || ^16.10.0 || ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -16384,6 +16409,7 @@ packages:
     dependencies:
       '@babel/core': 7.28.6
       bs-logger: 0.2.6
+      esbuild: 0.27.2
       fast-json-stable-stringify: 2.1.0
       handlebars: 4.7.8
       jest: 29.7.0(@types/node@22.19.1)

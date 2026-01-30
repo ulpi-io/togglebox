@@ -43,6 +43,9 @@
     "url": "https://github.com/ulpi-io/togglebox/issues"
   },
   "license": "Elastic-2.0",
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
   "peerDependencies": {
     "react": "^18.0.0",
     "react-native": "*",
