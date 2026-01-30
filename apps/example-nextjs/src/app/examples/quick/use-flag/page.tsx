@@ -1,22 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useFlags } from "@togglebox/sdk-nextjs";
+import { useFlag, useFlags } from "@togglebox/sdk-nextjs";
 
 export default function Page() {
-  const { flags, isFlagEnabled, isLoading } = useFlags();
-  const [darkMode, setDarkMode] = useState(false);
-  const [checked, setChecked] = useState(false);
+  const { flag, isLoading } = useFlag("dark-mode");
+  const { flags } = useFlags();
+  const darkMode = flag?.enabled ?? false;
 
-  useEffect(() => {
-    if (isLoading) return;
-    isFlagEnabled("dark-mode", { userId: "user-123" }).then((v) => {
-      setDarkMode(v);
-      setChecked(true);
-    });
-  }, [isLoading, isFlagEnabled]);
-
-  if (isLoading || !checked) {
+  if (isLoading) {
     return (
       <div className="min-h-screen p-8">
         <div className="h-8 bg-gray-200 rounded w-40 mb-6 animate-pulse" />
@@ -50,7 +41,9 @@ export default function Page() {
           className={`p-4 rounded-lg ${darkMode ? "bg-green-900" : "bg-green-50"} border border-green-500`}
         >
           <p className="text-sm mb-1">dark-mode flag</p>
-          <p className="text-lg font-semibold">{darkMode + "-"}</p>
+          <p className="text-lg font-semibold">
+            {darkMode ? "Enabled" : "Disabled"}
+          </p>
         </div>
 
         <div className="space-y-2">
