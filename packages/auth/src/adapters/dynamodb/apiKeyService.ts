@@ -78,11 +78,8 @@ export async function createApiKey(
     TableName: getApiKeysTableName(),
     Item: {
       PK: `APIKEY#${apiKey.id}`,
-      SK: `APIKEY#${apiKey.id}`,
       GSI1PK: `USER#${apiKey.userId}`,
-      GSI1SK: `APIKEY#${apiKey.createdAt.toISOString()}`,
       GSI2PK: `APIKEY_HASH#${apiKey.keyHash}`,
-      GSI2SK: `APIKEY#${apiKey.id}`,
       ...apiKey,
       createdAt: apiKey.createdAt.toISOString(),
       expiresAt: apiKey.expiresAt ? apiKey.expiresAt.toISOString() : null,
@@ -239,11 +236,8 @@ export async function updateApiKey(
     TableName: getApiKeysTableName(),
     Item: {
       PK: `APIKEY#${id}`,
-      SK: `APIKEY#${id}`,
       GSI1PK: `USER#${updatedKey.userId}`,
-      GSI1SK: `APIKEY#${updatedKey.createdAt.toISOString()}`,
       GSI2PK: `APIKEY_HASH#${updatedKey.keyHash}`,
-      GSI2SK: `APIKEY#${id}`,
       ...updatedKey,
       createdAt: updatedKey.createdAt.toISOString(),
       expiresAt: updatedKey.expiresAt

@@ -71,15 +71,7 @@ export async function createUser(data: CreateUserData): Promise<User> {
     TableName: getUsersTableName(),
     Item: {
       PK: `USER#${user.id}`,
-      SK: `USER#${user.id}`,
       GSI1PK: `USER_EMAIL#${user.email}`,
-      GSI1SK: `USER#${user.id}`,
-      // GSI2 for all users listing (enables efficient Query instead of Scan)
-      GSI2PK: "USER#ALL",
-      GSI2SK: `USER#${user.id}`,
-      // GSI3 for role-based queries (enables efficient countByRole)
-      GSI3PK: `USER_ROLE#${user.role}`,
-      GSI3SK: `USER#${user.id}`,
       ...user,
       // Store dates as ISO strings for DynamoDB
       createdAt: user.createdAt.toISOString(),
@@ -118,7 +110,6 @@ export async function findUserById(id: string): Promise<User | null> {
     TableName: getUsersTableName(),
     Key: {
       PK: `USER#${id}`,
-      SK: `USER#${id}`,
     },
   };
 
@@ -256,7 +247,6 @@ export async function deleteUser(id: string): Promise<void> {
     TableName: getUsersTableName(),
     Key: {
       PK: `USER#${id}`,
-      SK: `USER#${id}`,
     },
   };
 

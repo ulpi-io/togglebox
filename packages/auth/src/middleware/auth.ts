@@ -27,6 +27,7 @@ import { verifyToken as verifyJWT } from "../utils/jwt";
 import { ApiKeyService } from "../services/ApiKeyService";
 import { UserService } from "../services/UserService";
 import { USER_PERMISSIONS } from "../models/User";
+import { logger } from "@togglebox/shared";
 
 /**
  * Extended Express Request with authenticated JWT user.
@@ -316,11 +317,13 @@ export function createAuthMiddleware(config: AuthConfig) {
     try {
       const decoded = verifyJWT(token);
       if (!decoded) {
+        logger.warn("JWT verification failed - token invalid or expired");
         return false;
       }
 
       const user = await userService.getUserById(decoded.id);
       if (!user) {
+        logger.warn(`User not found in database: ${decoded.id}`);
         return false;
       }
 
@@ -331,7 +334,8 @@ export function createAuthMiddleware(config: AuthConfig) {
       };
 
       return true;
-    } catch {
+    } catch (error) {
+      logger.error("JWT authentication error", error);
       return false;
     }
   }
@@ -350,6 +354,7 @@ export function createAuthMiddleware(config: AuthConfig) {
     try {
       const apiKey = await apiKeyService.verifyApiKey(apiKeyHeader);
       if (!apiKey) {
+        logger.warn("API key verification failed - key invalid or expired");
         return false;
       }
 
@@ -361,7 +366,8 @@ export function createAuthMiddleware(config: AuthConfig) {
       };
 
       return true;
-    } catch {
+    } catch (error) {
+      logger.error("API key authentication error", error);
       return false;
     }
   }
@@ -410,24 +416,37 @@ export function createAuthMiddleware(config: AuthConfig) {
     const authHeader = req.headers.authorization;
     const apiKeyHeader = req.headers["x-api-key"];
 
+    logger.info("Auth middleware called", {
+      hasAuthHeader: !!authHeader,
+      hasApiKeyHeader: !!apiKeyHeader,
+      authHeaderFormat: authHeader?.substring(0, 20),
+    });
+
     // Try JWT authentication first (if header present)
     if (authHeader && authHeader.startsWith("Bearer ")) {
+      logger.info("Trying JWT authentication");
       if (await tryJWTAuth(req as AuthenticatedRequest)) {
+        logger.info("JWT authentication successful");
         next();
         return;
       }
+      logger.warn("JWT authentication failed");
       // JWT failed - fall through to try API key
     }
 
     // Try API key authentication (if header present)
     if (apiKeyHeader && typeof apiKeyHeader === "string") {
+      logger.info("Trying API key authentication");
       if (await tryAPIKeyAuth(req as ApiKeyRequest)) {
+        logger.info("API key authentication successful");
         next();
         return;
       }
+      logger.warn("API key authentication failed");
     }
 
     // No valid authentication provided or all attempts failed
+    logger.warn("Authentication required - no valid credentials provided");
     res.status(401).json({
       success: false,
       error:

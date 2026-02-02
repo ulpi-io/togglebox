@@ -207,8 +207,8 @@ importers:
         specifier: ^7.1.0
         version: 7.2.0
       serverless-http:
-        specifier: ^3.2.0
-        version: 3.2.0
+        specifier: 2.7.0
+        version: 2.7.0
       zod:
         specifier: ^3.22.4
         version: 3.25.76
@@ -8639,6 +8639,12 @@ packages:
     dev: true
     optional: true
 
+  /@types/aws-lambda@8.10.160:
+    resolution: {integrity: sha512-uoO4QVQNWFPJMh26pXtmtrRfGshPUSpMZGUyUQY20FhfHEElEBOPKgVmFs1z+kbpyBsRs2JnoOPT7++Z4GA9pA==}
+    requiresBuild: true
+    dev: false
+    optional: true
+
   /@types/babel__core@7.20.5:
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
     dependencies:
@@ -17019,9 +17025,11 @@ packages:
     resolution: {integrity: sha512-qepMx2JxAa5jjfzxG79yPPq+8BuFToHd1hm7kI+Z4zAq1ftQiP7HcxMhDDItrbtwVeLg/cY2JnKnrcFkmiswNA==}
     dev: false
 
-  /serverless-http@3.2.0:
-    resolution: {integrity: sha512-QvSyZXljRLIGqwcJ4xsKJXwkZnAVkse1OajepxfjkBXV0BMvRS5R546Z4kCBI8IygDzkQY0foNPC/rnipaE9pQ==}
-    engines: {node: '>=12.0'}
+  /serverless-http@2.7.0:
+    resolution: {integrity: sha512-iWq0z1X2Xkuvz6wL305uCux/SypbojHlYsB5bzmF5TqoLYsdvMNIoCsgtWjwqWoo3AR2cjw3zAmHN2+U6mF99Q==}
+    engines: {node: '>=8.0'}
+    optionalDependencies:
+      '@types/aws-lambda': 8.10.160
     dev: false
 
   /serverless-offline@14.4.0(serverless@4.31.2):
