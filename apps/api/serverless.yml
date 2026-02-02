@@ -33,7 +33,7 @@ provider:
     DYNAMODB_USAGE_TABLE: ${self:custom.tableNames.usage}
     # Cache configuration
     CLOUDFRONT_DISTRIBUTION_ID: ${env:CLOUDFRONT_DISTRIBUTION_ID, ''}
-    # Auth secrets (set via environment or SSM)
+    # Auth secrets from SSM Parameter Store
     JWT_SECRET: ${ssm:/togglebox/dev/jwt-secret}
     API_KEY_SECRET: ${ssm:/togglebox/dev/api-key-secret}
 
@@ -92,6 +92,13 @@ provider:
             - cloudfront:GetInvalidation
             - cloudfront:ListInvalidations
           Resource: "*"
+        # SSM Parameter Store permissions
+        - Effect: Allow
+          Action:
+            - ssm:GetParameter
+            - ssm:GetParameters
+          Resource:
+            - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/togglebox/dev/*"
 
 functions:
   # Public API - internet accessible (read-only endpoints)
@@ -142,6 +149,17 @@ functions:
           cors: true
 
 custom:
+  # Custom domain configuration
+  customDomain:
+    domainName: togglebox-api.mumzstage.com
+    certificateArn: ${env:ACM_CERTIFICATE_ARN}
+    basePath: ''
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+    endpointType: 'regional'
+    securityPolicy: tls_1_2
+    apiType: rest
+
   # Table names with stage suffix
   tableNames:
     users: togglebox-users-${self:provider.stage}
@@ -584,4 +602,5 @@ resources:
         Name: ${self:service}-${self:provider.stage}-ServiceEndpoint
 
 plugins:
+  - serverless-domain-manager
   - serverless-offline

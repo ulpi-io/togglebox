@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { registerApi } from "@/lib/api/auth";
+import { registerApi, loginApi } from "@/lib/api/auth";
 import {
   Button,
   Input,
@@ -33,9 +33,10 @@ export default function RegisterPage() {
     const password = formData.get("password") as string;
 
     try {
-      const response = await registerApi(name, email, password);
-      // Store token in cookie
-      setCookie("auth-token", response.token, 7);
+      await registerApi(name, email, password);
+      // After registration, login to get token
+      const loginResponse = await loginApi(email, password);
+      setCookie("auth-token", loginResponse.token, 7);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
