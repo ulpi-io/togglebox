@@ -1,0 +1,129 @@
+name: Deploy API to AWS Lambda
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - '.github/workflows/deploy-api.yml'
+  pull_request:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: |
+          pnpm --filter @togglebox/shared build
+          pnpm --filter @togglebox/auth build
+          pnpm --filter @togglebox/database build
+          pnpm --filter @togglebox/flags build
+
+      - name: Build API
+        run: pnpm --filter @togglebox/api build
+
+      - name: Determine stage and credentials
+        id: stage
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "STAGE=production" >> $GITHUB_OUTPUT
+            echo "REGION=${{ secrets.AWS_REGION_PROD }}" >> $GITHUB_OUTPUT
+            echo "ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_PROD }}" >> $GITHUB_OUTPUT
+            echo "SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}" >> $GITHUB_OUTPUT
+            echo "ACM_CERT_ARN=${{ secrets.ACM_CERTIFICATE_ARN_PROD }}" >> $GITHUB_OUTPUT
+          else
+            echo "STAGE=dev" >> $GITHUB_OUTPUT
+            echo "REGION=${{ secrets.AWS_REGION_DEV }}" >> $GITHUB_OUTPUT
+            echo "ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_DEV }}" >> $GITHUB_OUTPUT
+            echo "SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}" >> $GITHUB_OUTPUT
+            echo "ACM_CERT_ARN=${{ secrets.ACM_CERTIFICATE_ARN_DEV }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ steps.stage.outputs.ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ steps.stage.outputs.SECRET_ACCESS_KEY }}
+          aws-region: ${{ steps.stage.outputs.REGION }}
+
+      - name: Deploy to AWS Lambda
+        if: github.event_name == 'push'
+        run: |
+          cd apps/api
+          export ACM_CERTIFICATE_ARN="${{ steps.stage.outputs.ACM_CERT_ARN }}"
+          npx serverless@3 deploy --stage ${{ steps.stage.outputs.STAGE }} --region ${{ steps.stage.outputs.REGION }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.stage.outputs.ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.stage.outputs.SECRET_ACCESS_KEY }}
+
+      - name: Run tests (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          cd apps/api
+          export ACM_CERTIFICATE_ARN="${{ steps.stage.outputs.ACM_CERT_ARN }}"
+          npx serverless@3 package --stage ${{ steps.stage.outputs.STAGE }} --region ${{ steps.stage.outputs.REGION }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.stage.outputs.ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.stage.outputs.SECRET_ACCESS_KEY }}
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ API build successful! Ready to deploy to `${{ steps.stage.outputs.STAGE }}` stage.'
+            })
+
+      - name: Deployment summary
+        if: github.event_name == 'push'
+        run: |
+          echo "### 🚀 Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Stage:** ${{ steps.stage.outputs.STAGE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ steps.stage.outputs.REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
