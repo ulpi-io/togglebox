@@ -83,6 +83,7 @@ export class LoggerService {
    */
   constructor() {
     const isDevelopment = process.env["NODE_ENV"] === "development";
+    const logPretty = process.env["LOG_PRETTY"] !== "false";
     const logLevel = process.env["LOG_LEVEL"] || "info";
 
     const baseConfig = {
@@ -94,7 +95,7 @@ export class LoggerService {
       },
     };
 
-    if (isDevelopment) {
+    if (isDevelopment && logPretty) {
       this.logger = pino({
         ...baseConfig,
         transport: {

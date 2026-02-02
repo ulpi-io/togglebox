@@ -15,7 +15,7 @@
  */
 
 import crypto from "crypto";
-import bcrypt from "bcrypt";
+import bcryptjs from "bcryptjs";
 
 /**
  * Generate a secure random token for password reset.
@@ -73,7 +73,7 @@ export function generateSecureToken(): string {
  * ```
  */
 export async function hashToken(token: string): Promise<string> {
-  return bcrypt.hash(token, 10);
+  return bcryptjs.hash(token, 10);
 }
 
 /**
@@ -106,7 +106,7 @@ export async function verifyToken(
   token: string,
   hash: string,
 ): Promise<boolean> {
-  return bcrypt.compare(token, hash);
+  return bcryptjs.compare(token, hash);
 }
 
 /**
