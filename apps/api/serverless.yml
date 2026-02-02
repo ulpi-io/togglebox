@@ -11,11 +11,14 @@ provider:
   timeout: 30
 
   environment:
-    NODE_ENV: ${self:provider.stage}
+    NODE_ENV: development
     AWS_REGION_NAME: ${self:provider.region}
+    DB_TYPE: dynamodb
+    DYNAMODB_TABLE: togglebox-${self:provider.stage}
     LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
+    LOG_PRETTY: 'false'
     CORS_ORIGIN: ${env:CORS_ORIGIN, '*'}
-    ENABLE_AUTHENTICATION: ${env:ENABLE_AUTHENTICATION, 'true'}
+    ENABLE_AUTHENTICATION: 'true'
     # Table names with stage suffix
     DYNAMODB_USERS_TABLE: ${self:custom.tableNames.users}
     DYNAMODB_API_KEYS_TABLE: ${self:custom.tableNames.apiKeys}
@@ -31,8 +34,8 @@ provider:
     # Cache configuration
     CLOUDFRONT_DISTRIBUTION_ID: ${env:CLOUDFRONT_DISTRIBUTION_ID, ''}
     # Auth secrets (set via environment or SSM)
-    JWT_SECRET: ${env:JWT_SECRET, ssm:/togglebox/${self:provider.stage}/jwt-secret~true}
-    API_KEY_SECRET: ${env:API_KEY_SECRET, ssm:/togglebox/${self:provider.stage}/api-key-secret~true}
+    JWT_SECRET: ${ssm:/togglebox/dev/jwt-secret}
+    API_KEY_SECRET: ${ssm:/togglebox/dev/api-key-secret}
 
   iam:
     role:
@@ -93,7 +96,7 @@ provider:
 functions:
   # Public API - internet accessible (read-only endpoints)
   publicApi:
-    handler: dist/lambda.lambdaHandler
+    handler: dist-bundle/lambda.lambdaHandler
     events:
       - http:
           path: /api/v1/platforms
@@ -114,7 +117,7 @@ functions:
 
   # Internal API - restricted to AWS account/VPC only (write operations)
   internalApi:
-    handler: dist/lambda.lambdaHandler
+    handler: dist-bundle/lambda.lambdaHandler
     events:
       - http:
           path: /api/v1/internal/{proxy+}
@@ -123,7 +126,7 @@ functions:
 
   # Auth API - public authentication endpoints
   authApi:
-    handler: dist/lambda.lambdaHandler
+    handler: dist-bundle/lambda.lambdaHandler
     events:
       - http:
           path: /api/v1/auth/{proxy+}
@@ -148,6 +151,14 @@ custom:
   serverless-offline:
     httpPort: 3000
     host: 0.0.0.0
+
+package:
+  individually: false
+  patterns:
+    - 'dist-bundle/**'
+    - '!dist/**'
+    - '!src/**'
+    - '!node_modules/**'
 
 resources:
   Resources:
@@ -260,7 +271,7 @@ resources:
     # =========================================================================
     # PLATFORMS TABLE
     # =========================================================================
-    # Schema: PK = PLATFORM#{name}
+    # Schema: PK = PLATFORM#{name}, GSI1PK = PLATFORM, GSI1SK = PLATFORM#{name}
     PlatformsTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -268,9 +279,22 @@ resources:
         AttributeDefinitions:
           - AttributeName: PK
             AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
         KeySchema:
           - AttributeName: PK
             KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true
@@ -540,7 +564,14 @@ resources:
       Export:
         Name: ${self:service}-${self:provider.stage}-ApiGatewayRestApiId
     ServiceEndpoint:
-      Value: !Sub "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${self:provider.stage}"
+      Value:
+        Fn::Join:
+          - ''
+          - - 'https://'
+            - Ref: ApiGatewayRestApi
+            - '.execute-api.'
+            - Ref: AWS::Region
+            - '.amazonaws.com/dev'
       Export:
         Name: ${self:service}-${self:provider.stage}-ServiceEndpoint
 
