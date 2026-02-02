@@ -463,6 +463,7 @@ pnpm build
 cd apps/api
 npx serverless@3 deploy --stage dev --region ap-south-1
 ```
+#
 
 ### Issue: "unable to determine transport target for pino-pretty"
 **Solution**: Ensure LOG_PRETTY=false in environment variables
