@@ -67,7 +67,7 @@ jobs:
           pnpm --filter @togglebox/auth build
 
       - name: Build API
-        run: pnpm --filter @togglebox/api build
+        run: pnpm --filter togglebox-api build
 
       - name: Determine stage and credentials
         id: stage
