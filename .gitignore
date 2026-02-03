@@ -149,6 +149,7 @@ credentials/
 # ============================================================================
 .serverless/
 .webpack/
+dist-bundle/
 
 # ============================================================================
 # Cloudflare Wrangler
@@ -174,4 +175,3 @@ prisma/migrations/**/migration.sql.bak
 # ============================================================================
 .cache/
 .parcel-cache/
-.github/SECRETS_TEMPLATE.md
