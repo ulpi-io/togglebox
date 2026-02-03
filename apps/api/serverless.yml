@@ -11,7 +11,7 @@ provider:
   timeout: 30
 
   environment:
-    NODE_ENV: development
+    NODE_ENV: production
     AWS_REGION_NAME: ${self:provider.region}
     DB_TYPE: dynamodb
     DYNAMODB_TABLE: togglebox-${self:provider.stage}
