@@ -46,7 +46,7 @@ binding = "DB"
 database_name = "remote-config-db"
 database_id = "YOUR_DATABASE_ID_HERE"  # <-- Paste here
 ```
-
+--
 For environment-specific databases, update each environment section:
 
 - `[[env.dev.d1_databases]]` - Development

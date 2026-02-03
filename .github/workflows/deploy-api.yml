@@ -52,14 +52,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma clients
+        run: |
+          pnpm --filter @togglebox/database exec prisma generate
+          pnpm --filter @togglebox/auth exec prisma generate
+
       - name: Build packages
         run: |
           pnpm --filter @togglebox/core build
-          pnpm --filter @togglebox/shared build
-          pnpm --filter @togglebox/auth build
           pnpm --filter @togglebox/database build
+          pnpm --filter @togglebox/shared build
           pnpm --filter @togglebox/flags build
           pnpm --filter @togglebox/experiments build
+          pnpm --filter @togglebox/auth build
 
       - name: Build API
         run: pnpm --filter @togglebox/api build
