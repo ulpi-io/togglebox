@@ -29,13 +29,14 @@ export async function getUsersApi(
 }
 
 export async function createUserApi(
+  name: string,
   email: string,
   password: string,
   role: "admin" | "developer" | "viewer",
 ): Promise<User> {
   return browserApiClient("/api/v1/internal/users", {
     method: "POST",
-    body: JSON.stringify({ email, password, role }),
+    body: JSON.stringify({ name, email, password, role }),
   });
 }
 

@@ -19,6 +19,7 @@ import {
 export default function CreateUserPage() {
   const router = useRouter();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"admin" | "developer" | "viewer">("viewer");
@@ -29,6 +30,12 @@ export default function CreateUserPage() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
+
+    if (!name?.trim()) {
+      setError("Name is required");
+      setIsLoading(false);
+      return;
+    }
 
     if (!email?.trim()) {
       setError("Email is required");
@@ -53,7 +60,7 @@ export default function CreateUserPage() {
     }
 
     try {
-      await createUserApi(email.trim(), password, role);
+      await createUserApi(name.trim(), email.trim(), password, role);
       router.push("/users");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -83,6 +90,19 @@ export default function CreateUserPage() {
             <CardTitle>User Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="John Doe"
+                required
+                disabled={isLoading}
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
               <Input
