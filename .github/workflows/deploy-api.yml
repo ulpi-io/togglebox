@@ -59,12 +59,14 @@ jobs:
 
       - name: Build packages
         run: |
-          pnpm --filter @togglebox/shared build
           pnpm --filter @togglebox/core build
-          pnpm --filter @togglebox/flags build
-          pnpm --filter @togglebox/experiments build
-          pnpm --filter @togglebox/stats build
           pnpm --filter @togglebox/configs build
+          pnpm --filter @togglebox/flags build
+          pnpm --filter @togglebox/stats build
+          pnpm --filter @togglebox/experiments build
+          pnpm --filter @togglebox/shared build
+          pnpm --filter @togglebox/cache build
+          pnpm --filter @togglebox/sdk build
           pnpm --filter @togglebox/database build
           pnpm --filter @togglebox/auth build
 
