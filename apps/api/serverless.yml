@@ -34,7 +34,7 @@ provider:
     # Cache configuration from SSM
     CACHE_ENABLED: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cache/enabled}
     CACHE_PROVIDER: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cache/provider}
-    CLOUDFRONT_DISTRIBUTION_ID: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cache/cloudfront-distribution-id~true}
+    CLOUDFRONT_DISTRIBUTION_ID: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cache/cloudfront-distribution-id, ''}
     # Auth secrets from SSM Parameter Store
     JWT_SECRET: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/auth/jwt-secret}
     API_KEY_SECRET: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/auth/api-key-secret}
