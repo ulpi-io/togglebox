@@ -96,6 +96,7 @@ aws ssm put-parameter \
   --description "Log level for ${STAGE}"
 
 echo "   ✓ Logging parameters created"
+
 echo ""
 
 # Check if JWT and API Key secrets exist
@@ -141,6 +142,7 @@ echo "   - /mumzworld-togglebox-api-${STAGE}/cache/enabled"
 echo "   - /mumzworld-togglebox-api-${STAGE}/cache/provider"
 echo "   - /mumzworld-togglebox-api-${STAGE}/cors-origin"
 echo "   - /mumzworld-togglebox-api-${STAGE}/log-level"
+echo "   - /mumzworld-togglebox-api-${STAGE}/api/show-api-docs"
 echo "   - /mumzworld-togglebox-api-${STAGE}/auth/jwt-secret (SecureString)"
 echo "   - /mumzworld-togglebox-api-${STAGE}/auth/api-key-secret (SecureString)"
 echo ""
