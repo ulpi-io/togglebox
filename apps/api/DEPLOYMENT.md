@@ -1,7 +1,7 @@
 # ToggleBox API Deployment Guide
 
 Complete guide for deploying the ToggleBox API to Cloudflare Workers or AWS Lambda.
----
+
 ## Quick Start
 
 | Platform           | Database    | Command             |
