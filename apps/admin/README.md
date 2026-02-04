@@ -1,7 +1,7 @@
 # ToggleBox App
 
 Production-ready dashboard for managing remote configurations and feature flags.
-
+--
 ## Features
 
 - 🔐 **Authentication**: Login, register, password reset
