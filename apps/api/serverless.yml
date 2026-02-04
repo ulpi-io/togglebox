@@ -14,12 +14,12 @@ provider:
     NODE_ENV: production
     AWS_REGION_NAME: ${self:provider.region}
     DB_TYPE: dynamodb
-    DYNAMODB_TABLE: togglebox-${self:provider.stage}
-    LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
+    DYNAMODB_TABLE: ${self:custom.tablePrefix}
+    LOG_LEVEL: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/log-level}
     LOG_PRETTY: 'false'
-    CORS_ORIGIN: ${env:CORS_ORIGIN, '*'}
+    CORS_ORIGIN: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cors-origin}
     ENABLE_AUTHENTICATION: 'true'
-    # Table names with stage suffix
+    # Table names
     DYNAMODB_USERS_TABLE: ${self:custom.tableNames.users}
     DYNAMODB_API_KEYS_TABLE: ${self:custom.tableNames.apiKeys}
     DYNAMODB_PASSWORD_RESETS_TABLE: ${self:custom.tableNames.passwordResets}
@@ -31,11 +31,13 @@ provider:
     DYNAMODB_EXPERIMENTS_TABLE: ${self:custom.tableNames.experiments}
     DYNAMODB_STATS_TABLE: ${self:custom.tableNames.stats}
     DYNAMODB_USAGE_TABLE: ${self:custom.tableNames.usage}
-    # Cache configuration
-    CLOUDFRONT_DISTRIBUTION_ID: ${env:CLOUDFRONT_DISTRIBUTION_ID, ''}
+    # Cache configuration from SSM
+    CACHE_ENABLED: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cache/enabled}
+    CACHE_PROVIDER: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cache/provider}
+    CLOUDFRONT_DISTRIBUTION_ID: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cache/cloudfront-distribution-id~true}
     # Auth secrets from SSM Parameter Store
-    JWT_SECRET: ${ssm:/togglebox/dev/jwt-secret}
-    API_KEY_SECRET: ${ssm:/togglebox/dev/api-key-secret}
+    JWT_SECRET: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/auth/jwt-secret}
+    API_KEY_SECRET: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/auth/api-key-secret}
 
   iam:
     role:
@@ -98,7 +100,7 @@ provider:
             - ssm:GetParameter
             - ssm:GetParameters
           Resource:
-            - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/togglebox/dev/*"
+            - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/mumzworld-togglebox-api-${self:provider.stage}/*"
 
 functions:
   # Public API - internet accessible (read-only endpoints)
@@ -149,9 +151,10 @@ functions:
           cors: true
 
 custom:
+  # Custom domain configuration from SSM
   customDomain:
-    domainName: togglebox-api.mumzstage.com
-    certificateArn: ${env:ACM_CERTIFICATE_ARN}
+    domainName: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/custom-domain/domain-name}
+    certificateArn: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/custom-domain/certificate-arn}
     basePath: ''
     stage: ${self:provider.stage}
     createRoute53Record: true
@@ -159,18 +162,22 @@ custom:
     securityPolicy: tls_1_2
     apiType: rest
 
+  # Table prefix from SSM
+  tablePrefix: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/dynamodb/table-prefix}
+
+  # Table names without stage suffix
   tableNames:
-    users: togglebox-users
-    apiKeys: togglebox-api-keys
-    passwordResets: togglebox-password-resets
-    platforms: togglebox-platforms
-    environments: togglebox-environments
-    configs: togglebox-configs
-    remoteConfigs: togglebox-remote-configs
-    flags: togglebox-flags
-    experiments: togglebox-experiments
-    stats: togglebox-stats
-    usage: togglebox-usage
+    users: ${self:custom.tablePrefix}-users
+    apiKeys: ${self:custom.tablePrefix}-api-keys
+    passwordResets: ${self:custom.tablePrefix}-password-resets
+    platforms: ${self:custom.tablePrefix}-platforms
+    environments: ${self:custom.tablePrefix}-environments
+    configs: ${self:custom.tablePrefix}-configs
+    remoteConfigs: ${self:custom.tablePrefix}-remote-configs
+    flags: ${self:custom.tablePrefix}-flags
+    experiments: ${self:custom.tablePrefix}-experiments
+    stats: ${self:custom.tablePrefix}-stats
+    usage: ${self:custom.tablePrefix}-usage
 
   serverless-offline:
     httpPort: 3000
@@ -600,5 +607,5 @@ resources:
         Name: ${self:service}-${self:provider.stage}-ServiceEndpoint
 
 plugins:
-  # - serverless-domain-manager  # Commented out - uncomment when custom domain is configured
+  - serverless-domain-manager
   - serverless-offline

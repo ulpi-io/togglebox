@@ -175,3 +175,4 @@ prisma/migrations/**/migration.sql.bak
 # ============================================================================
 .cache/
 .parcel-cache/
+kiro
