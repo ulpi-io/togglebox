@@ -1,29 +1,26 @@
-name: Deploy to AWS Lambda
+name: Deploy API to AWS Lambda
 
 on:
-  workflow_dispatch:
-    inputs:
-      stage:
-        description: "Deployment stage"
-        required: true
-        default: "staging"
-        type: choice
-        options:
-          - staging
-          - production
   push:
     branches:
+      - dev
       - main
     paths:
-      - "apps/api/**"
-      - "packages/**"
-      - ".github/workflows/deploy-aws-lambda.yml"
+      - 'apps/api/**'
+      - 'packages/**'
+      - '.github/workflows/deploy-api.yml'
+  pull_request:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
 
 jobs:
   deploy:
-    name: Deploy to AWS Lambda
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.stage || 'staging' }}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,10 +28,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v3
         with:
           version: 8
 
@@ -57,34 +54,87 @@ jobs:
 
       - name: Generate Prisma clients
         run: |
-          cd packages/database && npx prisma generate
-          cd ../auth && npx prisma generate
+          pnpm --filter @togglebox/database exec prisma generate
+          pnpm --filter @togglebox/auth exec prisma generate
 
       - name: Build packages
-        run: pnpm build
+        run: |
+          pnpm --filter @togglebox/core build
+          pnpm --filter @togglebox/configs build
+          pnpm --filter @togglebox/flags build
+          pnpm --filter @togglebox/stats build
+          pnpm --filter @togglebox/experiments build
+          pnpm --filter @togglebox/shared build
+          pnpm --filter @togglebox/cache build
+          pnpm --filter @togglebox/sdk build
+          pnpm --filter @togglebox/database build
+          pnpm --filter @togglebox/auth build
 
-      - name: Install Serverless Framework
-        run: npm install -g serverless
+      - name: Build API
+        run: pnpm --filter togglebox-api build
+
+      - name: Determine stage and credentials
+        id: stage
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "STAGE=production" >> $GITHUB_OUTPUT
+            echo "REGION=${{ secrets.AWS_REGION_PROD }}" >> $GITHUB_OUTPUT
+            echo "ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_PROD }}" >> $GITHUB_OUTPUT
+            echo "SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}" >> $GITHUB_OUTPUT
+            echo "ACM_CERT_ARN=${{ secrets.ACM_CERTIFICATE_ARN_PROD }}" >> $GITHUB_OUTPUT
+          else
+            echo "STAGE=dev" >> $GITHUB_OUTPUT
+            echo "REGION=${{ secrets.AWS_REGION_DEV }}" >> $GITHUB_OUTPUT
+            echo "ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_DEV }}" >> $GITHUB_OUTPUT
+            echo "SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}" >> $GITHUB_OUTPUT
+            echo "ACM_CERT_ARN=${{ secrets.ACM_CERTIFICATE_ARN_DEV }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          aws-access-key-id: ${{ steps.stage.outputs.ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ steps.stage.outputs.SECRET_ACCESS_KEY }}
+          aws-region: ${{ steps.stage.outputs.REGION }}
 
       - name: Deploy to AWS Lambda
-        working-directory: apps/api
-        env:
-          STAGE: ${{ github.event.inputs.stage || 'staging' }}
+        if: github.event_name == 'push'
         run: |
-          serverless deploy --stage $STAGE --verbose
+          cd apps/api
+          export ACM_CERTIFICATE_ARN="${{ steps.stage.outputs.ACM_CERT_ARN }}"
+          npx serverless@3 deploy --stage ${{ steps.stage.outputs.STAGE }} --region ${{ steps.stage.outputs.REGION }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.stage.outputs.ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.stage.outputs.SECRET_ACCESS_KEY }}
+
+      - name: Run tests (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          cd apps/api
+          export ACM_CERTIFICATE_ARN="${{ steps.stage.outputs.ACM_CERT_ARN }}"
+          npx serverless@3 package --stage ${{ steps.stage.outputs.STAGE }} --region ${{ steps.stage.outputs.REGION }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.stage.outputs.ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.stage.outputs.SECRET_ACCESS_KEY }}
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ API build successful! Ready to deploy to `${{ steps.stage.outputs.STAGE }}` stage.'
+            })
 
       - name: Deployment summary
+        if: github.event_name == 'push'
         run: |
-          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Deployment Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Platform**: AWS Lambda" >> $GITHUB_STEP_SUMMARY
-          echo "- **Stage**: ${{ github.event.inputs.stage || 'staging' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployed by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Stage:** ${{ steps.stage.outputs.STAGE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ steps.stage.outputs.REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
