@@ -149,7 +149,6 @@ functions:
           cors: true
 
 custom:
-  # Custom domain configuration
   customDomain:
     domainName: togglebox-api.mumzstage.com
     certificateArn: ${env:ACM_CERTIFICATE_ARN}
@@ -160,19 +159,18 @@ custom:
     securityPolicy: tls_1_2
     apiType: rest
 
-  # Table names with stage suffix
   tableNames:
-    users: togglebox-users-${self:provider.stage}
-    apiKeys: togglebox-api-keys-${self:provider.stage}
-    passwordResets: togglebox-password-resets-${self:provider.stage}
-    platforms: togglebox-platforms-${self:provider.stage}
-    environments: togglebox-environments-${self:provider.stage}
-    configs: togglebox-configs-${self:provider.stage}
-    remoteConfigs: togglebox-remote-configs-${self:provider.stage}
-    flags: togglebox-flags-${self:provider.stage}
-    experiments: togglebox-experiments-${self:provider.stage}
-    stats: togglebox-stats-${self:provider.stage}
-    usage: togglebox-usage-${self:provider.stage}
+    users: togglebox-users
+    apiKeys: togglebox-api-keys
+    passwordResets: togglebox-password-resets
+    platforms: togglebox-platforms
+    environments: togglebox-environments
+    configs: togglebox-configs
+    remoteConfigs: togglebox-remote-configs
+    flags: togglebox-flags
+    experiments: togglebox-experiments
+    stats: togglebox-stats
+    usage: togglebox-usage
 
   serverless-offline:
     httpPort: 3000
@@ -602,5 +600,5 @@ resources:
         Name: ${self:service}-${self:provider.stage}-ServiceEndpoint
 
 plugins:
-  - serverless-domain-manager
+  # - serverless-domain-manager  # Commented out - uncomment when custom domain is configured
   - serverless-offline
