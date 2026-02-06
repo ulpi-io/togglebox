@@ -42,7 +42,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
-    "@types/node": "^22.10.1",
+    "@types/node": "^25.2.1",
     "baseline-browser-mapping": "^2.9.18",
     "bcrypt": "^5.1.1",
     "prettier": "^3.1.0",
