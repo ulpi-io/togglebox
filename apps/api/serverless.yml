@@ -11,12 +11,15 @@ provider:
   timeout: 30
 
   environment:
-    NODE_ENV: ${self:provider.stage}
+    NODE_ENV: production
     AWS_REGION_NAME: ${self:provider.region}
-    LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
-    CORS_ORIGIN: ${env:CORS_ORIGIN, '*'}
-    ENABLE_AUTHENTICATION: ${env:ENABLE_AUTHENTICATION, 'true'}
-    # Table names with stage suffix
+    DB_TYPE: dynamodb
+    DYNAMODB_TABLE: ${self:custom.tablePrefix}
+    LOG_LEVEL: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/log-level}
+    LOG_PRETTY: 'false'
+    CORS_ORIGIN: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cors-origin}
+    ENABLE_AUTHENTICATION: 'true'
+    # Table names
     DYNAMODB_USERS_TABLE: ${self:custom.tableNames.users}
     DYNAMODB_API_KEYS_TABLE: ${self:custom.tableNames.apiKeys}
     DYNAMODB_PASSWORD_RESETS_TABLE: ${self:custom.tableNames.passwordResets}
@@ -28,11 +31,13 @@ provider:
     DYNAMODB_EXPERIMENTS_TABLE: ${self:custom.tableNames.experiments}
     DYNAMODB_STATS_TABLE: ${self:custom.tableNames.stats}
     DYNAMODB_USAGE_TABLE: ${self:custom.tableNames.usage}
-    # Cache configuration
-    CLOUDFRONT_DISTRIBUTION_ID: ${env:CLOUDFRONT_DISTRIBUTION_ID, ''}
-    # Auth secrets (set via environment or SSM)
-    JWT_SECRET: ${env:JWT_SECRET, ssm:/togglebox/${self:provider.stage}/jwt-secret~true}
-    API_KEY_SECRET: ${env:API_KEY_SECRET, ssm:/togglebox/${self:provider.stage}/api-key-secret~true}
+    # Cache configuration from SSM
+    CACHE_ENABLED: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cache/enabled}
+    CACHE_PROVIDER: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cache/provider}
+    CLOUDFRONT_DISTRIBUTION_ID: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/cache/cloudfront-distribution-id, ''}
+    # Auth secrets from SSM Parameter Store
+    JWT_SECRET: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/auth/jwt-secret}
+    API_KEY_SECRET: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/auth/api-key-secret}
 
   iam:
     role:
@@ -89,11 +94,18 @@ provider:
             - cloudfront:GetInvalidation
             - cloudfront:ListInvalidations
           Resource: "*"
+        # SSM Parameter Store permissions
+        - Effect: Allow
+          Action:
+            - ssm:GetParameter
+            - ssm:GetParameters
+          Resource:
+            - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/mumzworld-togglebox-api-${self:provider.stage}/*"
 
 functions:
   # Public API - internet accessible (read-only endpoints)
   publicApi:
-    handler: dist/lambda.lambdaHandler
+    handler: dist-bundle/lambda.lambdaHandler
     events:
       - http:
           path: /api/v1/platforms
@@ -114,7 +126,7 @@ functions:
 
   # Internal API - restricted to AWS account/VPC only (write operations)
   internalApi:
-    handler: dist/lambda.lambdaHandler
+    handler: dist-bundle/lambda.lambdaHandler
     events:
       - http:
           path: /api/v1/internal/{proxy+}
@@ -123,31 +135,61 @@ functions:
 
   # Auth API - public authentication endpoints
   authApi:
-    handler: dist/lambda.lambdaHandler
+    handler: dist-bundle/lambda.lambdaHandler
     events:
       - http:
           path: /api/v1/auth/{proxy+}
           method: ANY
           cors: true
+      - http:
+          path: /api/v1/users/{proxy+}
+          method: ANY
+          cors: true
+      - http:
+          path: /api/v1/api-keys/{proxy+}
+          method: ANY
+          cors: true
 
 custom:
-  # Table names with stage suffix
+  # Custom domain configuration from SSM
+  customDomain:
+    domainName: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/custom-domain/domain-name}
+    certificateArn: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/custom-domain/certificate-arn}
+    basePath: ''
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+    endpointType: 'regional'
+    securityPolicy: tls_1_2
+    apiType: rest
+
+  # Table prefix from SSM
+  tablePrefix: ${ssm:/mumzworld-togglebox-api-${self:provider.stage}/dynamodb/table-prefix}
+
+  # Table names without stage suffix
   tableNames:
-    users: togglebox-users-${self:provider.stage}
-    apiKeys: togglebox-api-keys-${self:provider.stage}
-    passwordResets: togglebox-password-resets-${self:provider.stage}
-    platforms: togglebox-platforms-${self:provider.stage}
-    environments: togglebox-environments-${self:provider.stage}
-    configs: togglebox-configs-${self:provider.stage}
-    remoteConfigs: togglebox-remote-configs-${self:provider.stage}
-    flags: togglebox-flags-${self:provider.stage}
-    experiments: togglebox-experiments-${self:provider.stage}
-    stats: togglebox-stats-${self:provider.stage}
-    usage: togglebox-usage-${self:provider.stage}
+    users: ${self:custom.tablePrefix}-users
+    apiKeys: ${self:custom.tablePrefix}-api-keys
+    passwordResets: ${self:custom.tablePrefix}-password-resets
+    platforms: ${self:custom.tablePrefix}-platforms
+    environments: ${self:custom.tablePrefix}-environments
+    configs: ${self:custom.tablePrefix}-configs
+    remoteConfigs: ${self:custom.tablePrefix}-remote-configs
+    flags: ${self:custom.tablePrefix}-flags
+    experiments: ${self:custom.tablePrefix}-experiments
+    stats: ${self:custom.tablePrefix}-stats
+    usage: ${self:custom.tablePrefix}-usage
 
   serverless-offline:
     httpPort: 3000
     host: 0.0.0.0
+
+package:
+  individually: false
+  patterns:
+    - 'dist-bundle/**'
+    - '!dist/**'
+    - '!src/**'
+    - '!node_modules/**'
 
 resources:
   Resources:
@@ -260,7 +302,7 @@ resources:
     # =========================================================================
     # PLATFORMS TABLE
     # =========================================================================
-    # Schema: PK = PLATFORM#{name}
+    # Schema: PK = PLATFORM#{name}, GSI1PK = PLATFORM, GSI1SK = PLATFORM#{name}
     PlatformsTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -268,9 +310,22 @@ resources:
         AttributeDefinitions:
           - AttributeName: PK
             AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
         KeySchema:
           - AttributeName: PK
             KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true
@@ -540,9 +595,17 @@ resources:
       Export:
         Name: ${self:service}-${self:provider.stage}-ApiGatewayRestApiId
     ServiceEndpoint:
-      Value: !Sub "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${self:provider.stage}"
+      Value:
+        Fn::Join:
+          - ''
+          - - 'https://'
+            - Ref: ApiGatewayRestApi
+            - '.execute-api.'
+            - Ref: AWS::Region
+            - '.amazonaws.com/dev'
       Export:
         Name: ${self:service}-${self:provider.stage}-ServiceEndpoint
 
 plugins:
+  - serverless-domain-manager
   - serverless-offline

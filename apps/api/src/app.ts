@@ -181,35 +181,11 @@ app.use("/api/v1", authRouter); // Auth endpoints (login, register - no auth req
 app.use("/api/v1", publicRouter); // Public read-only endpoints (conditionalAuth)
 app.use("/api/v1/internal", internalRouter); // Internal write endpoints (requireAuth)
 
-// Root endpoint
+// Root endpoint - disabled
 app.get("/", (_req, res) => {
-  res.json({
-    success: true,
-    message: config.appConfig.APP_NAME,
-    description: config.appConfig.APP_DESCRIPTION,
-    version: config.appConfig.APP_VERSION,
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      public: {
-        health: "/health",
-        ready: "/ready",
-        platforms: `${config.appConfig.API.basePath}/platforms`,
-        environments: `${config.appConfig.API.basePath}/platforms/:platform/environments`,
-        configs: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/configs`,
-        flags: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/flags`,
-        experiments: `${config.appConfig.API.basePath}/platforms/:platform/environments/:environment/experiments`,
-        webhookStatus: `${config.appConfig.API.basePath}/webhook/cache/invalidations`,
-      },
-      internal: {
-        createPlatform: `POST ${config.appConfig.API.internalBasePath}/platforms`,
-        createEnvironment: `POST ${config.appConfig.API.internalBasePath}/platforms/:platform/environments`,
-        createConfigParameter: `POST ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/configs`,
-        updateConfigParameter: `PATCH ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/configs/:parameterKey`,
-        deleteConfigParameter: `DELETE ${config.appConfig.API.internalBasePath}/platforms/:platform/environments/:environment/configs/:parameterKey`,
-        cacheInvalidate: `POST ${config.appConfig.API.internalBasePath}/cache/invalidate`,
-        webhookInvalidate: `GET ${config.appConfig.API.internalBasePath}/webhook/cache/invalidate`,
-      },
-    },
+  res.status(404).json({
+    success: false,
+    error: "Not Found",
   });
 });
 

@@ -80,14 +80,8 @@ export async function createPasswordResetToken(
     TableName: getPasswordResetsTableName(),
     Item: {
       PK: `RESET#${token.id}`,
-      SK: `RESET#${token.id}`,
       GSI1PK: `USER#${token.userId}`,
-      GSI1SK: `RESET#${token.expiresAt.toISOString()}`,
       GSI2PK: `RESET_HASH#${token.tokenHash}`,
-      GSI2SK: `RESET#${token.id}`,
-      // GSI3 for efficient expired token cleanup (query instead of scan)
-      GSI3PK: "RESET#ALL",
-      GSI3SK: token.expiresAt.toISOString(),
       // TTL attribute for DynamoDB automatic cleanup (if TTL enabled on table)
       // TTL is the recommended approach - set to Unix timestamp (seconds)
       ttl: Math.floor(token.expiresAt.getTime() / 1000),
@@ -132,7 +126,6 @@ export async function findPasswordResetTokenById(
     TableName: getPasswordResetsTableName(),
     Key: {
       PK: `RESET#${id}`,
-      SK: `RESET#${id}`,
     },
   };
 
@@ -231,7 +224,6 @@ export async function deletePasswordResetToken(id: string): Promise<void> {
     TableName: getPasswordResetsTableName(),
     Key: {
       PK: `RESET#${id}`,
-      SK: `RESET#${id}`,
     },
   };
 
