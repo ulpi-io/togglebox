@@ -1,6 +1,6 @@
 {
   "name": "@togglebox/flags",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ToggleBox Feature Flags - 2-value feature control with geographic targeting",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

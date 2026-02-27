@@ -1,6 +1,6 @@
 {
   "name": "@togglebox/configs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ToggleBox Remote Configs - Tier 1 configuration management with versioning",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

@@ -1,6 +1,6 @@
 {
   "name": "@togglebox/sdk-nextjs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Next.js SDK for ToggleBox - remote configs, feature flags, and A/B experiments with React hooks",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

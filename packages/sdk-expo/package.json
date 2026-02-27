@@ -1,6 +1,6 @@
 {
   "name": "@togglebox/sdk-expo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React Native/Expo SDK for ToggleBox - remote configs, feature flags, and A/B experiments with offline support",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

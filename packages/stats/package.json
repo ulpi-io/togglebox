@@ -1,6 +1,6 @@
 {
   "name": "@togglebox/stats",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ToggleBox Stats - statistics, metrics, and event collection for all tiers",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

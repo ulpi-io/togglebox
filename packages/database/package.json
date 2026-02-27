@@ -1,6 +1,6 @@
 {
   "name": "@togglebox/database",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ToggleBox multi-database layer (MySQL, MongoDB, SQLite, DynamoDB)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

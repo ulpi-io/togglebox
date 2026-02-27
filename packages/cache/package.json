@@ -1,6 +1,6 @@
 {
   "name": "@togglebox/cache",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Multi-provider cache abstraction for ToggleBox (CloudFront, Cloudflare, and more)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

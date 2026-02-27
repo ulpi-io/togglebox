@@ -1,6 +1,6 @@
 {
   "name": "@togglebox/experiments",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ToggleBox Experiments - A/B testing with multiple variants and statistical analysis",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
