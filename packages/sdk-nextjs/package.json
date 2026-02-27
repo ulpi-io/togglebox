@@ -60,7 +60,7 @@
     "@togglebox/experiments": "workspace:*",
     "@togglebox/flags": "workspace:*",
     "@togglebox/sdk": "workspace:*",
-    "@types/react": "^18.2.0",
+    "@types/react": "^19.2.14",
     "next": "^15.5.10",
     "tsup": "^8.5.1",
     "typescript": "^5.7.2"
